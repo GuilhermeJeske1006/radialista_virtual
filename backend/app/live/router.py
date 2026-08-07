@@ -66,32 +66,32 @@ def _buscar_programa(db: Session, radialista: RadioConfig, programa_id: int) -> 
 _ROTEIRO_PADRAO = ["musica", "abertura", "comentario", "noticia", "chamada_ouvinte"]
 
 _DESCRICAO_BLOCO = {
-    "abertura": "abertura do bloco: recebe o ouvinte, marca o inicio de um novo momento do programa",
-    "musica": "chamada de musica: anuncia a faixa que vai tocar em seguida",
-    "comentario": "comentario: fala mais pausada e reflexiva sobre um assunto permitido",
-    "noticia": "noticia: fala mais serena e informativa sobre um fato permitido",
-    "chamada_ouvinte": "chamada ao ouvinte: convite ou recado, tom proximo e caloroso",
+    "abertura": "abertura do bloco: recebe o ouvinte, marca o início de um novo momento do programa",
+    "musica": "chamada de música: anuncia a faixa que vai tocar em seguida",
+    "comentario": "comentário: fala mais pausada e reflexiva sobre um assunto permitido",
+    "noticia": "notícia: fala mais serena e informativa sobre um fato permitido",
+    "chamada_ouvinte": "chamada ao ouvinte: convite ou recado, tom próximo e caloroso",
 }
 
 _PROSODIA_BLOCO = {
     "abertura": (
-        "Este bloco e a ABERTURA: acentue mais essa fala. Frases curtas e animadas, uma leve exclamacao "
-        "no cumprimento inicial pra marcar energia, ritmo mais rapido que o normal."
+        "Este bloco é a ABERTURA: acentue mais essa fala. Frases curtas e animadas, uma leve exclamação "
+        "no cumprimento inicial pra marcar energia, ritmo mais rápido que o normal."
     ),
     "musica": (
-        "Este bloco e a CHAMADA DE MUSICA: acentue o anuncio da faixa, com empolgacao genuina, "
-        "ritmo um pouco mais rapido bem na hora de chamar a musica."
+        "Este bloco é a CHAMADA DE MÚSICA: acentue o anúncio da faixa, com empolgação genuína, "
+        "ritmo um pouco mais rápido bem na hora de chamar a música."
     ),
     "comentario": (
-        "Este bloco e um COMENTARIO: fale mais devagar e pausado, como quem esta pensando alto. "
-        "Use reticencias e virgulas pra marcar respiracao entre as ideias, sem pressa."
+        "Este bloco é um COMENTÁRIO: fale mais devagar e pausado, como quem está pensando alto. "
+        "Use reticências e vírgulas pra marcar respiração entre as ideias, sem pressa."
     ),
     "noticia": (
-        "Este bloco e uma NOTICIA: tom mais serio e sereno, ritmo mais lento que o normal, "
-        "pausas claras (reticencias/virgulas) entre fato e comentario."
+        "Este bloco é uma NOTÍCIA: tom mais sério e sereno, ritmo mais lento que o normal, "
+        "pausas claras (reticências/vírgulas) entre fato e comentário."
     ),
     "chamada_ouvinte": (
-        "Este bloco e a CHAMADA AO OUVINTE: tom caloroso e proximo, ritmo normal a levemente mais rapido, "
+        "Este bloco é a CHAMADA AO OUVINTE: tom caloroso e próximo, ritmo normal a levemente mais rápido, "
         "acentue o nome do ouvinte quando houver."
     ),
 }
@@ -115,6 +115,25 @@ def _tipo_proximo_bloco(programa: Programa, total_falas: int) -> str:
         # IA fica livre pra emendar um comentario extra fora da sequencia pre-definida de vez em quando.
         return "comentario"
     return tipo
+
+
+_MARKDOWN_ENFASE = re.compile(r"(\*\*|\*|__|_|`)")
+_ESPACO_ANTES_PONTUACAO = re.compile(r"\s+([,.;:!?])")
+_ESPACOS_REPETIDOS = re.compile(r"[ \t]{2,}")
+
+
+def _limpar_fala(fala: str) -> str:
+    """Remove artefatos que o LLM às vezes deixa escapar (aspas envolvendo a fala
+    inteira, ênfase em markdown, espaço solto antes de pontuação) antes de mandar
+    pro TTS -- o prompt pede pra não usar essas coisas, mas nada garantia isso.
+    """
+    texto = fala.strip()
+    if len(texto) >= 2 and texto[0] in "\"'" and texto[-1] == texto[0]:
+        texto = texto[1:-1].strip()
+    texto = _MARKDOWN_ENFASE.sub("", texto)
+    texto = _ESPACO_ANTES_PONTUACAO.sub(r"\1", texto)
+    texto = _ESPACOS_REPETIDOS.sub(" ", texto)
+    return texto.strip()
 
 
 _TAG_BLOCO_MUSICAS = re.compile(r"\[BLOCO_MUSICAS:\s*(\d)\]\s*$")
@@ -208,89 +227,89 @@ def gerar_proxima_fala(
 
     system_prompt_linhas = [
         montar_system_prompt(account, radialista, programa),
-        "Voce tambem apresenta um programa de radio ao vivo dentro do painel.",
-        "Gere somente a fala do locutor, sem aspas, sem markdown e sem narracao externa.",
-        "A fala deve ter entre 4 e 6 frases curtas, com ritmo de radio e transicoes naturais.",
-        "Fale como locutor de verdade, nao como texto escrito: use reticencias para pausas de respiracao, "
-        "virgulas para dar ritmo, e de vez em quando um maneirismo natural (\"entao\", \"olha so\", \"e ai\", "
-        "\"po\") no comeco da frase. Nao exagere, no maximo um por fala.",
-        f"O programa segue esta sequencia logica de blocos, em loop: {posicao_roteiro}. "
-        "Tenha consciencia de qual momento do programa voce esta vivendo agora e conecte a fala com o que "
-        "vem antes e depois dela, mantendo transicao natural (nao repita a mesma abertura ou o mesmo gancho "
+        "Você também apresenta um programa de rádio ao vivo dentro do painel.",
+        "Gere somente a fala do locutor, sem aspas, sem markdown e sem narração externa.",
+        "A fala deve ter entre 4 e 6 frases curtas, com ritmo de rádio e transições naturais.",
+        "Fale como locutor de verdade, não como texto escrito: use reticências para pausas de respiração, "
+        "vírgulas para dar ritmo, e de vez em quando um maneirismo natural (\"então\", \"olha só\", \"e aí\", "
+        "\"pô\") no começo da frase. Não exagere, no máximo um por fala.",
+        f"O programa segue esta sequência lógica de blocos, em loop: {posicao_roteiro}. "
+        "Tenha consciência de qual momento do programa você está vivendo agora e conecte a fala com o que "
+        "vem antes e depois dela, mantendo transição natural (não repita a mesma abertura ou o mesmo gancho "
         "toda vez).",
-        "Ao citar a identificacao da radio (nome, frequencia, slogan) pra fechar ou emendar uma fala, nunca "
-        "repita a mesma frase pronta do bloco anterior (ex: sempre 'Fica comigo na 87,5 FM, a Radio da sua "
-        "cidade'). Varie a construcao a cada vez -- troque a ordem das informacoes, use so parte delas, mude o "
-        "verbo de chamada ('toca com a gente', 'aqui e a', 'voce ta na', 'segue ligado na'), ou nem cite a "
-        "identificacao nessa fala. Trate isso como qualquer outro gancho: repeticao literal soa de robo.",
-        "Ao mudar de topico dentro da fala ou encerrar o bloco pra entrar no proximo, marque uma pausa mais "
-        "longa que o normal: use reticencias duplas (\"......\") ou um respiro curto antes de virar o assunto, "
+        "Ao citar a identificação da rádio (nome, frequência, slogan) pra fechar ou emendar uma fala, nunca "
+        "repita a mesma frase pronta do bloco anterior (ex: sempre 'Fica comigo na 87,5 FM, a Rádio da sua "
+        "cidade'). Varie a construção a cada vez -- troque a ordem das informações, use só parte delas, mude o "
+        "verbo de chamada ('toca com a gente', 'aqui é a', 'você tá na', 'segue ligado na'), ou nem cite a "
+        "identificação nessa fala. Trate isso como qualquer outro gancho: repetição literal soa de robô.",
+        "Ao mudar de tópico dentro da fala ou encerrar o bloco pra entrar no próximo, marque uma pausa mais "
+        "longa que o normal: use reticências duplas (\"......\") ou um respiro curto antes de virar o assunto, "
         "em vez de emendar direto.",
         _PROSODIA_BLOCO.get(
             tipo,
-            f"Este bloco e '{tipo}': ajuste tom e ritmo conforme o conteudo, mantendo a identidade do programa.",
+            f"Este bloco é '{tipo}': ajuste tom e ritmo conforme o conteúdo, mantendo a identidade do programa.",
         ),
-        "Alem do tipo do bloco, varie intensidade dentro da propria fala conforme o conteudo: acelere e encurte "
-        "frases em partes animadas ou de efeito, desacelere com virgulas e reticencias em partes que pedem mais "
-        "reflexao ou peso -- nao mantenha o mesmo ritmo do inicio ao fim da fala.",
-        "Quando o bloco for noticia, comente apenas noticias dos tipos e fontes permitidas.",
+        "Além do tipo do bloco, varie intensidade dentro da própria fala conforme o conteúdo: acelere e encurte "
+        "frases em partes animadas ou de efeito, desacelere com vírgulas e reticências em partes que pedem mais "
+        "reflexão ou peso -- não mantenha o mesmo ritmo do início ao fim da fala.",
+        "Quando o bloco for notícia, comente apenas notícias dos tipos e fontes permitidas.",
         "Nunca use tom de incerteza ou promessa vaga tipo 'quando pintar novidade confirmada eu aviso' ou "
-        "'se tiver algo eu passo aqui depois' -- fale com convicao sobre o que souber, e se nao tiver "
-        "conteudo solido pro bloco, mantenha a fala curta e direta em vez de enrolar.",
-        "Quando o bloco for comentario, escolha um assunto diferente do ultimo comentado no historico.",
-        "Se pesquisa externa estiver desabilitada, nao invente fatos recentes: faca chamadas gerais e atemporais.",
+        "'se tiver algo eu passo aqui depois' -- fale com convicção sobre o que souber, e se não tiver "
+        "conteúdo sólido pro bloco, mantenha a fala curta e direta em vez de enrolar.",
+        "Quando o bloco for comentário, escolha um assunto diferente do último comentado no histórico.",
+        "Se pesquisa externa estiver desabilitada, não invente fatos recentes: faça chamadas gerais e atemporais.",
     ]
     if musica is not None and pedido_musica is not None:
         nome_pedido = pedido_musica.nome or "um ouvinte"
         system_prompt_linhas.append(
-            f"Quando o bloco for musica, anuncie que {nome_pedido} pediu pelo WhatsApp a musica "
-            f"'{musica.titulo}' de '{musica.canal}', que sera tocada ao vivo em seguida. Nao anuncie outra musica."
+            f"Quando o bloco for música, anuncie que {nome_pedido} pediu pelo WhatsApp a música "
+            f"'{musica.titulo}' de '{musica.canal}', que será tocada ao vivo em seguida. Não anuncie outra música."
         )
     elif musica is not None:
         system_prompt_linhas.append(
-            f"Quando o bloco for musica, anuncie exatamente a musica '{musica.titulo}' de '{musica.canal}', "
-            "que sera tocada ao vivo em seguida. Nao anuncie outra musica."
+            f"Quando o bloco for música, anuncie exatamente a música '{musica.titulo}' de '{musica.canal}', "
+            "que será tocada ao vivo em seguida. Não anuncie outra música."
         )
     else:
         system_prompt_linhas.append(
-            "Quando o bloco for musica, anuncie uma musica/artista permitido ou um genero permitido "
+            "Quando o bloco for música, anuncie uma música/artista permitido ou um gênero permitido "
             "(nenhuma faixa foi encontrada para tocar ao vivo agora)."
         )
 
     if tipo == "musica" and musica is not None:
         system_prompt_linhas.append(
-            "Se sentir que o momento pede embalar o programa sem interrupcao, voce pode emendar mais musicas "
-            "em seguida, sem falar entre uma e outra (tipo um bloco de duas ou tres). So faca isso de vez em "
-            "quando, quando fizer sentido pro clima (nao sempre). Se decidir emendar, termine sua fala, em uma "
+            "Se sentir que o momento pede embalar o programa sem interrupção, você pode emendar mais músicas "
+            "em seguida, sem falar entre uma e outra (tipo um bloco de duas ou três). Só faça isso de vez em "
+            "quando, quando fizer sentido pro clima (não sempre). Se decidir emendar, termine sua fala, em uma "
             "linha separada e sozinha, com a tag [BLOCO_MUSICAS:2] ou [BLOCO_MUSICAS:3] conforme a quantidade "
-            "total de musicas do bloco (incluindo a que voce ja anunciou). Se for tocar so uma musica dessa vez, "
-            "nao inclua nenhuma tag."
+            "total de músicas do bloco (incluindo a que você já anunciou). Se for tocar só uma música dessa vez, "
+            "não inclua nenhuma tag."
         )
 
     if pedido_abraco is not None:
         nome_ouvinte = pedido_abraco.nome or "um ouvinte"
         system_prompt_linhas.append(
-            f"Quando o bloco for chamada_ouvinte, mande um alo pra {nome_ouvinte}: cumprimente pelo nome e "
+            f"Quando o bloco for chamada_ouvinte, mande um alô pra {nome_ouvinte}: cumprimente pelo nome e "
             f"comente em poucas palavras o que ele mandou pelo WhatsApp: \"{pedido_abraco.mensagem_usuario}\"."
         )
     else:
         system_prompt_linhas.append(
-            "Quando o bloco for chamada_ouvinte, convide o publico a mandar recado ou pedido de musica "
-            "no WhatsApp da radio."
+            "Quando o bloco for chamada_ouvinte, convide o público a mandar recado ou pedido de música "
+            "no WhatsApp da rádio."
         )
 
     system_prompt = "\n".join(system_prompt_linhas)
 
     mensagem = "\n".join(
         [
-            f"Tipo do proximo bloco: {tipo}.",
-            "Historico recente do programa:",
+            f"Tipo do próximo bloco: {tipo}.",
+            "Histórico recente do programa:",
             historico,
-            "Crie a proxima fala agora de acordo com a configuracao da radio.",
+            "Crie a próxima fala agora de acordo com a configuração da rádio.",
         ]
     )
 
-    fala = gerar_resposta(system_prompt, mensagem).strip()
+    fala = _limpar_fala(gerar_resposta(system_prompt, mensagem))
 
     musicas_bloco: list[MusicaEncontrada] = []
     if tipo == "musica":

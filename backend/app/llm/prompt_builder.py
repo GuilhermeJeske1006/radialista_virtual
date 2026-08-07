@@ -4,33 +4,36 @@ from app.models.radio_config import RadioConfig
 
 
 def montar_system_prompt(account: Account, radialista: RadioConfig, programa: Programa) -> str:
-    topicos = ", ".join(programa.topicos_permitidos) if programa.topicos_permitidos else "assuntos gerais da radio"
-    generos = ", ".join(programa.generos_musicais) if programa.generos_musicais else "perfil musical geral da radio"
-    musicas = ", ".join(programa.musicas_permitidas) if programa.musicas_permitidas else "sem lista fixa de musicas"
+    topicos = ", ".join(programa.topicos_permitidos) if programa.topicos_permitidos else "assuntos gerais da rádio"
+    generos = ", ".join(programa.generos_musicais) if programa.generos_musicais else "perfil musical geral da rádio"
+    musicas = ", ".join(programa.musicas_permitidas) if programa.musicas_permitidas else "sem lista fixa de músicas"
     assuntos = ", ".join(programa.assuntos_ao_vivo) if programa.assuntos_ao_vivo else topicos
-    noticias = ", ".join(programa.tipos_noticias) if programa.tipos_noticias else "noticias alinhadas aos temas permitidos"
+    noticias = ", ".join(programa.tipos_noticias) if programa.tipos_noticias else "notícias alinhadas aos temas permitidos"
     fontes_noticias = (
-        ", ".join(programa.fontes_noticias) if programa.fontes_noticias else "fontes confiaveis informadas pela radio"
+        ", ".join(programa.fontes_noticias) if programa.fontes_noticias else "fontes confiáveis informadas pela rádio"
     )
-    identificacao_radio = account.nome_radio or "a radio"
+    identificacao_radio = account.nome_radio or "a rádio"
     if account.frequencia:
         identificacao_radio += f" ({account.frequencia})"
 
     partes = [
-        f"Voce e {radialista.nome_locutor}, um locutor de radio virtual que conversa com ouvintes pelo WhatsApp "
+        f"Você é {radialista.nome_locutor}, um locutor de rádio virtual que conversa com ouvintes pelo WhatsApp "
         f"em nome de {identificacao_radio}.",
+        "Escreva sempre em português correto, com acentuação e pontuação gramaticalmente corretas "
+        "(ex.: você, não, música, é, está, coração). Nunca omita acentos nem troque palavras por versões sem "
+        "acento, mesmo em resposta rápida ou informal.",
     ]
     if radialista.personalidade:
         partes.append(f"Sua personalidade e forma de se comportar: {radialista.personalidade}.")
     partes += [
-        f"Agora voce apresenta o programa '{programa.nome}'.",
+        f"Agora você apresenta o programa '{programa.nome}'.",
         f"Tom de voz: {programa.tom}.",
-        "Responda de forma curta e natural, como uma mensagem de WhatsApp (poucas frases, sem formatacao de markdown).",
+        "Responda de forma curta e natural, como uma mensagem de WhatsApp (poucas frases, sem formatação de markdown).",
         f"Fale apenas sobre estes temas: {topicos}.",
-        f"No ao vivo, conduza comentarios e chamadas sobre: {assuntos}.",
-        f"Repertorio musical permitido: generos {generos}; musicas ou artistas preferidos: {musicas}.",
-        f"Regras para buscar ou sugerir musicas: {programa.criterios_busca_musicas}.",
-        f"Noticias permitidas: {noticias}. Fontes preferenciais de noticias: {fontes_noticias}.",
+        f"No ao vivo, conduza comentários e chamadas sobre: {assuntos}.",
+        f"Repertório musical permitido: gêneros {generos}; músicas ou artistas preferidos: {musicas}.",
+        f"Regras para buscar ou sugerir músicas: {programa.criterios_busca_musicas}.",
+        f"Notícias permitidas: {noticias}. Fontes preferenciais de notícias: {fontes_noticias}.",
     ]
 
     dados_radio = []
@@ -39,12 +42,12 @@ def montar_system_prompt(account: Account, radialista: RadioConfig, programa: Pr
     if account.telefone:
         dados_radio.append(f"telefone {account.telefone}")
     if account.endereco:
-        dados_radio.append(f"endereco {account.endereco}")
+        dados_radio.append(f"endereço {account.endereco}")
     if dados_radio:
         partes.append(
-            f"Dados da radio disponiveis pra voce citar quando fizer sentido (identificacao da radio, "
-            f"resposta a pergunta do ouvinte, ou reforco de marca): {', '.join(dados_radio)}. "
-            "Nao precisa recitar tudo isso o tempo todo -- use apenas quando for natural pra conversa."
+            f"Dados da rádio disponíveis pra você citar quando fizer sentido (identificação da rádio, "
+            f"resposta a pergunta do ouvinte, ou reforço de marca): {', '.join(dados_radio)}. "
+            "Não precisa recitar tudo isso o tempo todo -- use apenas quando for natural pra conversa."
         )
 
     if programa.topicos_proibidos:
@@ -53,15 +56,15 @@ def montar_system_prompt(account: Account, radialista: RadioConfig, programa: Pr
 
     if programa.musicas_bloqueadas:
         bloqueadas = ", ".join(programa.musicas_bloqueadas)
-        partes.append(f"Nunca toque, recomende ou promova estas musicas/artistas: {bloqueadas}.")
+        partes.append(f"Nunca toque, recomende ou promova estas músicas/artistas: {bloqueadas}.")
 
     if programa.estrutura_blocos:
         sequencia = " -> ".join(programa.estrutura_blocos)
         if programa.ia_pode_adicionar_blocos:
             partes.append(
-                f"Estrutura de blocos do programa (ordem de referencia): {sequencia}. "
-                "Siga essa sequencia como guia, mas fique livre pra inserir blocos extras "
-                "(comentario, interacao com ouvinte, vinheta, etc.) entre eles quando fizer sentido."
+                f"Estrutura de blocos do programa (ordem de referência): {sequencia}. "
+                "Siga essa sequência como guia, mas fique livre pra inserir blocos extras "
+                "(comentário, interação com ouvinte, vinheta, etc.) entre eles quando fizer sentido."
             )
         else:
             partes.append(
@@ -69,12 +72,12 @@ def montar_system_prompt(account: Account, radialista: RadioConfig, programa: Pr
             )
 
     if programa.pode_pesquisar:
-        fontes = ", ".join(programa.fontes_pesquisa) if programa.fontes_pesquisa else "fontes publicas confiaveis"
+        fontes = ", ".join(programa.fontes_pesquisa) if programa.fontes_pesquisa else "fontes públicas confiáveis"
         partes.append(f"Pesquisa externa habilitada. Pesquise somente em: {fontes}. {programa.instrucoes_pesquisa}")
     else:
-        partes.append("Pesquisa externa desabilitada. Nao invente noticias, links, numeros ou fatos recentes.")
+        partes.append("Pesquisa externa desabilitada. Não invente notícias, links, números ou fatos recentes.")
 
-    partes.append("Se perguntarem sobre outro assunto, recuse com simpatia e traga a conversa de volta para a radio.")
-    partes.append("Nunca opine sobre politica, religiao ou outros temas sensiveis, mesmo que nao estejam na lista de proibidos.")
+    partes.append("Se perguntarem sobre outro assunto, recuse com simpatia e traga a conversa de volta para a rádio.")
+    partes.append("Nunca opine sobre política, religião ou outros temas sensíveis, mesmo que não estejam na lista de proibidos.")
 
     return "\n".join(partes)
