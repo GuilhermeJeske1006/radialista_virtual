@@ -18,6 +18,17 @@ const LINKS = [
     ),
   },
   {
+    href: "/live",
+    label: "Ao Vivo",
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M8.288 15.038a5.25 5.25 0 117.424 0M6.34 17.5a8.25 8.25 0 1111.32 0M12 12.75a.75.75 0 11-.75-.75.75.75 0 01.75.75z"
+      />
+    ),
+  },
+  {
     href: "/radialista",
     label: "Radialistas",
     icon: (
@@ -61,17 +72,7 @@ const LINKS = [
       />
     ),
   },
-  {
-    href: "/live",
-    label: "Ao Vivo",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M8.288 15.038a5.25 5.25 0 117.424 0M6.34 17.5a8.25 8.25 0 1111.32 0M12 12.75a.75.75 0 11-.75-.75.75.75 0 01.75.75z"
-      />
-    ),
-  },
+
   {
     href: "/billing",
     label: "Assinatura",
