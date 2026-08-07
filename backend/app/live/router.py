@@ -63,7 +63,7 @@ def _buscar_programa(db: Session, radialista: RadioConfig, programa_id: int) -> 
     return programa
 
 
-_ROTEIRO = ["musica", "abertura", "comentario", "noticia", "chamada_ouvinte"]
+_ROTEIRO_PADRAO = ["musica", "abertura", "comentario", "noticia", "chamada_ouvinte"]
 
 _DESCRICAO_BLOCO = {
     "abertura": "abertura do bloco: recebe o ouvinte, marca o inicio de um novo momento do programa",
@@ -97,11 +97,24 @@ _PROSODIA_BLOCO = {
 }
 
 
-def _tipo_proximo_bloco(total_falas: int) -> str:
-    """Abertura so pode vir logo depois de um bloco de musica (excecao: abertura de largada do programa)."""
-    if total_falas == 0:
-        return "abertura"
-    return _ROTEIRO[(total_falas - 1) % len(_ROTEIRO)]
+def _tipo_proximo_bloco(programa: Programa, total_falas: int) -> str:
+    """Decide o tipo do proximo bloco.
+
+    Sem estrutura customizada: mantem o comportamento padrao (abertura so pode vir logo depois de
+    um bloco de musica, excecao pra abertura de largada do programa). Com estrutura customizada
+    (programa.estrutura_blocos), segue exatamente a sequencia definida pelo usuario, em loop.
+    """
+    roteiro_customizado = [t.strip() for t in programa.estrutura_blocos if t.strip()]
+    if not roteiro_customizado:
+        if total_falas == 0:
+            return "abertura"
+        return _ROTEIRO_PADRAO[(total_falas - 1) % len(_ROTEIRO_PADRAO)]
+
+    tipo = roteiro_customizado[total_falas % len(roteiro_customizado)]
+    if programa.ia_pode_adicionar_blocos and total_falas > 0 and random.random() < 0.15:
+        # IA fica livre pra emendar um comentario extra fora da sequencia pre-definida de vez em quando.
+        return "comentario"
+    return tipo
 
 
 _TAG_BLOCO_MUSICAS = re.compile(r"\[BLOCO_MUSICAS:\s*(\d)\]\s*$")
@@ -168,7 +181,7 @@ def gerar_proxima_fala(
 ):
     radialista = _buscar_radialista(db, account, radialista_id)
     programa = _buscar_programa(db, radialista, programa_id)
-    tipo = _tipo_proximo_bloco(len(dados.historico))
+    tipo = _tipo_proximo_bloco(programa, len(dados.historico))
     if tipo == "noticia" and not (programa.pode_pesquisar or programa.tipos_noticias or programa.fontes_noticias):
         # Sem fonte de noticia configurada: nao arrisca fala vaga/incerta, toca musica direto.
         tipo = "musica"
@@ -183,9 +196,14 @@ def gerar_proxima_fala(
 
     pedido_abraco = _proximo_pedido_fila(db, radialista, "abraco") if tipo == "chamada_ouvinte" else None
 
+    roteiro_ativo = [t.strip() for t in programa.estrutura_blocos if t.strip()] or _ROTEIRO_PADRAO
+
+    def _descricao(t: str) -> str:
+        return _DESCRICAO_BLOCO.get(t, f"bloco livre '{t}'")
+
     posicao_roteiro = ", ".join(
-        f"{i + 1}) {_DESCRICAO_BLOCO[t]}" + (" <- bloco atual" if t == tipo else "")
-        for i, t in enumerate(_ROTEIRO)
+        f"{i + 1}) {_descricao(t)}" + (" <- bloco atual" if t == tipo else "")
+        for i, t in enumerate(roteiro_ativo)
     )
 
     system_prompt_linhas = [
@@ -208,7 +226,10 @@ def gerar_proxima_fala(
         "Ao mudar de topico dentro da fala ou encerrar o bloco pra entrar no proximo, marque uma pausa mais "
         "longa que o normal: use reticencias duplas (\"......\") ou um respiro curto antes de virar o assunto, "
         "em vez de emendar direto.",
-        _PROSODIA_BLOCO[tipo],
+        _PROSODIA_BLOCO.get(
+            tipo,
+            f"Este bloco e '{tipo}': ajuste tom e ritmo conforme o conteudo, mantendo a identidade do programa.",
+        ),
         "Alem do tipo do bloco, varie intensidade dentro da propria fala conforme o conteudo: acelere e encurte "
         "frases em partes animadas ou de efeito, desacelere com virgulas e reticencias em partes que pedem mais "
         "reflexao ou peso -- nao mantenha o mesmo ritmo do inicio ao fim da fala.",

@@ -17,6 +17,7 @@ router = APIRouter(prefix="/config", tags=["config"])
 
 class RadialistaRequest(BaseModel):
     nome_locutor: str
+    personalidade: str = ""
     voz_id: str | None = None
     timezone: str = "America/Sao_Paulo"
 
@@ -55,6 +56,9 @@ class ProgramaRequest(BaseModel):
     mensagem_saudacao: str = ""
     mensagem_recusa: str = ""
     limite_mensagens_hora: int = 10
+
+    estrutura_blocos: list[str] = Field(default_factory=list)
+    ia_pode_adicionar_blocos: bool = True
 
     generos_musicais: list[str] = Field(default_factory=list)
     musicas_permitidas: list[str] = Field(default_factory=list)

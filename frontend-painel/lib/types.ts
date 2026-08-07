@@ -3,12 +3,14 @@ export type Radialista = {
   wuzapi_token: string | null;
   ativo: boolean;
   nome_locutor: string;
+  personalidade: string;
   voz_id: string | null;
   timezone: string;
 };
 
 export const RADIALISTA_VAZIO: Omit<Radialista, "id" | "wuzapi_token" | "ativo"> = {
   nome_locutor: "",
+  personalidade: "",
   voz_id: null,
   timezone: "America/Sao_Paulo",
 };
@@ -53,6 +55,9 @@ export type Programa = {
   mensagem_recusa: string;
   limite_mensagens_hora: number;
 
+  estrutura_blocos: string[];
+  ia_pode_adicionar_blocos: boolean;
+
   generos_musicais: string[];
   musicas_permitidas: string[];
   musicas_bloqueadas: string[];
@@ -82,6 +87,9 @@ export const PROGRAMA_VAZIO: Omit<Programa, "id" | "radio_config_id"> = {
   mensagem_recusa: "Desculpa, nao posso falar sobre isso por aqui. Bora falar de outro assunto?",
   limite_mensagens_hora: 10,
 
+  estrutura_blocos: [],
+  ia_pode_adicionar_blocos: true,
+
   generos_musicais: [],
   musicas_permitidas: [],
   musicas_bloqueadas: [],
@@ -103,6 +111,7 @@ export function normalizarPrograma(p: Programa): Programa {
     ...p,
     topicos_permitidos: p.topicos_permitidos ?? [],
     topicos_proibidos: p.topicos_proibidos ?? [],
+    estrutura_blocos: p.estrutura_blocos ?? [],
     generos_musicais: p.generos_musicais ?? [],
     musicas_permitidas: p.musicas_permitidas ?? [],
     musicas_bloqueadas: p.musicas_bloqueadas ?? [],
@@ -114,6 +123,22 @@ export function normalizarPrograma(p: Programa): Programa {
 }
 
 export const DIAS_SEMANA_LABEL = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+
+// Valores (`value`) casam com os tipos de bloco reconhecidos pelo motor do ao vivo
+// (backend app/live/router.py) -- so nesses tipos o sistema busca musica de verdade,
+// atende fila de pedidos do WhatsApp e ajusta prosodia automaticamente. Blocos digitados
+// livremente (fora desse preset) funcionam como falas genericas, sem esse comportamento extra.
+export const BLOCOS_PRESET: { value: string; label: string }[] = [
+  { value: "abertura", label: "Abertura" },
+  { value: "musica", label: "Música" },
+  { value: "comentario", label: "Comentário" },
+  { value: "noticia", label: "Notícia" },
+  { value: "chamada_ouvinte", label: "Chamada ao ouvinte" },
+];
+
+export function rotuloBloco(tipo: string): string {
+  return BLOCOS_PRESET.find((b) => b.value === tipo)?.label ?? tipo;
+}
 
 export type Conta = {
   id: number;

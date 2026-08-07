@@ -185,6 +185,16 @@ export default function EditarRadialistaForm({
               <VoiceSelect value={config.voz_id} onChange={(vozId) => setConfig({ ...config, voz_id: vozId })} />
             </div>
           </div>
+          <div>
+            <label className={labelClass}>Personalidade</label>
+            <textarea
+              className={inputClass}
+              rows={4}
+              placeholder="Descreva como o locutor deve se comportar: personalidade, características, jeito de falar, humor, etc."
+              value={config.personalidade}
+              onChange={(e) => setConfig({ ...config, personalidade: e.target.value })}
+            />
+          </div>
           <div className="pt-2">
             <button
               type="submit"

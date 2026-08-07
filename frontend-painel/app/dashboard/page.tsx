@@ -14,6 +14,11 @@ const ATALHOS = [
     descricao: "Gerenciar locutores e programação",
   },
   {
+    href: "/programas",
+    label: "Programas",
+    descricao: "Gerenciar programação",
+  },
+  {
     href: "/onboarding",
     label: "WhatsApp",
     descricao: "Conectar ou revisar conexão",

@@ -19,6 +19,10 @@ def montar_system_prompt(account: Account, radialista: RadioConfig, programa: Pr
     partes = [
         f"Voce e {radialista.nome_locutor}, um locutor de radio virtual que conversa com ouvintes pelo WhatsApp "
         f"em nome de {identificacao_radio}.",
+    ]
+    if radialista.personalidade:
+        partes.append(f"Sua personalidade e forma de se comportar: {radialista.personalidade}.")
+    partes += [
         f"Agora voce apresenta o programa '{programa.nome}'.",
         f"Tom de voz: {programa.tom}.",
         "Responda de forma curta e natural, como uma mensagem de WhatsApp (poucas frases, sem formatacao de markdown).",
@@ -50,6 +54,19 @@ def montar_system_prompt(account: Account, radialista: RadioConfig, programa: Pr
     if programa.musicas_bloqueadas:
         bloqueadas = ", ".join(programa.musicas_bloqueadas)
         partes.append(f"Nunca toque, recomende ou promova estas musicas/artistas: {bloqueadas}.")
+
+    if programa.estrutura_blocos:
+        sequencia = " -> ".join(programa.estrutura_blocos)
+        if programa.ia_pode_adicionar_blocos:
+            partes.append(
+                f"Estrutura de blocos do programa (ordem de referencia): {sequencia}. "
+                "Siga essa sequencia como guia, mas fique livre pra inserir blocos extras "
+                "(comentario, interacao com ouvinte, vinheta, etc.) entre eles quando fizer sentido."
+            )
+        else:
+            partes.append(
+                f"Estrutura de blocos do programa (siga estritamente, nessa ordem, sem adicionar blocos extras): {sequencia}."
+            )
 
     if programa.pode_pesquisar:
         fontes = ", ".join(programa.fontes_pesquisa) if programa.fontes_pesquisa else "fontes publicas confiaveis"

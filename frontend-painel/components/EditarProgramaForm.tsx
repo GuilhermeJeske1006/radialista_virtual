@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import TagInput from "./TagInput";
+import EstruturaBlocosInput from "./EstruturaBlocosInput";
 import { apiFetch, ApiError } from "../lib/api";
 import { DIAS_SEMANA_LABEL, normalizarPrograma, Programa } from "../lib/types";
 import { OndaSpin } from "./OndaLogo";
@@ -199,6 +200,22 @@ export default function EditarProgramaForm({ programaId, onSalvo, onExcluido }: 
             className="h-4 w-4 rounded border-border-strong bg-bg text-amber focus:ring-amber/40"
           />
           Programa ativo
+        </label>
+
+        <hr className="border-border" />
+        <h3 className="font-mono text-xs uppercase tracking-wide text-amber">Estrutura do programa</h3>
+        <EstruturaBlocosInput
+          blocos={programa.estrutura_blocos}
+          onChange={(blocos) => setPrograma({ ...programa, estrutura_blocos: blocos })}
+        />
+        <label className="inline-flex items-center gap-2 text-sm font-medium text-fg/80">
+          <input
+            type="checkbox"
+            checked={programa.ia_pode_adicionar_blocos}
+            onChange={(e) => setPrograma({ ...programa, ia_pode_adicionar_blocos: e.target.checked })}
+            className="h-4 w-4 rounded border-border-strong bg-bg text-amber focus:ring-amber/40"
+          />
+          IA pode inserir blocos extras entre os da sequência
         </label>
 
         <hr className="border-border" />

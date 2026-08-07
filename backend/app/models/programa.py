@@ -42,6 +42,12 @@ class Programa(Base):
     )
     limite_mensagens_hora: Mapped[int] = mapped_column(Integer, default=10)
 
+    # Sequencia pre-estabelecida de blocos do programa (ex.: ["abertura", "saudacao", "musica",
+    # "abertura", "noticia", "musica"]). Guia a ordem do ao vivo; a IA segue essa estrutura mas
+    # pode inserir blocos extras entre os definidos quando ia_pode_adicionar_blocos for True.
+    estrutura_blocos: Mapped[list[str]] = mapped_column(JSON, default=list)
+    ia_pode_adicionar_blocos: Mapped[bool] = mapped_column(Boolean, default=True)
+
     generos_musicais: Mapped[list[str]] = mapped_column(JSON, default=list)
     musicas_permitidas: Mapped[list[str]] = mapped_column(JSON, default=list)
     musicas_bloqueadas: Mapped[list[str]] = mapped_column(JSON, default=list)

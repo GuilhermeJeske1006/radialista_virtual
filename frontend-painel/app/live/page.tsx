@@ -149,7 +149,9 @@ function gerarFalaLocal(
   totalFalas: number
 ): Omit<ProgramSegment, "id" | "criado_em" | "origem"> {
   const nome = radialista.nome_locutor || "Locutor";
-  const roteiro = ["abertura", "musica", "comentario", "noticia", "chamada_ouvinte"];
+  const roteiroPadrao = ["abertura", "musica", "comentario", "noticia", "chamada_ouvinte"];
+  const roteiroCustom = programa.estrutura_blocos.map((b) => b.trim()).filter(Boolean);
+  const roteiro = roteiroCustom.length > 0 ? roteiroCustom : roteiroPadrao;
   const tipo = roteiro[totalFalas % roteiro.length];
   const genero = escolher(programa.generos_musicais, "os sucessos da nossa programacao");
   const musica = escolher(programa.musicas_permitidas, genero);
@@ -167,7 +169,8 @@ function gerarFalaLocal(
     chamada_ouvinte: `Agora eu quero ouvir quem esta do outro lado. Manda seu recado, pede sua musica dentro do nosso repertorio e ajuda o programa a ganhar cara de ao vivo.`,
   };
 
-  return { tipo, fala: falas[tipo] };
+  const falaGenerica = `Seguimos com o bloco de ${tipo.replace(/_/g, " ")} aqui no ${programa.nome}, fica comigo.`;
+  return { tipo, fala: falas[tipo] ?? falaGenerica };
 }
 
 export default function LivePage() {

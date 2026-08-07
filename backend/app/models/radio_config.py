@@ -31,6 +31,9 @@ class RadioConfig(Base):
 
     nome_locutor: Mapped[str] = mapped_column(String, default="Ze do Radio")
 
+    # Personalidade/comportamento do locutor (texto livre), usado no prompt do LLM.
+    personalidade: Mapped[str] = mapped_column(String, default="")
+
     # Id de uma das vozes do catalogo (app/tts/voices.py). Nulo = usa a voz padrao configurada no servidor.
     voz_id: Mapped[str | None] = mapped_column(String, nullable=True)
 
