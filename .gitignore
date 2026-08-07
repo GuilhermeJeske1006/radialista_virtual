@@ -1,0 +1,42 @@
+# --- Env / secrets ---
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# --- Python (backend) ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+venv/
+.venv/
+env/
+*.sqlite3
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Node / Next.js (frontend-painel) ---
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- wuzapi ---
+wuzapi/qr.png
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# --- Logs ---
+*.log
