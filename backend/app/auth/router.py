@@ -1,16 +1,22 @@
 import datetime
+import hashlib
+import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_account
+from app.auth.email import enviar_email_redefinicao_senha
 from app.auth.security import criar_token, hash_senha, verificar_senha
 from app.db.database import get_db
 from app.guardrails.http_rate_limit import limitar_por_ip
 from app.models.account import Account
+from app.models.password_reset_token import PasswordResetToken
 from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
+
+TOKEN_RESET_VALIDADE_MINUTOS = 30
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -48,6 +54,15 @@ class AlterarSenhaRequest(BaseModel):
 
 class AtualizarPerfilRequest(BaseModel):
     nome: str
+
+
+class EsqueciSenhaRequest(BaseModel):
+    email: EmailStr
+
+
+class RedefinirSenhaRequest(BaseModel):
+    token: str
+    senha_nova: str
 
 
 @router.post(
@@ -95,6 +110,55 @@ def login(dados: LoginRequest, db: Session = Depends(get_db)):
         raise credenciais_invalidas
 
     return TokenResponse(access_token=criar_token(account.id))
+
+
+@router.post(
+    "/esqueci-senha",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(limitar_por_ip("auth_esqueci_senha", limite=5, janela_segundos=60))],
+)
+def esqueci_senha(dados: EsqueciSenhaRequest, db: Session = Depends(get_db)):
+    account = db.query(Account).filter_by(email=dados.email).first()
+    if account is not None:
+        token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        expira_em = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
+            minutes=TOKEN_RESET_VALIDADE_MINUTOS
+        )
+        db.add(PasswordResetToken(account_id=account.id, token_hash=token_hash, expira_em=expira_em))
+        db.commit()
+        enviar_email_redefinicao_senha(account.email, token)
+
+    # Sempre 204, exista ou nao a conta -- evita expor quais e-mails estao cadastrados.
+
+
+@router.post(
+    "/redefinir-senha",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(limitar_por_ip("auth_redefinir_senha", limite=10, janela_segundos=60))],
+)
+def redefinir_senha(dados: RedefinirSenhaRequest, db: Session = Depends(get_db)):
+    link_invalido = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST, detail="Link invalido ou expirado"
+    )
+    if len(dados.senha_nova) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="A nova senha precisa ter pelo menos 8 caracteres"
+        )
+
+    token_hash = hashlib.sha256(dados.token.encode()).hexdigest()
+    reset_token = db.query(PasswordResetToken).filter_by(token_hash=token_hash).first()
+    agora = datetime.datetime.now(datetime.timezone.utc)
+    if reset_token is None or reset_token.usado_em is not None or reset_token.expira_em < agora:
+        raise link_invalido
+
+    account = db.query(Account).filter_by(id=reset_token.account_id).first()
+    if account is None:
+        raise link_invalido
+
+    account.senha_hash = hash_senha(dados.senha_nova)
+    reset_token.usado_em = agora
+    db.commit()
 
 
 @router.get("/me", response_model=ContaResponse)

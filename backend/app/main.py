@@ -11,7 +11,7 @@ from app.config.settings import settings
 from app.db.database import Base, engine
 from app.live.router import router as live_router
 from app.metrics.router import router as metrics_router
-from app.models import Account, FilaAoVivo, Programa, RadioConfig  # noqa: F401 -- garante que as tabelas sejam registradas no metadata
+from app.models import Account, FilaAoVivo, PasswordResetToken, Programa, RadioConfig  # noqa: F401 -- garante que as tabelas sejam registradas no metadata
 from app.onboarding.router import router as onboarding_router
 from app.tts.router import router as tts_router
 from app.whatsapp.webhook import router as whatsapp_router

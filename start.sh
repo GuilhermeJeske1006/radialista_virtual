@@ -7,10 +7,10 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 echo "==> Subindo wuzapi (WhatsApp API)..."
 docker compose -f "$ROOT_DIR/wuzapi/docker-compose.yml" up -d
 
-echo "==> Aguardando wuzapi ficar saudável..."
-until curl -sf -o /dev/null http://localhost:8080/status; do
-  sleep 1
-done
+# echo "==> Aguardando wuzapi ficar saudável..."
+# until curl -sf -o /dev/null http://localhost:8080/status; do
+#   sleep 1
+# done
 
 echo "==> Subindo backend + frontend..."
 docker compose -f "$ROOT_DIR/backend/docker-compose.yml" up -d --build

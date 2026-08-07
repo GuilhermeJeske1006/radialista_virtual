@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     elevenlabs_api_key: str = ""
     elevenlabs_voice_id: str = ""
 
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "Radialista Virtual <no-reply@radialista.app>"
+
     class Config:
         env_file = ".env"
         extra = "ignore"

@@ -9,6 +9,38 @@ import { PLANOS, formatarReais } from "../../lib/planos";
 import { OndaLogo, OndaSpin } from "../../components/OndaLogo";
 import ThemeToggle from "../../components/ThemeToggle";
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+type CampoErros = {
+  nome?: string;
+  email?: string;
+  senha?: string;
+  confirmarSenha?: string;
+  nomeRadio?: string;
+  nomeLocutor?: string;
+};
+
+function validarNome(v: string) {
+  return v.trim() ? "" : "Preencha seu nome";
+}
+function validarEmail(v: string) {
+  if (!v) return "Preencha seu e-mail";
+  if (!EMAIL_RE.test(v)) return "E-mail inválido";
+  return "";
+}
+function validarSenha(v: string) {
+  return v.length >= 8 ? "" : "A senha precisa ter pelo menos 8 caracteres";
+}
+function validarConfirmarSenha(senha: string, v: string) {
+  return v === senha ? "" : "As senhas não conferem";
+}
+function validarNomeRadio(v: string) {
+  return v.trim() ? "" : "Dá um nome pra sua rádio";
+}
+function validarNomeLocutor(v: string) {
+  return v.trim() ? "" : "Dá um nome pro seu locutor virtual";
+}
+
 export default function RegisterPage() {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
@@ -23,30 +55,70 @@ export default function RegisterPage() {
   const [planoId, setPlanoId] = useState("growth");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
+  const [campoErros, setCampoErros] = useState<CampoErros>({});
+  const [tocado, setTocado] = useState<Record<keyof CampoErros, boolean>>({
+    nome: false,
+    email: false,
+    senha: false,
+    confirmarSenha: false,
+    nomeRadio: false,
+    nomeLocutor: false,
+  });
+
+  function marcarTocado(campo: keyof CampoErros) {
+    setTocado((t) => ({ ...t, [campo]: true }));
+  }
+
+  function onChangeNome(v: string) {
+    setNome(v);
+    setCampoErros((c) => ({ ...c, nome: validarNome(v) }));
+  }
+  function onChangeEmail(v: string) {
+    setEmail(v);
+    setCampoErros((c) => ({ ...c, email: validarEmail(v) }));
+  }
+  function onChangeSenha(v: string) {
+    setSenha(v);
+    setCampoErros((c) => ({
+      ...c,
+      senha: validarSenha(v),
+      confirmarSenha: confirmarSenha ? validarConfirmarSenha(v, confirmarSenha) : c.confirmarSenha,
+    }));
+  }
+  function onChangeConfirmarSenha(v: string) {
+    setConfirmarSenha(v);
+    setCampoErros((c) => ({ ...c, confirmarSenha: validarConfirmarSenha(senha, v) }));
+  }
+  function onChangeNomeRadio(v: string) {
+    setNomeRadio(v);
+    setCampoErros((c) => ({ ...c, nomeRadio: validarNomeRadio(v) }));
+  }
+  function onChangeNomeLocutor(v: string) {
+    setNomeLocutor(v);
+    setCampoErros((c) => ({ ...c, nomeLocutor: validarNomeLocutor(v) }));
+  }
 
   function validar(): boolean {
-    if (!nome.trim()) {
-      setErro("Preencha seu nome");
-      return false;
-    }
-    if (!email) {
-      setErro("Preencha seu e-mail");
-      return false;
-    }
-    if (senha.length < 8) {
-      setErro("A senha precisa ter pelo menos 8 caracteres");
-      return false;
-    }
-    if (senha !== confirmarSenha) {
-      setErro("As senhas não conferem");
-      return false;
-    }
-    if (!nomeRadio.trim()) {
-      setErro("Dá um nome pra sua rádio");
-      return false;
-    }
-    if (!nomeLocutor.trim()) {
-      setErro("Dá um nome pro seu locutor virtual");
+    const erros: CampoErros = {
+      nome: validarNome(nome),
+      email: validarEmail(email),
+      senha: validarSenha(senha),
+      confirmarSenha: validarConfirmarSenha(senha, confirmarSenha),
+      nomeRadio: validarNomeRadio(nomeRadio),
+      nomeLocutor: validarNomeLocutor(nomeLocutor),
+    };
+    setCampoErros(erros);
+    setTocado({
+      nome: true,
+      email: true,
+      senha: true,
+      confirmarSenha: true,
+      nomeRadio: true,
+      nomeLocutor: true,
+    });
+    const primeiroErro = Object.values(erros).find((m) => m);
+    if (primeiroErro) {
+      setErro(primeiroErro);
       return false;
     }
     return true;
@@ -92,67 +164,128 @@ export default function RegisterPage() {
     }
   }
 
+  const formInvalido =
+    !!validarNome(nome) ||
+    !!validarEmail(email) ||
+    !!validarSenha(senha) ||
+    !!validarConfirmarSenha(senha, confirmarSenha) ||
+    !!validarNomeRadio(nomeRadio) ||
+    !!validarNomeLocutor(nomeLocutor);
+
   return (
     <div className="min-h-screen bg-bg flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-3xl">
+      <div className="w-full max-w-4xl">
         <div className="flex items-center justify-center gap-3 mb-6">
           <OndaLogo size={34} wordmarkClassName="text-2xl" />
           <ThemeToggle className="ml-1" />
         </div>
 
-        <form onSubmit={concluir} className="bg-surface rounded-2xl border border-border-strong shadow-theme-sm p-6 space-y-8">
+        <form onSubmit={concluir} className="bg-surface rounded-2xl border border-border-strong shadow-theme-sm p-6 sm:p-8 space-y-8">
           <div>
-            <h1 className="font-display text-lg font-bold text-fg mb-4">Criar conta</h1>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex items-center gap-3 mb-5">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber text-ink text-sm font-bold">
+                1
+              </span>
+              <div>
+                <h1 className="font-display text-lg font-bold text-fg">Criar conta</h1>
+                <p className="text-sm text-fg/55">Seus dados de acesso ao painel.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5">
               <div>
                 <label className="block text-sm font-medium text-fg/80 mb-1.5">Seu nome</label>
                 <input
                   type="text"
                   required
+                  placeholder="Ex.: João da Silva"
                   value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                  onChange={(e) => onChangeNome(e.target.value)}
+                  onBlur={() => { onChangeNome(nome); marcarTocado("nome"); }}
+                  className={`w-full rounded-lg border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
+                    tocado.nome && campoErros.nome
+                      ? "border-rust focus:border-rust focus:ring-rust/20"
+                      : "border-border-strong focus:border-amber/50 focus:ring-amber/20"
+                  }`}
                 />
+                {tocado.nome && campoErros.nome && (
+                  <p className="mt-1 text-xs text-rust">{campoErros.nome}</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-fg/80 mb-1.5">E-mail</label>
                 <input
                   type="email"
                   required
+                  placeholder="Ex.: email@dominio.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                  onChange={(e) => onChangeEmail(e.target.value)}
+                  onBlur={() => { onChangeEmail(email); marcarTocado("email"); }}
+                  className={`w-full rounded-lg border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
+                    tocado.email && campoErros.email
+                      ? "border-rust focus:border-rust focus:ring-rust/20"
+                      : "border-border-strong focus:border-amber/50 focus:ring-amber/20"
+                  }`}
                 />
+                {tocado.email && campoErros.email && (
+                  <p className="mt-1 text-xs text-rust">{campoErros.email}</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-fg/80 mb-1.5">Senha</label>
                 <input
                   type="password"
                   required
+                  placeholder="Mínimo de 8 caracteres"
                   minLength={8}
                   value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                  onChange={(e) => onChangeSenha(e.target.value)}
+                  onBlur={() => { onChangeSenha(senha); marcarTocado("senha"); }}
+                  className={`w-full rounded-lg border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
+                    tocado.senha && campoErros.senha
+                      ? "border-rust focus:border-rust focus:ring-rust/20"
+                      : "border-border-strong focus:border-amber/50 focus:ring-amber/20"
+                  }`}
                 />
+                {tocado.senha && campoErros.senha ? (
+                  <p className="mt-1 text-xs text-rust">{campoErros.senha}</p>
+                ) : (
+                  <p className="mt-1 text-xs text-fg/40">Mínimo de 8 caracteres</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-fg/80 mb-1.5">Confirmar senha</label>
                 <input
                   type="password"
                   required
+                  placeholder="Digite a mesma senha novamente"
                   minLength={8}
                   value={confirmarSenha}
-                  onChange={(e) => setConfirmarSenha(e.target.value)}
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                  onChange={(e) => onChangeConfirmarSenha(e.target.value)}
+                  onBlur={() => { onChangeConfirmarSenha(confirmarSenha); marcarTocado("confirmarSenha"); }}
+                  className={`w-full rounded-lg border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
+                    tocado.confirmarSenha && campoErros.confirmarSenha
+                      ? "border-rust focus:border-rust focus:ring-rust/20"
+                      : "border-border-strong focus:border-amber/50 focus:ring-amber/20"
+                  }`}
                 />
+                {tocado.confirmarSenha && campoErros.confirmarSenha && (
+                  <p className="mt-1 text-xs text-rust">{campoErros.confirmarSenha}</p>
+                )}
               </div>
             </div>
           </div>
 
-          <div>
-            <h2 className="font-display text-base font-bold text-fg mb-1">Sua rádio</h2>
-            <p className="text-sm text-fg/55 mb-3">Dados da emissora e do locutor de IA que vai atender os ouvintes.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="border-t border-border pt-8">
+            <div className="flex items-center gap-3 mb-5">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber text-ink text-sm font-bold">
+                2
+              </span>
+              <div>
+                <h2 className="font-display text-lg font-bold text-fg">Sua rádio</h2>
+                <p className="text-sm text-fg/55">Dados da emissora e do locutor de IA que vai atender os ouvintes.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5">
               <div>
                 <label className="block text-sm font-medium text-fg/80 mb-1.5">Nome da rádio</label>
                 <input
@@ -160,12 +293,41 @@ export default function RegisterPage() {
                   required
                   placeholder="Ex.: Rádio Cidade FM"
                   value={nomeRadio}
-                  onChange={(e) => setNomeRadio(e.target.value)}
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                  onChange={(e) => onChangeNomeRadio(e.target.value)}
+                  onBlur={() => { onChangeNomeRadio(nomeRadio); marcarTocado("nomeRadio"); }}
+                  className={`w-full rounded-lg border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
+                    tocado.nomeRadio && campoErros.nomeRadio
+                      ? "border-rust focus:border-rust focus:ring-rust/20"
+                      : "border-border-strong focus:border-amber/50 focus:ring-amber/20"
+                  }`}
                 />
+                {tocado.nomeRadio && campoErros.nomeRadio && (
+                  <p className="mt-1 text-xs text-rust">{campoErros.nomeRadio}</p>
+                )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">Slogan</label>
+                <label className="block text-sm font-medium text-fg/80 mb-1.5">Nome do locutor virtual</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex.: Zé do Rádio"
+                  value={nomeLocutor}
+                  onChange={(e) => onChangeNomeLocutor(e.target.value)}
+                  onBlur={() => { onChangeNomeLocutor(nomeLocutor); marcarTocado("nomeLocutor"); }}
+                  className={`w-full rounded-lg border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
+                    tocado.nomeLocutor && campoErros.nomeLocutor
+                      ? "border-rust focus:border-rust focus:ring-rust/20"
+                      : "border-border-strong focus:border-amber/50 focus:ring-amber/20"
+                  }`}
+                />
+                {tocado.nomeLocutor && campoErros.nomeLocutor && (
+                  <p className="mt-1 text-xs text-rust">{campoErros.nomeLocutor}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-fg/80 mb-1.5">
+                  Slogan <span className="text-fg/40 font-normal">(opcional)</span>
+                </label>
                 <input
                   type="text"
                   placeholder="Ex.: A rádio que toca pra você"
@@ -175,7 +337,9 @@ export default function RegisterPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">Frequência</label>
+                <label className="block text-sm font-medium text-fg/80 mb-1.5">
+                  Frequência <span className="text-fg/40 font-normal">(opcional)</span>
+                </label>
                 <input
                   type="text"
                   placeholder="Ex.: 98.5 FM"
@@ -185,7 +349,9 @@ export default function RegisterPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">Telefone da rádio</label>
+                <label className="block text-sm font-medium text-fg/80 mb-1.5">
+                  Telefone da rádio <span className="text-fg/40 font-normal">(opcional)</span>
+                </label>
                 <input
                   type="text"
                   placeholder="Ex.: (11) 4000-0000"
@@ -195,7 +361,9 @@ export default function RegisterPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">Endereço</label>
+                <label className="block text-sm font-medium text-fg/80 mb-1.5">
+                  Endereço <span className="text-fg/40 font-normal">(opcional)</span>
+                </label>
                 <input
                   type="text"
                   placeholder="Ex.: Av. Principal, 123 - Centro"
@@ -204,26 +372,20 @@ export default function RegisterPage() {
                   className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">Nome do locutor virtual</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex.: Zé do Rádio"
-                  value={nomeLocutor}
-                  onChange={(e) => setNomeLocutor(e.target.value)}
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
-                />
-              </div>
             </div>
           </div>
 
-          <div>
-            <h2 className="font-display text-base font-bold text-fg mb-1">Escolha seu plano</h2>
-            <p className="text-sm text-fg/55 mb-3">
-              Você vai ser redirecionado pro checkout seguro pra confirmar a assinatura.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="border-t border-border pt-8">
+            <div className="flex items-center gap-3 mb-5">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber text-ink text-sm font-bold">
+                3
+              </span>
+              <div>
+                <h2 className="font-display text-lg font-bold text-fg">Escolha seu plano</h2>
+                <p className="text-sm text-fg/55">Você vai ser redirecionado pro checkout seguro pra confirmar a assinatura.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {PLANOS.map((plano) => {
                 const selecionado = planoId === plano.id;
                 return (
@@ -231,7 +393,7 @@ export default function RegisterPage() {
                     type="button"
                     key={plano.id}
                     onClick={() => setPlanoId(plano.id)}
-                    className={`relative text-left rounded-xl border p-4 transition-colors ${
+                    className={`relative text-left rounded-xl border p-4 transition-colors hover:-translate-y-0.5 hover:shadow-theme-sm ${
                       selecionado
                         ? "bg-surface border-amber ring-1 ring-amber/30"
                         : "bg-surface border-border-strong hover:border-amber/40"
@@ -271,21 +433,23 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {erro && <p className="text-sm text-rust">{erro}</p>}
+          <div className="border-t border-border pt-6">
+            {erro && <p className="mb-3 text-sm text-rust">{erro}</p>}
 
-          <button
-            type="submit"
-            disabled={carregando}
-            className="w-full flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {carregando ? (
-              <>
-                <OndaSpin size={14} /> Criando...
-              </>
-            ) : (
-              "Criar conta e assinar"
-            )}
-          </button>
+            <button
+              type="submit"
+              disabled={carregando || formInvalido}
+              className="w-full flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {carregando ? (
+                <>
+                  <OndaSpin size={14} /> Criando...
+                </>
+              ) : (
+                "Criar conta e assinar"
+              )}
+            </button>
+          </div>
         </form>
 
         <p className="mt-4 text-sm text-fg/55 text-center">
