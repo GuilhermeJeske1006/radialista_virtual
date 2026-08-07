@@ -11,6 +11,7 @@ const MOBILE_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/radialista", label: "Radialistas" },
   { href: "/programas", label: "Programas" },
+  { href: "/patrocinadores", label: "Patrocinadores" },
   { href: "/onboarding", label: "WhatsApp" },
   { href: "/live", label: "Ao Vivo" },
   { href: "/billing", label: "Assinatura" },

@@ -37,7 +37,11 @@ def status_plano(account: Account = Depends(get_current_account), db: Session = 
     mensagens_usadas = (
         db.query(InteractionLog)
         .join(RadioConfig, InteractionLog.radio_config_id == RadioConfig.id)
-        .filter(RadioConfig.account_id == account.id, InteractionLog.criado_em >= inicio_mes)
+        .filter(
+            RadioConfig.account_id == account.id,
+            InteractionLog.origem == "ouvinte",
+            InteractionLog.criado_em >= inicio_mes,
+        )
         .count()
     )
 

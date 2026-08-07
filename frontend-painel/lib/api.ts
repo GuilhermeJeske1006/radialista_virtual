@@ -53,6 +53,36 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   return response.json() as Promise<T>;
 }
 
+// Usada pra multipart/form-data (upload de arquivo) -- nao seta content-type manualmente,
+// o browser gera o boundary sozinho a partir do FormData.
+export async function apiFetchForm<T>(path: string, formData: FormData, method: "POST" | "PUT" = "POST"): Promise<T> {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_URL}${path}`, { method, headers, body: formData });
+
+  if (response.status === 401) {
+    clearToken();
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+    throw new ApiError(401, "Nao autenticado");
+  }
+
+  if (!response.ok) {
+    throw new ApiError(response.status, await mensagemDeErro(response));
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return response.json() as Promise<T>;
+}
+
 export async function apiFetchBlob(path: string, options: RequestInit = {}): Promise<Blob> {
   const token = getToken();
   const headers: Record<string, string> = {

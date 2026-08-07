@@ -19,6 +19,10 @@ class Programa(Base):
 
     nome: Mapped[str] = mapped_column(String)
 
+    # Texto livre explicando do que se trata o programa (formato, proposta, publico) --
+    # da mais contexto pro agente alem do tom e dos topicos permitidos.
+    descricao: Mapped[str] = mapped_column(String, default="")
+
     # Dias da semana em que o programa vai ao ar (0=segunda ... 6=domingo). Vazio = todos os dias.
     # Ignorado quando data_especifica esta preenchida.
     dias_semana: Mapped[list[int]] = mapped_column(JSON, default=list)

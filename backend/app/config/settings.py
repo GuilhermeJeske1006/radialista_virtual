@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     elevenlabs_api_key: str = ""
     elevenlabs_voice_id: str = ""
 
+    # Diretorio (local, relativo ou absoluto) onde ficam os arquivos enviados pelo usuario
+    # (ex.: audio de patrocinadores -- app/patrocinadores/router.py). Em producao deve apontar
+    # pra um volume persistente montado no container do backend.
+    upload_dir: str = "uploads"
+
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_user: str = ""

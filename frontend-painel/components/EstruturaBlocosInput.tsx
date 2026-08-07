@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { BLOCOS_PRESET, rotuloBloco } from "../lib/types";
+import { BLOCOS_PRESET, Patrocinador, rotuloBloco } from "../lib/types";
 
 type Props = {
   blocos: string[];
   onChange: (blocos: string[]) => void;
+  patrocinadores?: Patrocinador[];
 };
 
-export default function EstruturaBlocosInput({ blocos, onChange }: Props) {
+export default function EstruturaBlocosInput({ blocos, onChange, patrocinadores = [] }: Props) {
   const [texto, setTexto] = useState("");
+  const nomesPatrocinadores = Object.fromEntries(patrocinadores.map((p) => [p.id, p.nome]));
 
   function adicionar(bloco: string) {
     const valor = bloco.trim();
@@ -44,7 +46,7 @@ export default function EstruturaBlocosInput({ blocos, onChange }: Props) {
             <li key={`${bloco}-${i}`} className="flex items-center gap-1.5">
               <span className="inline-flex items-center gap-1 rounded-full bg-amber/10 text-amber border border-amber/25 pl-2.5 pr-1.5 py-0.5 text-sm">
                 <span className="font-mono text-[10px] text-amber/60">{i + 1}</span>
-                {rotuloBloco(bloco)}
+                {rotuloBloco(bloco, nomesPatrocinadores)}
                 <span className="flex items-center">
                   <button
                     type="button"
@@ -80,7 +82,7 @@ export default function EstruturaBlocosInput({ blocos, onChange }: Props) {
         </ol>
       )}
 
-      <div className="flex flex-wrap gap-1.5 mb-2">
+      <div className="flex flex-wrap items-center gap-1.5 mb-2">
         {BLOCOS_PRESET.map((preset) => (
           <button
             key={preset.value}
@@ -91,6 +93,25 @@ export default function EstruturaBlocosInput({ blocos, onChange }: Props) {
             + {preset.label}
           </button>
         ))}
+        {patrocinadores.filter((p) => p.ativo).length > 0 && (
+          <select
+            value=""
+            onChange={(e) => {
+              if (e.target.value) adicionar(`patrocinador:${e.target.value}`);
+              e.target.value = "";
+            }}
+            className="rounded-full px-3 py-1 text-xs font-medium border border-border-strong text-fg/65 bg-bg hover:border-amber/40 hover:text-amber"
+          >
+            <option value="">+ Patrocinador</option>
+            {patrocinadores
+              .filter((p) => p.ativo)
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nome}
+                </option>
+              ))}
+          </select>
+        )}
       </div>
 
       <div className="flex gap-2">

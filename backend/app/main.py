@@ -11,8 +11,9 @@ from app.config.settings import settings
 from app.db.database import Base, engine
 from app.live.router import router as live_router
 from app.metrics.router import router as metrics_router
-from app.models import Account, FilaAoVivo, PasswordResetToken, Programa, RadioConfig  # noqa: F401 -- garante que as tabelas sejam registradas no metadata
+from app.models import Account, FilaAoVivo, InteractionLog, PasswordResetToken, Patrocinador, Programa, RadioConfig  # noqa: F401 -- garante que as tabelas sejam registradas no metadata
 from app.onboarding.router import router as onboarding_router
+from app.patrocinadores.router import router as patrocinadores_router
 from app.tts.router import router as tts_router
 from app.whatsapp.webhook import router as whatsapp_router
 
@@ -42,6 +43,7 @@ app.include_router(metrics_router)
 app.include_router(billing_router)
 app.include_router(live_router)
 app.include_router(tts_router)
+app.include_router(patrocinadores_router)
 
 
 @app.on_event("startup")
@@ -50,6 +52,8 @@ async def criar_tabelas():
     garantir_colunas_radio_config()
     garantir_colunas_account()
     garantir_colunas_programa()
+    garantir_colunas_interaction_log()
+    garantir_colunas_patrocinador()
     migrar_conteudo_para_programas()
     migrar_whatsapp_para_account()
 
@@ -115,6 +119,7 @@ def garantir_colunas_programa():
         "data_especifica": "DATE NULL",
         "estrutura_blocos": "JSON DEFAULT '[]' NOT NULL",
         "ia_pode_adicionar_blocos": "BOOLEAN DEFAULT TRUE NOT NULL",
+        "descricao": "VARCHAR DEFAULT '' NOT NULL",
     }
 
     with engine.begin() as conn:
@@ -144,6 +149,38 @@ _COLUNAS_CONTEUDO_PROGRAMA = {
     "fontes_pesquisa": "JSON DEFAULT '[]' NOT NULL",
     "instrucoes_pesquisa": "VARCHAR DEFAULT '' NOT NULL",
 }
+
+
+def garantir_colunas_interaction_log():
+    inspector = inspect(engine)
+    if "interaction_logs" not in inspector.get_table_names():
+        return
+
+    colunas = {coluna["name"] for coluna in inspector.get_columns("interaction_logs")}
+    novas_colunas = {
+        "nome": "VARCHAR NULL",
+        "origem": "VARCHAR DEFAULT 'ouvinte' NOT NULL",
+    }
+    with engine.begin() as conn:
+        for nome, definicao in novas_colunas.items():
+            if nome not in colunas:
+                conn.execute(text(f"ALTER TABLE interaction_logs ADD COLUMN {nome} {definicao}"))
+
+
+def garantir_colunas_patrocinador():
+    inspector = inspect(engine)
+    if "patrocinadores" not in inspector.get_table_names():
+        return
+
+    colunas = {coluna["name"] for coluna in inspector.get_columns("patrocinadores")}
+    novas_colunas = {
+        "voz_id": "VARCHAR NULL",
+    }
+
+    with engine.begin() as conn:
+        for nome, definicao in novas_colunas.items():
+            if nome not in colunas:
+                conn.execute(text(f"ALTER TABLE patrocinadores ADD COLUMN {nome} {definicao}"))
 
 
 def migrar_conteudo_para_programas():

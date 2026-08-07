@@ -21,6 +21,7 @@ _VOICE_SETTINGS_POR_TIPO = {
     "chamada_ouvinte": {"stability": 0.32, "style": 0.5, "speed": 1.03},
     "comentario": {"stability": 0.45, "style": 0.3, "speed": 0.95},
     "noticia": {"stability": 0.5, "style": 0.25, "speed": 0.93},
+    "patrocinador": {"stability": 0.4, "style": 0.35, "speed": 1.0},
 }
 
 

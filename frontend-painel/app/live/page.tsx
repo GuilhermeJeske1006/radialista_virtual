@@ -37,6 +37,9 @@ type ProgramSegment = {
   video_id?: string | null;
   titulo_musica?: string | null;
   musicas?: MusicaBloco[];
+  patrocinador_id?: number | null;
+  patrocinador_audio?: boolean;
+  patrocinador_voz_id?: string | null;
 };
 
 type LiveProgramResponse = {
@@ -46,6 +49,9 @@ type LiveProgramResponse = {
   video_id?: string | null;
   titulo_musica?: string | null;
   musicas?: MusicaBloco[];
+  patrocinador_id?: number | null;
+  patrocinador_audio?: boolean;
+  patrocinador_voz_id?: string | null;
 };
 
 type ProgramaOpcao = Programa & { radialistaId: number; radialistaNome: string };
@@ -53,6 +59,7 @@ type ProgramaOpcao = Programa & { radialistaId: number; radialistaNome: string }
 type SegmentoPreparado = {
   segmento: Omit<ProgramSegment, "id">;
   audioUrl: string | null;
+  audioBlob: Blob | null;
 };
 
 const STATUS_STYLE: Record<string, string> = {
@@ -186,6 +193,7 @@ export default function LivePage() {
   const [gerandoFala, setGerandoFala] = useState(false);
   const [falasPrograma, setFalasPrograma] = useState<ProgramSegment[]>([]);
   const [erro, setErro] = useState("");
+  const [avisoGravacao, setAvisoGravacao] = useState("");
   const [pulso, setPulso] = useState(false);
   const [musicaAtual, setMusicaAtual] = useState<string | null>(null);
   const [modalRadialistaId, setModalRadialistaId] = useState<number | null>(null);
@@ -205,6 +213,7 @@ export default function LivePage() {
   const bgPlayerRef = useRef<any>(null);
   const bgProntoRef = useRef(false);
   const proximoPreparoRef = useRef<Promise<SegmentoPreparado> | null>(null);
+  const gravacaoBlobsRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -559,18 +568,28 @@ export default function LivePage() {
     }
 
     let audioUrl: string | null = null;
+    let audioBlob: Blob | null = null;
     try {
       if (!radialistaIdRef.current) throw new Error("sem radialista selecionado");
-      const audioBlob = await apiFetchBlob(`/live/${radialistaIdRef.current}/tts`, {
-        method: "POST",
-        body: JSON.stringify({ texto: segmento.fala, tipo: segmento.tipo }),
-      });
+      // patrocinador com audio pre-gravado: toca o arquivo do anunciante direto, sem TTS
+      audioBlob =
+        segmento.tipo === "patrocinador" && segmento.patrocinador_audio && segmento.patrocinador_id
+          ? await apiFetchBlob(`/patrocinadores/${segmento.patrocinador_id}/audio`)
+          : await apiFetchBlob(`/live/${radialistaIdRef.current}/tts`, {
+              method: "POST",
+              body: JSON.stringify({
+                texto: segmento.fala,
+                tipo: segmento.tipo,
+                voz_id: segmento.patrocinador_voz_id ?? null,
+              }),
+            });
       audioUrl = URL.createObjectURL(audioBlob);
     } catch {
-      audioUrl = null; // backend TTS indisponivel -- cai pra voz do navegador na hora de tocar
+      audioUrl = null; // backend TTS/audio indisponivel -- cai pra voz do navegador na hora de tocar
+      audioBlob = null;
     }
 
-    return { segmento, audioUrl };
+    return { segmento, audioUrl, audioBlob };
   }
 
   function descartarPreparo() {
@@ -595,6 +614,10 @@ export default function LivePage() {
 
     const preparado = await (proximoPreparoRef.current ?? prepararSegmento());
     proximoPreparoRef.current = null;
+
+    if (preparado.audioBlob) {
+      gravacaoBlobsRef.current.push(preparado.audioBlob);
+    }
 
     const novaFala = adicionarFala(preparado.segmento);
     limparTimerPrograma();
@@ -641,11 +664,38 @@ export default function LivePage() {
     limparTimerPrograma();
     programaAtivoRef.current = true;
     setProgramaAtivo(true);
+    gravacaoBlobsRef.current = [];
+    setAvisoGravacao("");
     iniciarMusicaFundo();
     gerarProximaFala(true);
   }
 
-  function pausarPrograma() {
+  // junta as falas do locutor gravadas durante a transmissao (audio TTS, na ordem
+  // em que foram ao ar) num unico mp3 e dispara o download no navegador
+  function exportarGravacao() {
+    const blocos = gravacaoBlobsRef.current;
+    gravacaoBlobsRef.current = [];
+    if (blocos.length === 0) return;
+
+    const programaAtual = programasTodos.find((p) => p.id === programaIdRef.current);
+    const carimbo = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    const nomeArquivo = `${(programaAtual?.nome || "programa").replace(/[^a-zA-Z0-9-_]+/g, "_")}-${carimbo}.mp3`;
+
+    const audioFinal = new Blob(blocos, { type: "audio/mpeg" });
+    const url = URL.createObjectURL(audioFinal);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = nomeArquivo;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    setAvisoGravacao(`Gravacao exportada: ${nomeArquivo}`);
+    setTimeout(() => setAvisoGravacao(""), 6000);
+  }
+
+  function pausarPrograma(exportar = false) {
     limparTimerPrograma();
     programaAtivoRef.current = false;
     setProgramaAtivo(false);
@@ -653,6 +703,8 @@ export default function LivePage() {
     musicStopRef.current?.();
     pararMusicaFundo();
     descartarPreparo();
+
+    if (exportar) exportarGravacao();
 
     // marca a ocorrencia atual como "ja tratada" pra pausa manual nao ser
     // reiniciada de imediato pelo checador de horario agendado
@@ -717,6 +769,7 @@ export default function LivePage() {
       <div id="yt-bg-player" className="pointer-events-none fixed left-[-9999px] top-0 h-px w-px overflow-hidden" />
 
       {erro && <p className="text-sm text-rust mb-4">{erro}</p>}
+      {avisoGravacao && <p className="text-sm text-teal mb-4">{avisoGravacao}</p>}
 
       <section className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6 mb-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -772,7 +825,7 @@ export default function LivePage() {
               ) : (
                 <button
                   type="button"
-                  onClick={pausarPrograma}
+                  onClick={() => pausarPrograma(true)}
                   className="rounded-lg border border-border-strong bg-paper/5 px-4 py-2.5 text-sm font-medium text-fg hover:bg-paper/10 shrink-0"
                 >
                   Pausar transmissao

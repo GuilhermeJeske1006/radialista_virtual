@@ -13,9 +13,11 @@ from app.llm.client import gerar_resposta
 from app.llm.prompt_builder import montar_system_prompt
 from app.models.account import Account
 from app.models.fila_ao_vivo import FilaAoVivo
+from app.models.patrocinador import Patrocinador
 from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
 from app.tts.client import sintetizar_audio, tts_habilitado
+from app.tts.voices import voz_valida
 
 router = APIRouter(prefix="/live", tags=["live"])
 
@@ -27,6 +29,7 @@ class LiveProgramRequest(BaseModel):
 class LiveTtsRequest(BaseModel):
     texto: str
     tipo: str | None = None
+    voz_id: str | None = None
 
 
 class MusicaBlocoItem(BaseModel):
@@ -42,6 +45,9 @@ class LiveProgramResponse(BaseModel):
     titulo_musica: str | None = None
     musicas: list[MusicaBlocoItem] = Field(default_factory=list)
     programa_atual: str | None = None
+    patrocinador_id: int | None = None
+    patrocinador_audio: bool = False
+    patrocinador_voz_id: str | None = None
 
 
 class MusicaFundoResponse(BaseModel):
@@ -136,6 +142,20 @@ def _limpar_fala(fala: str) -> str:
     return texto.strip()
 
 
+_PATROCINADOR_RE = re.compile(r"^patrocinador:(\d+)$")
+
+
+def _buscar_patrocinador_ativo(db: Session, account: Account, tipo: str) -> Patrocinador | None:
+    match = _PATROCINADOR_RE.match(tipo)
+    if not match:
+        return None
+    return (
+        db.query(Patrocinador)
+        .filter_by(id=int(match.group(1)), account_id=account.id, ativo=True)
+        .first()
+    )
+
+
 _TAG_BLOCO_MUSICAS = re.compile(r"\[BLOCO_MUSICAS:\s*(\d)\]\s*$")
 
 
@@ -201,6 +221,22 @@ def gerar_proxima_fala(
     radialista = _buscar_radialista(db, account, radialista_id)
     programa = _buscar_programa(db, radialista, programa_id)
     tipo = _tipo_proximo_bloco(programa, len(dados.historico))
+
+    if _PATROCINADOR_RE.match(tipo):
+        patrocinador = _buscar_patrocinador_ativo(db, account, tipo)
+        if patrocinador is not None:
+            # Conteudo de patrocinador e fixo (contrato comercial) -- nunca passa pelo LLM.
+            return LiveProgramResponse(
+                tipo="patrocinador",
+                fala=(patrocinador.texto or "").strip(),
+                criado_em=datetime.datetime.now(datetime.timezone.utc),
+                programa_atual=programa.nome,
+                patrocinador_id=patrocinador.id,
+                patrocinador_audio=patrocinador.tipo_conteudo == "audio",
+                patrocinador_voz_id=patrocinador.voz_id,
+            )
+        tipo = "comentario"  # patrocinador excluido/desativado -- nao trava o ao vivo
+
     if tipo == "noticia" and not (programa.pode_pesquisar or programa.tipos_noticias or programa.fontes_noticias):
         # Sem fonte de noticia configurada: nao arrisca fala vaga/incerta, toca musica direto.
         tipo = "musica"
@@ -237,6 +273,15 @@ def gerar_proxima_fala(
         "Tenha consciência de qual momento do programa você está vivendo agora e conecte a fala com o que "
         "vem antes e depois dela, mantendo transição natural (não repita a mesma abertura ou o mesmo gancho "
         "toda vez).",
+        "Antes de escrever, releia a última fala do histórico (a mais recente na lista) e identifique um "
+        "detalhe concreto nela -- um assunto, um nome, uma palavra, um clima que ficou no ar. Abra ou emende "
+        "a fala atual com um gancho real (callback) nesse detalhe, em vez de uma transição genérica tipo "
+        "'e agora' ou 'mudando de assunto'. Exemplos: se a última fala foi um comentário sobre trânsito, a "
+        "chamada de música seguinte pode puxar 'depois desse papo de trânsito, bora resolver o humor com "
+        "essa aqui'; se foi uma notícia sobre o tempo, a próxima abertura pode citar o clima que acabou de "
+        "ser mencionado; se foi um pedido de ouvinte, o comentário seguinte pode retomar o nome ou o clima "
+        "que ele trouxe. Só deixe de fazer esse gancho quando a última fala não render nada natural pra "
+        "puxar (início do programa, ou virada de bloco que exige assunto totalmente novo).",
         "Ao citar a identificação da rádio (nome, frequência, slogan) pra fechar ou emendar uma fala, nunca "
         "repita a mesma frase pronta do bloco anterior (ex: sempre 'Fica comigo na 87,5 FM, a Rádio da sua "
         "cidade'). Varie a construção a cada vez -- troque a ordem das informações, use só parte delas, mude o "
@@ -354,8 +399,15 @@ def gerar_audio_fala(
     db: Session = Depends(get_db),
 ):
     radialista = _buscar_radialista(db, account, radialista_id)
-    if not tts_habilitado(radialista.voz_id):
+
+    # Patrocinador pode pedir uma voz especifica (independente da voz do locutor no ar) --
+    # ver Patrocinador.voz_id em app/models/patrocinador.py.
+    if dados.voz_id and not voz_valida(dados.voz_id):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Voz invalida")
+    voz_id = dados.voz_id or radialista.voz_id
+
+    if not tts_habilitado(voz_id):
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="TTS nao configurado")
 
-    audio = sintetizar_audio(dados.texto, radialista.voz_id, tipo_bloco=dados.tipo)
+    audio = sintetizar_audio(dados.texto, voz_id, tipo_bloco=dados.tipo)
     return Response(content=audio, media_type="audio/mpeg")

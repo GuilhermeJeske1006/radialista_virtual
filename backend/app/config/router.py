@@ -45,6 +45,7 @@ class RadioContaResponse(RadioContaRequest):
 
 class ProgramaRequest(BaseModel):
     nome: str
+    descricao: str = ""
     dias_semana: list[int] = Field(default_factory=list)
     data_especifica: datetime.date | None = None
     horario_inicio: datetime.time

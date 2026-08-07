@@ -22,25 +22,41 @@ router = APIRouter()
 
 
 def _mensagens_no_mes(db: Session, account_id: int) -> int:
+    """Conta so mensagens recebidas do ouvinte -- as que a radio manda (origem="radio")
+    nao consomem a cota do plano."""
     inicio_mes = datetime.datetime.now(datetime.timezone.utc).replace(
         day=1, hour=0, minute=0, second=0, microsecond=0
     )
     return (
         db.query(InteractionLog)
         .join(RadioConfig, InteractionLog.radio_config_id == RadioConfig.id)
-        .filter(RadioConfig.account_id == account_id, InteractionLog.criado_em >= inicio_mes)
+        .filter(
+            RadioConfig.account_id == account_id,
+            InteractionLog.origem == "ouvinte",
+            InteractionLog.criado_em >= inicio_mes,
+        )
         .count()
     )
 
 
-def _registrar_log(db: Session, config: RadioConfig, telefone: str, mensagem: str, status: str) -> None:
+def _registrar_log(
+    db: Session,
+    config: RadioConfig,
+    telefone: str,
+    nome: str | None,
+    mensagem: str,
+    status: str,
+    origem: str = "ouvinte",
+) -> None:
     db.add(
         InteractionLog(
             radio_config_id=config.id,
             telefone=telefone,
+            nome=nome or None,
             mensagem_usuario=mensagem,
             resposta=None,
             status=status,
+            origem=origem,
         )
     )
     db.commit()
@@ -60,12 +76,16 @@ def _radialista_no_ar(db: Session, account_id: int) -> tuple[RadioConfig | None,
     return (configs[0], None) if configs else (None, None)
 
 
-def _extrair_mensagem(payload: dict) -> tuple[str, str, str, str | None, str | None] | None:
-    """Extrai (telefone, nome, texto, wuzapi_token, wuzapi_user_id) do payload do WuzAPI.
+def _extrair_mensagem(payload: dict) -> tuple[str, str, str, str | None, str | None, bool] | None:
+    """Extrai (telefone, nome, texto, wuzapi_token, wuzapi_user_id, from_me) do payload do WuzAPI.
 
     O corpo do webhook manda "userID" (id interno do usuario no WuzAPI), nao o
     "token" -- esse so aparece em chamadas manuais/teste. Aceita qualquer um
     dos dois pra identificar a radio; pelo menos um precisa estar presente.
+
+    "Chat" e' o telefone do ouvinte tanto quando ele manda mensagem quanto quando
+    a radio responde (FromMe=True) -- "Sender" so' bate com o ouvinte no primeiro
+    caso; em FromMe ele vira a identidade (LID) de quem enviou pela radio.
     """
     wuzapi_token = payload.get("token")
     wuzapi_user_id = payload.get("userID")
@@ -75,10 +95,11 @@ def _extrair_mensagem(payload: dict) -> tuple[str, str, str, str | None, str | N
     evento = payload.get("event", payload)
 
     info = evento.get("Info") or evento.get("info") or {}
-    if info.get("FromMe"):
-        return None
+    from_me = bool(info.get("FromMe") or info.get("IsFromMe"))
 
-    telefone = info.get("Sender") or info.get("sender") or info.get("Chat") or payload.get("phone")
+    telefone = (
+        info.get("Chat") or info.get("chat") or info.get("Sender") or info.get("sender") or payload.get("phone")
+    )
     nome = info.get("PushName") or info.get("Pushname") or info.get("pushName") or payload.get("pushname") or ""
 
     mensagem = evento.get("Message") or evento.get("message") or {}
@@ -100,6 +121,7 @@ def _extrair_mensagem(payload: dict) -> tuple[str, str, str, str | None, str | N
         str(texto),
         str(wuzapi_token) if wuzapi_token else None,
         str(wuzapi_user_id) if wuzapi_user_id else None,
+        from_me,
     )
 
 
@@ -108,12 +130,14 @@ def _extrair_mensagem(payload: dict) -> tuple[str, str, str, str | None, str | N
     dependencies=[Depends(limitar_por_ip("whatsapp_webhook", limite=60, janela_segundos=60))],
 )
 async def receber_webhook(request: Request, db: Session = Depends(get_db)):
-    """Ouve mensagens do WhatsApp. O bot nunca responde direto no chat.
+    """Ouve mensagens do WhatsApp, dos dois lados da conversa. O bot nunca
+    responde direto no chat -- mensagens FromMe sao as que a radio manda (via
+    /live/programa/proxima ou digitadas a mao no numero conectado), so' ficam
+    registradas, sem passar pelos guardrails/fila (esses valem so' pro ouvinte).
 
-    Cada mensagem so pode gerar um de tres destinos: entra na fila pra virar um
-    "alo" ao vivo (abraco), entra na fila pra virar um pedido de musica ao vivo
-    (musica), ou fica so registrada (guardar). Quem fala com o ouvinte e o
-    locutor, ao vivo, via /live/programa/proxima -- nunca o bot no WhatsApp.
+    Mensagem do ouvinte so pode gerar um de tres destinos: entra na fila pra
+    virar um "alo" ao vivo (abraco), entra na fila pra virar um pedido de
+    musica ao vivo (musica), ou fica so registrada (guardar).
     """
     payload = await request.json()
     logger.info("Webhook recebido: %s", payload)
@@ -122,7 +146,7 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
     if extraido is None:
         return {"status": "ignorado"}
 
-    telefone, nome, texto_usuario, wuzapi_token, wuzapi_user_id = extraido
+    telefone, nome, texto_usuario, wuzapi_token, wuzapi_user_id, from_me = extraido
 
     account = None
     if wuzapi_user_id:
@@ -140,21 +164,25 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
         logger.warning("Nenhum radialista ativo para a conta %s", account.id)
         return {"status": "ignorado"}
 
+    if from_me:
+        _registrar_log(db, config, telefone, None, texto_usuario, "enviada", origem="radio")
+        return {"status": "ok", "origem": "radio"}
+
     limite_mensagens = limites_do_plano(account.plano).mensagens_mes
     if _mensagens_no_mes(db, account.id) >= limite_mensagens:
-        _registrar_log(db, config, telefone, texto_usuario, "bloqueado_plano")
+        _registrar_log(db, config, telefone, nome, texto_usuario, "bloqueado_plano")
         return {"status": "bloqueado", "motivo": "limite_plano"}
 
     if programa_atual is None:
-        _registrar_log(db, config, telefone, texto_usuario, "bloqueado_horario")
+        _registrar_log(db, config, telefone, nome, texto_usuario, "bloqueado_horario")
         return {"status": "bloqueado", "motivo": "horario"}
 
     if not dentro_do_limite(wuzapi_token, telefone, programa_atual.limite_mensagens_hora):
-        _registrar_log(db, config, telefone, texto_usuario, "bloqueado_rate_limit")
+        _registrar_log(db, config, telefone, nome, texto_usuario, "bloqueado_rate_limit")
         return {"status": "bloqueado", "motivo": "rate_limit"}
 
     if contem_topico_proibido(texto_usuario, programa_atual):
-        _registrar_log(db, config, telefone, texto_usuario, "bloqueado_conteudo")
+        _registrar_log(db, config, telefone, nome, texto_usuario, "bloqueado_conteudo")
         return {"status": "bloqueado", "motivo": "conteudo"}
 
     acao, musica_query = classificar_intencao(config, texto_usuario)
@@ -170,8 +198,8 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
                 musica_query=musica_query,
             )
         )
-        _registrar_log(db, config, telefone, texto_usuario, "fila_musica" if acao == "musica" else "fila_abraco")
+        _registrar_log(db, config, telefone, nome, texto_usuario, "fila_musica" if acao == "musica" else "fila_abraco")
         return {"status": "ok", "acao": acao}
 
-    _registrar_log(db, config, telefone, texto_usuario, "guardado")
+    _registrar_log(db, config, telefone, nome, texto_usuario, "guardado")
     return {"status": "ok", "acao": "guardar"}

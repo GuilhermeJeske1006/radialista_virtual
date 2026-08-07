@@ -27,6 +27,10 @@ def montar_system_prompt(account: Account, radialista: RadioConfig, programa: Pr
         partes.append(f"Sua personalidade e forma de se comportar: {radialista.personalidade}.")
     partes += [
         f"Agora você apresenta o programa '{programa.nome}'.",
+    ]
+    if programa.descricao:
+        partes.append(f"Sobre o que é esse programa: {programa.descricao}")
+    partes += [
         f"Tom de voz: {programa.tom}.",
         "Responda de forma curta e natural, como uma mensagem de WhatsApp (poucas frases, sem formatação de markdown).",
         f"Fale apenas sobre estes temas: {topicos}.",

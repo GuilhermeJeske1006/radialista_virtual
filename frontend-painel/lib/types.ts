@@ -45,6 +45,7 @@ export type Programa = {
   id: number;
   radio_config_id: number;
   nome: string;
+  descricao: string;
   dias_semana: number[];
   data_especifica: string | null;
   horario_inicio: string;
@@ -77,6 +78,7 @@ export type Programa = {
 
 export const PROGRAMA_VAZIO: Omit<Programa, "id" | "radio_config_id"> = {
   nome: "",
+  descricao: "",
   dias_semana: [],
   data_especifica: null,
   horario_inicio: "08:00:00",
@@ -139,9 +141,29 @@ export const BLOCOS_PRESET: { value: string; label: string }[] = [
   { value: "chamada_ouvinte", label: "Chamada ao ouvinte" },
 ];
 
-export function rotuloBloco(tipo: string): string {
+const PATROCINADOR_BLOCO_RE = /^patrocinador:(\d+)$/;
+
+// Recebe opcionalmente um mapa id -> nome (lista de patrocinadores da conta) pra resolver
+// o label de blocos "patrocinador:<id>" -- ver EstruturaBlocosInput.tsx.
+export function rotuloBloco(tipo: string, patrocinadores?: Record<number, string>): string {
+  const match = tipo.match(PATROCINADOR_BLOCO_RE);
+  if (match) {
+    const id = Number(match[1]);
+    const nome = patrocinadores?.[id];
+    return nome ? `Patrocinador: ${nome}` : `Patrocinador #${id}`;
+  }
   return BLOCOS_PRESET.find((b) => b.value === tipo)?.label ?? tipo;
 }
+
+export type Patrocinador = {
+  id: number;
+  nome: string;
+  tipo_conteudo: "texto" | "audio";
+  texto?: string | null;
+  audio_nome_original?: string | null;
+  voz_id?: string | null;
+  ativo: boolean;
+};
 
 export type Conta = {
   id: number;

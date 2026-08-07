@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import ConfirmDialog from "./ConfirmDialog";
 import TagInput from "./TagInput";
 import EstruturaBlocosInput from "./EstruturaBlocosInput";
 import { apiFetch, ApiError } from "../lib/api";
-import { DIAS_SEMANA_LABEL, normalizarPrograma, Programa } from "../lib/types";
+import { DIAS_SEMANA_LABEL, normalizarPrograma, Patrocinador, Programa } from "../lib/types";
 import { OndaSpin } from "./OndaLogo";
 
 const inputClass =
@@ -34,6 +35,7 @@ export default function EditarProgramaForm({ programaId, onSalvo, onExcluido }: 
   const [mensagem, setMensagem] = useState("");
   const [erro, setErro] = useState("");
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [patrocinadores, setPatrocinadores] = useState<Patrocinador[]>([]);
 
   useEffect(() => {
     setCarregando(true);
@@ -41,6 +43,9 @@ export default function EditarProgramaForm({ programaId, onSalvo, onExcluido }: 
       .then((dados) => setPrograma(normalizarPrograma(dados)))
       .catch((err) => setErro(err instanceof ApiError ? err.message : "Erro ao carregar programa"))
       .finally(() => setCarregando(false));
+    apiFetch<Patrocinador[]>("/patrocinadores")
+      .then(setPatrocinadores)
+      .catch(() => setPatrocinadores([]));
   }, [programaId]);
 
   async function salvar(e: React.FormEvent) {
@@ -135,6 +140,16 @@ export default function EditarProgramaForm({ programaId, onSalvo, onExcluido }: 
           </div>
         </div>
         <div>
+          <label className={labelClass}>Sobre o programa</label>
+          <textarea
+            rows={3}
+            className={inputClass}
+            value={programa.descricao}
+            onChange={(e) => setPrograma({ ...programa, descricao: e.target.value })}
+            placeholder="Do que se trata esse programa: formato, proposta, publico -- da mais contexto pro agente alem do tom e dos topicos permitidos."
+          />
+        </div>
+        <div>
           <label className={labelClass}>Recorrência</label>
           <div className="flex gap-1.5 mb-3">
             <button
@@ -210,10 +225,20 @@ export default function EditarProgramaForm({ programaId, onSalvo, onExcluido }: 
         </label>
 
         <hr className="border-border" />
-        <h3 className="font-mono text-xs uppercase tracking-wide text-amber">Estrutura do programa</h3>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-mono text-xs uppercase tracking-wide text-amber">Estrutura do programa</h3>
+          <Link
+            href="/patrocinadores"
+            target="_blank"
+            className="text-xs font-medium text-amber hover:text-amber-dim"
+          >
+            Gerenciar patrocinadores ↗
+          </Link>
+        </div>
         <EstruturaBlocosInput
           blocos={programa.estrutura_blocos}
           onChange={(blocos) => setPrograma({ ...programa, estrutura_blocos: blocos })}
+          patrocinadores={patrocinadores}
         />
         <label className="inline-flex items-center gap-2 text-sm font-medium text-fg/80">
           <input
