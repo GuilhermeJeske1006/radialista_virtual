@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ConfirmDialog from "./ConfirmDialog";
 import TagInput from "./TagInput";
 import EstruturaBlocosInput from "./EstruturaBlocosInput";
 import { apiFetch, ApiError } from "../lib/api";
@@ -32,6 +33,7 @@ export default function EditarProgramaForm({ programaId, onSalvo, onExcluido }: 
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState("");
   const [erro, setErro] = useState("");
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
 
   useEffect(() => {
     setCarregando(true);
@@ -64,12 +66,13 @@ export default function EditarProgramaForm({ programaId, onSalvo, onExcluido }: 
 
   async function excluirPrograma() {
     if (!programa) return;
-    if (!confirm(`Excluir o programa "${programa.nome}"? Essa ação não pode ser desfeita.`)) return;
     try {
       await apiFetch(`/config/programas/${programaId}`, { method: "DELETE" });
       onExcluido?.();
     } catch (err) {
       setErro(err instanceof ApiError ? err.message : "Erro ao excluir programa");
+    } finally {
+      setConfirmandoExclusao(false);
     }
   }
 
@@ -89,7 +92,11 @@ export default function EditarProgramaForm({ programaId, onSalvo, onExcluido }: 
     <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
       <div className="flex items-center justify-between mb-5">
         <h2 className="font-display text-base font-bold text-fg">Editar programa</h2>
-        <button type="button" onClick={excluirPrograma} className="text-xs font-medium text-rust hover:text-rust/80">
+        <button
+          type="button"
+          onClick={() => setConfirmandoExclusao(true)}
+          className="text-xs font-medium text-rust hover:text-rust/80"
+        >
           Excluir programa
         </button>
       </div>
@@ -355,6 +362,14 @@ export default function EditarProgramaForm({ programaId, onSalvo, onExcluido }: 
           </button>
         </div>
       </form>
+
+      <ConfirmDialog
+        open={confirmandoExclusao}
+        title="Excluir programa"
+        mensagem={`Excluir o programa "${programa.nome}"? Essa ação não pode ser desfeita.`}
+        onConfirmar={excluirPrograma}
+        onCancelar={() => setConfirmandoExclusao(false)}
+      />
     </div>
   );
 }

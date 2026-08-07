@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import AppShell from "../../components/AppShell";
+import ConfirmDialog from "../../components/ConfirmDialog";
 import { apiFetch, ApiError } from "../../lib/api";
 import { DIAS_SEMANA_LABEL, PROGRAMA_VAZIO, Programa, Radialista } from "../../lib/types";
 import { OndaSpin } from "../../components/OndaLogo";
@@ -21,6 +22,7 @@ export default function ProgramasPage() {
   const [carregando, setCarregando] = useState(true);
   const [criando, setCriando] = useState(false);
   const [escolhendoRadialista, setEscolhendoRadialista] = useState(false);
+  const [programaParaExcluir, setProgramaParaExcluir] = useState<ProgramaComRadialista | null>(null);
   const [erro, setErro] = useState("");
 
   function carregar() {
@@ -77,12 +79,13 @@ export default function ProgramasPage() {
   }
 
   async function excluirPrograma(programa: ProgramaComRadialista) {
-    if (!confirm(`Excluir o programa "${programa.nome}"? Essa ação não pode ser desfeita.`)) return;
     try {
       await apiFetch(`/config/programas/${programa.id}`, { method: "DELETE" });
       carregar();
     } catch (err) {
       setErro(err instanceof ApiError ? err.message : "Erro ao excluir programa");
+    } finally {
+      setProgramaParaExcluir(null);
     }
   }
 
@@ -140,7 +143,7 @@ export default function ProgramasPage() {
                 </Link>
                 <button
                   type="button"
-                  onClick={() => excluirPrograma(p)}
+                  onClick={() => setProgramaParaExcluir(p)}
                   className="text-xs font-medium text-rust hover:text-rust/80"
                 >
                   Excluir
@@ -188,6 +191,14 @@ export default function ProgramasPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={programaParaExcluir !== null}
+        title="Excluir programa"
+        mensagem={`Excluir o programa "${programaParaExcluir?.nome}"? Essa ação não pode ser desfeita.`}
+        onConfirmar={() => programaParaExcluir && excluirPrograma(programaParaExcluir)}
+        onCancelar={() => setProgramaParaExcluir(null)}
+      />
     </AppShell>
   );
 }

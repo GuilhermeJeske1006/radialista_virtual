@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import ConfirmDialog from "./ConfirmDialog";
 import VoiceSelect from "./VoiceSelect";
 import { apiFetch, ApiError } from "../lib/api";
 import { setRadialistaAtualId } from "../lib/radialistas";
@@ -44,6 +45,8 @@ export default function EditarRadialistaForm({
   const [criandoPrograma, setCriandoPrograma] = useState(false);
   const [mensagem, setMensagem] = useState("");
   const [erro, setErro] = useState("");
+  const [confirmandoExclusaoRadialista, setConfirmandoExclusaoRadialista] = useState(false);
+  const [programaParaExcluir, setProgramaParaExcluir] = useState<Programa | null>(null);
 
   function carregarProgramas() {
     apiFetch<Programa[]>(`/config/radialistas/${radialistaId}/programas`)
@@ -85,12 +88,13 @@ export default function EditarRadialistaForm({
 
   async function excluirRadialista() {
     if (!config) return;
-    if (!confirm(`Excluir o radialista "${config.nome_locutor}"? Essa ação não pode ser desfeita.`)) return;
     try {
       await apiFetch(`/config/radialistas/${radialistaId}`, { method: "DELETE" });
       onExcluido?.();
     } catch (err) {
       setErro(err instanceof ApiError ? err.message : "Erro ao excluir radialista");
+    } finally {
+      setConfirmandoExclusaoRadialista(false);
     }
   }
 
@@ -116,12 +120,13 @@ export default function EditarRadialistaForm({
   }
 
   async function excluirPrograma(programa: Programa) {
-    if (!confirm(`Excluir o programa "${programa.nome}"?`)) return;
     try {
       await apiFetch(`/config/programas/${programa.id}`, { method: "DELETE" });
       carregarProgramas();
     } catch (err) {
       setErro(err instanceof ApiError ? err.message : "Erro ao excluir programa");
+    } finally {
+      setProgramaParaExcluir(null);
     }
   }
 
@@ -155,7 +160,7 @@ export default function EditarRadialistaForm({
           </div>
           <button
             type="button"
-            onClick={excluirRadialista}
+            onClick={() => setConfirmandoExclusaoRadialista(true)}
             className="text-xs font-medium text-rust hover:text-rust/80 self-start sm:self-auto"
           >
             Excluir radialista
@@ -263,7 +268,7 @@ export default function EditarRadialistaForm({
                   )}
                   <button
                     type="button"
-                    onClick={() => excluirPrograma(p)}
+                    onClick={() => setProgramaParaExcluir(p)}
                     className="text-xs font-medium text-rust hover:text-rust/80"
                   >
                     Excluir
@@ -274,6 +279,21 @@ export default function EditarRadialistaForm({
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmandoExclusaoRadialista}
+        title="Excluir radialista"
+        mensagem={`Excluir o radialista "${config.nome_locutor}"? Essa ação não pode ser desfeita.`}
+        onConfirmar={excluirRadialista}
+        onCancelar={() => setConfirmandoExclusaoRadialista(false)}
+      />
+      <ConfirmDialog
+        open={programaParaExcluir !== null}
+        title="Excluir programa"
+        mensagem={`Excluir o programa "${programaParaExcluir?.nome}"?`}
+        onConfirmar={() => programaParaExcluir && excluirPrograma(programaParaExcluir)}
+        onCancelar={() => setProgramaParaExcluir(null)}
+      />
     </div>
   );
 }
