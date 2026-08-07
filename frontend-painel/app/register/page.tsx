@@ -262,8 +262,8 @@ export default function RegisterPage() {
                       <span className="text-xs text-fg/45">/mês</span>
                     </div>
                     <p className="text-xs text-fg/55">
-                      {plano.agentes} {plano.agentes === 1 ? "agente" : "agentes"} · {plano.numeros}{" "}
-                      {plano.numeros === 1 ? "número" : "números"} · {plano.mensagens.toLocaleString("pt-BR")} msgs/mês
+                      {plano.agentes} {plano.agentes === 1 ? "agente" : "agentes"} ·{" "}
+                      {plano.mensagens.toLocaleString("pt-BR")} msgs/mês
                     </p>
                   </button>
                 );

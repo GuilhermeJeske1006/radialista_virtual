@@ -31,6 +31,15 @@ class Account(Base):
     stripe_customer_id: Mapped[str | None] = mapped_column(String, nullable=True)
     stripe_subscription_id: Mapped[str | None] = mapped_column(String, nullable=True)
 
+    # Cada conta (radio) tem um unico numero de WhatsApp, compartilhado por todos
+    # os radialistas/agentes. Token usado pra autenticar chamadas ao WuzAPI (header "token").
+    # Nulo ate a conta concluir o onboarding (criar usuario + conectar sessao no WuzAPI).
+    wuzapi_token: Mapped[str | None] = mapped_column(String, unique=True, index=True, nullable=True)
+
+    # Id interno do usuario no WuzAPI (campo "userID" no payload do webhook --
+    # o WuzAPI nao reenvia o "token" no corpo do webhook, so esse id).
+    wuzapi_user_id: Mapped[str | None] = mapped_column(String, unique=True, index=True, nullable=True)
+
     criado_em: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.datetime.now(datetime.timezone.utc)
     )

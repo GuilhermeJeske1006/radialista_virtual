@@ -7,7 +7,10 @@ from app.db.database import Base
 
 
 class RadioConfig(Base):
-    """Um radialista (agente): identidade, voz e conexao de WhatsApp.
+    """Um radialista (agente): identidade e voz.
+
+    O numero de WhatsApp e' um so por conta (radio), compartilhado por todos os
+    radialistas -- ver Account.wuzapi_token (app/models/account.py).
 
     Tom, topicos, mensagens, musicas, noticias e pesquisa ficam no Programa
     (app/models/programa.py) -- um mesmo locutor pode apresentar programas
@@ -18,16 +21,8 @@ class RadioConfig(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    # Uma conta pode ter varios radialistas (agentes), cada um com seu proprio numero de WhatsApp.
+    # Uma conta pode ter varios radialistas (agentes), todos atendendo pelo mesmo numero de WhatsApp.
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), index=True)
-
-    # Token usado pelo backend pra autenticar chamadas ao WuzAPI (header "token").
-    # Nulo ate a conta concluir o onboarding (criar usuario + conectar sessao no WuzAPI).
-    wuzapi_token: Mapped[str | None] = mapped_column(String, unique=True, index=True, nullable=True)
-
-    # Id interno do usuario no WuzAPI (campo "userID" no payload do webhook --
-    # o WuzAPI nao reenvia o "token" no corpo do webhook, so esse id).
-    wuzapi_user_id: Mapped[str | None] = mapped_column(String, unique=True, index=True, nullable=True)
 
     nome_locutor: Mapped[str] = mapped_column(String, default="Ze do Radio")
 

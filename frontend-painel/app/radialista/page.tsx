@@ -6,7 +6,7 @@ import AppShell from "../../components/AppShell";
 import { apiFetch, ApiError } from "../../lib/api";
 import { DIAS_SEMANA_LABEL, Programa, RADIALISTA_VAZIO, Radialista } from "../../lib/types";
 import { setRadialistaAtualId } from "../../lib/radialistas";
-import { OndaLed, OndaSpin } from "../../components/OndaLogo";
+import { OndaSpin } from "../../components/OndaLogo";
 
 function formatarDias(dias: number[], dataEspecifica?: string | null): string {
   if (dataEspecifica) return `Avulso em ${dataEspecifica.split("-").reverse().join("/")}`;
@@ -105,10 +105,7 @@ export default function DashboardPage() {
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div>
                     <h2 className="font-display text-base font-bold text-fg">{r.nome_locutor || `Radialista #${r.id}`}</h2>
-                    <p className="flex items-center gap-1.5 text-xs text-fg/55 mt-1">
-                      <OndaLed color={r.wuzapi_token ? "teal" : "amber"} pulse={false} />
-                      {r.wuzapi_token ? "WhatsApp conectado" : "WhatsApp não conectado"}
-                    </p>
+                    <p className="text-xs text-fg/55 mt-1">Atende pelo WhatsApp da rádio</p>
                   </div>
                   <span className="text-xs font-medium text-amber shrink-0">Editar →</span>
                 </div>

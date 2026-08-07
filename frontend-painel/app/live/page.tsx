@@ -7,7 +7,7 @@ import EditarRadialistaForm from "../../components/EditarRadialistaForm";
 import EditarProgramaForm from "../../components/EditarProgramaForm";
 import { apiFetch, apiFetchBlob, ApiError } from "../../lib/api";
 import { setRadialistaAtualId } from "../../lib/radialistas";
-import { Radialista, Programa, DIAS_SEMANA_LABEL } from "../../lib/types";
+import { Radialista, Programa, RadioConta, DIAS_SEMANA_LABEL } from "../../lib/types";
 import { OndaLed, OndaSpin, OndaWaveform } from "../../components/OndaLogo";
 
 declare global {
@@ -176,6 +176,7 @@ function gerarFalaLocal(
 export default function LivePage() {
   const [radialistas, setRadialistas] = useState<Radialista[]>([]);
   const [radialistaId, setRadialistaId] = useState<number | null>(null);
+  const [radioConta, setRadioConta] = useState<RadioConta | null>(null);
   const [programasTodos, setProgramasTodos] = useState<ProgramaOpcao[]>([]);
   const [carregandoProgramas, setCarregandoProgramas] = useState(true);
   const [programaId, setProgramaId] = useState<number | null>(null);
@@ -258,6 +259,9 @@ export default function LivePage() {
 
   useEffect(() => {
     carregarRadialistasEProgramas();
+    apiFetch<RadioConta>("/config/radio")
+      .then(setRadioConta)
+      .catch(() => setRadioConta(null));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -703,7 +707,7 @@ export default function LivePage() {
     ? radialistas.find((r) => r.id === programaSelecionado.radialistaId) ?? null
     : null;
   const nomeLocutor = radialistaSelecionado?.nome_locutor || "Locutor";
-  const aoVivoAtivo = radialistaSelecionado?.ativo !== false && Boolean(radialistaSelecionado?.wuzapi_token);
+  const aoVivoAtivo = radialistaSelecionado?.ativo !== false && Boolean(radioConta?.wuzapi_token);
   const programaSelecionadoNoAr =
     programaSelecionado !== null && radialistaSelecionado !== null && programaNoAr(programaSelecionado, radialistaSelecionado.timezone);
 

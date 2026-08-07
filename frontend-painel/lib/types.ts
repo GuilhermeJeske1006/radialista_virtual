@@ -1,6 +1,5 @@
 export type Radialista = {
   id: number;
-  wuzapi_token: string | null;
   ativo: boolean;
   nome_locutor: string;
   personalidade: string;
@@ -8,7 +7,7 @@ export type Radialista = {
   timezone: string;
 };
 
-export const RADIALISTA_VAZIO: Omit<Radialista, "id" | "wuzapi_token" | "ativo"> = {
+export const RADIALISTA_VAZIO: Omit<Radialista, "id" | "ativo"> = {
   nome_locutor: "",
   personalidade: "",
   voz_id: null,
@@ -21,6 +20,10 @@ export type RadioPerfil = {
   frequencia: string;
   telefone: string;
   endereco: string;
+};
+
+export type RadioConta = RadioPerfil & {
+  wuzapi_token: string | null;
 };
 
 export const RADIO_PERFIL_VAZIO: RadioPerfil = {

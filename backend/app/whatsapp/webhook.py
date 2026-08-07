@@ -46,6 +46,20 @@ def _registrar_log(db: Session, config: RadioConfig, telefone: str, mensagem: st
     db.commit()
 
 
+def _radialista_no_ar(db: Session, account_id: int) -> tuple[RadioConfig | None, Programa | None]:
+    """Acha, entre todos os radialistas ativos da conta (todos no mesmo numero de
+    WhatsApp), qual esta na escala agora. Se nenhum estiver, devolve o primeiro
+    radialista ativo so pra ter onde registrar o log de bloqueio por horario.
+    """
+    configs = db.query(RadioConfig).filter_by(account_id=account_id, ativo=True).order_by(RadioConfig.id.asc()).all()
+    for config in configs:
+        programas = db.query(Programa).filter_by(radio_config_id=config.id, ativo=True).all()
+        programa_atual = encontrar_programa_atual(programas, config.timezone)
+        if programa_atual is not None:
+            return config, programa_atual
+    return (configs[0], None) if configs else (None, None)
+
+
 def _extrair_mensagem(payload: dict) -> tuple[str, str, str, str | None, str | None] | None:
     """Extrai (telefone, nome, texto, wuzapi_token, wuzapi_user_id) do payload do WuzAPI.
 
@@ -110,23 +124,27 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
 
     telefone, nome, texto_usuario, wuzapi_token, wuzapi_user_id = extraido
 
-    config = None
+    account = None
     if wuzapi_user_id:
-        config = db.query(RadioConfig).filter_by(wuzapi_user_id=wuzapi_user_id, ativo=True).first()
-    if config is None and wuzapi_token:
-        config = db.query(RadioConfig).filter_by(wuzapi_token=wuzapi_token, ativo=True).first()
-    if config is None:
-        logger.warning("Nenhuma RadioConfig ativa para o userID/token recebido")
+        account = db.query(Account).filter_by(wuzapi_user_id=wuzapi_user_id).first()
+    if account is None and wuzapi_token:
+        account = db.query(Account).filter_by(wuzapi_token=wuzapi_token).first()
+    if account is None:
+        logger.warning("Nenhuma Account para o userID/token recebido")
         return {"status": "ignorado"}
 
-    account = db.query(Account).filter_by(id=config.account_id).first()
-    limite_mensagens = limites_do_plano(account.plano if account else "starter").mensagens_mes
-    if _mensagens_no_mes(db, config.account_id) >= limite_mensagens:
+    # Numero de WhatsApp e' unico por conta, mas varios radialistas (agentes) podem
+    # compartilha-lo, cada um no ar num horario diferente -- acha quem esta na escala agora.
+    config, programa_atual = _radialista_no_ar(db, account.id)
+    if config is None:
+        logger.warning("Nenhum radialista ativo para a conta %s", account.id)
+        return {"status": "ignorado"}
+
+    limite_mensagens = limites_do_plano(account.plano).mensagens_mes
+    if _mensagens_no_mes(db, account.id) >= limite_mensagens:
         _registrar_log(db, config, telefone, texto_usuario, "bloqueado_plano")
         return {"status": "bloqueado", "motivo": "limite_plano"}
 
-    programas = db.query(Programa).filter_by(radio_config_id=config.id, ativo=True).all()
-    programa_atual = encontrar_programa_atual(programas, config.timezone)
     if programa_atual is None:
         _registrar_log(db, config, telefone, texto_usuario, "bloqueado_horario")
         return {"status": "bloqueado", "motivo": "horario"}

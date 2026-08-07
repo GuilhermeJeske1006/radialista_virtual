@@ -51,6 +51,7 @@ async def criar_tabelas():
     garantir_colunas_account()
     garantir_colunas_programa()
     migrar_conteudo_para_programas()
+    migrar_whatsapp_para_account()
 
 
 def garantir_colunas_radio_config():
@@ -61,7 +62,6 @@ def garantir_colunas_radio_config():
     colunas = {coluna["name"] for coluna in inspector.get_columns("radio_configs")}
     novas_colunas = {
         "voz_id": "VARCHAR NULL",
-        "wuzapi_user_id": "VARCHAR NULL",
     }
 
     # account_id era unique (1 radialista por conta); agora uma conta pode ter varios radialistas.
@@ -89,12 +89,20 @@ def garantir_colunas_account():
     novas_colunas = {
         "plano": "VARCHAR DEFAULT 'starter' NOT NULL",
         "nome": "VARCHAR DEFAULT '' NOT NULL",
+        "wuzapi_token": "VARCHAR NULL",
+        "wuzapi_user_id": "VARCHAR NULL",
     }
 
     with engine.begin() as conn:
         for nome, definicao in novas_colunas.items():
             if nome not in colunas:
                 conn.execute(text(f"ALTER TABLE accounts ADD COLUMN {nome} {definicao}"))
+        if "wuzapi_token" not in colunas:
+            conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_accounts_wuzapi_token ON accounts (wuzapi_token)"))
+        if "wuzapi_user_id" not in colunas:
+            conn.execute(
+                text("CREATE UNIQUE INDEX IF NOT EXISTS ix_accounts_wuzapi_user_id ON accounts (wuzapi_user_id)")
+            )
 
 
 def garantir_colunas_programa():
@@ -105,6 +113,8 @@ def garantir_colunas_programa():
     colunas = {coluna["name"] for coluna in inspector.get_columns("programas")}
     novas_colunas = {
         "data_especifica": "DATE NULL",
+        "estrutura_blocos": "JSON DEFAULT '[]' NOT NULL",
+        "ia_pode_adicionar_blocos": "BOOLEAN DEFAULT TRUE NOT NULL",
     }
 
     with engine.begin() as conn:
@@ -182,6 +192,53 @@ def migrar_conteudo_para_programas():
 
         for coluna in [*_COLUNAS_CONTEUDO_PROGRAMA.keys(), "horario_inicio", "horario_fim"]:
             conn.execute(text(f"ALTER TABLE radio_configs DROP COLUMN IF EXISTS {coluna}"))
+
+
+def migrar_whatsapp_para_account():
+    """Move wuzapi_token/wuzapi_user_id de radio_configs (1 por agente) pra accounts
+    (1 por conta -- ver Account.wuzapi_token). So existe enquanto radio_configs ainda
+    tiver essas colunas (migracao roda uma unica vez).
+    """
+    inspector = inspect(engine)
+    if "radio_configs" not in inspector.get_table_names() or "accounts" not in inspector.get_table_names():
+        return
+
+    colunas_radio_configs = {coluna["name"] for coluna in inspector.get_columns("radio_configs")}
+    if "wuzapi_token" not in colunas_radio_configs:
+        return
+
+    with engine.begin() as conn:
+        indice_token_unico = any(
+            indice["name"] == "ix_radio_configs_wuzapi_token" for indice in inspector.get_indexes("radio_configs")
+        )
+        indice_user_id_unico = any(
+            indice["name"] == "ix_radio_configs_wuzapi_user_id" for indice in inspector.get_indexes("radio_configs")
+        )
+        if indice_token_unico:
+            conn.execute(text("DROP INDEX IF EXISTS ix_radio_configs_wuzapi_token"))
+        if indice_user_id_unico:
+            conn.execute(text("DROP INDEX IF EXISTS ix_radio_configs_wuzapi_user_id"))
+
+        # Um radialista (o mais antigo com token) empresta seu numero pra conta inteira.
+        conn.execute(
+            text(
+                """
+                UPDATE accounts a SET
+                    wuzapi_token = rc.wuzapi_token,
+                    wuzapi_user_id = rc.wuzapi_user_id
+                FROM (
+                    SELECT DISTINCT ON (account_id) account_id, wuzapi_token, wuzapi_user_id
+                    FROM radio_configs
+                    WHERE wuzapi_token IS NOT NULL
+                    ORDER BY account_id, id ASC
+                ) rc
+                WHERE a.id = rc.account_id AND a.wuzapi_token IS NULL
+                """
+            )
+        )
+
+        conn.execute(text("ALTER TABLE radio_configs DROP COLUMN IF EXISTS wuzapi_token"))
+        conn.execute(text("ALTER TABLE radio_configs DROP COLUMN IF EXISTS wuzapi_user_id"))
 
 
 @app.get("/health")

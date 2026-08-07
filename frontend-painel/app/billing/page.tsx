@@ -89,8 +89,8 @@ export default function BillingPage() {
         </h2>
         <p className="text-sm text-fg/55">
           Todos os planos incluem os mesmos agentes de IA (comercial, qualificação, agendamento,
-          suporte, pós-venda e mais) — o que muda é quantos agentes e números de WhatsApp você
-          pode rodar ao mesmo tempo.
+          suporte, pós-venda e mais), sempre atendendo pelo único número de WhatsApp da sua rádio —
+          o que muda é quantos agentes você pode rodar ao mesmo tempo.
         </p>
       </div>
 
@@ -124,7 +124,6 @@ export default function BillingPage() {
 
             <ul className="space-y-2.5 mb-6 flex-1">
               <Feature texto={`${plano.agentes} ${plano.agentes === 1 ? "agente" : "agentes"} de IA inclusos`} />
-              <Feature texto={`${plano.numeros} ${plano.numeros === 1 ? "número" : "números"} de WhatsApp`} />
               <Feature texto={`${plano.mensagens.toLocaleString("pt-BR")} mensagens/mês`} />
               <Feature texto="Respostas automáticas com IA" />
               <Feature texto="Encaminhamento pra atendimento humano" />

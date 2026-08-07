@@ -25,13 +25,17 @@ def seed() -> None:
             print("Conta de teste ja existe, nada a fazer.")
             return
 
-        account = Account(email=EMAIL_TESTE, senha_hash=hash_senha(SENHA_TESTE), plano_status="ativo")
+        account = Account(
+            email=EMAIL_TESTE,
+            senha_hash=hash_senha(SENHA_TESTE),
+            plano_status="ativo",
+            wuzapi_token=settings.wuzapi_user_token,
+        )
         db.add(account)
         db.flush()
 
         config = RadioConfig(
             account_id=account.id,
-            wuzapi_token=settings.wuzapi_user_token,
             nome_locutor=settings.locutor_nome,
         )
         db.add(config)

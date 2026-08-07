@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import AppShell from "../../components/AppShell";
 import { apiFetch, ApiError } from "../../lib/api";
-import { Conta, Radialista } from "../../lib/types";
+import { Conta, Radialista, RadioConta } from "../../lib/types";
 import { OndaLed, OndaSpin } from "../../components/OndaLogo";
 
 const ATALHOS = [
@@ -43,20 +43,26 @@ const ATALHOS = [
 export default function DashboardPage() {
   const [conta, setConta] = useState<Conta | null>(null);
   const [radialistas, setRadialistas] = useState<Radialista[]>([]);
+  const [radioConta, setRadioConta] = useState<RadioConta | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
 
   useEffect(() => {
-    Promise.all([apiFetch<Conta>("/auth/me"), apiFetch<Radialista[]>("/config/radialistas")])
-      .then(([c, r]) => {
+    Promise.all([
+      apiFetch<Conta>("/auth/me"),
+      apiFetch<Radialista[]>("/config/radialistas"),
+      apiFetch<RadioConta>("/config/radio"),
+    ])
+      .then(([c, r, radio]) => {
         setConta(c);
         setRadialistas(r);
+        setRadioConta(radio);
       })
       .catch((err) => setErro(err instanceof ApiError ? err.message : "Erro ao carregar painel"))
       .finally(() => setCarregando(false));
   }, []);
 
-  const conectados = radialistas.filter((r) => r.wuzapi_token).length;
+  const whatsappConectado = Boolean(radioConta?.wuzapi_token);
 
   return (
     <AppShell title="Dashboard" maxWidthClassName="max-w-4xl">
@@ -74,10 +80,10 @@ export default function DashboardPage() {
               <p className="font-display text-2xl font-bold text-fg">{radialistas.length}</p>
             </div>
             <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">
-              <p className="text-xs font-medium uppercase tracking-wide text-fg/45 mb-1">WhatsApp conectados</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-fg/45 mb-1">WhatsApp da rádio</p>
               <p className="flex items-center gap-2 font-display text-2xl font-bold text-fg">
-                <OndaLed color={conectados > 0 ? "teal" : "amber"} pulse={false} />
-                {conectados} / {radialistas.length}
+                <OndaLed color={whatsappConectado ? "teal" : "amber"} pulse={false} />
+                {whatsappConectado ? "Conectado" : "Não conectado"}
               </p>
             </div>
             <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">

@@ -90,6 +90,4 @@ async def webhook_stripe(request: Request, db: Session = Depends(get_db)):
 
 
 def _definir_ativo(db: Session, account: Account, ativo: bool) -> None:
-    config = db.query(RadioConfig).filter_by(account_id=account.id).first()
-    if config is not None:
-        config.ativo = ativo
+    db.query(RadioConfig).filter_by(account_id=account.id).update({"ativo": ativo})

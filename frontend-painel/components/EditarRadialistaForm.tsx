@@ -13,7 +13,7 @@ const inputClass =
 const labelClass = "block text-sm font-medium text-fg/80 mb-1.5";
 
 function semCamposSistema(r: Radialista) {
-  const { id, wuzapi_token, ativo, ...dados } = r;
+  const { id, ativo, ...dados } = r;
   return dados;
 }
 
@@ -147,18 +147,10 @@ export default function EditarRadialistaForm({
           <div>
             <h2 className="font-display text-base font-bold text-fg">Identidade do locutor</h2>
             <p className="text-sm text-fg/55">
-              {config.wuzapi_token ? (
-                <>
-                  WhatsApp conectado.{" "}
-                  <Link href={`/onboarding?radialista=${radialistaId}`} className="text-amber hover:underline">
-                    Gerenciar conexão
-                  </Link>
-                </>
-              ) : (
-                <Link href={`/onboarding?radialista=${radialistaId}`} className="text-amber hover:underline">
-                  Conectar este radialista ao WhatsApp
-                </Link>
-              )}
+              Atende pelo WhatsApp da rádio.{" "}
+              <Link href="/onboarding" className="text-amber hover:underline">
+                Gerenciar conexão
+              </Link>
             </p>
           </div>
           <button

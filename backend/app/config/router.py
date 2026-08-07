@@ -24,7 +24,6 @@ class RadialistaRequest(BaseModel):
 
 class RadialistaResponse(RadialistaRequest):
     id: int
-    wuzapi_token: str | None
     ativo: bool
 
     model_config = {"from_attributes": True}
@@ -39,6 +38,8 @@ class RadioContaRequest(BaseModel):
 
 
 class RadioContaResponse(RadioContaRequest):
+    wuzapi_token: str | None
+
     model_config = {"from_attributes": True}
 
 
@@ -153,7 +154,7 @@ def _validar_limite_agentes(db: Session, account: Account) -> None:
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
             detail=(
-                f"Seu plano permite no maximo {limite} agente(s) de WhatsApp. "
+                f"Seu plano permite no maximo {limite} agente(s). "
                 "Faca upgrade em /billing pra adicionar mais."
             ),
         )

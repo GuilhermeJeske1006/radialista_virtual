@@ -3,9 +3,9 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class LimitesPlano:
-    # Cada radialista (RadioConfig) e' 1 agente com seu proprio numero de WhatsApp
-    # (wuzapi_token e' 1:1 com RadioConfig) -- por isso "agentes" tambem limita
-    # quantos numeros de WhatsApp a conta pode conectar.
+    # Numero de radialistas (personas de IA) que a conta pode ter. Todos atendem
+    # pelo mesmo numero de WhatsApp da conta (Account.wuzapi_token) -- WhatsApp
+    # nao e' limitado por plano, so existe um por conta.
     agentes: int
     mensagens_mes: int
 
