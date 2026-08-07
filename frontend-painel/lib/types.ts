@@ -13,6 +13,22 @@ export const RADIALISTA_VAZIO: Omit<Radialista, "id" | "wuzapi_token" | "ativo">
   timezone: "America/Sao_Paulo",
 };
 
+export type RadioPerfil = {
+  nome_radio: string;
+  slogan: string;
+  frequencia: string;
+  telefone: string;
+  endereco: string;
+};
+
+export const RADIO_PERFIL_VAZIO: RadioPerfil = {
+  nome_radio: "",
+  slogan: "",
+  frequencia: "",
+  telefone: "",
+  endereco: "",
+};
+
 export type Voz = {
   voz_id: string;
   nome: string;
@@ -25,6 +41,7 @@ export type Programa = {
   radio_config_id: number;
   nome: string;
   dias_semana: number[];
+  data_especifica: string | null;
   horario_inicio: string;
   horario_fim: string;
   ativo: boolean;
@@ -53,6 +70,7 @@ export type Programa = {
 export const PROGRAMA_VAZIO: Omit<Programa, "id" | "radio_config_id"> = {
   nome: "",
   dias_semana: [],
+  data_especifica: null,
   horario_inicio: "08:00:00",
   horario_fim: "10:00:00",
   ativo: true,
@@ -96,3 +114,13 @@ export function normalizarPrograma(p: Programa): Programa {
 }
 
 export const DIAS_SEMANA_LABEL = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+
+export type Conta = {
+  id: number;
+  nome: string;
+  email: string;
+  plano_status: string;
+  plano: string;
+  criado_em: string;
+  tem_radio_config: boolean;
+};

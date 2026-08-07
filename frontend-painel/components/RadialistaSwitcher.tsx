@@ -12,10 +12,7 @@ type Props = {
 export default function RadialistaSwitcher({ radialistas, selecionadoId, onSelect }: Props) {
   if (radialistas.length === 0) {
     return (
-      <Link
-        href="/dashboard"
-        className="text-sm font-medium text-brand-600 hover:text-brand-700"
-      >
+      <Link href="/radialista" className="text-sm font-medium text-amber hover:text-amber-dim">
         Criar primeiro radialista
       </Link>
     );
@@ -23,9 +20,9 @@ export default function RadialistaSwitcher({ radialistas, selecionadoId, onSelec
 
   return (
     <div className="flex items-center gap-2">
-      <label className="text-sm font-medium text-gray-500 shrink-0">Radialista</label>
+      <label className="text-sm font-medium text-fg/55 shrink-0">Radialista</label>
       <select
-        className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-500/20"
+        className="rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
         value={selecionadoId ?? ""}
         onChange={(e) => onSelect(Number(e.target.value))}
       >
@@ -36,8 +33,8 @@ export default function RadialistaSwitcher({ radialistas, selecionadoId, onSelec
         ))}
       </select>
       <Link
-        href={selecionadoId ? `/dashboard/${selecionadoId}` : "/dashboard"}
-        className="text-sm font-medium text-brand-600 hover:text-brand-700 whitespace-nowrap"
+        href={selecionadoId ? `/radialista/${selecionadoId}` : "/radialista"}
+        className="text-sm font-medium text-amber hover:text-amber-dim whitespace-nowrap"
       >
         Gerenciar
       </Link>

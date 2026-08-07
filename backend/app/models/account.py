@@ -13,9 +13,20 @@ class Account(Base):
 
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
     senha_hash: Mapped[str] = mapped_column(String)
+    nome: Mapped[str] = mapped_column(String, default="")
+
+    # Dados da emissora (unicos por conta -- todos os radialistas da conta falam pela mesma radio).
+    nome_radio: Mapped[str] = mapped_column(String, default="")
+    slogan: Mapped[str] = mapped_column(String, default="")
+    frequencia: Mapped[str] = mapped_column(String, default="")
+    telefone: Mapped[str] = mapped_column(String, default="")
+    endereco: Mapped[str] = mapped_column(String, default="")
 
     # trial | ativo | inadimplente | cancelado
     plano_status: Mapped[str] = mapped_column(String, default="trial")
+
+    # starter | growth | professional | business -- ver app/planos.py pros limites de cada um.
+    plano: Mapped[str] = mapped_column(String, default="starter")
 
     stripe_customer_id: Mapped[str | None] = mapped_column(String, nullable=True)
     stripe_subscription_id: Mapped[str | None] = mapped_column(String, nullable=True)

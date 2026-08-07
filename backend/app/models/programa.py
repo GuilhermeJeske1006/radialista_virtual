@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Time
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, String, Time
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
@@ -20,7 +20,11 @@ class Programa(Base):
     nome: Mapped[str] = mapped_column(String)
 
     # Dias da semana em que o programa vai ao ar (0=segunda ... 6=domingo). Vazio = todos os dias.
+    # Ignorado quando data_especifica esta preenchida.
     dias_semana: Mapped[list[int]] = mapped_column(JSON, default=list)
+
+    # Quando preenchida, o programa e "avulso": vai ao ar so nessa data, uma unica vez, e dias_semana e ignorado.
+    data_especifica: Mapped[datetime.date | None] = mapped_column(Date, nullable=True, default=None)
 
     horario_inicio: Mapped[datetime.time] = mapped_column(Time)
     horario_fim: Mapped[datetime.time] = mapped_column(Time)

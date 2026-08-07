@@ -11,6 +11,17 @@ export class ApiError extends Error {
   }
 }
 
+async function mensagemDeErro(response: Response): Promise<string> {
+  const corpo = await response.text();
+  try {
+    const dados = JSON.parse(corpo);
+    if (typeof dados?.detail === "string") return dados.detail;
+  } catch {
+    // corpo nao e JSON, usa texto cru
+  }
+  return corpo || `Erro ${response.status}`;
+}
+
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {
@@ -32,8 +43,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   }
 
   if (!response.ok) {
-    const corpo = await response.text();
-    throw new ApiError(response.status, corpo || `Erro ${response.status}`);
+    throw new ApiError(response.status, await mensagemDeErro(response));
   }
 
   if (response.status === 204) {
@@ -56,8 +66,7 @@ export async function apiFetchBlob(path: string, options: RequestInit = {}): Pro
   const response = await fetch(`${API_URL}${path}`, { ...options, headers });
 
   if (!response.ok) {
-    const corpo = await response.text();
-    throw new ApiError(response.status, corpo || `Erro ${response.status}`);
+    throw new ApiError(response.status, await mensagemDeErro(response));
   }
 
   return response.blob();

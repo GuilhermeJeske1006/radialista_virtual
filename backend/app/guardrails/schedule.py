@@ -17,7 +17,11 @@ def programa_no_ar(programa: Programa, timezone: str) -> bool:
         return False
 
     agora = datetime.datetime.now(ZoneInfo(timezone))
-    if programa.dias_semana and agora.weekday() not in programa.dias_semana:
+
+    if programa.data_especifica is not None:
+        if agora.date() != programa.data_especifica:
+            return False
+    elif programa.dias_semana and agora.weekday() not in programa.dias_semana:
         return False
 
     return _dentro_da_janela(agora.time(), programa.horario_inicio, programa.horario_fim)

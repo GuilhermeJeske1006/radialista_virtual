@@ -17,7 +17,7 @@ class InteractionLog(Base):
     mensagem_usuario: Mapped[str] = mapped_column(Text)
     resposta: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    # ok | bloqueado_horario | bloqueado_rate_limit | bloqueado_conteudo
+    # ok | bloqueado_horario | bloqueado_rate_limit | bloqueado_conteudo | bloqueado_plano
     status: Mapped[str] = mapped_column(String)
 
     criado_em: Mapped[datetime.datetime] = mapped_column(

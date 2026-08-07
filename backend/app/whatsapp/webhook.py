@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 from fastapi import APIRouter, Depends, Request
@@ -5,16 +6,31 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.guardrails.content_filter import contem_topico_proibido
+from app.guardrails.http_rate_limit import limitar_por_ip
 from app.guardrails.rate_limiter import dentro_do_limite
 from app.guardrails.schedule import encontrar_programa_atual
 from app.llm.intent import classificar_intencao
+from app.models.account import Account
 from app.models.fila_ao_vivo import FilaAoVivo
 from app.models.interaction_log import InteractionLog
 from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
+from app.planos import limites_do_plano
 
 logger = logging.getLogger("radialista.webhook")
 router = APIRouter()
+
+
+def _mensagens_no_mes(db: Session, account_id: int) -> int:
+    inicio_mes = datetime.datetime.now(datetime.timezone.utc).replace(
+        day=1, hour=0, minute=0, second=0, microsecond=0
+    )
+    return (
+        db.query(InteractionLog)
+        .join(RadioConfig, InteractionLog.radio_config_id == RadioConfig.id)
+        .filter(RadioConfig.account_id == account_id, InteractionLog.criado_em >= inicio_mes)
+        .count()
+    )
 
 
 def _registrar_log(db: Session, config: RadioConfig, telefone: str, mensagem: str, status: str) -> None:
@@ -30,15 +46,16 @@ def _registrar_log(db: Session, config: RadioConfig, telefone: str, mensagem: st
     db.commit()
 
 
-def _extrair_mensagem(payload: dict) -> tuple[str, str, str, str] | None:
-    """Extrai (telefone, nome, texto, wuzapi_token) do payload do WuzAPI.
+def _extrair_mensagem(payload: dict) -> tuple[str, str, str, str | None, str | None] | None:
+    """Extrai (telefone, nome, texto, wuzapi_token, wuzapi_user_id) do payload do WuzAPI.
 
-    Formato confirmado (API.md do projeto): {"type": "Message", "token": "...",
-    "event": {"Info": {...}, "Message": {"Conversation": "..."}}}.
-    Mantem fallbacks defensivos para variacoes de casing/formato.
+    O corpo do webhook manda "userID" (id interno do usuario no WuzAPI), nao o
+    "token" -- esse so aparece em chamadas manuais/teste. Aceita qualquer um
+    dos dois pra identificar a radio; pelo menos um precisa estar presente.
     """
     wuzapi_token = payload.get("token")
-    if not wuzapi_token:
+    wuzapi_user_id = payload.get("userID")
+    if not wuzapi_token and not wuzapi_user_id:
         return None
 
     evento = payload.get("event", payload)
@@ -63,10 +80,19 @@ def _extrair_mensagem(payload: dict) -> tuple[str, str, str, str] | None:
         return None
 
     telefone = str(telefone).split("@")[0]
-    return telefone, str(nome), str(texto), str(wuzapi_token)
+    return (
+        telefone,
+        str(nome),
+        str(texto),
+        str(wuzapi_token) if wuzapi_token else None,
+        str(wuzapi_user_id) if wuzapi_user_id else None,
+    )
 
 
-@router.post("/webhook/whatsapp")
+@router.post(
+    "/webhook/whatsapp",
+    dependencies=[Depends(limitar_por_ip("whatsapp_webhook", limite=60, janela_segundos=60))],
+)
 async def receber_webhook(request: Request, db: Session = Depends(get_db)):
     """Ouve mensagens do WhatsApp. O bot nunca responde direto no chat.
 
@@ -82,12 +108,22 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
     if extraido is None:
         return {"status": "ignorado"}
 
-    telefone, nome, texto_usuario, wuzapi_token = extraido
+    telefone, nome, texto_usuario, wuzapi_token, wuzapi_user_id = extraido
 
-    config = db.query(RadioConfig).filter_by(wuzapi_token=wuzapi_token, ativo=True).first()
+    config = None
+    if wuzapi_user_id:
+        config = db.query(RadioConfig).filter_by(wuzapi_user_id=wuzapi_user_id, ativo=True).first()
+    if config is None and wuzapi_token:
+        config = db.query(RadioConfig).filter_by(wuzapi_token=wuzapi_token, ativo=True).first()
     if config is None:
-        logger.warning("Nenhuma RadioConfig ativa para o token recebido")
+        logger.warning("Nenhuma RadioConfig ativa para o userID/token recebido")
         return {"status": "ignorado"}
+
+    account = db.query(Account).filter_by(id=config.account_id).first()
+    limite_mensagens = limites_do_plano(account.plano if account else "starter").mensagens_mes
+    if _mensagens_no_mes(db, config.account_id) >= limite_mensagens:
+        _registrar_log(db, config, telefone, texto_usuario, "bloqueado_plano")
+        return {"status": "bloqueado", "motivo": "limite_plano"}
 
     programas = db.query(Programa).filter_by(radio_config_id=config.id, ativo=True).all()
     programa_atual = encontrar_programa_atual(programas, config.timezone)

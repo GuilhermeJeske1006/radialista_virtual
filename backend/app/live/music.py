@@ -16,11 +16,13 @@ class MusicaEncontrada:
     canal: str
 
 
-def buscar_musica(query: str, bloqueados: list[str] | None = None) -> MusicaEncontrada | None:
-    if not settings.youtube_api_key:
-        return None
+TERMOS_AO_VIVO = ["ao vivo", "live", "live session", "live performance"]
 
-    bloqueados_lower = [b.lower() for b in (bloqueados or [])]
+
+def _buscar_itens(query: str) -> list[dict]:
+    if not settings.youtube_api_key:
+        return []
+
     params = {
         "key": settings.youtube_api_key,
         "part": "snippet",
@@ -36,16 +38,37 @@ def buscar_musica(query: str, bloqueados: list[str] | None = None) -> MusicaEnco
         resposta = httpx.get(YOUTUBE_SEARCH_URL, params=params, timeout=8.0)
         resposta.raise_for_status()
     except httpx.HTTPError:
+        return []
+
+    return resposta.json().get("items", [])
+
+
+def buscar_musica(query: str, bloqueados: list[str] | None = None) -> MusicaEncontrada | None:
+    """Busca a musica priorizando versao de estudio; se nao achar, cai pra versao ao vivo."""
+    if not settings.youtube_api_key:
         return None
 
-    for item in resposta.json().get("items", []):
-        titulo = item["snippet"]["title"]
-        canal = item["snippet"]["channelTitle"]
-        if any(termo in titulo.lower() or termo in canal.lower() for termo in bloqueados_lower):
-            continue
-        return MusicaEncontrada(video_id=item["id"]["videoId"], titulo=titulo, canal=canal)
+    bloqueados_lower = [b.lower() for b in (bloqueados or [])]
 
-    return None
+    def escolher(itens: list[dict], permitir_ao_vivo: bool) -> MusicaEncontrada | None:
+        for item in itens:
+            titulo = item["snippet"]["title"]
+            canal = item["snippet"]["channelTitle"]
+            texto = f"{titulo.lower()} {canal.lower()}"
+            if any(termo in texto for termo in bloqueados_lower):
+                continue
+            if not permitir_ao_vivo and any(termo in texto for termo in TERMOS_AO_VIVO):
+                continue
+            return MusicaEncontrada(video_id=item["id"]["videoId"], titulo=titulo, canal=canal)
+        return None
+
+    itens = _buscar_itens(query)
+
+    resultado = escolher(itens, permitir_ao_vivo=False)
+    if resultado:
+        return resultado
+
+    return escolher(itens, permitir_ao_vivo=True)
 
 
 def buscar_musica_fundo(generos_musicais: list[str], bloqueados: list[str] | None = None) -> MusicaEncontrada | None:

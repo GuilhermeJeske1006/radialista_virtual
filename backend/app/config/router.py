@@ -9,6 +9,7 @@ from app.db.database import get_db
 from app.models.account import Account
 from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
+from app.planos import limites_do_plano
 from app.tts.voices import voz_valida
 
 router = APIRouter(prefix="/config", tags=["config"])
@@ -28,9 +29,22 @@ class RadialistaResponse(RadialistaRequest):
     model_config = {"from_attributes": True}
 
 
+class RadioContaRequest(BaseModel):
+    nome_radio: str = ""
+    slogan: str = ""
+    frequencia: str = ""
+    telefone: str = ""
+    endereco: str = ""
+
+
+class RadioContaResponse(RadioContaRequest):
+    model_config = {"from_attributes": True}
+
+
 class ProgramaRequest(BaseModel):
     nome: str
     dias_semana: list[int] = Field(default_factory=list)
+    data_especifica: datetime.date | None = None
     horario_inicio: datetime.time
     horario_fim: datetime.time
     ativo: bool = True
@@ -87,6 +101,78 @@ def _validar_voz(voz_id: str | None) -> None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Voz invalida")
 
 
+def _ocorrencias_conflitam(a, b) -> bool:
+    # a e b tem .dias_semana e .data_especifica (ProgramaRequest ou Programa).
+    data_a = a.data_especifica
+    data_b = b.data_especifica
+
+    if data_a is not None and data_b is not None:
+        return data_a == data_b
+    if data_a is not None:
+        return not b.dias_semana or data_a.weekday() in b.dias_semana
+    if data_b is not None:
+        return not a.dias_semana or data_b.weekday() in a.dias_semana
+
+    # Ambos recorrentes. Lista vazia = todos os dias, entao sempre conflita com qualquer outra lista.
+    if not a.dias_semana or not b.dias_semana:
+        return True
+    return bool(set(a.dias_semana) & set(b.dias_semana))
+
+
+def _horarios_conflitam(inicio_a, fim_a, inicio_b, fim_b) -> bool:
+    return inicio_a < fim_b and inicio_b < fim_a
+
+
+def _validar_conflito_horario(
+    db: Session,
+    radialista_id: int,
+    dados: "ProgramaRequest",
+    programa_id: int | None = None,
+) -> None:
+    query = db.query(Programa).filter_by(radio_config_id=radialista_id)
+    if programa_id is not None:
+        query = query.filter(Programa.id != programa_id)
+    for outro in query.all():
+        if _ocorrencias_conflitam(dados, outro) and _horarios_conflitam(
+            dados.horario_inicio, dados.horario_fim, outro.horario_inicio, outro.horario_fim
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Horario conflita com o programa '{outro.nome}' ({outro.horario_inicio}-{outro.horario_fim})",
+            )
+
+
+def _validar_limite_agentes(db: Session, account: Account) -> None:
+    limite = limites_do_plano(account.plano).agentes
+    total_atual = db.query(RadioConfig).filter_by(account_id=account.id).count()
+    if total_atual >= limite:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail=(
+                f"Seu plano permite no maximo {limite} agente(s) de WhatsApp. "
+                "Faca upgrade em /billing pra adicionar mais."
+            ),
+        )
+
+
+@router.get("/radio", response_model=RadioContaResponse)
+def obter_radio(account: Account = Depends(get_current_account)):
+    return account
+
+
+@router.put("/radio", response_model=RadioContaResponse)
+def atualizar_radio(
+    dados: RadioContaRequest,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    for campo, valor in dados.model_dump().items():
+        setattr(account, campo, valor)
+    db.commit()
+    db.refresh(account)
+    return account
+
+
 @router.get("/radialistas", response_model=list[RadialistaResponse])
 def listar_radialistas(account: Account = Depends(get_current_account), db: Session = Depends(get_db)):
     return db.query(RadioConfig).filter_by(account_id=account.id).order_by(RadioConfig.id.asc()).all()
@@ -99,6 +185,7 @@ def criar_radialista(
     db: Session = Depends(get_db),
 ):
     _validar_voz(dados.voz_id)
+    _validar_limite_agentes(db, account)
     radialista = RadioConfig(account_id=account.id, **dados.model_dump())
     db.add(radialista)
     db.commit()
@@ -170,6 +257,7 @@ def criar_programa(
     db: Session = Depends(get_db),
 ):
     radialista = _buscar_radialista(db, account, radialista_id)
+    _validar_conflito_horario(db, radialista.id, dados)
     programa = Programa(radio_config_id=radialista.id, **dados.model_dump())
     db.add(programa)
     db.commit()
@@ -194,6 +282,7 @@ def atualizar_programa(
     db: Session = Depends(get_db),
 ):
     programa = _buscar_programa(db, account, programa_id)
+    _validar_conflito_horario(db, programa.radio_config_id, dados, programa_id=programa.id)
     for campo, valor in dados.model_dump().items():
         setattr(programa, campo, valor)
     db.commit()

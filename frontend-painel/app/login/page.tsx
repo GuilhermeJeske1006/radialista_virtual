@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "../../lib/api";
 import { setToken } from "../../lib/auth";
+import { OndaLogo } from "../../components/OndaLogo";
+import ThemeToggle from "../../components/ThemeToggle";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,45 +34,51 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 shadow-theme-xs p-6">
-        <h1 className="text-lg font-semibold text-gray-900 mb-6">Entrar</h1>
-        <form onSubmit={enviar} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">E-mail</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-500/20"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Senha</label>
-            <input
-              type="password"
-              required
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-500/20"
-            />
-          </div>
-          {erro && <p className="text-sm text-red-600">{erro}</p>}
-          <button
-            type="submit"
-            disabled={carregando}
-            className="w-full rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {carregando ? "Entrando..." : "Entrar"}
-          </button>
-        </form>
-        <p className="mt-4 text-sm text-gray-600">
-          Não tem conta?{" "}
-          <Link href="/register" className="text-brand-600 hover:text-brand-700 font-medium">
-            Criar conta
-          </Link>
-        </p>
+    <div className="min-h-screen bg-bg flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        <div className="flex items-center justify-center gap-3 mb-6">
+          <OndaLogo size={34} wordmarkClassName="text-2xl" />
+          <ThemeToggle className="ml-1" />
+        </div>
+        <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-sm p-6">
+          <h1 className="font-display text-lg font-bold text-fg mb-6">Entrar</h1>
+          <form onSubmit={enviar} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-fg/80 mb-1.5">E-mail</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-fg/80 mb-1.5">Senha</label>
+              <input
+                type="password"
+                required
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+              />
+            </div>
+            {erro && <p className="text-sm text-rust">{erro}</p>}
+            <button
+              type="submit"
+              disabled={carregando}
+              className="w-full rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {carregando ? "Entrando..." : "Entrar"}
+            </button>
+          </form>
+          <p className="mt-4 text-sm text-fg/55">
+            Não tem conta?{" "}
+            <Link href="/register" className="text-amber hover:text-amber-dim font-medium">
+              Criar conta
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

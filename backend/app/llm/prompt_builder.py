@@ -1,8 +1,9 @@
+from app.models.account import Account
 from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
 
 
-def montar_system_prompt(radialista: RadioConfig, programa: Programa) -> str:
+def montar_system_prompt(account: Account, radialista: RadioConfig, programa: Programa) -> str:
     topicos = ", ".join(programa.topicos_permitidos) if programa.topicos_permitidos else "assuntos gerais da radio"
     generos = ", ".join(programa.generos_musicais) if programa.generos_musicais else "perfil musical geral da radio"
     musicas = ", ".join(programa.musicas_permitidas) if programa.musicas_permitidas else "sem lista fixa de musicas"
@@ -11,8 +12,13 @@ def montar_system_prompt(radialista: RadioConfig, programa: Programa) -> str:
     fontes_noticias = (
         ", ".join(programa.fontes_noticias) if programa.fontes_noticias else "fontes confiaveis informadas pela radio"
     )
+    identificacao_radio = account.nome_radio or "a radio"
+    if account.frequencia:
+        identificacao_radio += f" ({account.frequencia})"
+
     partes = [
-        f"Voce e {radialista.nome_locutor}, um locutor de radio virtual que conversa com ouvintes pelo WhatsApp.",
+        f"Voce e {radialista.nome_locutor}, um locutor de radio virtual que conversa com ouvintes pelo WhatsApp "
+        f"em nome de {identificacao_radio}.",
         f"Agora voce apresenta o programa '{programa.nome}'.",
         f"Tom de voz: {programa.tom}.",
         "Responda de forma curta e natural, como uma mensagem de WhatsApp (poucas frases, sem formatacao de markdown).",
@@ -22,6 +28,20 @@ def montar_system_prompt(radialista: RadioConfig, programa: Programa) -> str:
         f"Regras para buscar ou sugerir musicas: {programa.criterios_busca_musicas}.",
         f"Noticias permitidas: {noticias}. Fontes preferenciais de noticias: {fontes_noticias}.",
     ]
+
+    dados_radio = []
+    if account.slogan:
+        dados_radio.append(f"slogan '{account.slogan}'")
+    if account.telefone:
+        dados_radio.append(f"telefone {account.telefone}")
+    if account.endereco:
+        dados_radio.append(f"endereco {account.endereco}")
+    if dados_radio:
+        partes.append(
+            f"Dados da radio disponiveis pra voce citar quando fizer sentido (identificacao da radio, "
+            f"resposta a pergunta do ouvinte, ou reforco de marca): {', '.join(dados_radio)}. "
+            "Nao precisa recitar tudo isso o tempo todo -- use apenas quando for natural pra conversa."
+        )
 
     if programa.topicos_proibidos:
         proibidos = ", ".join(programa.topicos_proibidos)

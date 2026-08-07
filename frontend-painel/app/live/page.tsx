@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import AppShell from "../../components/AppShell";
+import Modal from "../../components/Modal";
+import EditarRadialistaForm from "../../components/EditarRadialistaForm";
+import EditarProgramaForm from "../../components/EditarProgramaForm";
 import { apiFetch, apiFetchBlob, ApiError } from "../../lib/api";
 import { setRadialistaAtualId } from "../../lib/radialistas";
 import { Radialista, Programa, DIAS_SEMANA_LABEL } from "../../lib/types";
+import { OndaLed, OndaSpin, OndaWaveform } from "../../components/OndaLogo";
 
 declare global {
   interface Window {
@@ -23,6 +26,8 @@ type Interaction = {
   criado_em: string;
 };
 
+type MusicaBloco = { video_id: string; titulo: string };
+
 type ProgramSegment = {
   id: number;
   tipo: string;
@@ -31,6 +36,7 @@ type ProgramSegment = {
   origem: "ia" | "local";
   video_id?: string | null;
   titulo_musica?: string | null;
+  musicas?: MusicaBloco[];
 };
 
 type LiveProgramResponse = {
@@ -39,6 +45,7 @@ type LiveProgramResponse = {
   criado_em: string;
   video_id?: string | null;
   titulo_musica?: string | null;
+  musicas?: MusicaBloco[];
 };
 
 type ProgramaOpcao = Programa & { radialistaId: number; radialistaNome: string };
@@ -49,12 +56,12 @@ type SegmentoPreparado = {
 };
 
 const STATUS_STYLE: Record<string, string> = {
-  fila_musica: "bg-brand-50 text-brand-700",
-  fila_abraco: "bg-pink-50 text-pink-700",
-  guardado: "bg-gray-100 text-gray-600",
-  bloqueado_horario: "bg-amber-50 text-amber-700",
-  bloqueado_rate_limit: "bg-amber-50 text-amber-700",
-  bloqueado_conteudo: "bg-red-50 text-red-700",
+  fila_musica: "bg-teal/10 text-teal",
+  fila_abraco: "bg-amber/10 text-amber",
+  guardado: "bg-paper/10 text-fg/60",
+  bloqueado_horario: "bg-amber/10 text-amber",
+  bloqueado_rate_limit: "bg-amber/10 text-amber",
+  bloqueado_conteudo: "bg-rust/10 text-rust",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -67,7 +74,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const POLL_MS = 4000;
-const INTERVALO_PROGRAMA_MS = 600;
+const INTERVALO_PROGRAMA_MS = 2200;
 
 function formatarHora(iso: string): string {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -85,10 +92,13 @@ function dentroDaJanela(segundosAgora: number, inicioSeg: number, fimSeg: number
   return segundosAgora >= inicioSeg || segundosAgora <= fimSeg;
 }
 
-function agoraNoFuso(timezone: string): { diaSemana: number; segundosDoDia: number } {
+function agoraNoFuso(timezone: string): { diaSemana: number; dataIso: string; segundosDoDia: number } {
   const partes = new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,
     weekday: "short",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
@@ -96,21 +106,27 @@ function agoraNoFuso(timezone: string): { diaSemana: number; segundosDoDia: numb
   }).formatToParts(new Date());
   const obter = (tipo: string) => partes.find((p) => p.type === tipo)?.value ?? "";
   const diaSemana = DIAS_SEMANA_ORDEM.indexOf(obter("weekday"));
+  const dataIso = `${obter("year")}-${obter("month")}-${obter("day")}`;
   const hora = Number(obter("hour")) % 24;
   const minuto = Number(obter("minute"));
   const segundo = Number(obter("second"));
-  return { diaSemana, segundosDoDia: hora * 3600 + minuto * 60 + segundo };
+  return { diaSemana, dataIso, segundosDoDia: hora * 3600 + minuto * 60 + segundo };
 }
 
 // espelha app/guardrails/schedule.py (programa_no_ar / encontrar_programa_atual) do backend
 function programaNoAr(programa: Programa, timezone: string): boolean {
   if (!programa.ativo) return false;
-  const { diaSemana, segundosDoDia } = agoraNoFuso(timezone);
-  if (programa.dias_semana.length > 0 && !programa.dias_semana.includes(diaSemana)) return false;
+  const { diaSemana, dataIso, segundosDoDia } = agoraNoFuso(timezone);
+  if (programa.data_especifica) {
+    if (programa.data_especifica !== dataIso) return false;
+  } else if (programa.dias_semana.length > 0 && !programa.dias_semana.includes(diaSemana)) {
+    return false;
+  }
   return dentroDaJanela(segundosDoDia, horarioParaSegundos(programa.horario_inicio), horarioParaSegundos(programa.horario_fim));
 }
 
-function formatarDiasSemana(dias: number[]): string {
+function formatarDiasSemana(dias: number[], dataEspecifica?: string | null): string {
+  if (dataEspecifica) return `Avulso em ${dataEspecifica.split("-").reverse().join("/")}`;
   if (dias.length === 0) return "Todos os dias";
   return dias
     .slice()
@@ -168,6 +184,8 @@ export default function LivePage() {
   const [erro, setErro] = useState("");
   const [pulso, setPulso] = useState(false);
   const [musicaAtual, setMusicaAtual] = useState<string | null>(null);
+  const [modalRadialistaId, setModalRadialistaId] = useState<number | null>(null);
+  const [modalPrograma, setModalPrograma] = useState<{ radialistaId: number; programaId: number } | null>(null);
   const ultimoIdRef = useRef<number | null>(null);
   const radialistaIdRef = useRef<number | null>(null);
   const programaIdRef = useRef<number | null>(null);
@@ -208,32 +226,35 @@ export default function LivePage() {
     }
   }, []);
 
-  useEffect(() => {
-    apiFetch<Radialista[]>("/config/radialistas")
-      .then(async (lista) => {
-        setRadialistas(lista);
-        try {
-          const listasDeProgramas = await Promise.all(
-            lista.map((r) =>
-              apiFetch<Programa[]>(`/config/radialistas/${r.id}/programas`).catch(() => [] as Programa[])
-            )
-          );
-          const combinado: ProgramaOpcao[] = lista.flatMap((r, i) =>
-            listasDeProgramas[i].map((p) => ({
-              ...p,
-              radialistaId: r.id,
-              radialistaNome: r.nome_locutor || `Radialista #${r.id}`,
-            }))
-          );
-          setProgramasTodos(combinado);
-        } finally {
-          setCarregandoProgramas(false);
-        }
-      })
-      .catch((err) => {
-        setErro(err instanceof ApiError ? err.message : "Erro ao carregar radialistas");
+  async function carregarRadialistasEProgramas() {
+    try {
+      const lista = await apiFetch<Radialista[]>("/config/radialistas");
+      setRadialistas(lista);
+      try {
+        const listasDeProgramas = await Promise.all(
+          lista.map((r) =>
+            apiFetch<Programa[]>(`/config/radialistas/${r.id}/programas`).catch(() => [] as Programa[])
+          )
+        );
+        const combinado: ProgramaOpcao[] = lista.flatMap((r, i) =>
+          listasDeProgramas[i].map((p) => ({
+            ...p,
+            radialistaId: r.id,
+            radialistaNome: r.nome_locutor || `Radialista #${r.id}`,
+          }))
+        );
+        setProgramasTodos(combinado);
+      } finally {
         setCarregandoProgramas(false);
-      });
+      }
+    } catch (err) {
+      setErro(err instanceof ApiError ? err.message : "Erro ao carregar radialistas");
+      setCarregandoProgramas(false);
+    }
+  }
+
+  useEffect(() => {
+    carregarRadialistasEProgramas();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -535,7 +556,7 @@ export default function LivePage() {
       if (!radialistaIdRef.current) throw new Error("sem radialista selecionado");
       const audioBlob = await apiFetchBlob(`/live/${radialistaIdRef.current}/tts`, {
         method: "POST",
-        body: JSON.stringify({ texto: segmento.fala }),
+        body: JSON.stringify({ texto: segmento.fala, tipo: segmento.tipo }),
       });
       audioUrl = URL.createObjectURL(audioBlob);
     } catch {
@@ -583,7 +604,16 @@ export default function LivePage() {
     if (novaFala.tipo === "musica" && novaFala.video_id) {
       try {
         await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala);
-        await tocarMusica(novaFala.video_id, novaFala.titulo_musica ?? "");
+        // bloco pode ter mais de uma musica (o agente decidiu emendar) --
+        // toca todas seguidas, sem nova fala entre elas, pra manter o embalo
+        const bloco =
+          novaFala.musicas && novaFala.musicas.length > 0
+            ? novaFala.musicas
+            : [{ video_id: novaFala.video_id, titulo: novaFala.titulo_musica ?? "" }];
+        for (const musica of bloco) {
+          if (!programaAtivoRef.current) break;
+          await tocarMusica(musica.video_id, musica.titulo);
+        }
       } catch {
         // segue o programa mesmo se a musica falhar ao tocar
       }
@@ -679,20 +709,20 @@ export default function LivePage() {
       <div id="yt-live-player" className="pointer-events-none fixed left-[-9999px] top-0 h-px w-px overflow-hidden" />
       <div id="yt-bg-player" className="pointer-events-none fixed left-[-9999px] top-0 h-px w-px overflow-hidden" />
 
-      {erro && <p className="text-sm text-red-600 mb-4">{erro}</p>}
+      {erro && <p className="text-sm text-rust mb-4">{erro}</p>}
 
-      <section className="bg-white rounded-2xl border border-gray-200 shadow-theme-xs p-6 mb-5">
+      <section className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6 mb-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex-1 min-w-0">
-            <h2 className="text-base font-semibold text-gray-900">1. Selecionar programa</h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <h2 className="font-display text-base font-bold text-fg">1. Selecionar programa</h2>
+            <p className="text-sm text-fg/55 mt-1">
               Escolha o programa que vai ao ar. Locutor, repertorio, assuntos, voz e horario sao carregados
               automaticamente a partir dele.
             </p>
 
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
               <select
-                className="w-full sm:max-w-sm rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-500/20"
+                className="w-full sm:max-w-sm rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
                 value={programaId ?? ""}
                 disabled={carregandoProgramas || programaAtivo}
                 onChange={(e) => {
@@ -728,7 +758,7 @@ export default function LivePage() {
                   type="button"
                   onClick={iniciarPrograma}
                   disabled={!programaId || gerandoFala}
-                  className="rounded-lg bg-red-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
+                  className="rounded-lg bg-rust px-4 py-2.5 text-sm font-medium text-fg hover:bg-rust/90 disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
                 >
                   Comecar transmissao
                 </button>
@@ -736,7 +766,7 @@ export default function LivePage() {
                 <button
                   type="button"
                   onClick={pausarPrograma}
-                  className="rounded-lg bg-gray-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800 shrink-0"
+                  className="rounded-lg border border-border-strong bg-paper/5 px-4 py-2.5 text-sm font-medium text-fg hover:bg-paper/10 shrink-0"
                 >
                   Pausar transmissao
                 </button>
@@ -747,34 +777,27 @@ export default function LivePage() {
           <div className="flex items-center gap-3 shrink-0">
             <span
               className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
-                aoVivoAtivo ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+                aoVivoAtivo ? "bg-teal/10 text-teal" : "bg-amber/10 text-amber"
               }`}
             >
               {aoVivoAtivo ? "Agente online" : "Aguardando conexao"}
             </span>
             <div className="flex items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5">
-                <span
-                  className={`absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 ${
-                    pulso ? "animate-ping" : ""
-                  }`}
-                />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
-              </span>
-              <span className="text-xs font-semibold tracking-wide text-gray-500">AO VIVO</span>
+              <OndaLed color="rust" pulse={pulso} />
+              <span className="font-mono text-xs font-semibold tracking-wide text-fg/55">AO VIVO</span>
             </div>
           </div>
         </div>
 
         {programaSelecionado && (
-          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4">
-            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
+          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-border pt-4">
+            <span className="rounded-full bg-paper/5 px-2.5 py-1 font-mono text-xs font-medium text-fg/70">
               Radialista: {programaSelecionado.radialistaNome}
             </span>
-            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
+            <span className="rounded-full bg-paper/5 px-2.5 py-1 font-mono text-xs font-medium text-fg/70">
               Voz: {radialistaSelecionado?.voz_id ?? "padrao"}
             </span>
-            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
+            <span className="rounded-full bg-paper/5 px-2.5 py-1 font-mono text-xs font-medium text-fg/70">
               Generos:{" "}
               {programaSelecionado.generos_musicais.length > 0
                 ? programaSelecionado.generos_musicais.slice(0, 3).join(", ")
@@ -783,38 +806,42 @@ export default function LivePage() {
                 ? ` +${programaSelecionado.generos_musicais.length - 3}`
                 : ""}
             </span>
-            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
-              Dias: {formatarDiasSemana(programaSelecionado.dias_semana)}
+            <span className="rounded-full bg-paper/5 px-2.5 py-1 font-mono text-xs font-medium text-fg/70">
+              Dias: {formatarDiasSemana(programaSelecionado.dias_semana, programaSelecionado.data_especifica)}
             </span>
-            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
+            <span className="rounded-full bg-paper/5 px-2.5 py-1 font-mono text-xs font-medium text-fg/70">
               Horario: {formatarFaixaHorario(programaSelecionado)}
             </span>
             <span
               className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                programaSelecionadoNoAr ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+                programaSelecionadoNoAr ? "bg-teal/10 text-teal" : "bg-amber/10 text-amber"
               }`}
             >
               {programaSelecionadoNoAr ? "No ar agora" : "Fora do horario agendado"}
             </span>
-            <Link
-              href={`/dashboard/${programaSelecionado.radialistaId}`}
-              className="text-xs font-medium text-brand-600 hover:text-brand-700 ml-auto"
+            <button
+              type="button"
+              onClick={() => setModalRadialistaId(programaSelecionado.radialistaId)}
+              className="text-xs font-medium text-amber hover:text-amber-dim ml-auto"
             >
               Editar radialista
-            </Link>
-            <Link
-              href={`/dashboard/${programaSelecionado.radialistaId}/programas/${programaSelecionado.id}`}
-              className="text-xs font-medium text-brand-600 hover:text-brand-700"
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setModalPrograma({ radialistaId: programaSelecionado.radialistaId, programaId: programaSelecionado.id })
+              }
+              className="text-xs font-medium text-amber hover:text-amber-dim"
             >
               Editar programa
-            </Link>
+            </button>
           </div>
         )}
       </section>
 
       {!programaId ? (
-        <section className="bg-white rounded-2xl border border-dashed border-gray-300 p-10 text-center">
-          <p className="text-sm text-gray-500">
+        <section className="bg-surface rounded-2xl border border-dashed border-border-strong p-10 text-center">
+          <p className="text-sm text-fg/55">
             Selecione um programa acima para carregar os dados do locutor e liberar a transmissao.
           </p>
         </section>
@@ -822,31 +849,26 @@ export default function LivePage() {
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-5 items-start">
           <section
             className={`rounded-2xl border shadow-theme-xs p-6 transition-colors ${
-              programaAtivo ? "bg-white border-red-200 ring-1 ring-red-100" : "bg-white border-gray-200"
+              programaAtivo ? "bg-surface border-rust/40 ring-1 ring-rust/15" : "bg-surface border-border-strong"
             }`}
           >
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="flex items-start gap-3">
-                {programaAtivo && (
-                  <span className="relative flex h-2.5 w-2.5 mt-1.5 shrink-0">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
-                  </span>
-                )}
+                {programaAtivo && <OndaLed color="rust" />}
                 <div>
-                  <h2 className="text-base font-semibold text-gray-900">
+                  <h2 className="font-display text-base font-bold text-fg">
                     2. Programa no ar{" "}
-                    <span className={`text-xs font-medium ${programaAtivo ? "text-red-600" : "text-gray-400"}`}>
+                    <span className={`font-mono text-xs font-medium ${programaAtivo ? "text-rust" : "text-fg/35"}`}>
                       {programaAtivo ? "· transmitindo" : "· pausado"}
                     </span>
                   </h2>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-sm text-fg/55 mt-1">
                     O agente gera chamadas, comentarios, noticias e blocos musicais conforme a configuracao do
                     programa.
                   </p>
                   {musicaAtual && (
-                    <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700">
-                      Tocando agora: {musicaAtual}
+                    <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-teal/10 px-2.5 py-1 text-xs font-medium text-teal">
+                      <OndaWaveform bars={8} /> Tocando agora: {musicaAtual}
                     </p>
                   )}
                 </div>
@@ -856,16 +878,16 @@ export default function LivePage() {
                   type="button"
                   onClick={() => gerarProximaFala(true)}
                   disabled={gerandoFala}
-                  className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="rounded-lg border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-paper/5 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {gerandoFala ? "Gerando..." : "Proxima fala"}
                 </button>
               </div>
             </div>
 
-            <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4 min-h-32 max-h-96 overflow-y-auto">
+            <div className="mt-5 rounded-xl border border-border bg-bg p-4 min-h-32 max-h-96 overflow-y-auto">
               {falasPrograma.length === 0 ? (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-fg/55">
                   {programaAtivo
                     ? "Gerando a primeira fala..."
                     : "Clique em comecar transmissao acima, ou aguarde o horario agendado comecar."}
@@ -877,22 +899,24 @@ export default function LivePage() {
                       key={fala.id}
                       className={
                         index === 0
-                          ? "rounded-lg bg-white border border-red-100 p-3 text-gray-900 shadow-theme-xs"
-                          : "text-gray-600"
+                          ? "rounded-lg bg-surface border border-rust/30 p-3 text-fg shadow-theme-xs"
+                          : "text-fg/55"
                       }
                     >
                       <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
+                        <span className="rounded-full bg-teal/10 px-2 py-0.5 text-xs font-medium text-teal">
                           {fala.tipo.replace("_", " ")}
                         </span>
-                        <span className="text-xs text-gray-400">{formatarHora(fala.criado_em)}</span>
+                        <span className="font-mono text-xs text-fg/35">{formatarHora(fala.criado_em)}</span>
                         {fala.origem === "local" && (
-                          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+                          <span className="rounded-full bg-amber/10 px-2 py-0.5 text-xs font-medium text-amber">
                             fallback local
                           </span>
                         )}
                         {index === 0 && gerandoFala && (
-                          <span className="text-xs text-gray-400 italic">gerando proxima...</span>
+                          <span className="flex items-center gap-1.5 text-xs text-fg/35 italic">
+                            <OndaSpin size={12} /> gerando proxima...
+                          </span>
                         )}
                       </div>
                       <p className={`text-sm leading-6 ${index === 0 ? "font-medium" : ""}`}>{fala.fala}</p>
@@ -903,35 +927,37 @@ export default function LivePage() {
             </div>
           </section>
 
-          <section className="bg-white rounded-2xl border border-gray-200 shadow-theme-xs p-6 lg:sticky lg:top-22 lg:max-h-[calc(100vh-6.5rem)] flex flex-col">
+          <section className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6 lg:sticky lg:top-22 lg:max-h-[calc(100vh-6.5rem)] flex flex-col">
             <div className="flex items-center justify-between mb-4 shrink-0">
-              <h2 className="text-base font-semibold text-gray-900">Conversas</h2>
-              <span className="text-xs font-medium text-gray-400">Atualiza a cada 4s</span>
+              <h2 className="font-display text-base font-bold text-fg">Conversas</h2>
+              <span className="font-mono text-xs font-medium text-fg/35">Atualiza a cada 4s</span>
             </div>
 
             {carregandoInteracoes ? (
-              <p className="text-sm text-gray-500">Carregando conversas...</p>
+              <p className="flex items-center gap-2 text-sm text-fg/55">
+                <OndaSpin size={16} /> Carregando conversas...
+              </p>
             ) : interacoes.length === 0 ? (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-fg/55">
                 Nenhuma interacao ainda. Assim que um ouvinte mandar mensagem no WhatsApp, ela aparece aqui.
               </p>
             ) : (
               <div className="space-y-3 overflow-y-auto pr-1 -mr-1">
                 {interacoes.map((it) => (
-                  <article key={it.id} className="rounded-xl border border-gray-200 p-4">
-                    <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
+                  <article key={it.id} className="rounded-xl border border-border-strong p-4">
+                    <div className="flex items-center justify-between font-mono text-xs text-fg/35 mb-2">
                       <span>Ouvinte {it.telefone}</span>
                       <span>{formatarHora(it.criado_em)}</span>
                     </div>
 
-                    <div className="text-sm text-gray-800 mb-2">
-                      <span className="font-medium text-gray-500">Ouvinte: </span>
+                    <div className="text-sm text-fg/85 mb-2">
+                      <span className="font-medium text-fg/55">Ouvinte: </span>
                       {it.mensagem_usuario}
                     </div>
 
                     {it.resposta && (
-                      <div className="text-sm text-gray-800">
-                        <span className="font-medium text-brand-600">{nomeLocutor}: </span>
+                      <div className="text-sm text-fg/85">
+                        <span className="font-medium text-amber">{nomeLocutor}: </span>
                         {it.resposta}
                       </div>
                     )}
@@ -939,7 +965,7 @@ export default function LivePage() {
                     <div className="mt-3">
                       <span
                         className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${
-                          STATUS_STYLE[it.status] ?? "bg-gray-100 text-gray-600"
+                          STATUS_STYLE[it.status] ?? "bg-paper/10 text-fg/60"
                         }`}
                       >
                         {STATUS_LABEL[it.status] ?? it.status}
@@ -952,6 +978,50 @@ export default function LivePage() {
           </section>
         </div>
       )}
+
+      <Modal open={modalRadialistaId !== null} onClose={() => setModalRadialistaId(null)} title="Editar radialista" maxWidthClassName="max-w-4xl">
+        {modalRadialistaId !== null && (
+          <EditarRadialistaForm
+            radialistaId={modalRadialistaId}
+            onSalvo={() => carregarRadialistasEProgramas()}
+            onAbrirPrograma={(progId) => {
+              setModalPrograma({ radialistaId: modalRadialistaId, programaId: progId });
+              setModalRadialistaId(null);
+            }}
+            onExcluido={() => {
+              const excluidoId = modalRadialistaId;
+              setModalRadialistaId(null);
+              carregarRadialistasEProgramas();
+              if (radialistaIdRef.current === excluidoId) {
+                pausarPrograma();
+                radialistaIdRef.current = null;
+                programaIdRef.current = null;
+                setRadialistaId(null);
+                setProgramaId(null);
+              }
+            }}
+          />
+        )}
+      </Modal>
+
+      <Modal open={modalPrograma !== null} onClose={() => setModalPrograma(null)} title="Editar programa" maxWidthClassName="max-w-4xl">
+        {modalPrograma !== null && (
+          <EditarProgramaForm
+            programaId={modalPrograma.programaId}
+            onSalvo={() => carregarRadialistasEProgramas()}
+            onExcluido={() => {
+              const excluidoId = modalPrograma.programaId;
+              setModalPrograma(null);
+              carregarRadialistasEProgramas();
+              if (programaIdRef.current === excluidoId) {
+                pausarPrograma();
+                programaIdRef.current = null;
+                setProgramaId(null);
+              }
+            }}
+          />
+        )}
+      </Modal>
     </AppShell>
   );
 }

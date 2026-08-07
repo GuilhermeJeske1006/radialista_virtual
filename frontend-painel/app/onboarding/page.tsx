@@ -7,13 +7,22 @@ import RadialistaSwitcher from "../../components/RadialistaSwitcher";
 import { apiFetch, ApiError } from "../../lib/api";
 import { getRadialistaAtualId, setRadialistaAtualId } from "../../lib/radialistas";
 import { Radialista } from "../../lib/types";
+import { OndaLed, OndaSpin } from "../../components/OndaLogo";
 
 type QrResponse = { data?: { QRCode?: string } };
 type StatusResponse = { data?: { loggedIn?: boolean; connected?: boolean } };
 
 export default function OnboardingPage() {
   return (
-    <Suspense fallback={<AppShell title="Conectar WhatsApp"><p className="text-sm text-gray-500">Carregando...</p></AppShell>}>
+    <Suspense
+      fallback={
+        <AppShell title="Conectar WhatsApp">
+          <p className="flex items-center gap-2 text-sm text-fg/55">
+            <OndaSpin size={16} /> Carregando...
+          </p>
+        </AppShell>
+      }
+    >
       <OnboardingContent />
     </Suspense>
   );
@@ -106,37 +115,37 @@ function OnboardingContent() {
       <div className="mb-4">
         <RadialistaSwitcher radialistas={radialistas} selecionadoId={radialistaId} onSelect={selecionarRadialista} />
       </div>
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-theme-xs p-6 max-w-lg">
+      <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6 max-w-lg">
         {!radialistaId ? (
-          <p className="text-sm text-gray-500">Crie um radialista primeiro para conectar um número de WhatsApp.</p>
+          <p className="text-sm text-fg/55">Crie um radialista primeiro para conectar um número de WhatsApp.</p>
         ) : conectado ? (
           <div className="flex items-start gap-3">
-            <span className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-2.5 py-0.5 text-xs font-medium">
-              Conectado
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-teal/10 text-teal border border-teal/25 px-2.5 py-0.5 text-xs font-medium">
+              <OndaLed color="teal" pulse={false} /> Conectado
             </span>
-            <p className="text-sm text-gray-600">Este radialista já está atendendo os ouvintes.</p>
+            <p className="text-sm text-fg/65">Este radialista já está atendendo os ouvintes.</p>
           </div>
         ) : (
           <>
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-fg/65 mb-4">
               Clique abaixo para gerar o código de pareamento e escaneie com o WhatsApp do número que vai
               atender os ouvintes deste radialista.
             </p>
             <button
               onClick={conectarWhatsapp}
               disabled={carregando}
-              className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {carregando ? "Gerando..." : "Conectar WhatsApp"}
             </button>
-            {erro && <p className="text-sm text-red-600 mt-3">{erro}</p>}
+            {erro && <p className="text-sm text-rust mt-3">{erro}</p>}
             {qrCode && (
               <div className="flex justify-center mt-5">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={qrCode}
                   alt="QR Code do WhatsApp"
-                  className="max-w-64 rounded-lg bg-white p-2 border border-gray-200"
+                  className="max-w-64 rounded-lg bg-paper p-2 border border-border-strong"
                 />
               </div>
             )}

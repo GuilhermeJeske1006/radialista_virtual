@@ -1,5 +1,6 @@
 import datetime
 import random
+import re
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field
@@ -25,6 +26,12 @@ class LiveProgramRequest(BaseModel):
 
 class LiveTtsRequest(BaseModel):
     texto: str
+    tipo: str | None = None
+
+
+class MusicaBlocoItem(BaseModel):
+    video_id: str
+    titulo: str
 
 
 class LiveProgramResponse(BaseModel):
@@ -33,6 +40,7 @@ class LiveProgramResponse(BaseModel):
     criado_em: datetime.datetime
     video_id: str | None = None
     titulo_musica: str | None = None
+    musicas: list[MusicaBlocoItem] = Field(default_factory=list)
     programa_atual: str | None = None
 
 
@@ -55,9 +63,73 @@ def _buscar_programa(db: Session, radialista: RadioConfig, programa_id: int) -> 
     return programa
 
 
+_ROTEIRO = ["musica", "abertura", "comentario", "noticia", "chamada_ouvinte"]
+
+_DESCRICAO_BLOCO = {
+    "abertura": "abertura do bloco: recebe o ouvinte, marca o inicio de um novo momento do programa",
+    "musica": "chamada de musica: anuncia a faixa que vai tocar em seguida",
+    "comentario": "comentario: fala mais pausada e reflexiva sobre um assunto permitido",
+    "noticia": "noticia: fala mais serena e informativa sobre um fato permitido",
+    "chamada_ouvinte": "chamada ao ouvinte: convite ou recado, tom proximo e caloroso",
+}
+
+_PROSODIA_BLOCO = {
+    "abertura": (
+        "Este bloco e a ABERTURA: acentue mais essa fala. Frases curtas e animadas, uma leve exclamacao "
+        "no cumprimento inicial pra marcar energia, ritmo mais rapido que o normal."
+    ),
+    "musica": (
+        "Este bloco e a CHAMADA DE MUSICA: acentue o anuncio da faixa, com empolgacao genuina, "
+        "ritmo um pouco mais rapido bem na hora de chamar a musica."
+    ),
+    "comentario": (
+        "Este bloco e um COMENTARIO: fale mais devagar e pausado, como quem esta pensando alto. "
+        "Use reticencias e virgulas pra marcar respiracao entre as ideias, sem pressa."
+    ),
+    "noticia": (
+        "Este bloco e uma NOTICIA: tom mais serio e sereno, ritmo mais lento que o normal, "
+        "pausas claras (reticencias/virgulas) entre fato e comentario."
+    ),
+    "chamada_ouvinte": (
+        "Este bloco e a CHAMADA AO OUVINTE: tom caloroso e proximo, ritmo normal a levemente mais rapido, "
+        "acentue o nome do ouvinte quando houver."
+    ),
+}
+
+
 def _tipo_proximo_bloco(total_falas: int) -> str:
-    roteiro = ["abertura", "musica", "comentario", "noticia", "chamada_ouvinte"]
-    return roteiro[total_falas % len(roteiro)]
+    """Abertura so pode vir logo depois de um bloco de musica (excecao: abertura de largada do programa)."""
+    if total_falas == 0:
+        return "abertura"
+    return _ROTEIRO[(total_falas - 1) % len(_ROTEIRO)]
+
+
+_TAG_BLOCO_MUSICAS = re.compile(r"\[BLOCO_MUSICAS:\s*(\d)\]\s*$")
+
+
+def _extrair_quantidade_musicas(fala: str) -> tuple[str, int]:
+    """Le a tag opcional que o LLM deixa no fim da fala pra emendar mais musicas seguidas."""
+    match = _TAG_BLOCO_MUSICAS.search(fala)
+    if not match:
+        return fala, 1
+    quantidade = max(1, min(3, int(match.group(1))))
+    return _TAG_BLOCO_MUSICAS.sub("", fala).rstrip(), quantidade
+
+
+def _montar_bloco_musicas(programa: Programa, primeira: MusicaEncontrada, quantidade: int) -> list[MusicaEncontrada]:
+    musicas = [primeira]
+    usados = {primeira.video_id}
+    tentativas = 0
+    while len(musicas) < quantidade and tentativas < quantidade * 3:
+        tentativas += 1
+        extra = _buscar_musica_para_bloco(programa)
+        if extra is None:
+            break
+        if extra.video_id in usados:
+            continue
+        musicas.append(extra)
+        usados.add(extra.video_id)
+    return musicas
 
 
 def _buscar_musica_para_bloco(programa: Programa) -> MusicaEncontrada | None:
@@ -97,6 +169,9 @@ def gerar_proxima_fala(
     radialista = _buscar_radialista(db, account, radialista_id)
     programa = _buscar_programa(db, radialista, programa_id)
     tipo = _tipo_proximo_bloco(len(dados.historico))
+    if tipo == "noticia" and not (programa.pode_pesquisar or programa.tipos_noticias or programa.fontes_noticias):
+        # Sem fonte de noticia configurada: nao arrisca fala vaga/incerta, toca musica direto.
+        tipo = "musica"
     historico = "\n".join(dados.historico[-6:]) or "Programa acabou de entrar no ar."
 
     pedido_musica = _proximo_pedido_fila(db, radialista, "musica") if tipo == "musica" else None
@@ -108,15 +183,39 @@ def gerar_proxima_fala(
 
     pedido_abraco = _proximo_pedido_fila(db, radialista, "abraco") if tipo == "chamada_ouvinte" else None
 
+    posicao_roteiro = ", ".join(
+        f"{i + 1}) {_DESCRICAO_BLOCO[t]}" + (" <- bloco atual" if t == tipo else "")
+        for i, t in enumerate(_ROTEIRO)
+    )
+
     system_prompt_linhas = [
-        montar_system_prompt(radialista, programa),
+        montar_system_prompt(account, radialista, programa),
         "Voce tambem apresenta um programa de radio ao vivo dentro do painel.",
         "Gere somente a fala do locutor, sem aspas, sem markdown e sem narracao externa.",
-        "A fala deve ter entre 2 e 4 frases curtas, com ritmo de radio e transicoes naturais.",
+        "A fala deve ter entre 4 e 6 frases curtas, com ritmo de radio e transicoes naturais.",
         "Fale como locutor de verdade, nao como texto escrito: use reticencias para pausas de respiracao, "
         "virgulas para dar ritmo, e de vez em quando um maneirismo natural (\"entao\", \"olha so\", \"e ai\", "
         "\"po\") no comeco da frase. Nao exagere, no maximo um por fala.",
+        f"O programa segue esta sequencia logica de blocos, em loop: {posicao_roteiro}. "
+        "Tenha consciencia de qual momento do programa voce esta vivendo agora e conecte a fala com o que "
+        "vem antes e depois dela, mantendo transicao natural (nao repita a mesma abertura ou o mesmo gancho "
+        "toda vez).",
+        "Ao citar a identificacao da radio (nome, frequencia, slogan) pra fechar ou emendar uma fala, nunca "
+        "repita a mesma frase pronta do bloco anterior (ex: sempre 'Fica comigo na 87,5 FM, a Radio da sua "
+        "cidade'). Varie a construcao a cada vez -- troque a ordem das informacoes, use so parte delas, mude o "
+        "verbo de chamada ('toca com a gente', 'aqui e a', 'voce ta na', 'segue ligado na'), ou nem cite a "
+        "identificacao nessa fala. Trate isso como qualquer outro gancho: repeticao literal soa de robo.",
+        "Ao mudar de topico dentro da fala ou encerrar o bloco pra entrar no proximo, marque uma pausa mais "
+        "longa que o normal: use reticencias duplas (\"......\") ou um respiro curto antes de virar o assunto, "
+        "em vez de emendar direto.",
+        _PROSODIA_BLOCO[tipo],
+        "Alem do tipo do bloco, varie intensidade dentro da propria fala conforme o conteudo: acelere e encurte "
+        "frases em partes animadas ou de efeito, desacelere com virgulas e reticencias em partes que pedem mais "
+        "reflexao ou peso -- nao mantenha o mesmo ritmo do inicio ao fim da fala.",
         "Quando o bloco for noticia, comente apenas noticias dos tipos e fontes permitidas.",
+        "Nunca use tom de incerteza ou promessa vaga tipo 'quando pintar novidade confirmada eu aviso' ou "
+        "'se tiver algo eu passo aqui depois' -- fale com convicao sobre o que souber, e se nao tiver "
+        "conteudo solido pro bloco, mantenha a fala curta e direta em vez de enrolar.",
         "Quando o bloco for comentario, escolha um assunto diferente do ultimo comentado no historico.",
         "Se pesquisa externa estiver desabilitada, nao invente fatos recentes: faca chamadas gerais e atemporais.",
     ]
@@ -135,6 +234,16 @@ def gerar_proxima_fala(
         system_prompt_linhas.append(
             "Quando o bloco for musica, anuncie uma musica/artista permitido ou um genero permitido "
             "(nenhuma faixa foi encontrada para tocar ao vivo agora)."
+        )
+
+    if tipo == "musica" and musica is not None:
+        system_prompt_linhas.append(
+            "Se sentir que o momento pede embalar o programa sem interrupcao, voce pode emendar mais musicas "
+            "em seguida, sem falar entre uma e outra (tipo um bloco de duas ou tres). So faca isso de vez em "
+            "quando, quando fizer sentido pro clima (nao sempre). Se decidir emendar, termine sua fala, em uma "
+            "linha separada e sozinha, com a tag [BLOCO_MUSICAS:2] ou [BLOCO_MUSICAS:3] conforme a quantidade "
+            "total de musicas do bloco (incluindo a que voce ja anunciou). Se for tocar so uma musica dessa vez, "
+            "nao inclua nenhuma tag."
         )
 
     if pedido_abraco is not None:
@@ -161,12 +270,20 @@ def gerar_proxima_fala(
     )
 
     fala = gerar_resposta(system_prompt, mensagem).strip()
+
+    musicas_bloco: list[MusicaEncontrada] = []
+    if tipo == "musica":
+        fala, quantidade = _extrair_quantidade_musicas(fala)
+        if musica is not None:
+            musicas_bloco = _montar_bloco_musicas(programa, musica, quantidade)
+
     return LiveProgramResponse(
         tipo=tipo,
         fala=fala,
         criado_em=datetime.datetime.now(datetime.timezone.utc),
         video_id=musica.video_id if musica else None,
         titulo_musica=musica.titulo if musica else None,
+        musicas=[MusicaBlocoItem(video_id=m.video_id, titulo=m.titulo) for m in musicas_bloco],
         programa_atual=programa.nome,
     )
 
@@ -200,5 +317,5 @@ def gerar_audio_fala(
     if not tts_habilitado(radialista.voz_id):
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="TTS nao configurado")
 
-    audio = sintetizar_audio(dados.texto, radialista.voz_id)
+    audio = sintetizar_audio(dados.texto, radialista.voz_id, tipo_bloco=dados.tipo)
     return Response(content=audio, media_type="audio/mpeg")

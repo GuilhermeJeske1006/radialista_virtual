@@ -33,7 +33,7 @@ def criar_usuario_wuzapi(
 
     novo_token = secrets.token_hex(16)
     try:
-        criar_usuario(
+        resp = criar_usuario(
             admin_token=settings.wuzapi_admin_token,
             nome=f"radio-{account.id}-{radialista.id}",
             token=novo_token,
@@ -44,6 +44,9 @@ def criar_usuario_wuzapi(
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Falha ao criar usuario no WuzAPI") from exc
 
     radialista.wuzapi_token = novo_token
+    # O webhook do WuzAPI manda "userID" no corpo, nunca o "token" -- precisa
+    # desse id pra casar a mensagem recebida com o radialista certo.
+    radialista.wuzapi_user_id = (resp.get("data") or {}).get("id")
     db.commit()
 
     return {"status": "criado", "wuzapi_token": novo_token}

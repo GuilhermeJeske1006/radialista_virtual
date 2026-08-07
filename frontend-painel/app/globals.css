@@ -1,20 +1,80 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-outfit), sans-serif;
+  --font-sans: var(--font-plex-sans), sans-serif;
+  --font-display: var(--font-bricolage), sans-serif;
+  --font-mono: var(--font-plex-mono), monospace;
 
-  --color-brand-25: #f2f7ff;
-  --color-brand-50: #ecf3ff;
-  --color-brand-100: #dde9ff;
-  --color-brand-200: #c2d6ff;
-  --color-brand-300: #9cb9ff;
-  --color-brand-400: #7592ff;
-  --color-brand-500: #465fff;
-  --color-brand-600: #3641f5;
-  --color-brand-700: #2a31d8;
-  --color-brand-800: #252dae;
-  --color-brand-900: #262e89;
+  /* theme-aware roles: swap value under [data-theme="light"] below */
+  --color-bg: var(--onda-bg);
+  --color-surface: var(--onda-surface);
+  --color-surface-2: var(--onda-surface-2);
+  --color-fg: var(--onda-fg);
+  --color-border: var(--onda-border);
+  --color-border-strong: var(--onda-border-strong);
 
-  --shadow-theme-xs: 0 1px 2px 0 rgba(16, 24, 40, 0.05);
-  --shadow-theme-sm: 0 1px 3px 0 rgba(16, 24, 40, 0.1), 0 1px 2px 0 rgba(16, 24, 40, 0.06);
+  /* fixed brand hues: same in both themes */
+  --color-ink: #15130f;
+  --color-paper: #f4ead9;
+  --color-amber: #e8a33d;
+  --color-amber-dim: #a86f27;
+  --color-teal: #33c2a8;
+  --color-rust: #e2543a;
+
+  /* brand-* ramp mirrors the ONDA amber so existing bg-brand-500 / text-brand-600 /
+     focus:ring-brand-500 utilities across the app pick up the identity for free */
+  --color-brand-25: #fdf6ea;
+  --color-brand-50: #faecd3;
+  --color-brand-100: #f3d9a6;
+  --color-brand-200: #edc178;
+  --color-brand-300: #eab155;
+  --color-brand-400: #e8a548;
+  --color-brand-500: #e8a33d;
+  --color-brand-600: #cf8a28;
+  --color-brand-700: #a86f27;
+  --color-brand-800: #7a5423;
+  --color-brand-900: #573f1e;
+
+  --shadow-theme-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.24);
+  --shadow-theme-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.32), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+:root {
+  --onda-bg: #15130f;
+  --onda-surface: #1e1b15;
+  --onda-surface-2: #262117;
+  --onda-fg: #f4ead9;
+  --onda-border: rgba(244, 234, 217, 0.14);
+  --onda-border-strong: rgba(244, 234, 217, 0.28);
+}
+
+[data-theme="light"] {
+  --onda-bg: #f4ead9;
+  --onda-surface: #fffdf8;
+  --onda-surface-2: #f9f1e2;
+  --onda-fg: #15130f;
+  --onda-border: rgba(21, 19, 15, 0.1);
+  --onda-border-strong: rgba(21, 19, 15, 0.18);
+
+  --shadow-theme-xs: 0 1px 2px 0 rgba(21, 19, 15, 0.08);
+  --shadow-theme-sm: 0 1px 3px 0 rgba(21, 19, 15, 0.12), 0 1px 2px 0 rgba(21, 19, 15, 0.08);
+}
+
+::selection {
+  background: var(--color-amber);
+  color: var(--color-ink);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 999px;
 }

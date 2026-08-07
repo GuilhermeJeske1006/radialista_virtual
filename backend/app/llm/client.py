@@ -5,6 +5,7 @@ from app.config.settings import settings
 _client = Anthropic(api_key=settings.anthropic_api_key)
 
 MODEL = "claude-opus-5"
+CLASSIFICATION_MODEL = "claude-haiku-4-5"
 
 
 def gerar_resposta(system_prompt: str, mensagem_usuario: str) -> str:
@@ -30,10 +31,8 @@ def gerar_resposta(system_prompt: str, mensagem_usuario: str) -> str:
 def gerar_classificacao(system_prompt: str, mensagem_usuario: str) -> str:
     """Chamada enxuta ao LLM pra classificacao de intencao (nao gera resposta pro usuario)."""
     response = _client.messages.create(
-        model=MODEL,
+        model=CLASSIFICATION_MODEL,
         max_tokens=128,
-        thinking={"type": "disabled"},
-        output_config={"effort": "low"},
         system=system_prompt,
         messages=[{"role": "user", "content": mensagem_usuario}],
     )

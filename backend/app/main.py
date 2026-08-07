@@ -48,6 +48,8 @@ app.include_router(tts_router)
 async def criar_tabelas():
     Base.metadata.create_all(bind=engine)
     garantir_colunas_radio_config()
+    garantir_colunas_account()
+    garantir_colunas_programa()
     migrar_conteudo_para_programas()
 
 
@@ -59,6 +61,7 @@ def garantir_colunas_radio_config():
     colunas = {coluna["name"] for coluna in inspector.get_columns("radio_configs")}
     novas_colunas = {
         "voz_id": "VARCHAR NULL",
+        "wuzapi_user_id": "VARCHAR NULL",
     }
 
     # account_id era unique (1 radialista por conta); agora uma conta pode ter varios radialistas.
@@ -75,6 +78,39 @@ def garantir_colunas_radio_config():
         if indice_account_id_unico:
             conn.execute(text("DROP INDEX IF EXISTS ix_radio_configs_account_id"))
             conn.execute(text("CREATE INDEX ix_radio_configs_account_id ON radio_configs (account_id)"))
+
+
+def garantir_colunas_account():
+    inspector = inspect(engine)
+    if "accounts" not in inspector.get_table_names():
+        return
+
+    colunas = {coluna["name"] for coluna in inspector.get_columns("accounts")}
+    novas_colunas = {
+        "plano": "VARCHAR DEFAULT 'starter' NOT NULL",
+        "nome": "VARCHAR DEFAULT '' NOT NULL",
+    }
+
+    with engine.begin() as conn:
+        for nome, definicao in novas_colunas.items():
+            if nome not in colunas:
+                conn.execute(text(f"ALTER TABLE accounts ADD COLUMN {nome} {definicao}"))
+
+
+def garantir_colunas_programa():
+    inspector = inspect(engine)
+    if "programas" not in inspector.get_table_names():
+        return
+
+    colunas = {coluna["name"] for coluna in inspector.get_columns("programas")}
+    novas_colunas = {
+        "data_especifica": "DATE NULL",
+    }
+
+    with engine.begin() as conn:
+        for nome, definicao in novas_colunas.items():
+            if nome not in colunas:
+                conn.execute(text(f"ALTER TABLE programas ADD COLUMN {nome} {definicao}"))
 
 
 # Colunas de conteudo (tom, topicos, mensagens, musicas, noticias, pesquisa) que
