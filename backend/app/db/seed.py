@@ -49,7 +49,7 @@ def seed() -> None:
             horario_fim=datetime.time(23, 59),
             topicos_permitidos=["transito", "clima", "musica", "noticias locais", "programacao da radio"],
             topicos_proibidos=["politica", "religiao"],
-            limite_mensagens_hora=10,
+            limite_mensagens_hora=1000,
         )
         db.add(programa)
         db.commit()

@@ -1,4 +1,5 @@
 import random
+import re
 from dataclasses import dataclass
 
 import httpx
@@ -14,9 +15,31 @@ class MusicaEncontrada:
     video_id: str
     titulo: str
     canal: str
+    inicio_segundos: int = 0
 
 
-TERMOS_AO_VIVO = ["ao vivo", "live", "live session", "live performance"]
+TERMOS_AO_VIVO = [
+    "ao vivo", "live", "live session", "live performance",
+    # gravacao amadora em festa/salao/CTG (Centro de Tradicoes Gauchas) -- audio
+    # de plateia, baixa qualidade, mesmo quando titulo nao usa "ao vivo"/"live"
+    "ctg", "baile", "rodeio", "fandango", "camarim", "plateia",
+]
+
+# Titulo com ano solto (ex: "Banda X 1998 (720HD)") quase sempre eh gravacao
+# de arquivo/fã feita em evento, nao o audio oficial da musica.
+PADRAO_ANO_SOLTO = re.compile(r"(?<!\d)(19|20)\d{2}(?!\d)")
+
+# Resolucoes de webcam/celular antigo -- audio junto costuma ser ruim mesmo
+# quando o video em si "roda".
+TERMOS_BAIXA_RESOLUCAO = ["240p", "360p", "480p"]
+
+# Videos que falam SOBRE a musica em vez de toca-la -- documentario/curiosidade,
+# nao e' a cancao em si, nunca deve ser escolhido em nenhuma camada da busca.
+TERMOS_HISTORIA = ["a história de", "a historia de", "por trás da música", "por tras da musica", "curiosidades sobre", "making of", "documentário", "documentario"]
+
+# Versao "ao vivo" costuma abrir com fala/banter do artista antes da musica comecar --
+# pula alguns segundos fixos pra reduzir chance de comecar no meio da fala.
+SEGUNDOS_PULAR_AO_VIVO = 15
 
 
 def _buscar_itens(query: str) -> list[dict]:
@@ -30,6 +53,7 @@ def _buscar_itens(query: str) -> list[dict]:
         "type": "video",
         "videoEmbeddable": "true",
         "videoCategoryId": CATEGORIA_MUSICA,
+        "videoDefinition": "high",
         "safeSearch": "strict",
         "maxResults": 5,
     }
@@ -57,10 +81,21 @@ def buscar_musica(query: str, bloqueados: list[str] | None = None) -> MusicaEnco
             texto = f"{titulo.lower()} {canal.lower()}"
             if any(termo in texto for termo in bloqueados_lower):
                 continue
-            if not permitir_ao_vivo and any(termo in texto for termo in TERMOS_AO_VIVO):
+            if any(termo in texto for termo in TERMOS_HISTORIA):
                 continue
-            return MusicaEncontrada(video_id=item["id"]["videoId"], titulo=titulo, canal=canal)
+            if any(termo in texto for termo in TERMOS_BAIXA_RESOLUCAO):
+                continue
+            eh_ao_vivo = any(termo in texto for termo in TERMOS_AO_VIVO) or PADRAO_ANO_SOLTO.search(texto)
+            if not permitir_ao_vivo and eh_ao_vivo:
+                continue
+            inicio = SEGUNDOS_PULAR_AO_VIVO if eh_ao_vivo else 0
+            return MusicaEncontrada(video_id=item["id"]["videoId"], titulo=titulo, canal=canal, inicio_segundos=inicio)
         return None
+
+    itens_estudio = _buscar_itens(f"{query} estúdio")
+    resultado = escolher(itens_estudio, permitir_ao_vivo=False)
+    if resultado:
+        return resultado
 
     itens = _buscar_itens(query)
 

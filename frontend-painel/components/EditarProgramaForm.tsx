@@ -5,8 +5,9 @@ import Link from "next/link";
 import ConfirmDialog from "./ConfirmDialog";
 import TagInput from "./TagInput";
 import EstruturaBlocosInput from "./EstruturaBlocosInput";
+import RadialistasProgramaSection from "./RadialistasProgramaSection";
 import { apiFetch, ApiError } from "../lib/api";
-import { DIAS_SEMANA_LABEL, normalizarPrograma, Patrocinador, Programa } from "../lib/types";
+import { DIAS_SEMANA_LABEL, normalizarPrograma, Patrocinador, Programa, PROGRAMA_VAZIO } from "../lib/types";
 import { OndaSpin } from "./OndaLogo";
 
 const inputClass =
@@ -23,12 +24,20 @@ function alternarDia(dias: number[], dia: number): number[] {
 }
 
 type EditarProgramaFormProps = {
-  programaId: number;
+  /** null = formulario de criacao -- so faz POST quando o usuario clica em Salvar. */
+  programaId: number | null;
+  /** obrigatorio quando programaId e' null: radialista dono do programa novo. */
+  radioConfigId?: number;
   onSalvo?: (programa: Programa) => void;
   onExcluido?: () => void;
 };
 
-export default function EditarProgramaForm({ programaId, onSalvo, onExcluido }: EditarProgramaFormProps) {
+export default function EditarProgramaForm({
+  programaId,
+  radioConfigId,
+  onSalvo,
+  onExcluido,
+}: EditarProgramaFormProps) {
   const [programa, setPrograma] = useState<Programa | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -37,30 +46,53 @@ export default function EditarProgramaForm({ programaId, onSalvo, onExcluido }: 
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const [patrocinadores, setPatrocinadores] = useState<Patrocinador[]>([]);
 
+  // Depois que o POST de criacao roda (dentro de salvar()), guarda o id criado aqui --
+  // programaId (prop) continua null enquanto o pai (pagina/modal) nao navegar/atualizar,
+  // entao o formulario passa a se comportar como edicao sem depender disso.
+  const [idCriado, setIdCriado] = useState<number | null>(null);
+  const idEfetivo = programaId ?? idCriado;
+  const criando = idEfetivo === null;
+
   useEffect(() => {
-    setCarregando(true);
-    apiFetch<Programa>(`/config/programas/${programaId}`)
-      .then((dados) => setPrograma(normalizarPrograma(dados)))
-      .catch((err) => setErro(err instanceof ApiError ? err.message : "Erro ao carregar programa"))
-      .finally(() => setCarregando(false));
+    if (idEfetivo === null) {
+      setPrograma(normalizarPrograma({ id: 0, radio_config_id: radioConfigId ?? 0, ...PROGRAMA_VAZIO }));
+      setCarregando(false);
+    } else {
+      setCarregando(true);
+      apiFetch<Programa>(`/config/programas/${idEfetivo}`)
+        .then((dados) => setPrograma(normalizarPrograma(dados)))
+        .catch((err) => setErro(err instanceof ApiError ? err.message : "Erro ao carregar programa"))
+        .finally(() => setCarregando(false));
+    }
     apiFetch<Patrocinador[]>("/patrocinadores")
       .then(setPatrocinadores)
       .catch(() => setPatrocinadores([]));
-  }, [programaId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idEfetivo]);
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
     if (!programa) return;
+    if (criando && !radioConfigId) {
+      setErro("Radialista nao identificado -- volte e tente de novo.");
+      return;
+    }
     setSalvando(true);
     setErro("");
     setMensagem("");
     try {
-      const atualizado = await apiFetch<Programa>(`/config/programas/${programaId}`, {
-        method: "PUT",
-        body: JSON.stringify(semCamposSistema(programa)),
-      });
+      const atualizado = criando
+        ? await apiFetch<Programa>(`/config/radialistas/${radioConfigId}/programas`, {
+            method: "POST",
+            body: JSON.stringify(semCamposSistema(programa)),
+          })
+        : await apiFetch<Programa>(`/config/programas/${idEfetivo}`, {
+            method: "PUT",
+            body: JSON.stringify(semCamposSistema(programa)),
+          });
+      if (criando) setIdCriado(atualizado.id);
       setPrograma(normalizarPrograma(atualizado));
-      setMensagem("Programa salvo.");
+      setMensagem(criando ? "Programa criado." : "Programa salvo.");
       onSalvo?.(atualizado);
     } catch (err) {
       setErro(err instanceof ApiError ? err.message : "Erro ao salvar");
@@ -70,9 +102,9 @@ export default function EditarProgramaForm({ programaId, onSalvo, onExcluido }: 
   }
 
   async function excluirPrograma() {
-    if (!programa) return;
+    if (!programa || idEfetivo === null) return;
     try {
-      await apiFetch(`/config/programas/${programaId}`, { method: "DELETE" });
+      await apiFetch(`/config/programas/${idEfetivo}`, { method: "DELETE" });
       onExcluido?.();
     } catch (err) {
       setErro(err instanceof ApiError ? err.message : "Erro ao excluir programa");
@@ -96,14 +128,16 @@ export default function EditarProgramaForm({ programaId, onSalvo, onExcluido }: 
   return (
     <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
       <div className="flex items-center justify-between mb-5">
-        <h2 className="font-display text-base font-bold text-fg">Editar programa</h2>
-        <button
-          type="button"
-          onClick={() => setConfirmandoExclusao(true)}
-          className="text-xs font-medium text-rust hover:text-rust/80"
-        >
-          Excluir programa
-        </button>
+        <h2 className="font-display text-base font-bold text-fg">{criando ? "Novo programa" : "Editar programa"}</h2>
+        {!criando && (
+          <button
+            type="button"
+            onClick={() => setConfirmandoExclusao(true)}
+            className="text-xs font-medium text-rust hover:text-rust/80"
+          >
+            Excluir programa
+          </button>
+        )}
       </div>
 
       {erro && <p className="text-sm text-rust mb-4">{erro}</p>}
@@ -223,6 +257,14 @@ export default function EditarProgramaForm({ programaId, onSalvo, onExcluido }: 
           />
           Programa ativo
         </label>
+
+        {!criando && idEfetivo !== null && (
+          <>
+            <hr className="border-border" />
+            <h3 className="font-mono text-xs uppercase tracking-wide text-amber">Radialistas</h3>
+            <RadialistasProgramaSection programaId={idEfetivo} />
+          </>
+        )}
 
         <hr className="border-border" />
         <div className="flex items-center justify-between gap-2">

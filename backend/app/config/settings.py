@@ -12,7 +12,9 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://radialista:radialista@localhost:5433/radialista"
     redis_url: str = "redis://localhost:6379/0"
 
-    jwt_secret: str = "troque-por-um-segredo-forte"
+    # Sem default de proposito: segredo fraco/publico no repo permitiria forjar
+    # token de qualquer conta. Gere com: openssl rand -hex 32
+    jwt_secret: str
     jwt_expire_minutes: int = 60 * 24 * 7
 
     frontend_url: str = "http://localhost:3000"
@@ -25,6 +27,9 @@ class Settings(BaseSettings):
 
     elevenlabs_api_key: str = ""
     elevenlabs_voice_id: str = ""
+    # eleven_v3 suporta audio tags ([excited], [calm], etc) pra emocao mais humana; eleven_multilingual_v2
+    # fica como fallback facil via env var se v3 (ainda em alpha na ElevenLabs) apresentar instabilidade.
+    elevenlabs_model: str = "eleven_v3"
 
     # Diretorio (local, relativo ou absoluto) onde ficam os arquivos enviados pelo usuario
     # (ex.: audio de patrocinadores -- app/patrocinadores/router.py). Em producao deve apontar

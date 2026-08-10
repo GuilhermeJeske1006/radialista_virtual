@@ -1,5 +1,7 @@
 """Catalogo de vozes pre-definidas da ElevenLabs para o usuario escolher."""
 
+from sqlalchemy.orm import Session
+
 VOZES_DISPONIVEIS = [
     {"voz_id": "21m00Tcm4TlvDq8ikWAM", "nome": "Rachel", "genero": "feminina", "descricao": "Calma e clara"},
     {"voz_id": "AZnzlk1XvdvUeBnXmlld", "nome": "Domi", "genero": "feminina", "descricao": "Forte e confiante"},
@@ -20,3 +22,16 @@ def listar_vozes() -> list[dict]:
 
 def voz_valida(voz_id: str) -> bool:
     return voz_id in _VOZES_POR_ID
+
+
+def voz_valida_para_conta(db: Session, account_id: int, voz_id: str) -> bool:
+    """Valida um voz_id do catalogo fixo OU uma voz clonada (app/models/voz_clonada.py)
+    pertencente a essa conta -- clonagem de voz nao entra no catalogo global porque cada
+    voz clonada e' privada de quem a criou.
+    """
+    if voz_valida(voz_id):
+        return True
+
+    from app.models.voz_clonada import VozClonada
+
+    return db.query(VozClonada).filter_by(account_id=account_id, voz_id=voz_id).first() is not None

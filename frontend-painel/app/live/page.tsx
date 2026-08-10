@@ -20,13 +20,18 @@ declare global {
 type Interaction = {
   id: number;
   telefone: string;
+  nome: string | null;
   mensagem_usuario: string;
   resposta: string | null;
   status: string;
   criado_em: string;
 };
 
-type MusicaBloco = { video_id: string; titulo: string };
+type MusicaBloco = { video_id: string; titulo: string; inicio_segundos?: number };
+
+// Uma linha de dialogo multi-voz (ver ProgramaRadialista no backend) -- so vem preenchido
+// quando o programa tem mais de um radialista, uma linha por participante que falou no bloco.
+type FalaItem = { radio_config_id: number; nome_locutor: string; voz_id: string | null; texto: string };
 
 type ProgramSegment = {
   id: number;
@@ -36,10 +41,12 @@ type ProgramSegment = {
   origem: "ia" | "local";
   video_id?: string | null;
   titulo_musica?: string | null;
+  inicio_segundos?: number;
   musicas?: MusicaBloco[];
   patrocinador_id?: number | null;
   patrocinador_audio?: boolean;
   patrocinador_voz_id?: string | null;
+  falas?: FalaItem[] | null;
 };
 
 type LiveProgramResponse = {
@@ -48,18 +55,25 @@ type LiveProgramResponse = {
   criado_em: string;
   video_id?: string | null;
   titulo_musica?: string | null;
+  inicio_segundos?: number;
   musicas?: MusicaBloco[];
   patrocinador_id?: number | null;
   patrocinador_audio?: boolean;
   patrocinador_voz_id?: string | null;
+  falas?: FalaItem[] | null;
 };
 
 type ProgramaOpcao = Programa & { radialistaId: number; radialistaNome: string };
+
+type AudioFala = { url: string | null; blob: Blob | null };
 
 type SegmentoPreparado = {
   segmento: Omit<ProgramSegment, "id">;
   audioUrl: string | null;
   audioBlob: Blob | null;
+  // dialogo multi-voz: um audio por linha/radialista, tocados em sequencia -- null quando
+  // o bloco e' de um radialista so (usa audioUrl/audioBlob acima, como sempre foi).
+  audiosFalas: AudioFala[] | null;
 };
 
 const STATUS_STYLE: Record<string, string> = {
@@ -197,13 +211,19 @@ export default function LivePage() {
   const [pulso, setPulso] = useState(false);
   const [musicaAtual, setMusicaAtual] = useState<string | null>(null);
   const [modalRadialistaId, setModalRadialistaId] = useState<number | null>(null);
-  const [modalPrograma, setModalPrograma] = useState<{ radialistaId: number; programaId: number } | null>(null);
+  const [modalPrograma, setModalPrograma] = useState<{ radialistaId: number; programaId: number | null } | null>(
+    null
+  );
   const ultimoIdRef = useRef<number | null>(null);
   const radialistaIdRef = useRef<number | null>(null);
   const programaIdRef = useRef<number | null>(null);
   const programaAtivoRef = useRef(false);
   const gerandoFalaRef = useRef(false);
   const falasProgramaRef = useRef<ProgramSegment[]>([]);
+  // contagem real de falas geradas na transmissao -- falasProgramaRef fica limitado
+  // a 20 itens (so pra exibir/mandar historico), entao nao serve pra achar a posicao
+  // no roteiro depois que passa desse teto.
+  const totalFalasRef = useRef(0);
   const programaTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ultimoDisparoAutomaticoRef = useRef<string | null>(null);
   const ytApiPromiseRef = useRef<Promise<void> | null>(null);
@@ -283,6 +303,7 @@ export default function LivePage() {
     pausarPrograma();
     falasProgramaRef.current = [];
     setFalasPrograma([]);
+    totalFalasRef.current = 0;
     ultimoIdRef.current = null;
     setCarregandoInteracoes(true);
 
@@ -414,11 +435,13 @@ export default function LivePage() {
     if (!radialistaIdRef.current || !programaIdRef.current || !ytApiPromiseRef.current) return;
 
     let videoId: string;
+    let inicioSegundos = 0;
     try {
-      const musica = await apiFetch<{ video_id: string; titulo: string }>(
+      const musica = await apiFetch<{ video_id: string; titulo: string; inicio_segundos?: number }>(
         `/live/${radialistaIdRef.current}/programas/${programaIdRef.current}/musica-fundo`
       );
       videoId = musica.video_id;
+      inicioSegundos = musica.inicio_segundos ?? 0;
     } catch {
       return; // sem musica de fundo disponivel (sem chave do YouTube, etc.) -- segue so com as falas
     }
@@ -435,7 +458,7 @@ export default function LivePage() {
       height: "0",
       width: "0",
       videoId,
-      playerVars: { autoplay: 1, controls: 0, loop: 1, playlist: videoId },
+      playerVars: { autoplay: 1, controls: 0, loop: 1, playlist: videoId, start: inicioSegundos },
       events: {
         onReady: (evento: any) => {
           bgProntoRef.current = true;
@@ -449,7 +472,7 @@ export default function LivePage() {
     });
   }
 
-  function tocarMusica(videoId: string, titulo: string): Promise<void> {
+  function tocarMusica(videoId: string, titulo: string, inicioSegundos = 0): Promise<void> {
     const TIMEOUT_SEGURANCA_MS = 6 * 60 * 1000;
 
     return new Promise((resolvePromise) => {
@@ -506,7 +529,7 @@ export default function LivePage() {
           height: "0",
           width: "0",
           videoId,
-          playerVars: { autoplay: 1, controls: 0 },
+          playerVars: { autoplay: 1, controls: 0, start: inicioSegundos },
           events: {
             onReady: (evento: any) => evento.target.playVideo(),
             onStateChange: (evento: any) => {
@@ -526,6 +549,7 @@ export default function LivePage() {
     const atualizadas = [novaFala, ...falasProgramaRef.current].slice(0, 20);
     falasProgramaRef.current = atualizadas;
     setFalasPrograma(atualizadas);
+    totalFalasRef.current += 1;
     return novaFala;
   }
 
@@ -544,6 +568,7 @@ export default function LivePage() {
               .slice(0, 8)
               .reverse()
               .map((fala) => `${fala.tipo}: ${fala.fala}`),
+            total_falas: totalFalasRef.current,
           }),
         }
       );
@@ -553,7 +578,7 @@ export default function LivePage() {
       const radialistaAtual = radialistas.find((r) => r.id === radialistaIdRef.current);
       const programaAtual = programasTodos.find((p) => p.id === programaIdRef.current);
       if (radialistaAtual && programaAtual) {
-        const local = gerarFalaLocal(radialistaAtual, programaAtual, falasProgramaRef.current.length);
+        const local = gerarFalaLocal(radialistaAtual, programaAtual, totalFalasRef.current);
         segmento = { ...local, criado_em: new Date().toISOString(), origem: "local" };
         setErro(err instanceof ApiError ? `${err.message}. Usando fala local.` : "IA indisponivel. Usando fala local.");
       } else {
@@ -565,6 +590,25 @@ export default function LivePage() {
         };
         setErro(err instanceof ApiError ? err.message : "IA indisponivel");
       }
+    }
+
+    // dialogo multi-voz (mais de um radialista no programa): busca um audio por linha,
+    // cada uma com a voz do radialista que falou -- em vez de um audio unico pro bloco.
+    if (segmento.falas && segmento.falas.length > 0 && radialistaIdRef.current) {
+      const audiosFalas = await Promise.all(
+        segmento.falas.map(async (linha): Promise<AudioFala> => {
+          try {
+            const blob = await apiFetchBlob(`/live/${radialistaIdRef.current}/tts`, {
+              method: "POST",
+              body: JSON.stringify({ texto: linha.texto, tipo: segmento.tipo, voz_id: linha.voz_id }),
+            });
+            return { url: URL.createObjectURL(blob), blob };
+          } catch {
+            return { url: null, blob: null };
+          }
+        })
+      );
+      return { segmento, audioUrl: null, audioBlob: null, audiosFalas };
     }
 
     let audioUrl: string | null = null;
@@ -589,12 +633,13 @@ export default function LivePage() {
       audioBlob = null;
     }
 
-    return { segmento, audioUrl, audioBlob };
+    return { segmento, audioUrl, audioBlob, audiosFalas: null };
   }
 
   function descartarPreparo() {
     proximoPreparoRef.current?.then((preparado) => {
       if (preparado.audioUrl) URL.revokeObjectURL(preparado.audioUrl);
+      preparado.audiosFalas?.forEach((a) => a.url && URL.revokeObjectURL(a.url));
     }).catch(() => {});
     proximoPreparoRef.current = null;
   }
@@ -618,6 +663,7 @@ export default function LivePage() {
     if (preparado.audioBlob) {
       gravacaoBlobsRef.current.push(preparado.audioBlob);
     }
+    preparado.audiosFalas?.forEach((a) => a.blob && gravacaoBlobsRef.current.push(a.blob));
 
     const novaFala = adicionarFala(preparado.segmento);
     limparTimerPrograma();
@@ -631,7 +677,7 @@ export default function LivePage() {
     gerandoFalaRef.current = false;
     setGerandoFala(false);
 
-    if (novaFala.tipo === "musica" && novaFala.video_id) {
+    if (novaFala.video_id) {
       try {
         await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala);
         // bloco pode ter mais de uma musica (o agente decidiu emendar) --
@@ -639,16 +685,36 @@ export default function LivePage() {
         const bloco =
           novaFala.musicas && novaFala.musicas.length > 0
             ? novaFala.musicas
-            : [{ video_id: novaFala.video_id, titulo: novaFala.titulo_musica ?? "" }];
+            : [
+                {
+                  video_id: novaFala.video_id,
+                  titulo: novaFala.titulo_musica ?? "",
+                  inicio_segundos: novaFala.inicio_segundos ?? 0,
+                },
+              ];
         for (const musica of bloco) {
           if (!programaAtivoRef.current) break;
-          await tocarMusica(musica.video_id, musica.titulo);
+          await tocarMusica(musica.video_id, musica.titulo, musica.inicio_segundos ?? 0);
         }
       } catch {
         // segue o programa mesmo se a musica falhar ao tocar
       }
+    } else if (preparado.audiosFalas && preparado.audiosFalas.length > 0) {
+      // dialogo multi-voz: toca uma linha de cada vez, na voz de quem falou
+      for (let i = 0; i < preparado.audiosFalas.length; i++) {
+        if (!programaAtivoRef.current) break;
+        const textoLinha = novaFala.falas?.[i]?.texto ?? novaFala.fala;
+        await reproduzirAudioPreparado(preparado.audiosFalas[i].url, textoLinha);
+      }
     } else {
       await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala);
+    }
+
+    if (novaFala.tipo === "encerramento") {
+      // roteiro chegou perto do horario_fim do programa -- a fala de despedida
+      // ja foi ao ar, para a transmissao em vez de continuar o loop
+      pausarPrograma();
+      return;
     }
 
     if (programaAtivoRef.current) {
@@ -1006,7 +1072,7 @@ export default function LivePage() {
                 {interacoes.map((it) => (
                   <article key={it.id} className="rounded-xl border border-border-strong p-4">
                     <div className="flex items-center justify-between font-mono text-xs text-fg/35 mb-2">
-                      <span>Ouvinte {it.telefone}</span>
+                      <span>{it.nome ? `${it.nome} · ${it.telefone}` : `Ouvinte ${it.telefone}`}</span>
                       <span>{formatarHora(it.criado_em)}</span>
                     </div>
 
@@ -1068,12 +1134,13 @@ export default function LivePage() {
         {modalPrograma !== null && (
           <EditarProgramaForm
             programaId={modalPrograma.programaId}
+            radioConfigId={modalPrograma.radialistaId}
             onSalvo={() => carregarRadialistasEProgramas()}
             onExcluido={() => {
               const excluidoId = modalPrograma.programaId;
               setModalPrograma(null);
               carregarRadialistasEProgramas();
-              if (programaIdRef.current === excluidoId) {
+              if (excluidoId !== null && programaIdRef.current === excluidoId) {
                 pausarPrograma();
                 programaIdRef.current = null;
                 setProgramaId(null);

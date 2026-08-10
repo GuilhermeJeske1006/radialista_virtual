@@ -8,17 +8,28 @@ class LimitesPlano:
     # nao e' limitado por plano, so existe um por conta.
     agentes: int
     mensagens_mes: int
+    # Clonagem de voz (ElevenLabs Instant Voice Cloning) via app/tts/router.py -- feature
+    # paga na ElevenLabs, por isso reservada a partir do plano Growth.
+    clonagem_voz: bool
+    # Quantos radialistas podem participar de um mesmo programa (dono + co-apresentadores),
+    # pro diálogo multi-voz do ao vivo -- ver app/models/programa_radialista.py.
+    radialistas_por_programa: int
 
 
 PLANO_PADRAO = "starter"
 
 PLANOS: dict[str, LimitesPlano] = {
-    "starter": LimitesPlano(agentes=1, mensagens_mes=1000),
-    "growth": LimitesPlano(agentes=3, mensagens_mes=3000),
-    "professional": LimitesPlano(agentes=5, mensagens_mes=7500),
-    "business": LimitesPlano(agentes=10, mensagens_mes=15000),
+    "starter": LimitesPlano(agentes=1, mensagens_mes=2000, clonagem_voz=False, radialistas_por_programa=1),
+    "growth": LimitesPlano(agentes=3, mensagens_mes=3000, clonagem_voz=True, radialistas_por_programa=2),
+    "professional": LimitesPlano(agentes=5, mensagens_mes=7500, clonagem_voz=True, radialistas_por_programa=3),
 }
 
 
 def limites_do_plano(plano: str) -> LimitesPlano:
     return PLANOS.get(plano, PLANOS[PLANO_PADRAO])
+
+
+# Espelham frontend-painel/lib/planos.ts -- usados pra montar o valor cobrado no Stripe
+# Checkout (ver app/billing/stripe_client.py) e pra exibir o texto na pagina /billing.
+PRECO_AGENTE_ADICIONAL = 100
+PRECO_EXCEDENTE_1000_MSG = 50

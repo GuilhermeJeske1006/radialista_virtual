@@ -5,7 +5,7 @@ import Link from "next/link";
 import AppShell from "../../components/AppShell";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import { apiFetch, ApiError } from "../../lib/api";
-import { DIAS_SEMANA_LABEL, PROGRAMA_VAZIO, Programa, Radialista } from "../../lib/types";
+import { DIAS_SEMANA_LABEL, Programa, Radialista } from "../../lib/types";
 import { OndaSpin } from "../../components/OndaLogo";
 
 type ProgramaComRadialista = Programa & { radialista: Radialista };
@@ -20,7 +20,6 @@ export default function ProgramasPage() {
   const [radialistas, setRadialistas] = useState<Radialista[]>([]);
   const [programas, setProgramas] = useState<ProgramaComRadialista[]>([]);
   const [carregando, setCarregando] = useState(true);
-  const [criando, setCriando] = useState(false);
   const [escolhendoRadialista, setEscolhendoRadialista] = useState(false);
   const [programaParaExcluir, setProgramaParaExcluir] = useState<ProgramaComRadialista | null>(null);
   const [erro, setErro] = useState("");
@@ -54,25 +53,10 @@ export default function ProgramasPage() {
     carregar();
   }, []);
 
-  async function criarPrograma(radialistaId: number) {
-    setCriando(true);
-    setErro("");
-    try {
-      const criado = await apiFetch<Programa>(`/config/radialistas/${radialistaId}/programas`, {
-        method: "POST",
-        body: JSON.stringify({ ...PROGRAMA_VAZIO, nome: "Novo programa" }),
-      });
-      window.location.href = `/radialista/${radialistaId}/programas/${criado.id}`;
-    } catch (err) {
-      setErro(err instanceof ApiError ? err.message : "Erro ao criar programa");
-      setCriando(false);
-    }
-  }
-
   function aoClicarNovoPrograma() {
     if (radialistas.length === 0) return;
     if (radialistas.length === 1) {
-      criarPrograma(radialistas[0].id);
+      window.location.href = `/radialista/${radialistas[0].id}/programas/novo`;
     } else {
       setEscolhendoRadialista(true);
     }
@@ -96,10 +80,10 @@ export default function ProgramasPage() {
         <button
           type="button"
           onClick={aoClicarNovoPrograma}
-          disabled={criando || radialistas.length === 0}
+          disabled={radialistas.length === 0}
           className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {criando ? "Criando..." : "+ Novo programa"}
+          + Novo programa
         </button>
       </div>
 
@@ -171,7 +155,7 @@ export default function ProgramasPage() {
                   type="button"
                   onClick={() => {
                     setEscolhendoRadialista(false);
-                    criarPrograma(r.id);
+                    window.location.href = `/radialista/${r.id}/programas/novo`;
                   }}
                   className="w-full text-left rounded-lg border border-border-strong px-3 py-2.5 text-sm font-medium text-fg hover:border-amber/40"
                 >

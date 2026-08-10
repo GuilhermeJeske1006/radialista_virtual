@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import AppShell from "../../components/AppShell";
 import { apiFetch, ApiError } from "../../lib/api";
-import { DIAS_SEMANA_LABEL, Programa, RADIALISTA_VAZIO, Radialista } from "../../lib/types";
+import { ConfiguracaoIA, DIAS_SEMANA_LABEL, Programa, Radialista } from "../../lib/types";
 import { setRadialistaAtualId } from "../../lib/radialistas";
 import { OndaSpin } from "../../components/OndaLogo";
+import { PRECO_AGENTE_ADICIONAL, formatarReais } from "../../lib/planos";
 
 function formatarDias(dias: number[], dataEspecifica?: string | null): string {
   if (dataEspecifica) return `Avulso em ${dataEspecifica.split("-").reverse().join("/")}`;
@@ -18,9 +19,14 @@ export default function DashboardPage() {
   const [radialistas, setRadialistas] = useState<Radialista[]>([]);
   const [programasPorRadialista, setProgramasPorRadialista] = useState<Record<number, Programa[]>>({});
   const [carregando, setCarregando] = useState(true);
-  const [criando, setCriando] = useState(false);
   const [erro, setErro] = useState("");
   const [mensagemUpgrade, setMensagemUpgrade] = useState("");
+  const [modalIAAberto, setModalIAAberto] = useState(false);
+  const [descricaoIA, setDescricaoIA] = useState("");
+  const [gerandoIA, setGerandoIA] = useState(false);
+  const [erroIA, setErroIA] = useState("");
+  const [comprandoAgenteExtra, setComprandoAgenteExtra] = useState(false);
+  const [erroCompraAgenteExtra, setErroCompraAgenteExtra] = useState("");
 
   function carregar() {
     setCarregando(true);
@@ -47,23 +53,37 @@ export default function DashboardPage() {
     carregar();
   }, []);
 
-  async function criarRadialista() {
-    setCriando(true);
-    setErro("");
+  async function gerarRadialistaComIA() {
+    if (!descricaoIA.trim()) return;
+    setGerandoIA(true);
+    setErroIA("");
     try {
-      const criado = await apiFetch<Radialista>("/config/radialistas", {
+      const criado = await apiFetch<ConfiguracaoIA>("/config/radialistas/gerar-ia", {
         method: "POST",
-        body: JSON.stringify({ ...RADIALISTA_VAZIO, nome_locutor: "Novo radialista" }),
+        body: JSON.stringify({ descricao: descricaoIA.trim() }),
       });
-      setRadialistaAtualId(criado.id);
-      window.location.href = `/radialista/${criado.id}`;
+      setRadialistaAtualId(criado.radialista.id);
+      window.location.href = `/radialista/${criado.radialista.id}`;
     } catch (err) {
       if (err instanceof ApiError && err.status === 402) {
+        setModalIAAberto(false);
         setMensagemUpgrade(err.message);
       } else {
-        setErro(err instanceof ApiError ? err.message : "Erro ao criar radialista");
+        setErroIA(err instanceof ApiError ? err.message : "Erro ao gerar configuração com IA");
       }
-      setCriando(false);
+      setGerandoIA(false);
+    }
+  }
+
+  async function comprarAgenteExtra() {
+    setComprandoAgenteExtra(true);
+    setErroCompraAgenteExtra("");
+    try {
+      const { url } = await apiFetch<{ url: string }>("/billing/agentes-extras/checkout", { method: "POST" });
+      window.location.href = url;
+    } catch (err) {
+      setErroCompraAgenteExtra(err instanceof ApiError ? err.message : "Erro ao iniciar compra");
+      setComprandoAgenteExtra(false);
     }
   }
 
@@ -71,14 +91,25 @@ export default function DashboardPage() {
     <AppShell title="Radialistas" maxWidthClassName="max-w-4xl">
       <div className="flex items-center justify-between mb-5">
         <p className="text-sm text-fg/55">Seus radialistas e a programação cadastrada de cada um.</p>
-        <button
-          type="button"
-          onClick={criarRadialista}
-          disabled={criando}
-          className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60"
-        >
-          {criando ? "Criando..." : "+ Novo radialista"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setErroIA("");
+              setDescricaoIA("");
+              setModalIAAberto(true);
+            }}
+            className="rounded-lg border border-amber/40 px-4 py-2.5 text-sm font-medium text-amber hover:bg-amber/10"
+          >
+            ✨ Gerar com IA
+          </button>
+          <Link
+            href="/radialista/novo"
+            className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600"
+          >
+            + Novo radialista
+          </Link>
+        </div>
       </div>
 
       {erro && <p className="text-sm text-rust mb-4">{erro}</p>}
@@ -136,6 +167,51 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {modalIAAberto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4"
+          onClick={() => !gerandoIA && setModalIAAberto(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl border border-border-strong bg-surface p-6 shadow-theme-xs"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-display text-base font-bold text-fg mb-2">Gerar radialista com IA</h2>
+            <p className="text-sm text-fg/70 mb-4">
+              Descreva o gênero musical, o tom e o público do programa. A IA preenche a persona do
+              locutor, os tópicos, a estrutura de blocos e todo o resto — depois é só revisar e ajustar.
+            </p>
+            <textarea
+              value={descricaoIA}
+              onChange={(e) => setDescricaoIA(e.target.value)}
+              disabled={gerandoIA}
+              rows={4}
+              placeholder="Ex: sertanejo, tom alegre e animado, programa de manhã pro público do interior"
+              className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2.5 text-sm text-fg placeholder:text-fg/35 focus:outline-none focus:ring-2 focus:ring-amber/40 disabled:opacity-60"
+            />
+            {erroIA && <p className="text-sm text-rust mt-2">{erroIA}</p>}
+            <div className="flex justify-end gap-3 mt-5">
+              <button
+                type="button"
+                onClick={() => setModalIAAberto(false)}
+                disabled={gerandoIA}
+                className="rounded-lg px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={gerarRadialistaComIA}
+                disabled={gerandoIA || !descricaoIA.trim()}
+                className="rounded-lg bg-amber px-4 py-2.5 text-sm font-medium text-ink hover:bg-amber/90 disabled:opacity-60"
+              >
+                {gerandoIA ? "Gerando..." : "Gerar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {mensagemUpgrade && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4"
@@ -145,22 +221,43 @@ export default function DashboardPage() {
             className="w-full max-w-sm rounded-2xl border border-border-strong bg-surface p-6 shadow-theme-xs"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="font-display text-base font-bold text-fg mb-2">Limite do plano atingido</h2>
+            <h2 className="font-display text-base font-bold text-fg mb-2">Limite de agentes atingido</h2>
             <p className="text-sm text-fg/70 mb-5">{mensagemUpgrade}</p>
+            <p className="text-sm text-fg/70 mb-5">
+              Adicione este agente agora por{" "}
+              <span className="font-semibold text-fg">R$ {formatarReais(PRECO_AGENTE_ADICIONAL)}/mês</span>, sem
+              trocar de plano — ele entra no ar assim que o pagamento confirmar.
+            </p>
+            {erroCompraAgenteExtra && <p className="text-sm text-rust mb-3">{erroCompraAgenteExtra}</p>}
             <div className="flex justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setMensagemUpgrade("")}
-                className="rounded-lg px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
+                disabled={comprandoAgenteExtra}
+                className="rounded-lg px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg disabled:opacity-60"
               >
                 Fechar
               </button>
               <Link
                 href="/billing"
-                className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600"
+                className="rounded-lg border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-paper/10"
               >
-                Fazer upgrade
+                Ver planos
               </Link>
+              <button
+                type="button"
+                onClick={comprarAgenteExtra}
+                disabled={comprandoAgenteExtra}
+                className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60"
+              >
+                {comprandoAgenteExtra ? (
+                  <>
+                    <OndaSpin size={14} /> Redirecionando...
+                  </>
+                ) : (
+                  "Adicionar agente extra"
+                )}
+              </button>
             </div>
           </div>
         </div>

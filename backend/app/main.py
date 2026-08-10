@@ -11,7 +11,17 @@ from app.config.settings import settings
 from app.db.database import Base, engine
 from app.live.router import router as live_router
 from app.metrics.router import router as metrics_router
-from app.models import Account, FilaAoVivo, InteractionLog, PasswordResetToken, Patrocinador, Programa, RadioConfig  # noqa: F401 -- garante que as tabelas sejam registradas no metadata
+from app.models import (  # noqa: F401 -- garante que as tabelas sejam registradas no metadata
+    Account,
+    FilaAoVivo,
+    InteractionLog,
+    PasswordResetToken,
+    Patrocinador,
+    Programa,
+    ProgramaRadialista,
+    RadioConfig,
+    VozClonada,
+)
 from app.onboarding.router import router as onboarding_router
 from app.patrocinadores.router import router as patrocinadores_router
 from app.tts.router import router as tts_router
@@ -34,6 +44,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def _security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+    return response
+
 
 app.include_router(whatsapp_router)
 app.include_router(auth_router)
@@ -95,6 +116,8 @@ def garantir_colunas_account():
         "nome": "VARCHAR DEFAULT '' NOT NULL",
         "wuzapi_token": "VARCHAR NULL",
         "wuzapi_user_id": "VARCHAR NULL",
+        "wuzapi_hmac_key": "VARCHAR NULL",
+        "agentes_extras": "INTEGER DEFAULT 0 NOT NULL",
     }
 
     with engine.begin() as conn:
@@ -137,7 +160,7 @@ _COLUNAS_CONTEUDO_PROGRAMA = {
     "topicos_proibidos": "JSON DEFAULT '[]' NOT NULL",
     "mensagem_saudacao": "VARCHAR DEFAULT '' NOT NULL",
     "mensagem_recusa": "VARCHAR DEFAULT '' NOT NULL",
-    "limite_mensagens_hora": "INTEGER DEFAULT 10 NOT NULL",
+    "limite_mensagens_hora": "INTEGER DEFAULT 1000 NOT NULL",
     "generos_musicais": "JSON DEFAULT '[]' NOT NULL",
     "musicas_permitidas": "JSON DEFAULT '[]' NOT NULL",
     "musicas_bloqueadas": "JSON DEFAULT '[]' NOT NULL",

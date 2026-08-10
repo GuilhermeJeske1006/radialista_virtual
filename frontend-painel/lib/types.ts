@@ -34,11 +34,22 @@ export const RADIO_PERFIL_VAZIO: RadioPerfil = {
   endereco: "",
 };
 
+export type ConfiguracaoIA = {
+  radialista: Radialista;
+  programa: Programa;
+};
+
 export type Voz = {
   voz_id: string;
   nome: string;
   genero: string;
   descricao: string;
+};
+
+export type VozClonada = {
+  id: number;
+  nome: string;
+  voz_id: string;
 };
 
 export type Programa = {
@@ -110,6 +121,19 @@ export const PROGRAMA_VAZIO: Omit<Programa, "id" | "radio_config_id"> = {
   instrucoes_pesquisa:
     "Consultar apenas fontes permitidas, confirmar data da noticia e avisar quando nao houver certeza.",
 };
+
+// Vinculo de um radialista a um programa (dono ou co-apresentador), com papel e
+// comportamento proprios do programa -- ver backend/app/models/programa_radialista.py.
+export type RadialistaPrograma = {
+  radio_config_id: number;
+  nome_locutor: string;
+  voz_id: string | null;
+  papel: string;
+  comportamento: string;
+  e_dono: boolean;
+};
+
+export const PAPEIS_SUGERIDOS = ["Co-apresentador", "Comentarista", "Repórter convidado"];
 
 export function normalizarPrograma(p: Programa): Programa {
   return {

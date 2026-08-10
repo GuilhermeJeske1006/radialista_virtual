@@ -32,3 +32,18 @@ def encontrar_programa_atual(programas: list[Programa], timezone: str) -> Progra
         if programa_no_ar(programa, timezone):
             return programa
     return None
+
+
+def minutos_restantes(programa: Programa, timezone: str) -> int:
+    """Quantos minutos faltam ate' o horario_fim do programa, a partir de agora.
+
+    Negativo quando ja passou do horario_fim (janela ja fechou). Trata o caso de
+    janela que cruza meia-noite (ex: 22:00-06:00) igual _dentro_da_janela.
+    """
+    agora = datetime.datetime.now(ZoneInfo(timezone))
+    fim = datetime.datetime.combine(agora.date(), programa.horario_fim, tzinfo=agora.tzinfo)
+
+    if programa.horario_inicio > programa.horario_fim and agora.time() >= programa.horario_inicio:
+        fim += datetime.timedelta(days=1)
+
+    return int((fim - agora).total_seconds() // 60)

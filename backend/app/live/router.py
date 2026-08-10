@@ -1,6 +1,9 @@
 import datetime
+import json
 import random
 import re
+import unicodedata
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field
@@ -8,22 +11,29 @@ from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_account
 from app.db.database import get_db
+from app.guardrails.schedule import minutos_restantes
 from app.live.music import MusicaEncontrada, buscar_musica, buscar_musica_fundo
-from app.llm.client import gerar_resposta
-from app.llm.prompt_builder import montar_system_prompt
+from app.llm.client import classificar_categoria_bloco, classificar_tom_fala, gerar_configuracao, gerar_resposta
+from app.llm.json_utils import extrair_json
+from app.llm.prompt_builder import ParticipantePrograma, montar_system_prompt
 from app.models.account import Account
 from app.models.fila_ao_vivo import FilaAoVivo
 from app.models.patrocinador import Patrocinador
 from app.models.programa import Programa
+from app.models.programa_radialista import ProgramaRadialista
 from app.models.radio_config import RadioConfig
 from app.tts.client import sintetizar_audio, tts_habilitado
-from app.tts.voices import voz_valida
+from app.tts.voices import voz_valida_para_conta
 
 router = APIRouter(prefix="/live", tags=["live"])
 
 
 class LiveProgramRequest(BaseModel):
     historico: list[str] = Field(default_factory=list)
+    # Contagem real de falas ja geradas nesta transmissao -- "historico" manda so
+    # as ultimas 8 pra nao pesar o prompt, entao nao da pra usar len(historico)
+    # pra achar a posicao no roteiro (trava sempre no mesmo bloco depois da 8a fala).
+    total_falas: int | None = None
 
 
 class LiveTtsRequest(BaseModel):
@@ -35,6 +45,14 @@ class LiveTtsRequest(BaseModel):
 class MusicaBlocoItem(BaseModel):
     video_id: str
     titulo: str
+    inicio_segundos: int = 0
+
+
+class FalaItem(BaseModel):
+    radio_config_id: int
+    nome_locutor: str
+    voz_id: str | None
+    texto: str
 
 
 class LiveProgramResponse(BaseModel):
@@ -43,16 +61,21 @@ class LiveProgramResponse(BaseModel):
     criado_em: datetime.datetime
     video_id: str | None = None
     titulo_musica: str | None = None
+    inicio_segundos: int = 0
     musicas: list[MusicaBlocoItem] = Field(default_factory=list)
     programa_atual: str | None = None
     patrocinador_id: int | None = None
     patrocinador_audio: bool = False
     patrocinador_voz_id: str | None = None
+    # Preenchido só quando o programa tem mais de um radialista (ver ProgramaRadialista):
+    # diálogo alternado, uma linha por participante, cada uma com sua própria voz.
+    falas: list[FalaItem] | None = None
 
 
 class MusicaFundoResponse(BaseModel):
     video_id: str
     titulo: str
+    inicio_segundos: int = 0
 
 
 def _buscar_radialista(db: Session, account: Account, radialista_id: int) -> RadioConfig:
@@ -69,7 +92,53 @@ def _buscar_programa(db: Session, radialista: RadioConfig, programa_id: int) -> 
     return programa
 
 
+def _buscar_roster(db: Session, account: Account, programa: Programa) -> list[ParticipantePrograma]:
+    """Monta o roster do programa (dono + co-apresentadores, ver ProgramaRadialista) na
+    ordem configurada. Programa sem nenhum co-apresentador cadastrado devolve so o dono --
+    mesmo comportamento de sempre (locutor unico).
+    """
+    vinculos = (
+        db.query(ProgramaRadialista)
+        .filter_by(programa_id=programa.id)
+        .order_by(ProgramaRadialista.ordem.asc(), ProgramaRadialista.id.asc())
+        .all()
+    )
+    vinculo_por_radialista = {v.radio_config_id: v for v in vinculos}
+    ids_radialistas = {programa.radio_config_id, *vinculo_por_radialista.keys()}
+    configs_por_id = {
+        c.id: c for c in db.query(RadioConfig).filter(RadioConfig.account_id == account.id, RadioConfig.id.in_(ids_radialistas)).all()
+    }
+
+    def _participante(radio_config_id: int) -> ParticipantePrograma | None:
+        config = configs_por_id.get(radio_config_id)
+        if config is None:
+            return None
+        vinculo = vinculo_por_radialista.get(radio_config_id)
+        return ParticipantePrograma(
+            config,
+            vinculo.papel if vinculo else "Apresentador principal",
+            vinculo.comportamento if vinculo else "",
+        )
+
+    dono = _participante(programa.radio_config_id)
+    roster = [dono] if dono else []
+    for radio_config_id in vinculo_por_radialista:
+        if radio_config_id == programa.radio_config_id:
+            continue
+        participante = _participante(radio_config_id)
+        if participante is not None:
+            roster.append(participante)
+    return roster
+
+
 _ROTEIRO_PADRAO = ["musica", "abertura", "comentario", "noticia", "chamada_ouvinte"]
+
+# Quantos minutos antes do horario_fim do programa a fala vira encerramento
+# em vez de seguir o roteiro normal.
+_LIMIAR_ENCERRAMENTO_MIN = 3
+
+# Chance de, numa fala qualquer, o locutor mencionar a hora certa.
+_PROB_HORA_CERTA = 0.2
 
 _DESCRICAO_BLOCO = {
     "abertura": "abertura do bloco: recebe o ouvinte, marca o início de um novo momento do programa",
@@ -77,6 +146,7 @@ _DESCRICAO_BLOCO = {
     "comentario": "comentário: fala mais pausada e reflexiva sobre um assunto permitido",
     "noticia": "notícia: fala mais serena e informativa sobre um fato permitido",
     "chamada_ouvinte": "chamada ao ouvinte: convite ou recado, tom próximo e caloroso",
+    "encerramento": "encerramento do programa: despedida final, agradece o ouvinte e fecha a transmissão",
 }
 
 _PROSODIA_BLOCO = {
@@ -100,6 +170,10 @@ _PROSODIA_BLOCO = {
         "Este bloco é a CHAMADA AO OUVINTE: tom caloroso e próximo, ritmo normal a levemente mais rápido, "
         "acentue o nome do ouvinte quando houver."
     ),
+    "encerramento": (
+        "Este bloco é o ENCERRAMENTO do programa: tom caloroso e grato, ritmo mais calmo que o normal, "
+        "feche com uma despedida clara, sem deixar no ar."
+    ),
 }
 
 
@@ -109,8 +183,14 @@ def _tipo_proximo_bloco(programa: Programa, total_falas: int) -> str:
     Sem estrutura customizada: mantem o comportamento padrao (abertura so pode vir logo depois de
     um bloco de musica, excecao pra abertura de largada do programa). Com estrutura customizada
     (programa.estrutura_blocos), segue exatamente a sequencia definida pelo usuario, em loop.
+
+    "encerramento" nunca sai daqui: so e' liberado quando o programa esta' de fato terminando
+    (ver perto_do_fim em gerar_proxima_fala). Se o usuario incluiu "encerramento" no meio da
+    estrutura customizada, esse item e' ignorado no loop e a sequencia volta pro inicio.
     """
-    roteiro_customizado = [t.strip() for t in programa.estrutura_blocos if t.strip()]
+    roteiro_customizado = [
+        t.strip() for t in programa.estrutura_blocos if t.strip() and _categoria_bloco(t) != "encerramento"
+    ]
     if not roteiro_customizado:
         if total_falas == 0:
             return "abertura"
@@ -142,7 +222,75 @@ def _limpar_fala(fala: str) -> str:
     return texto.strip()
 
 
+_NUMERO_POR_EXTENSO = (
+    "zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez",
+    "onze", "doze", "treze", "catorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove",
+)
+_DEZENA_POR_EXTENSO = {2: "vinte", 3: "trinta", 4: "quarenta", 5: "cinquenta"}
+
+
+def _numero_0_59_por_extenso(numero: int) -> str:
+    if numero < 20:
+        return _NUMERO_POR_EXTENSO[numero]
+    dezena, resto = divmod(numero, 10)
+    palavra = _DEZENA_POR_EXTENSO[dezena]
+    return f"{palavra} e {_NUMERO_POR_EXTENSO[resto]}" if resto else palavra
+
+
+def _hora_certa_por_extenso(agora: datetime.datetime) -> str:
+    """Hora atual por extenso (ex.: 'catorze e trinta e cinco') pra injetar no prompt --
+    nunca em algarismo, porque o texto vai direto pro TTS e algarismo lido em portugues
+    e' onde o sintetizador mais erra (ver _LANGUAGE_CODE em app.tts.client).
+    """
+    hora_extenso = _numero_0_59_por_extenso(agora.hour)
+    if agora.hour == 1:
+        hora_extenso = "uma"  # "horas" e' feminino: "uma hora", nao "um hora"
+    if agora.minute == 0:
+        return f"{hora_extenso} horas em ponto"
+    return f"{hora_extenso} e {_numero_0_59_por_extenso(agora.minute)}"
+
+
 _PATROCINADOR_RE = re.compile(r"^patrocinador:(\d+)$")
+
+# tipos de bloco com comportamento automatico (busca de musica, prosodia, fila do whatsapp).
+_TIPOS_COM_COMPORTAMENTO = ("musica", "noticia", "chamada_ouvinte", "abertura", "comentario", "encerramento")
+
+
+def _sem_acento(texto: str) -> str:
+    return "".join(c for c in unicodedata.normalize("NFD", texto) if unicodedata.category(c) != "Mn")
+
+
+# cache em memoria (por texto normalizado de bloco) da classificacao via LLM -- so paga a chamada
+# uma vez por bloco customizado distinto, mesmo que o ao vivo gere falas pra ele varias vezes.
+_CACHE_CATEGORIA_CUSTOMIZADA: dict[str, str] = {}
+
+
+def _classificar_bloco_customizado(tipo_original: str, normalizado: str) -> str:
+    if normalizado not in _CACHE_CATEGORIA_CUSTOMIZADA:
+        try:
+            categoria = classificar_categoria_bloco(tipo_original)
+        except Exception:
+            categoria = "outro"
+        _CACHE_CATEGORIA_CUSTOMIZADA[normalizado] = categoria if categoria in _TIPOS_COM_COMPORTAMENTO else ""
+    return _CACHE_CATEGORIA_CUSTOMIZADA[normalizado]
+
+
+def _categoria_bloco(tipo: str) -> str:
+    """Normaliza o texto do bloco pro tipo base que rege o comportamento automatico.
+
+    Bloco customizado tipo "Musica Vaneira" ou "Música Sertaneja" bate direto pelo prefixo
+    (rapido, sem custo de LLM). Bloco customizado sem esse prefixo, tipo "chamame e xote" ou
+    "forro pe de serra", nao tem como saber por texto que e um bloco de musica -- por isso cai
+    numa classificacao via LLM (cacheada) antes de virar "bloco livre" sem musica nenhuma.
+    """
+    if _PATROCINADOR_RE.match(tipo):
+        return tipo
+    tipo = tipo.strip()
+    normalizado = _sem_acento(tipo.lower())
+    for base in _TIPOS_COM_COMPORTAMENTO:
+        if normalizado == base or normalizado.startswith(f"{base} "):
+            return base
+    return _classificar_bloco_customizado(tipo, normalizado) or normalizado
 
 
 def _buscar_patrocinador_ativo(db: Session, account: Account, tipo: str) -> Patrocinador | None:
@@ -168,13 +316,24 @@ def _extrair_quantidade_musicas(fala: str) -> tuple[str, int]:
     return _TAG_BLOCO_MUSICAS.sub("", fala).rstrip(), quantidade
 
 
-def _montar_bloco_musicas(programa: Programa, primeira: MusicaEncontrada, quantidade: int) -> list[MusicaEncontrada]:
+_PREFIXO_MUSICA_RE = re.compile(r"^m[uú]sica\s+", re.IGNORECASE)
+
+
+def _genero_do_rotulo(rotulo: str) -> str:
+    """Extrai a parte 'genero' de um rotulo de bloco de musica customizado -- 'Musica Vaneira' vira
+    'Vaneira'; 'chamame e xote', sem prefixo, e devolvido inteiro (ja e o proprio nome do estilo)."""
+    return _PREFIXO_MUSICA_RE.sub("", rotulo).strip()
+
+
+def _montar_bloco_musicas(
+    programa: Programa, primeira: MusicaEncontrada, quantidade: int, rotulo_bloco: str | None = None
+) -> list[MusicaEncontrada]:
     musicas = [primeira]
     usados = {primeira.video_id}
     tentativas = 0
     while len(musicas) < quantidade and tentativas < quantidade * 3:
         tentativas += 1
-        extra = _buscar_musica_para_bloco(programa)
+        extra = _buscar_musica_para_bloco(programa, rotulo_bloco)
         if extra is None:
             break
         if extra.video_id in usados:
@@ -184,9 +343,14 @@ def _montar_bloco_musicas(programa: Programa, primeira: MusicaEncontrada, quanti
     return musicas
 
 
-def _buscar_musica_para_bloco(programa: Programa) -> MusicaEncontrada | None:
+def _buscar_musica_para_bloco(programa: Programa, rotulo_bloco: str | None = None) -> MusicaEncontrada | None:
+    genero_bloco = _genero_do_rotulo(rotulo_bloco) if rotulo_bloco else ""
     if programa.musicas_permitidas:
         query = random.choice(programa.musicas_permitidas)
+    elif genero_bloco and _sem_acento(genero_bloco.lower()) != "musica":
+        # rotulo do bloco customizado carrega o proprio genero/estilo (ex.: "Vaneira",
+        # "chamame e xote") -- usa isso na busca em vez de cair no genero generico da radio.
+        query = f"{genero_bloco} musica"
     elif programa.generos_musicais:
         query = f"{random.choice(programa.generos_musicais)} musica"
     else:
@@ -220,7 +384,17 @@ def gerar_proxima_fala(
 ):
     radialista = _buscar_radialista(db, account, radialista_id)
     programa = _buscar_programa(db, radialista, programa_id)
-    tipo = _tipo_proximo_bloco(programa, len(dados.historico))
+
+    total_falas = dados.total_falas if dados.total_falas is not None else len(dados.historico)
+
+    ja_encerrou = any(linha.startswith("encerramento:") for linha in dados.historico)
+    perto_do_fim = minutos_restantes(programa, radialista.timezone) <= _LIMIAR_ENCERRAMENTO_MIN
+    if perto_do_fim and not ja_encerrou:
+        # Estrutura do programa roda em loop ate' chegar perto do horario_fim --
+        # daqui em diante, para o loop e gera a fala de encerramento.
+        tipo = "encerramento"
+    else:
+        tipo = _tipo_proximo_bloco(programa, total_falas)
 
     if _PATROCINADOR_RE.match(tipo):
         patrocinador = _buscar_patrocinador_ativo(db, account, tipo)
@@ -237,35 +411,56 @@ def gerar_proxima_fala(
             )
         tipo = "comentario"  # patrocinador excluido/desativado -- nao trava o ao vivo
 
-    if tipo == "noticia" and not (programa.pode_pesquisar or programa.tipos_noticias or programa.fontes_noticias):
+    categoria = _categoria_bloco(tipo)
+    if categoria == "noticia" and not (programa.pode_pesquisar or programa.tipos_noticias or programa.fontes_noticias):
         # Sem fonte de noticia configurada: nao arrisca fala vaga/incerta, toca musica direto.
         tipo = "musica"
+        categoria = "musica"
     historico = "\n".join(dados.historico[-6:]) or "Programa acabou de entrar no ar."
 
-    pedido_musica = _proximo_pedido_fila(db, radialista, "musica") if tipo == "musica" else None
+    # Dialogo multi-voz so pros blocos de fala -- musica e patrocinador (ja retornado acima)
+    # continuam single-voice, sempre na voz do dono.
+    roster = _buscar_roster(db, account, programa)
+    multi_voz = len(roster) > 1 and categoria != "musica"
+
+    pedido_musica = _proximo_pedido_fila(db, radialista, "musica") if categoria == "musica" else None
     if pedido_musica is not None:
         query = pedido_musica.musica_query or pedido_musica.mensagem_usuario
         musica = buscar_musica(query, bloqueados=programa.musicas_bloqueadas)
     else:
-        musica = _buscar_musica_para_bloco(programa) if tipo == "musica" else None
+        musica = _buscar_musica_para_bloco(programa, tipo) if categoria == "musica" else None
 
-    pedido_abraco = _proximo_pedido_fila(db, radialista, "abraco") if tipo == "chamada_ouvinte" else None
+    pedido_abraco = _proximo_pedido_fila(db, radialista, "abraco") if categoria == "chamada_ouvinte" else None
 
     roteiro_ativo = [t.strip() for t in programa.estrutura_blocos if t.strip()] or _ROTEIRO_PADRAO
 
     def _descricao(t: str) -> str:
-        return _DESCRICAO_BLOCO.get(t, f"bloco livre '{t}'")
+        return _DESCRICAO_BLOCO.get(_categoria_bloco(t), f"bloco livre '{t}'")
 
     posicao_roteiro = ", ".join(
         f"{i + 1}) {_descricao(t)}" + (" <- bloco atual" if t == tipo else "")
         for i, t in enumerate(roteiro_ativo)
     )
 
+    introducao_ao_vivo = (
+        [
+            "Vocês também apresentam este programa de rádio ao vivo dentro do painel.",
+            "Gere apenas as falas dos apresentadores, no formato JSON pedido acima -- sem aspas fora do JSON, "
+            "sem markdown e sem narração externa.",
+            "Cada linha do diálogo deve ter uma ou duas frases curtas, como uma conversa real de rádio entre "
+            "os apresentadores, não um monólogo de cada um.",
+        ]
+        if multi_voz
+        else [
+            "Você também apresenta um programa de rádio ao vivo dentro do painel.",
+            "Gere somente a fala do locutor, sem aspas, sem markdown e sem narração externa.",
+            "A fala deve ter entre 4 e 6 frases curtas, com ritmo de rádio e transições naturais.",
+        ]
+    )
+
     system_prompt_linhas = [
-        montar_system_prompt(account, radialista, programa),
-        "Você também apresenta um programa de rádio ao vivo dentro do painel.",
-        "Gere somente a fala do locutor, sem aspas, sem markdown e sem narração externa.",
-        "A fala deve ter entre 4 e 6 frases curtas, com ritmo de rádio e transições naturais.",
+        montar_system_prompt(account, radialista, programa, roster=roster if multi_voz else None),
+        *introducao_ao_vivo,
         "Fale como locutor de verdade, não como texto escrito: use reticências para pausas de respiração, "
         "vírgulas para dar ritmo, e de vez em quando um maneirismo natural (\"então\", \"olha só\", \"e aí\", "
         "\"pô\") no começo da frase. Não exagere, no máximo um por fala.",
@@ -291,12 +486,21 @@ def gerar_proxima_fala(
         "longa que o normal: use reticências duplas (\"......\") ou um respiro curto antes de virar o assunto, "
         "em vez de emendar direto.",
         _PROSODIA_BLOCO.get(
-            tipo,
+            categoria,
             f"Este bloco é '{tipo}': ajuste tom e ritmo conforme o conteúdo, mantendo a identidade do programa.",
         ),
         "Além do tipo do bloco, varie intensidade dentro da própria fala conforme o conteúdo: acelere e encurte "
         "frases em partes animadas ou de efeito, desacelere com vírgulas e reticências em partes que pedem mais "
         "reflexão ou peso -- não mantenha o mesmo ritmo do início ao fim da fala.",
+        "Use a pontuação como interpretação, não só como gramática: coloque exclamação (!) exatamente nos "
+        "pontos de real empolgação ou efeito, no máximo uma ou duas por fala -- nunca em toda frase. Nas "
+        "partes que pedem tom mais ameno, use vírgulas e reticências (...) pra marcar pausa e respiração, "
+        "e ponto final simples no resto. A pontuação deve nascer do que a frase está sentindo naquele "
+        "momento, não de um padrão fixo repetido em toda fala.",
+        "Escreva todo número por extenso em português (ex.: 'catorze e trinta e cinco', 'oitenta e sete "
+        "e cinco', 'dois mil e vinte e quatro', 'dezenove reais e noventa'), nunca em algarismo -- isso "
+        "vale pra hora, frequência, preço, quantidade, data, telefone ou qualquer outro número que "
+        "aparecer na fala. O sintetizador de voz não lê algarismo direito em português.",
         "Quando o bloco for notícia, comente apenas notícias dos tipos e fontes permitidas.",
         "Nunca use tom de incerteza ou promessa vaga tipo 'quando pintar novidade confirmada eu aviso' ou "
         "'se tiver algo eu passo aqui depois' -- fale com convicção sobre o que souber, e se não tiver "
@@ -304,6 +508,16 @@ def gerar_proxima_fala(
         "Quando o bloco for comentário, escolha um assunto diferente do último comentado no histórico.",
         "Se pesquisa externa estiver desabilitada, não invente fatos recentes: faça chamadas gerais e atemporais.",
     ]
+
+    if tipo != "encerramento" and random.random() < _PROB_HORA_CERTA:
+        hora_certa = _hora_certa_por_extenso(datetime.datetime.now(ZoneInfo(radialista.timezone)))
+        system_prompt_linhas.append(
+            f"Nesta fala, marque a hora certa: mencione naturalmente, em algum ponto, que agora são {hora_certa} "
+            "-- como um locutor de verdade faz de vez em quando (ex: 'agora são catorze e trinta e cinco aqui "
+            "na rádio', 'são onze horas em ponto nesse sábado quente'). Escreva a hora por extenso, exatamente "
+            "como veio acima, nunca em algarismo. Encaixe sem soar forçado, não precisa ser a primeira frase."
+        )
+
     if musica is not None and pedido_musica is not None:
         nome_pedido = pedido_musica.nome or "um ouvinte"
         system_prompt_linhas.append(
@@ -321,7 +535,7 @@ def gerar_proxima_fala(
             "(nenhuma faixa foi encontrada para tocar ao vivo agora)."
         )
 
-    if tipo == "musica" and musica is not None:
+    if categoria == "musica" and musica is not None:
         system_prompt_linhas.append(
             "Se sentir que o momento pede embalar o programa sem interrupção, você pode emendar mais músicas "
             "em seguida, sem falar entre uma e outra (tipo um bloco de duas ou três). Só faça isso de vez em "
@@ -343,6 +557,16 @@ def gerar_proxima_fala(
             "no WhatsApp da rádio."
         )
 
+    if categoria == "encerramento":
+        system_prompt_linhas.append(
+            "Este é o ÚLTIMO bloco do programa de hoje, o programa está terminando agora. Agradeça o "
+            "ouvinte pela companhia, resuma em uma frase o clima do programa e se despeça claramente, "
+            "sinalizando que a transmissão está encerrando. Não convide a mandar mensagem no WhatsApp, "
+            "pedir música ou interagir mais, porque não há mais tempo de ar. Se souber quando o programa "
+            "volta (mesmo horário, próximo dia de exibição), convide a voltar; senão, feche sem inventar "
+            "data ou horário."
+        )
+
     system_prompt = "\n".join(system_prompt_linhas)
 
     mensagem = "\n".join(
@@ -354,13 +578,42 @@ def gerar_proxima_fala(
         ]
     )
 
-    fala = _limpar_fala(gerar_resposta(system_prompt, mensagem))
+    falas_bloco: list[FalaItem] = []
+    if multi_voz:
+        resposta_llm = gerar_configuracao(system_prompt, mensagem)
+        try:
+            linhas_dialogo = list((extrair_json(resposta_llm) if resposta_llm else {}).get("linhas") or [])
+        except (json.JSONDecodeError, TypeError, AttributeError, ValueError):
+            linhas_dialogo = []
+
+        roster_por_nome = {_sem_acento(p.radialista.nome_locutor.lower()): p for p in roster}
+        for linha in linhas_dialogo:
+            texto_linha = _limpar_fala(str(linha.get("texto") or ""))
+            if not texto_linha:
+                continue
+            participante = roster_por_nome.get(_sem_acento(str(linha.get("locutor") or "").lower()), roster[0])
+            falas_bloco.append(
+                FalaItem(
+                    radio_config_id=participante.radialista.id,
+                    nome_locutor=participante.radialista.nome_locutor,
+                    voz_id=participante.radialista.voz_id,
+                    texto=texto_linha,
+                )
+            )
+
+    if falas_bloco:
+        fala = " ".join(item.texto for item in falas_bloco)
+    elif multi_voz:
+        # LLM nao retornou dialogo em JSON valido -- nao trava o ao vivo, segue com uma fala generica.
+        fala = "Seguimos no ar, ja volto com mais uma novidade."
+    else:
+        fala = _limpar_fala(gerar_resposta(system_prompt, mensagem))
 
     musicas_bloco: list[MusicaEncontrada] = []
-    if tipo == "musica":
+    if categoria == "musica":
         fala, quantidade = _extrair_quantidade_musicas(fala)
         if musica is not None:
-            musicas_bloco = _montar_bloco_musicas(programa, musica, quantidade)
+            musicas_bloco = _montar_bloco_musicas(programa, musica, quantidade, tipo)
 
     return LiveProgramResponse(
         tipo=tipo,
@@ -368,8 +621,13 @@ def gerar_proxima_fala(
         criado_em=datetime.datetime.now(datetime.timezone.utc),
         video_id=musica.video_id if musica else None,
         titulo_musica=musica.titulo if musica else None,
-        musicas=[MusicaBlocoItem(video_id=m.video_id, titulo=m.titulo) for m in musicas_bloco],
+        inicio_segundos=musica.inicio_segundos if musica else 0,
+        musicas=[
+            MusicaBlocoItem(video_id=m.video_id, titulo=m.titulo, inicio_segundos=m.inicio_segundos)
+            for m in musicas_bloco
+        ],
         programa_atual=programa.nome,
+        falas=falas_bloco or None,
     )
 
 
@@ -388,7 +646,7 @@ def buscar_musica_de_fundo(
     if musica is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nenhuma musica de fundo encontrada")
 
-    return MusicaFundoResponse(video_id=musica.video_id, titulo=musica.titulo)
+    return MusicaFundoResponse(video_id=musica.video_id, titulo=musica.titulo, inicio_segundos=musica.inicio_segundos)
 
 
 @router.post("/{radialista_id}/tts")
@@ -402,12 +660,13 @@ def gerar_audio_fala(
 
     # Patrocinador pode pedir uma voz especifica (independente da voz do locutor no ar) --
     # ver Patrocinador.voz_id em app/models/patrocinador.py.
-    if dados.voz_id and not voz_valida(dados.voz_id):
+    if dados.voz_id and not voz_valida_para_conta(db, account.id, dados.voz_id):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Voz invalida")
     voz_id = dados.voz_id or radialista.voz_id
 
     if not tts_habilitado(voz_id):
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="TTS nao configurado")
 
-    audio = sintetizar_audio(dados.texto, voz_id, tipo_bloco=dados.tipo)
+    tom = classificar_tom_fala(dados.texto, dados.tipo)
+    audio = sintetizar_audio(dados.texto, voz_id, tipo_bloco=dados.tipo, tom=tom)
     return Response(content=audio, media_type="audio/mpeg")

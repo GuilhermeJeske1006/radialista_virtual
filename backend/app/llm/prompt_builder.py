@@ -3,7 +3,22 @@ from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
 
 
-def montar_system_prompt(account: Account, radialista: RadioConfig, programa: Programa) -> str:
+class ParticipantePrograma:
+    """Um radialista participando de um programa, com papel e comportamento
+    especificos daquele programa (ver app/models/programa_radialista.py)."""
+
+    def __init__(self, radialista: RadioConfig, papel: str, comportamento: str):
+        self.radialista = radialista
+        self.papel = papel
+        self.comportamento = comportamento
+
+
+def montar_system_prompt(
+    account: Account,
+    radialista: RadioConfig,
+    programa: Programa,
+    roster: list[ParticipantePrograma] | None = None,
+) -> str:
     topicos = ", ".join(programa.topicos_permitidos) if programa.topicos_permitidos else "assuntos gerais da rádio"
     generos = ", ".join(programa.generos_musicais) if programa.generos_musicais else "perfil musical geral da rádio"
     musicas = ", ".join(programa.musicas_permitidas) if programa.musicas_permitidas else "sem lista fixa de músicas"
@@ -16,17 +31,36 @@ def montar_system_prompt(account: Account, radialista: RadioConfig, programa: Pr
     if account.frequencia:
         identificacao_radio += f" ({account.frequencia})"
 
-    partes = [
-        f"Você é {radialista.nome_locutor}, um locutor de rádio virtual que conversa com ouvintes pelo WhatsApp "
-        f"em nome de {identificacao_radio}.",
-        "Escreva sempre em português correto, com acentuação e pontuação gramaticalmente corretas "
-        "(ex.: você, não, música, é, está, coração). Nunca omita acentos nem troque palavras por versões sem "
-        "acento, mesmo em resposta rápida ou informal.",
-    ]
-    if radialista.personalidade:
-        partes.append(f"Sua personalidade e forma de se comportar: {radialista.personalidade}.")
+    multi_voz = bool(roster) and len(roster) > 1
+
+    if multi_voz:
+        vozes_texto = "\n".join(
+            f"- {p.radialista.nome_locutor} (papel: {p.papel}): "
+            f"{p.comportamento or p.radialista.personalidade or 'sem instruções específicas de comportamento'}."
+            for p in roster
+        )
+        partes = [
+            f"Este programa é apresentado por vários locutores de rádio virtual conversando entre si, "
+            f"em nome de {identificacao_radio}.",
+            "Escreva sempre em português correto, com acentuação e pontuação gramaticalmente corretas "
+            "(ex.: você, não, música, é, está, coração). Nunca omita acentos nem troque palavras por versões sem "
+            "acento, mesmo em resposta rápida ou informal.",
+            f"Os apresentadores deste programa são:\n{vozes_texto}",
+            "Gere um diálogo natural entre eles, respeitando o papel e o comportamento de cada um -- cada "
+            "locutor fala de acordo com sua própria personalidade, sem se confundir com a dos outros.",
+        ]
+    else:
+        partes = [
+            f"Você é {radialista.nome_locutor}, um locutor de rádio virtual que conversa com ouvintes pelo WhatsApp "
+            f"em nome de {identificacao_radio}.",
+            "Escreva sempre em português correto, com acentuação e pontuação gramaticalmente corretas "
+            "(ex.: você, não, música, é, está, coração). Nunca omita acentos nem troque palavras por versões sem "
+            "acento, mesmo em resposta rápida ou informal.",
+        ]
+        if radialista.personalidade:
+            partes.append(f"Sua personalidade e forma de se comportar: {radialista.personalidade}.")
     partes += [
-        f"Agora você apresenta o programa '{programa.nome}'.",
+        f"Agora {'vocês apresentam' if multi_voz else 'você apresenta'} o programa '{programa.nome}'.",
     ]
     if programa.descricao:
         partes.append(f"Sobre o que é esse programa: {programa.descricao}")
@@ -83,5 +117,13 @@ def montar_system_prompt(account: Account, radialista: RadioConfig, programa: Pr
 
     partes.append("Se perguntarem sobre outro assunto, recuse com simpatia e traga a conversa de volta para a rádio.")
     partes.append("Nunca opine sobre política, religião ou outros temas sensíveis, mesmo que não estejam na lista de proibidos.")
+
+    if multi_voz:
+        partes.append(
+            "Responda APENAS com um JSON compacto, sem markdown e sem texto fora do JSON, exatamente no formato "
+            '{"linhas": [{"locutor": "<nome exato de um dos apresentadores acima>", "texto": "..."}]}. '
+            "Gere entre 2 e 4 linhas alternando os apresentadores de forma natural, como uma conversa de verdade "
+            "(um completa o outro, reage, faz pergunta) -- não uma lista de falas soltas e desconectadas."
+        )
 
     return "\n".join(partes)

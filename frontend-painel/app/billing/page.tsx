@@ -11,8 +11,10 @@ type StatusPlano = {
   plano: string;
   agentes_usados: number;
   agentes_limite: number;
+  agentes_extras: number;
   mensagens_usadas: number;
   mensagens_limite: number;
+  mensagens_extras: number;
 };
 
 export default function BillingPage() {
@@ -20,6 +22,12 @@ export default function BillingPage() {
   const [carregando, setCarregando] = useState(true);
   const [carregandoId, setCarregandoId] = useState<string | null>(null);
   const [erro, setErro] = useState("");
+  const [comprandoAgenteExtra, setComprandoAgenteExtra] = useState(false);
+  const [erroAgenteExtra, setErroAgenteExtra] = useState("");
+  const [modalExcedenteAberto, setModalExcedenteAberto] = useState(false);
+  const [blocosExcedente, setBlocosExcedente] = useState(1);
+  const [comprandoExcedente, setComprandoExcedente] = useState(false);
+  const [erroExcedente, setErroExcedente] = useState("");
 
   useEffect(() => {
     apiFetch<StatusPlano>("/billing/status")
@@ -37,6 +45,33 @@ export default function BillingPage() {
     } catch (err) {
       setErro(err instanceof ApiError ? err.message : "Erro ao iniciar assinatura");
       setCarregandoId(null);
+    }
+  }
+
+  async function comprarAgenteExtra() {
+    setComprandoAgenteExtra(true);
+    setErroAgenteExtra("");
+    try {
+      const { url } = await apiFetch<{ url: string }>("/billing/agentes-extras/checkout", { method: "POST" });
+      window.location.href = url;
+    } catch (err) {
+      setErroAgenteExtra(err instanceof ApiError ? err.message : "Erro ao iniciar compra");
+      setComprandoAgenteExtra(false);
+    }
+  }
+
+  async function comprarExcedente() {
+    setComprandoExcedente(true);
+    setErroExcedente("");
+    try {
+      const { url } = await apiFetch<{ url: string }>("/billing/excedente-mensagens/checkout", {
+        method: "POST",
+        body: JSON.stringify({ blocos: blocosExcedente }),
+      });
+      window.location.href = url;
+    } catch (err) {
+      setErroExcedente(err instanceof ApiError ? err.message : "Erro ao iniciar compra");
+      setComprandoExcedente(false);
     }
   }
 
@@ -151,17 +186,118 @@ export default function BillingPage() {
       </div>
 
       <div className="mt-6 bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
-        <h3 className="font-display text-sm font-bold text-fg mb-3">Agentes adicionais</h3>
-        <p className="text-sm text-fg/65">
-          Precisa de mais agentes que o plano inclui? Adicione quantos quiser por{" "}
-          <span className="font-semibold text-fg">R$ {formatarReais(PRECO_AGENTE_ADICIONAL)}/mês cada</span>.
-          Sem trocar de plano, sem migração — o agente novo entra no ar na hora.
-        </p>
-        <p className="text-sm text-fg/45 mt-3">
-          Excedente de mensagens acima do limite do plano: R$ {formatarReais(PRECO_EXCEDENTE_1000_MSG)} a cada 1.000
-          mensagens adicionais.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h3 className="font-display text-sm font-bold text-fg mb-3">Agentes adicionais</h3>
+            <p className="text-sm text-fg/65">
+              Precisa de mais agentes que o plano inclui? Adicione quantos quiser por{" "}
+              <span className="font-semibold text-fg">R$ {formatarReais(PRECO_AGENTE_ADICIONAL)}/mês cada</span>.
+              Sem trocar de plano, sem migração — o agente novo entra no ar na hora.
+              {!!statusPlano?.agentes_extras && (
+                <span className="block text-fg/45 mt-1">
+                  Você já tem {statusPlano.agentes_extras} agente(s) extra(s) ativo(s).
+                </span>
+              )}
+            </p>
+          </div>
+          {ativo && (
+            <button
+              type="button"
+              onClick={comprarAgenteExtra}
+              disabled={comprandoAgenteExtra}
+              className="flex items-center gap-2 shrink-0 rounded-lg bg-paper/10 px-4 py-2.5 text-sm font-medium text-fg hover:bg-paper/15 disabled:opacity-60"
+            >
+              {comprandoAgenteExtra ? (
+                <>
+                  <OndaSpin size={14} /> Redirecionando...
+                </>
+              ) : (
+                "+ Agente extra"
+              )}
+            </button>
+          )}
+        </div>
+        {erroAgenteExtra && <p className="text-sm text-rust mt-2">{erroAgenteExtra}</p>}
+
+        <div className="mt-5 pt-5 border-t border-border flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-sm text-fg/65">
+              Excedente de mensagens acima do limite do plano: R$ {formatarReais(PRECO_EXCEDENTE_1000_MSG)} a cada
+              1.000 mensagens adicionais.
+              {!!statusPlano?.mensagens_extras && (
+                <span className="block text-fg/45 mt-1">
+                  {statusPlano.mensagens_extras.toLocaleString("pt-BR")} mensagens extras compradas este mês.
+                </span>
+              )}
+            </p>
+          </div>
+          {ativo && (
+            <button
+              type="button"
+              onClick={() => setModalExcedenteAberto(true)}
+              className="shrink-0 rounded-lg bg-paper/10 px-4 py-2.5 text-sm font-medium text-fg hover:bg-paper/15"
+            >
+              Comprar excedente
+            </button>
+          )}
+        </div>
       </div>
+
+      {modalExcedenteAberto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4"
+          onClick={() => !comprandoExcedente && setModalExcedenteAberto(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-border-strong bg-surface p-6 shadow-theme-xs"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-display text-base font-bold text-fg mb-2">Comprar excedente de mensagens</h2>
+            <p className="text-sm text-fg/70 mb-4">
+              Cada bloco libera 1.000 mensagens a mais neste mês, por R$ {formatarReais(PRECO_EXCEDENTE_1000_MSG)}{" "}
+              cada.
+            </p>
+            <label className="block text-sm font-medium text-fg/80 mb-1.5">Blocos de 1.000 mensagens</label>
+            <input
+              type="number"
+              min={1}
+              max={50}
+              value={blocosExcedente}
+              onChange={(e) => setBlocosExcedente(Math.min(50, Math.max(1, Number(e.target.value) || 1)))}
+              disabled={comprandoExcedente}
+              className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-amber/40 disabled:opacity-60"
+            />
+            <p className="text-sm text-fg/55 mt-2">
+              Total: <span className="font-semibold text-fg">R$ {formatarReais(blocosExcedente * PRECO_EXCEDENTE_1000_MSG)}</span>
+            </p>
+            {erroExcedente && <p className="text-sm text-rust mt-2">{erroExcedente}</p>}
+            <div className="flex justify-end gap-3 mt-5">
+              <button
+                type="button"
+                onClick={() => setModalExcedenteAberto(false)}
+                disabled={comprandoExcedente}
+                className="rounded-lg px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={comprarExcedente}
+                disabled={comprandoExcedente}
+                className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60"
+              >
+                {comprandoExcedente ? (
+                  <>
+                    <OndaSpin size={14} /> Redirecionando...
+                  </>
+                ) : (
+                  "Comprar"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

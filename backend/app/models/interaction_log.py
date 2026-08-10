@@ -11,6 +11,10 @@ class InteractionLog(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
+    # ID da mensagem no WuzAPI (Info.ID) -- usado pra ignorar reentregas/retry
+    # do webhook, que senao duplicam o log e a fila ao vivo.
+    wuzapi_message_id: Mapped[str | None] = mapped_column(String, unique=True, nullable=True, index=True)
+
     radio_config_id: Mapped[int] = mapped_column(ForeignKey("radio_configs.id"), index=True)
 
     telefone: Mapped[str] = mapped_column(String, index=True)

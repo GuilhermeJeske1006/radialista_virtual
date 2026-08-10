@@ -9,7 +9,15 @@ from app.auth.dependencies import get_current_account
 from app.config.settings import settings
 from app.db.database import get_db
 from app.models.account import Account
-from app.whatsapp.session_manager import conectar_sessao, criar_usuario, obter_qrcode, obter_status_sessao
+from app.whatsapp.session_manager import (
+    conectar_sessao,
+    configurar_entrega_midia,
+    configurar_hmac,
+    criar_usuario,
+    desconectar_sessao,
+    obter_qrcode,
+    obter_status_sessao,
+)
 
 logger = logging.getLogger("radialista.onboarding")
 router = APIRouter(prefix="/onboarding", tags=["onboarding"])
@@ -38,6 +46,24 @@ def criar_usuario_wuzapi(account: Account = Depends(get_current_account), db: Se
     account.wuzapi_user_id = (resp.get("data") or {}).get("id")
     db.commit()
 
+    try:
+        configurar_entrega_midia(novo_token)
+    except httpx.HTTPStatusError:
+        # Best-effort: sem isso so' perde a transcricao de audio (webhook.py ignora
+        # audio sem base64), nao trava o resto do onboarding.
+        logger.exception("Falha ao configurar entrega de midia no WuzAPI")
+
+    try:
+        hmac_key = secrets.token_hex(32)
+        configurar_hmac(novo_token, hmac_key)
+        account.wuzapi_hmac_key = hmac_key
+        db.commit()
+    except httpx.HTTPStatusError:
+        # Best-effort: sem isso o webhook aceita mensagens dessa conta sem verificar
+        # assinatura (ver app/whatsapp/webhook.py::_verificar_assinatura) -- pior que
+        # travar o onboarding inteiro por uma falha transitoria no WuzAPI.
+        logger.exception("Falha ao configurar HMAC no WuzAPI")
+
     return {"status": "criado", "wuzapi_token": novo_token}
 
 
@@ -45,6 +71,12 @@ def criar_usuario_wuzapi(account: Account = Depends(get_current_account), db: Se
 def conectar(account: Account = Depends(get_current_account)):
     if not account.wuzapi_token:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Crie o usuario WuzAPI antes de conectar")
+
+    try:
+        # Self-heal pra contas criadas antes dessa configuracao existir -- idempotente.
+        configurar_entrega_midia(account.wuzapi_token)
+    except httpx.HTTPStatusError:
+        logger.exception("Falha ao configurar entrega de midia no WuzAPI")
 
     try:
         return conectar_sessao(account.wuzapi_token)
@@ -61,6 +93,17 @@ def qrcode(account: Account = Depends(get_current_account)):
         return obter_qrcode(account.wuzapi_token)
     except httpx.HTTPStatusError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Falha ao obter QR Code do WuzAPI") from exc
+
+
+@router.post("/logout")
+def desconectar(account: Account = Depends(get_current_account)):
+    if not account.wuzapi_token:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="WhatsApp nao conectado")
+
+    try:
+        return desconectar_sessao(account.wuzapi_token)
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Falha ao desconectar do WuzAPI") from exc
 
 
 @router.get("/status")

@@ -19,6 +19,7 @@ router = APIRouter(prefix="/metrics", tags=["metrics"])
 class InteractionLogResponse(BaseModel):
     id: int
     telefone: str
+    nome: str | None = None
     mensagem_usuario: str
     resposta: str | None
     status: str
@@ -114,7 +115,7 @@ def interacoes_recentes(
 
     return (
         db.query(InteractionLog)
-        .filter_by(radio_config_id=config.id)
+        .filter_by(radio_config_id=config.id, origem="ouvinte")
         .order_by(InteractionLog.criado_em.desc())
         .limit(limit)
         .all()

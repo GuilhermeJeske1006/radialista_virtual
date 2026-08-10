@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import AppShell from "../../components/AppShell";
+import ConfirmDialog from "../../components/ConfirmDialog";
 import { apiFetch, ApiError } from "../../lib/api";
 import { OndaLed, OndaSpin } from "../../components/OndaLogo";
 
@@ -125,6 +126,8 @@ export default function OnboardingPage() {
   const [carregando, setCarregando] = useState(false);
   const [verificandoStatus, setVerificandoStatus] = useState(true);
   const [erro, setErro] = useState("");
+  const [desconectando, setDesconectando] = useState(false);
+  const [confirmandoDesconexao, setConfirmandoDesconexao] = useState(false);
 
   const [conversas, setConversas] = useState<Conversa[]>([]);
   const [carregandoConversas, setCarregandoConversas] = useState(true);
@@ -236,6 +239,21 @@ export default function OnboardingPage() {
     }
   }
 
+  async function desconectarWhatsapp() {
+    setDesconectando(true);
+    setErro("");
+    try {
+      await apiFetch("/onboarding/logout", { method: "POST" });
+      setConectado(false);
+      setQrCode(null);
+    } catch (err) {
+      setErro(err instanceof ApiError ? err.message : "Erro ao desconectar o WhatsApp");
+    } finally {
+      setDesconectando(false);
+      setConfirmandoDesconexao(false);
+    }
+  }
+
   return (
     <AppShell title="Conectar WhatsApp">
       <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6 max-w-lg">
@@ -248,11 +266,21 @@ export default function OnboardingPage() {
             <OndaSpin size={16} /> Carregando...
           </p>
         ) : conectado ? (
-          <div className="flex items-start gap-3">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-teal/10 text-teal border border-teal/25 px-2.5 py-0.5 text-xs font-medium">
-              <OndaLed color="teal" pulse={false} /> Conectado
-            </span>
-            <p className="text-sm text-fg/65">O WhatsApp da sua rádio já está atendendo os ouvintes.</p>
+          <div>
+            <div className="flex items-start gap-3">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-teal/10 text-teal border border-teal/25 px-2.5 py-0.5 text-xs font-medium">
+                <OndaLed color="teal" pulse={false} /> Conectado
+              </span>
+              <p className="text-sm text-fg/65">O WhatsApp da sua rádio já está atendendo os ouvintes.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setConfirmandoDesconexao(true)}
+              className="mt-4 text-xs font-medium text-rust hover:text-rust/80"
+            >
+              Desconectar WhatsApp
+            </button>
+            {erro && <p className="text-sm text-rust mt-3">{erro}</p>}
           </div>
         ) : (
           <>
@@ -438,6 +466,14 @@ export default function OnboardingPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmandoDesconexao}
+        title="Desconectar WhatsApp"
+        mensagem="Isso desliga o número do WhatsApp da rádio. Os radialistas param de atender os ouvintes até você conectar de novo escaneando um novo QR Code."
+        onConfirmar={desconectarWhatsapp}
+        onCancelar={() => !desconectando && setConfirmandoDesconexao(false)}
+      />
     </AppShell>
   );
 }

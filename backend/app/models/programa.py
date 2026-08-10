@@ -44,7 +44,7 @@ class Programa(Base):
     mensagem_recusa: Mapped[str] = mapped_column(
         String, default="Desculpa, nao posso falar sobre isso por aqui. Bora falar de outro assunto?"
     )
-    limite_mensagens_hora: Mapped[int] = mapped_column(Integer, default=10)
+    limite_mensagens_hora: Mapped[int] = mapped_column(Integer, default=1000)
 
     # Sequencia pre-estabelecida de blocos do programa (ex.: ["abertura", "saudacao", "musica",
     # "abertura", "noticia", "musica"]). Guia a ordem do ao vivo; a IA segue essa estrutura mas
