@@ -40,6 +40,7 @@ class RadioContaRequest(BaseModel):
     frequencia: str = ""
     telefone: str = ""
     endereco: str = ""
+    cidade: str = ""
 
 
 class RadioContaResponse(RadioContaRequest):

@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_account
+from app.config.redis_client import redis_client
 from app.db.database import get_db
 from app.guardrails.schedule import minutos_restantes
 from app.live.music import MusicaEncontrada, buscar_musica, buscar_musica_fundo
@@ -46,6 +47,7 @@ class MusicaBlocoItem(BaseModel):
     video_id: str
     titulo: str
     inicio_segundos: int = 0
+    fim_segundos: int | None = None
 
 
 class FalaItem(BaseModel):
@@ -62,6 +64,7 @@ class LiveProgramResponse(BaseModel):
     video_id: str | None = None
     titulo_musica: str | None = None
     inicio_segundos: int = 0
+    fim_segundos: int | None = None
     musicas: list[MusicaBlocoItem] = Field(default_factory=list)
     programa_atual: str | None = None
     patrocinador_id: int | None = None
@@ -76,6 +79,7 @@ class MusicaFundoResponse(BaseModel):
     video_id: str
     titulo: str
     inicio_segundos: int = 0
+    fim_segundos: int | None = None
 
 
 def _buscar_radialista(db: Session, account: Account, radialista_id: int) -> RadioConfig:
@@ -250,6 +254,27 @@ def _hora_certa_por_extenso(agora: datetime.datetime) -> str:
     return f"{hora_extenso} e {_numero_0_59_por_extenso(agora.minute)}"
 
 
+# Historico de musicas tocadas no programa (por sessao ao vivo), pra buscar_musica evitar
+# repetir a mesma faixa ou saturar de um so' artista (ver limite_por_canal em app.live.music).
+# TTL de 6h cobre uma transmissao inteira sem acumular lixo de sessoes antigas no Redis.
+_TTL_HISTORICO_MUSICA = 6 * 60 * 60
+
+
+def _historico_musicas(programa_id: int) -> tuple[set[str], dict[str, int]]:
+    ids = redis_client.smembers(f"musicas_tocadas:ids:{programa_id}")
+    canais_raw = redis_client.hgetall(f"musicas_tocadas:canais:{programa_id}")
+    return set(ids), {canal: int(contagem) for canal, contagem in canais_raw.items()}
+
+
+def _registrar_musica_tocada(programa_id: int, musica: MusicaEncontrada) -> None:
+    chave_ids = f"musicas_tocadas:ids:{programa_id}"
+    chave_canais = f"musicas_tocadas:canais:{programa_id}"
+    redis_client.sadd(chave_ids, musica.video_id)
+    redis_client.expire(chave_ids, _TTL_HISTORICO_MUSICA)
+    redis_client.hincrby(chave_canais, musica.canal.lower(), 1)
+    redis_client.expire(chave_canais, _TTL_HISTORICO_MUSICA)
+
+
 _PATROCINADOR_RE = re.compile(r"^patrocinador:(\d+)$")
 
 # tipos de bloco com comportamento automatico (busca de musica, prosodia, fila do whatsapp).
@@ -260,19 +285,23 @@ def _sem_acento(texto: str) -> str:
     return "".join(c for c in unicodedata.normalize("NFD", texto) if unicodedata.category(c) != "Mn")
 
 
-# cache em memoria (por texto normalizado de bloco) da classificacao via LLM -- so paga a chamada
-# uma vez por bloco customizado distinto, mesmo que o ao vivo gere falas pra ele varias vezes.
-_CACHE_CATEGORIA_CUSTOMIZADA: dict[str, str] = {}
+# cache no Redis (hash, por texto normalizado de bloco) da classificacao via LLM -- so paga a
+# chamada uma vez por bloco customizado distinto, mesmo que o ao vivo gere falas pra ele varias
+# vezes e mesmo entre workers/instancias diferentes do backend (cache em memoria de processo nao
+# seria compartilhado entre eles).
+_CACHE_CATEGORIA_CUSTOMIZADA = "cache:categoria_bloco_customizado"
 
 
 def _classificar_bloco_customizado(tipo_original: str, normalizado: str) -> str:
-    if normalizado not in _CACHE_CATEGORIA_CUSTOMIZADA:
+    categoria = redis_client.hget(_CACHE_CATEGORIA_CUSTOMIZADA, normalizado)
+    if categoria is None:
         try:
             categoria = classificar_categoria_bloco(tipo_original)
         except Exception:
             categoria = "outro"
-        _CACHE_CATEGORIA_CUSTOMIZADA[normalizado] = categoria if categoria in _TIPOS_COM_COMPORTAMENTO else ""
-    return _CACHE_CATEGORIA_CUSTOMIZADA[normalizado]
+        categoria = categoria if categoria in _TIPOS_COM_COMPORTAMENTO else ""
+        redis_client.hset(_CACHE_CATEGORIA_CUSTOMIZADA, normalizado, categoria)
+    return categoria
 
 
 def _categoria_bloco(tipo: str) -> str:
@@ -356,7 +385,16 @@ def _buscar_musica_para_bloco(programa: Programa, rotulo_bloco: str | None = Non
     else:
         query = "musica instrumental"
 
-    return buscar_musica(query, bloqueados=programa.musicas_bloqueadas)
+    ids_tocadas, canais_tocados = _historico_musicas(programa.id)
+    musica = buscar_musica(
+        query,
+        bloqueados=programa.musicas_bloqueadas,
+        evitar_video_ids=ids_tocadas,
+        canais_recentes=canais_tocados,
+    )
+    if musica is not None:
+        _registrar_musica_tocada(programa.id, musica)
+    return musica
 
 
 def _proximo_pedido_fila(db: Session, radialista: RadioConfig, tipo: str) -> FilaAoVivo | None:
@@ -426,7 +464,15 @@ def gerar_proxima_fala(
     pedido_musica = _proximo_pedido_fila(db, radialista, "musica") if categoria == "musica" else None
     if pedido_musica is not None:
         query = pedido_musica.musica_query or pedido_musica.mensagem_usuario
-        musica = buscar_musica(query, bloqueados=programa.musicas_bloqueadas)
+        ids_tocadas, canais_tocados = _historico_musicas(programa.id)
+        musica = buscar_musica(
+            query,
+            bloqueados=programa.musicas_bloqueadas,
+            evitar_video_ids=ids_tocadas,
+            canais_recentes=canais_tocados,
+        )
+        if musica is not None:
+            _registrar_musica_tocada(programa.id, musica)
     else:
         musica = _buscar_musica_para_bloco(programa, tipo) if categoria == "musica" else None
 
@@ -622,8 +668,11 @@ def gerar_proxima_fala(
         video_id=musica.video_id if musica else None,
         titulo_musica=musica.titulo if musica else None,
         inicio_segundos=musica.inicio_segundos if musica else 0,
+        fim_segundos=musica.fim_segundos if musica else None,
         musicas=[
-            MusicaBlocoItem(video_id=m.video_id, titulo=m.titulo, inicio_segundos=m.inicio_segundos)
+            MusicaBlocoItem(
+                video_id=m.video_id, titulo=m.titulo, inicio_segundos=m.inicio_segundos, fim_segundos=m.fim_segundos
+            )
             for m in musicas_bloco
         ],
         programa_atual=programa.nome,
@@ -646,7 +695,12 @@ def buscar_musica_de_fundo(
     if musica is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nenhuma musica de fundo encontrada")
 
-    return MusicaFundoResponse(video_id=musica.video_id, titulo=musica.titulo, inicio_segundos=musica.inicio_segundos)
+    return MusicaFundoResponse(
+        video_id=musica.video_id,
+        titulo=musica.titulo,
+        inicio_segundos=musica.inicio_segundos,
+        fim_segundos=musica.fim_segundos,
+    )
 
 
 @router.post("/{radialista_id}/tts")

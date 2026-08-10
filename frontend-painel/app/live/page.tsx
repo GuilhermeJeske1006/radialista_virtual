@@ -27,7 +27,7 @@ type Interaction = {
   criado_em: string;
 };
 
-type MusicaBloco = { video_id: string; titulo: string; inicio_segundos?: number };
+type MusicaBloco = { video_id: string; titulo: string; inicio_segundos?: number; fim_segundos?: number | null };
 
 // Uma linha de dialogo multi-voz (ver ProgramaRadialista no backend) -- so vem preenchido
 // quando o programa tem mais de um radialista, uma linha por participante que falou no bloco.
@@ -42,6 +42,7 @@ type ProgramSegment = {
   video_id?: string | null;
   titulo_musica?: string | null;
   inicio_segundos?: number;
+  fim_segundos?: number | null;
   musicas?: MusicaBloco[];
   patrocinador_id?: number | null;
   patrocinador_audio?: boolean;
@@ -56,6 +57,7 @@ type LiveProgramResponse = {
   video_id?: string | null;
   titulo_musica?: string | null;
   inicio_segundos?: number;
+  fim_segundos?: number | null;
   musicas?: MusicaBloco[];
   patrocinador_id?: number | null;
   patrocinador_audio?: boolean;
@@ -208,6 +210,7 @@ export default function LivePage() {
   const [falasPrograma, setFalasPrograma] = useState<ProgramSegment[]>([]);
   const [erro, setErro] = useState("");
   const [avisoGravacao, setAvisoGravacao] = useState("");
+  const [abaEmSegundoPlano, setAbaEmSegundoPlano] = useState(false);
   const [pulso, setPulso] = useState(false);
   const [musicaAtual, setMusicaAtual] = useState<string | null>(null);
   const [modalRadialistaId, setModalRadialistaId] = useState<number | null>(null);
@@ -232,6 +235,7 @@ export default function LivePage() {
   const audioFalaRef = useRef<HTMLAudioElement | null>(null);
   const bgPlayerRef = useRef<any>(null);
   const bgProntoRef = useRef(false);
+  const bgIntervaloFimRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const proximoPreparoRef = useRef<Promise<SegmentoPreparado> | null>(null);
   const gravacaoBlobsRef = useRef<Blob[]>([]);
 
@@ -257,6 +261,21 @@ export default function LivePage() {
       script.src = "https://www.youtube.com/iframe_api";
       document.body.appendChild(script);
     }
+  }, []);
+
+  // o "ao vivo" e' um loop client-side (setTimeout recursivo em gerarProximaFala) --
+  // sem processo no servidor sustentando ele. Aba em segundo plano ou minimizada leva
+  // o navegador a throttlar/pausar esse timer (principalmente mobile), e o locutor
+  // simplesmente para de falar sem erro nenhum pra investigar. Avisa na hora.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    function verificarVisibilidade() {
+      setAbaEmSegundoPlano(document.hidden && programaAtivoRef.current);
+    }
+
+    document.addEventListener("visibilitychange", verificarVisibilidade);
+    return () => document.removeEventListener("visibilitychange", verificarVisibilidade);
   }, []);
 
   async function carregarRadialistasEProgramas() {
@@ -371,12 +390,32 @@ export default function LivePage() {
         return;
       }
 
+      // Chrome as vezes engasga o speechSynthesis com a aba em segundo plano/minimizada:
+      // nem onend nem onerror disparam, e a promise fica pendurada pra sempre -- travando
+      // o loop inteiro do ao vivo (gerarProximaFala fica esperando ela). Timeout de seguranca
+      // resolve mesmo se o evento nunca vier, baseado no tamanho do texto (fala mais longa
+      // demora mais).
+      let resolvida = false;
+      const encerrar = () => {
+        if (resolvida) return;
+        resolvida = true;
+        resolve();
+      };
+      const timeoutMs = Math.max(8000, texto.length * 150);
+      const timeoutId = window.setTimeout(encerrar, timeoutMs);
+
       const fala = new SpeechSynthesisUtterance(texto);
       fala.lang = "pt-BR";
       fala.rate = 0.96;
       fala.pitch = 1;
-      fala.onend = () => resolve();
-      fala.onerror = () => resolve();
+      fala.onend = () => {
+        window.clearTimeout(timeoutId);
+        encerrar();
+      };
+      fala.onerror = () => {
+        window.clearTimeout(timeoutId);
+        encerrar();
+      };
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(fala);
     });
@@ -421,6 +460,10 @@ export default function LivePage() {
 
   function pararMusicaFundo() {
     bgProntoRef.current = false;
+    if (bgIntervaloFimRef.current) {
+      clearInterval(bgIntervaloFimRef.current);
+      bgIntervaloFimRef.current = null;
+    }
     if (bgPlayerRef.current) {
       try {
         bgPlayerRef.current.destroy();
@@ -436,12 +479,17 @@ export default function LivePage() {
 
     let videoId: string;
     let inicioSegundos = 0;
+    let fimSegundos: number | null = null;
     try {
-      const musica = await apiFetch<{ video_id: string; titulo: string; inicio_segundos?: number }>(
-        `/live/${radialistaIdRef.current}/programas/${programaIdRef.current}/musica-fundo`
-      );
+      const musica = await apiFetch<{
+        video_id: string;
+        titulo: string;
+        inicio_segundos?: number;
+        fim_segundos?: number | null;
+      }>(`/live/${radialistaIdRef.current}/programas/${programaIdRef.current}/musica-fundo`);
       videoId = musica.video_id;
       inicioSegundos = musica.inicio_segundos ?? 0;
+      fimSegundos = musica.fim_segundos ?? null;
     } catch {
       return; // sem musica de fundo disponivel (sem chave do YouTube, etc.) -- segue so com as falas
     }
@@ -464,6 +512,16 @@ export default function LivePage() {
           bgProntoRef.current = true;
           evento.target.setVolume(VOLUME_FUNDO_NORMAL);
           evento.target.playVideo();
+          // fundo toca em loop -- sem ENDED natural (playlist/loop), entao o corte antes
+          // de silencio/fala no final precisa voltar pro inicio na marca, nao esperar o fim.
+          if (fimSegundos != null) {
+            bgIntervaloFimRef.current = setInterval(() => {
+              const atual = bgPlayerRef.current?.getCurrentTime?.();
+              if (typeof atual === "number" && atual >= fimSegundos!) {
+                bgPlayerRef.current?.seekTo(inicioSegundos, true);
+              }
+            }, 500);
+          }
         },
         onStateChange: (evento: any) => {
           if (evento.data === window.YT.PlayerState.ENDED) evento.target.playVideo();
@@ -472,8 +530,14 @@ export default function LivePage() {
     });
   }
 
-  function tocarMusica(videoId: string, titulo: string, inicioSegundos = 0): Promise<void> {
+  function tocarMusica(
+    videoId: string,
+    titulo: string,
+    inicioSegundos = 0,
+    fimSegundos: number | null = null
+  ): Promise<void> {
     const TIMEOUT_SEGURANCA_MS = 6 * 60 * 1000;
+    const POLL_FIM_MS = 500;
 
     return new Promise((resolvePromise) => {
       async function iniciar() {
@@ -499,10 +563,12 @@ export default function LivePage() {
 
         let finalizado = false;
         let timeoutId: ReturnType<typeof setTimeout>;
+        let intervaloFimId: ReturnType<typeof setInterval> | undefined;
         const finalizar = () => {
           if (finalizado) return;
           finalizado = true;
           clearTimeout(timeoutId);
+          if (intervaloFimId) clearInterval(intervaloFimId);
           musicStopRef.current = null;
           try {
             musicPlayerRef.current?.stopVideo?.();
@@ -531,7 +597,18 @@ export default function LivePage() {
           videoId,
           playerVars: { autoplay: 1, controls: 0, start: inicioSegundos },
           events: {
-            onReady: (evento: any) => evento.target.playVideo(),
+            onReady: (evento: any) => {
+              evento.target.playVideo();
+              // corta antes de silencio longo/fala no final da faixa (analisado no
+              // backend, ver app/live/audio_analysis.py) -- sem isso tocaria ate o
+              // fim real do video, que pode ter trecho falado ou vazio.
+              if (fimSegundos != null) {
+                intervaloFimId = setInterval(() => {
+                  const atual = musicPlayerRef.current?.getCurrentTime?.();
+                  if (typeof atual === "number" && atual >= fimSegundos) finalizar();
+                }, POLL_FIM_MS);
+              }
+            },
             onStateChange: (evento: any) => {
               if (evento.data === window.YT.PlayerState.ENDED) finalizar();
             },
@@ -690,11 +767,12 @@ export default function LivePage() {
                   video_id: novaFala.video_id,
                   titulo: novaFala.titulo_musica ?? "",
                   inicio_segundos: novaFala.inicio_segundos ?? 0,
+                  fim_segundos: novaFala.fim_segundos ?? null,
                 },
               ];
         for (const musica of bloco) {
           if (!programaAtivoRef.current) break;
-          await tocarMusica(musica.video_id, musica.titulo, musica.inicio_segundos ?? 0);
+          await tocarMusica(musica.video_id, musica.titulo, musica.inicio_segundos ?? 0, musica.fim_segundos ?? null);
         }
       } catch {
         // segue o programa mesmo se a musica falhar ao tocar
@@ -765,6 +843,7 @@ export default function LivePage() {
     limparTimerPrograma();
     programaAtivoRef.current = false;
     setProgramaAtivo(false);
+    setAbaEmSegundoPlano(false);
     pararFala();
     musicStopRef.current?.();
     pararMusicaFundo();
@@ -835,6 +914,12 @@ export default function LivePage() {
       <div id="yt-bg-player" className="pointer-events-none fixed left-[-9999px] top-0 h-px w-px overflow-hidden" />
 
       {erro && <p className="text-sm text-rust mb-4">{erro}</p>}
+      {abaEmSegundoPlano && (
+        <p className="text-sm text-rust mb-4">
+          Aba em segundo plano -- o navegador pode pausar o ao vivo. Mantenha esta aba aberta e em foco pra
+          transmissao nao parar.
+        </p>
+      )}
       {avisoGravacao && <p className="text-sm text-teal mb-4">{avisoGravacao}</p>}
 
       <section className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6 mb-5">

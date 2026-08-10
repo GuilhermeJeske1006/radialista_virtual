@@ -20,6 +20,7 @@ export type RadioPerfil = {
   frequencia: string;
   telefone: string;
   endereco: string;
+  cidade: string;
 };
 
 export type RadioConta = RadioPerfil & {
@@ -32,6 +33,7 @@ export const RADIO_PERFIL_VAZIO: RadioPerfil = {
   frequencia: "",
   telefone: "",
   endereco: "",
+  cidade: "",
 };
 
 export type ConfiguracaoIA = {

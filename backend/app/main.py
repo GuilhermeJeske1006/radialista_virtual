@@ -1,4 +1,6 @@
 import logging
+import logging.handlers
+import pathlib
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,7 +29,18 @@ from app.patrocinadores.router import router as patrocinadores_router
 from app.tts.router import router as tts_router
 from app.whatsapp.webhook import router as whatsapp_router
 
-logging.basicConfig(level=logging.INFO)
+_LOG_DIR = pathlib.Path("logs")
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+# Sem isso, log so' vive no stdout do container -- some se ele reiniciar (restart:
+# unless-stopped, reload do uvicorn em dev) antes de alguem olhar. Arquivo rotativo
+# (10MB x 5) sobrevive o restart e da' pra investigar erro depois do fato.
+_arquivo_handler = logging.handlers.RotatingFileHandler(
+    _LOG_DIR / "app.log", maxBytes=10 * 1024 * 1024, backupCount=5
+)
+_arquivo_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+
+logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(), _arquivo_handler])
 
 app = FastAPI(title="Radialista Virtual")
 
@@ -118,6 +131,7 @@ def garantir_colunas_account():
         "wuzapi_user_id": "VARCHAR NULL",
         "wuzapi_hmac_key": "VARCHAR NULL",
         "agentes_extras": "INTEGER DEFAULT 0 NOT NULL",
+        "cidade": "VARCHAR DEFAULT '' NOT NULL",
     }
 
     with engine.begin() as conn:

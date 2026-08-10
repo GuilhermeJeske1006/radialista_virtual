@@ -51,6 +51,7 @@ export default function RegisterPage() {
   const [frequencia, setFrequencia] = useState("");
   const [telefoneRadio, setTelefoneRadio] = useState("");
   const [enderecoRadio, setEnderecoRadio] = useState("");
+  const [cidadeRadio, setCidadeRadio] = useState("");
   const [nomeLocutor, setNomeLocutor] = useState("");
   const [planoId, setPlanoId] = useState("growth");
   const [erro, setErro] = useState("");
@@ -144,6 +145,7 @@ export default function RegisterPage() {
           frequencia: frequencia.trim(),
           telefone: telefoneRadio.trim(),
           endereco: enderecoRadio.trim(),
+          cidade: cidadeRadio.trim(),
         }),
       });
 
@@ -371,6 +373,19 @@ export default function RegisterPage() {
                   onChange={(e) => setEnderecoRadio(e.target.value)}
                   className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-fg/80 mb-1.5">
+                  Cidade <span className="text-fg/40 font-normal">(opcional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex.: Porto Alegre"
+                  value={cidadeRadio}
+                  onChange={(e) => setCidadeRadio(e.target.value)}
+                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                />
+                <p className="text-xs text-fg/50 mt-1">Usada pro locutor comentar o clima real no ar.</p>
               </div>
             </div>
           </div>

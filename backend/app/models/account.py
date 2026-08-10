@@ -22,6 +22,10 @@ class Account(Base):
     telefone: Mapped[str] = mapped_column(String, default="")
     endereco: Mapped[str] = mapped_column(String, default="")
 
+    # Cidade usada pro locutor saber a previsao do tempo real (app/weather/client.py) --
+    # separada de endereco porque endereco e' texto livre, sem geocoding confiavel.
+    cidade: Mapped[str] = mapped_column(String, default="")
+
     # trial | ativo | inadimplente | cancelado
     plano_status: Mapped[str] = mapped_column(String, default="trial")
 

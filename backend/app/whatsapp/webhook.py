@@ -1,12 +1,14 @@
-import datetime
+import asyncio
 import hashlib
 import hmac
 import json
 import logging
+import uuid
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
+from app.config.redis_client import redis_client
 from app.db.database import get_db
 from app.guardrails.content_filter import contem_topico_proibido
 from app.guardrails.http_rate_limit import limitar_por_ip
@@ -23,6 +25,14 @@ from app.stt.client import stt_habilitado, transcrever_audio
 
 logger = logging.getLogger("radialista.webhook")
 router = APIRouter()
+
+# Ouvinte costuma mandar o pensamento completo em varias bolhas seguidas em vez de uma
+# so' -- agir na primeira bolha reage a um fragmento, nao ao pedido de verdade. Espera esse
+# intervalo de silencio antes de classificar/agir (ver _aguardar_contexto_completo).
+_DEBOUNCE_SEGUNDOS = 6.0
+# TTL do buffer/marcador no Redis -- rede de seguranca pra nao acumular lixo se o processo
+# cair no meio da espera; bem maior que o debounce, nunca deveria expirar em uso normal.
+_TTL_BUFFER_SEGUNDOS = 60
 
 
 def _verificar_assinatura(account: Account, raw_body: bytes, assinatura: str | None) -> bool:
@@ -129,7 +139,14 @@ def _extrair_mensagem(
     if mensagem.get("audioMessage") or mensagem.get("AudioMessage"):
         audio_base64 = payload.get("base64")
 
-    if not telefone or (not texto and not audio_base64):
+    # Status do WhatsApp (Stories) chega no webhook com Chat/Sender "status@broadcast" --
+    # nao e' uma conversa de ouvinte nenhum, e sem esse filtro entra no guardrails/fila/log
+    # como se fosse (telefone acaba virando literalmente a string "status" depois do split).
+    # Grupo tem Chat terminando em "@g.us" -- so' conversa privada (1:1) interessa aqui.
+    if not telefone or str(telefone).endswith("@broadcast") or str(telefone).endswith("@g.us"):
+        return None
+
+    if not texto and not audio_base64:
         return None
 
     telefone = str(telefone).split("@")[0]
@@ -143,6 +160,43 @@ def _extrair_mensagem(
         from_me,
         str(message_id) if message_id else None,
     )
+
+
+def _chave_buffer(config_id: int, telefone: str) -> str:
+    return f"whatsapp_buffer:msgs:{config_id}:{telefone}"
+
+
+def _chave_marcador(config_id: int, telefone: str) -> str:
+    return f"whatsapp_buffer:marcador:{config_id}:{telefone}"
+
+
+async def _aguardar_contexto_completo(config_id: int, telefone: str, texto: str) -> str | None:
+    """Empilha "texto" no buffer do ouvinte e espera um intervalo de silencio antes de
+    devolver o contexto completo pra classificar/agir.
+
+    Cada chamada marca a si mesma como "a mais recente" (token unico) antes de esperar. Se
+    chegar mensagem nova pro mesmo telefone durante a espera, o marcador muda e essa chamada
+    desiste (devolve None) -- e' a chamada mais nova, com seu proprio intervalo de espera, que
+    vai ver o buffer completo e processar. So' a ultima bolha de uma sequencia rapida chega a
+    agir; as anteriores so' empilham e saem.
+    """
+    chave_buf = _chave_buffer(config_id, telefone)
+    chave_marc = _chave_marcador(config_id, telefone)
+
+    redis_client.rpush(chave_buf, texto)
+    redis_client.expire(chave_buf, _TTL_BUFFER_SEGUNDOS)
+
+    token = str(uuid.uuid4())
+    redis_client.set(chave_marc, token, ex=_TTL_BUFFER_SEGUNDOS)
+
+    await asyncio.sleep(_DEBOUNCE_SEGUNDOS)
+
+    if redis_client.get(chave_marc) != token:
+        return None
+
+    mensagens = redis_client.lrange(chave_buf, 0, -1)
+    redis_client.delete(chave_buf, chave_marc)
+    return "\n".join(mensagens)
 
 
 @router.post(
@@ -237,6 +291,12 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
     if programa_atual is None:
         _registrar_log(db, config, telefone, nome, texto_usuario, "bloqueado_horario", wuzapi_message_id=wuzapi_message_id)
         return {"status": "bloqueado", "motivo": "horario"}
+
+    texto_usuario = await _aguardar_contexto_completo(config.id, telefone, texto_usuario)
+    if texto_usuario is None:
+        # chegou mensagem mais nova desse ouvinte enquanto esperava -- quem processa o
+        # contexto completo e' aquela chamada, essa aqui desiste sem registrar nada.
+        return {"status": "ok", "motivo": "aguardando_contexto"}
 
     if not dentro_do_limite(wuzapi_token, telefone, programa_atual.limite_mensagens_hora):
         _registrar_log(

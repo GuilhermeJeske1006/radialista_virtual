@@ -149,7 +149,13 @@ def redefinir_senha(dados: RedefinirSenhaRequest, db: Session = Depends(get_db))
     token_hash = hashlib.sha256(dados.token.encode()).hexdigest()
     reset_token = db.query(PasswordResetToken).filter_by(token_hash=token_hash).first()
     agora = datetime.datetime.now(datetime.timezone.utc)
-    if reset_token is None or reset_token.usado_em is not None or reset_token.expira_em < agora:
+    expira_em = reset_token.expira_em if reset_token is not None else None
+    # Alguns drivers/DBs (ex.: SQLite, usado nos testes) nao preservam tzinfo num
+    # DateTime(timezone=True) no round-trip -- sem isso a comparacao abaixo levanta
+    # TypeError (naive vs aware) em vez de simplesmente invalidar o token expirado.
+    if expira_em is not None and expira_em.tzinfo is None:
+        expira_em = expira_em.replace(tzinfo=datetime.timezone.utc)
+    if reset_token is None or reset_token.usado_em is not None or expira_em < agora:
         raise link_invalido
 
     account = db.query(Account).filter_by(id=reset_token.account_id).first()

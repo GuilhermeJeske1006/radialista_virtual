@@ -2,7 +2,7 @@ import datetime
 
 from fastapi import HTTPException, Request, status
 
-from app.guardrails.rate_limiter import _redis
+from app.config.redis_client import redis_client as _redis
 
 
 def limite_excedido(chave: str, limite: int, janela_segundos: int = 60) -> bool:

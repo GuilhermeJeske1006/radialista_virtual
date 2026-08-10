@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -22,9 +22,20 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "ONDA — Painel",
   description: "Painel de configuração do radialista virtual",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "ONDA",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#15130f",
 };
 
 const TEMA_INICIAL_SCRIPT = `(function(){try{var t=localStorage.getItem("onda-theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();`;
+
+const SW_REGISTER_SCRIPT = `if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -36,6 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="font-sans bg-bg text-fg antialiased">
         <script dangerouslySetInnerHTML={{ __html: TEMA_INICIAL_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: SW_REGISTER_SCRIPT }} />
         {children}
       </body>
     </html>

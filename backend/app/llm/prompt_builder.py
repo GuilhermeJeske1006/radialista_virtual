@@ -1,6 +1,20 @@
+import datetime
+from zoneinfo import ZoneInfo
+
 from app.models.account import Account
 from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
+from app.weather.client import obter_clima_atual
+
+_DIAS_SEMANA = [
+    "segunda-feira",
+    "terça-feira",
+    "quarta-feira",
+    "quinta-feira",
+    "sexta-feira",
+    "sábado",
+    "domingo",
+]
 
 
 class ParticipantePrograma:
@@ -11,6 +25,25 @@ class ParticipantePrograma:
         self.radialista = radialista
         self.papel = papel
         self.comportamento = comportamento
+
+
+def _contexto_atual(radialista: RadioConfig, account: Account) -> str:
+    """Data, hora e clima reais no fuso do radialista -- sem isso o modelo chuta
+    (ou herda a data de treino) e erra dia da semana, hora do dia e clima quando
+    o ouvinte pergunta ou quando o locutor comenta o tempo espontaneamente."""
+    agora = datetime.datetime.now(ZoneInfo(radialista.timezone))
+    dia_semana = _DIAS_SEMANA[agora.weekday()]
+    texto = (
+        f"Contexto atual (use pra se situar no tempo, nunca invente outra data/hora): "
+        f"agora é {dia_semana}, {agora.strftime('%d/%m/%Y')}, {agora.strftime('%H:%M')} "
+        f"(horário de {radialista.timezone})."
+    )
+
+    clima = obter_clima_atual(account.cidade)
+    if clima:
+        texto += f" Clima atual em {account.cidade}: {clima}."
+
+    return texto
 
 
 def montar_system_prompt(
@@ -30,6 +63,13 @@ def montar_system_prompt(
     identificacao_radio = account.nome_radio or "a rádio"
     if account.frequencia:
         identificacao_radio += f" ({account.frequencia})"
+
+    separador_frequencia = None
+    if account.frequencia:
+        if "," in account.frequencia:
+            separador_frequencia = "vírgula"
+        elif "." in account.frequencia:
+            separador_frequencia = "ponto"
 
     multi_voz = bool(roster) and len(roster) > 1
 
@@ -62,6 +102,7 @@ def montar_system_prompt(
     partes += [
         f"Agora {'vocês apresentam' if multi_voz else 'você apresenta'} o programa '{programa.nome}'.",
     ]
+    partes.append(_contexto_atual(radialista, account))
     if programa.descricao:
         partes.append(f"Sobre o que é esse programa: {programa.descricao}")
     partes += [
@@ -73,6 +114,14 @@ def montar_system_prompt(
         f"Regras para buscar ou sugerir músicas: {programa.criterios_busca_musicas}.",
         f"Notícias permitidas: {noticias}. Fontes preferenciais de notícias: {fontes_noticias}.",
     ]
+
+    if separador_frequencia:
+        partes.append(
+            f"A frequência da rádio é {account.frequencia}. Ao falar a frequência (por escrito, já que "
+            f"vira áudio depois), escreva o separador decimal por extenso -- diga '{separador_frequencia}' -- "
+            f"nunca pule ele. Ex.: escreva 'noventa e oito {separador_frequencia} cinco FM', não '98.5 FM' "
+            "nem 'noventa e oito cinco FM'."
+        )
 
     dados_radio = []
     if account.slogan:

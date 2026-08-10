@@ -50,6 +50,38 @@ start-dev.sh         Sobe tudo em modo dev (hot reload)
 
 Pareamento do WhatsApp via QR Code — ver `wuzapi/gerar_qr.sh`.
 
+## Testes
+
+```
+# backend (pytest + coverage)
+cd backend
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt
+pytest                              # roda a suite
+ruff check app tests                # lint
+pytest --cov=app --cov-report=term-missing   # com cobertura
+
+# frontend (vitest + testing-library)
+cd frontend-painel
+npm install
+npm test                # roda a suite
+npm run test:coverage   # com cobertura
+npx tsc --noEmit        # typecheck
+```
+
+Banco e Redis dos testes de backend são simulados (SQLite em memória via fixture `db_session`
+em `backend/tests/conftest.py`, e `fakeredis` no lugar do Redis real) — não precisa subir
+Postgres/Redis pra rodar a suite local.
+
+## CI/CD
+
+GitHub Actions roda lint + testes automaticamente em push/PR pra `master`:
+
+- `.github/workflows/backend-ci.yml` — ruff + pytest (dispara em mudanças em `backend/`)
+- `.github/workflows/frontend-ci.yml` — tsc + vitest + `next build` (dispara em mudanças em `frontend-painel/`)
+
+Só CI por enquanto (sem deploy automático) — deploy continua manual via `start.sh`.
+
 ## Docs
 
 Plano técnico completo em [docs/plano-radialista-ia-whatsapp.md](docs/plano-radialista-ia-whatsapp.md).

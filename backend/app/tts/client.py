@@ -1,8 +1,15 @@
+import time
 import unicodedata
 
 import httpx
 
 from app.config.settings import settings
+
+# ElevenLabs 429 (rate limit de conta, comum com varios blocos gerando TTS em
+# sequencia rapida no ao vivo) e' quase sempre transitorio -- vale tentar de novo
+# antes de desistir e o front cair pra voz generica do navegador.
+_TTS_MAX_TENTATIVAS = 3
+_TTS_BACKOFF_BASE_SEGUNDOS = 1.5
 
 _ELEVENLABS_URL = "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
 _ELEVENLABS_VOICES_URL = "https://api.elevenlabs.io/v1/voices/add"
@@ -115,9 +122,14 @@ def sintetizar_audio(
     }
 
     with httpx.Client(timeout=30.0) as client:
-        response = client.post(url, headers=headers, json=payload)
-        response.raise_for_status()
-        return response.content
+        for tentativa in range(1, _TTS_MAX_TENTATIVAS + 1):
+            response = client.post(url, headers=headers, json=payload)
+            if response.status_code != 429 or tentativa == _TTS_MAX_TENTATIVAS:
+                response.raise_for_status()
+                return response.content
+
+            espera = float(response.headers.get("retry-after", 0)) or _TTS_BACKOFF_BASE_SEGUNDOS * tentativa
+            time.sleep(espera)
 
 
 def clonar_voz(nome: str, audio_bytes: bytes, content_type: str, nome_arquivo: str) -> str:
