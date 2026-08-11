@@ -1,5 +1,6 @@
 import datetime
 import hashlib
+import logging
 import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -15,6 +16,8 @@ from app.models.account import Account
 from app.models.password_reset_token import PasswordResetToken
 from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
+
+logger = logging.getLogger("radialista.auth")
 
 TOKEN_RESET_VALIDADE_MINUTOS = 30
 
@@ -72,6 +75,7 @@ class RedefinirSenhaRequest(BaseModel):
 )
 def registrar(dados: RegistroRequest, db: Session = Depends(get_db)):
     if db.query(Account).filter_by(email=dados.email).first() is not None:
+        logger.warning("Tentativa de registro com e-mail ja cadastrado: %s", dados.email)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="E-mail ja cadastrado")
 
     account = Account(nome=dados.nome, email=dados.email, senha_hash=hash_senha(dados.senha))
@@ -92,6 +96,7 @@ def registrar(dados: RegistroRequest, db: Session = Depends(get_db)):
     db.add(programa)
     db.commit()
 
+    logger.info("Conta registrada: account_id=%s email=%s", account.id, account.email)
     return TokenResponse(access_token=criar_token(account.id))
 
 
@@ -107,6 +112,7 @@ def login(dados: LoginRequest, db: Session = Depends(get_db)):
 
     account = db.query(Account).filter_by(email=dados.email).first()
     if account is None or not verificar_senha(dados.senha, account.senha_hash):
+        logger.warning("Login falhou para e-mail: %s", dados.email)
         raise credenciais_invalidas
 
     return TokenResponse(access_token=criar_token(account.id))
@@ -128,6 +134,7 @@ def esqueci_senha(dados: EsqueciSenhaRequest, db: Session = Depends(get_db)):
         db.add(PasswordResetToken(account_id=account.id, token_hash=token_hash, expira_em=expira_em))
         db.commit()
         enviar_email_redefinicao_senha(account.email, token)
+        logger.info("Solicitacao de redefinicao de senha enviada: account_id=%s", account.id)
 
     # Sempre 204, exista ou nao a conta -- evita expor quais e-mails estao cadastrados.
 
@@ -156,6 +163,7 @@ def redefinir_senha(dados: RedefinirSenhaRequest, db: Session = Depends(get_db))
     if expira_em is not None and expira_em.tzinfo is None:
         expira_em = expira_em.replace(tzinfo=datetime.timezone.utc)
     if reset_token is None or reset_token.usado_em is not None or expira_em < agora:
+        logger.warning("Tentativa de redefinicao de senha com token invalido ou expirado")
         raise link_invalido
 
     account = db.query(Account).filter_by(id=reset_token.account_id).first()
@@ -165,6 +173,7 @@ def redefinir_senha(dados: RedefinirSenhaRequest, db: Session = Depends(get_db))
     account.senha_hash = hash_senha(dados.senha_nova)
     reset_token.usado_em = agora
     db.commit()
+    logger.info("Senha redefinida via token: account_id=%s", account.id)
 
 
 @router.get("/me", response_model=ContaResponse)
@@ -214,6 +223,7 @@ def alterar_senha(
     db: Session = Depends(get_db),
 ):
     if not verificar_senha(dados.senha_atual, account.senha_hash):
+        logger.warning("Tentativa de troca de senha com senha atual incorreta: account_id=%s", account.id)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Senha atual incorreta")
     if len(dados.senha_nova) < 8:
         raise HTTPException(
@@ -222,3 +232,4 @@ def alterar_senha(
 
     account.senha_hash = hash_senha(dados.senha_nova)
     db.commit()
+    logger.info("Senha alterada: account_id=%s", account.id)

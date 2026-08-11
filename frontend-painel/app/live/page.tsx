@@ -899,6 +899,28 @@ export default function LivePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [carregandoProgramas, programasTodos, radialistas]);
 
+  // corte pontual no horario_fim: a fala de "encerramento" (ver gerarProximaFala) e' so'
+  // um aviso gerado perto do fim, mas espera a musica/fala atual acabar de tocar antes de
+  // ir ao ar -- sem isso o programa podia passar do horario com uma musica ainda rolando.
+  // Esse watchdog roda em paralelo e corta na hora (pausarPrograma para musica e fala em
+  // andamento), independente do que estiver no ar.
+  useEffect(() => {
+    if (!programaAtivo) return;
+
+    function verificarFimPontual() {
+      const selecionado = programasTodos.find((p) => p.id === programaIdRef.current);
+      const radialistaDoSelecionado = radialistas.find((r) => r.id === selecionado?.radialistaId);
+      if (!selecionado || !radialistaDoSelecionado) return;
+      if (!programaNoAr(selecionado, radialistaDoSelecionado.timezone)) {
+        pausarPrograma();
+      }
+    }
+
+    const intervalo = setInterval(verificarFimPontual, 1000);
+    return () => clearInterval(intervalo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [programaAtivo, programasTodos, radialistas]);
+
   const programaSelecionado = programasTodos.find((p) => p.id === programaId) ?? null;
   const radialistaSelecionado = programaSelecionado
     ? radialistas.find((r) => r.id === programaSelecionado.radialistaId) ?? null

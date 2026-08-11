@@ -2,6 +2,7 @@ import json
 import logging
 
 from app.llm.client import gerar_classificacao
+from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
 
 logger = logging.getLogger("radialista.intent")
@@ -9,34 +10,57 @@ logger = logging.getLogger("radialista.intent")
 ACOES_VALIDAS = {"abraco", "musica", "guardar"}
 
 
-def classificar_intencao(config: RadioConfig, texto_usuario: str) -> tuple[str, str | None]:
+def classificar_intencao(config: RadioConfig, programa: Programa, texto_usuario: str) -> tuple[str, str | None]:
     """Classifica a mensagem do ouvinte pra uma acao de bastidor -- o bot nunca responde no WhatsApp.
 
     Retorna (acao, musica_query):
     - "musica": ouvinte PEDIU explicitamente uma musica/artista/dedicatoria -> entra na fila pra tocar ao vivo.
     - "abraco": ouvinte PEDIU explicitamente pra ser mencionado/saudado no ar -> entra na fila pro "alo".
-    - "guardar": qualquer outra coisa (recado sem pedido, elogio, desabafo, spam, fora de escopo)
-      -- nunca vai ao ar so' por "merecer"; sem pedido explicito, so' fica registrado no log.
+    - "guardar": qualquer outra coisa (recado sem pedido, elogio, desabafo, spam, fora de escopo,
+      ou pedido de musica fora do estilo permitido pelo programa) -- nunca vai ao ar so' por
+      "merecer"; sem pedido explicito (ou fora do estilo aceito), so' fica registrado no log.
     """
-    system_prompt = "\n".join(
-        [
-            f"Voce e o assistente de bastidores de {config.nome_locutor}, uma radio.",
-            "Um ouvinte mandou mensagem no WhatsApp da radio. O bot NUNCA responde direto no WhatsApp.",
-            "Sua unica tarefa: classificar a mensagem numa acao de bastidor pro locutor usar ao vivo.",
-            "Regra geral: SO' vai ao ar (musica ou abraco) se o ouvinte PEDIU EXPLICITAMENTE isso. "
-            "Elogio, recado, desabafo ou saudacao SEM pedido claro de tocar musica ou de ser "
-            "mencionado no ar NAO conta como pedido -- classifique como guardar, mesmo que pareca "
-            "algo bonito de ler ao vivo. Na duvida entre um pedido implicito e nenhum pedido, "
-            "escolha guardar.",
-            '- "musica": pede explicitamente uma musica, artista ou dedicatoria musical especifica.',
-            '- "abraco": pede explicitamente pra ser mencionado, saudado ou mandar um "alo" ao vivo '
-            "(locutor vai falar o nome dele e comentar o que ele mandou).",
-            '- "guardar": qualquer coisa sem pedido explicito de musica ou de aparecer no ar -- '
-            "inclui elogio, desabafo, saudacao simples, spam ou fora do escopo da radio.",
-            "Responda APENAS com um JSON compacto, sem markdown e sem explicacao:",
-            '{"acao": "musica|abraco|guardar", "musica_query": "artista/musica pedida ou null"}',
-        ]
+    estilos_permitidos = list(
+        dict.fromkeys([*(programa.generos_musicais or []), *(programa.musicas_permitidas or [])])
     )
+
+    system_prompt_linhas = [
+        f"Voce e o assistente de bastidores de {config.nome_locutor}, uma radio.",
+        "Um ouvinte mandou mensagem no WhatsApp da radio. O bot NUNCA responde direto no WhatsApp.",
+        "Sua unica tarefa: classificar a mensagem numa acao de bastidor pro locutor usar ao vivo.",
+        "Regra geral: SO' vai ao ar (musica ou abraco) se o ouvinte PEDIU EXPLICITAMENTE isso. "
+        "Elogio, recado, desabafo ou saudacao SEM pedido claro de tocar musica ou de ser "
+        "mencionado no ar NAO conta como pedido -- classifique como guardar, mesmo que pareca "
+        "algo bonito de ler ao vivo. Na duvida entre um pedido implicito e nenhum pedido, "
+        "escolha guardar.",
+        '- "musica": pede explicitamente uma musica, artista ou dedicatoria musical especifica.',
+        '- "abraco": pede explicitamente pra ser mencionado, saudado ou mandar um "alo" ao vivo '
+        "(locutor vai falar o nome dele e comentar o que ele mandou).",
+        '- "guardar": qualquer coisa sem pedido explicito de musica ou de aparecer no ar -- '
+        "inclui elogio, desabafo, saudacao simples, spam ou fora do escopo da radio.",
+        "Leve em conta o CONTEXTO completo da mensagem antes de decidir, nao so' uma palavra "
+        "isolada. Mensagem confusa, incompleta, cortada no meio, cheia de erro de "
+        "autocorretor/digitacao, so' com simbolos/letras soltas, ou que parece ter sido "
+        "enviada sem querer (toque acidental, mensagem de teste, texto sem sentido) NAO deve "
+        "ir ao ar mesmo se contiver uma palavra-chave como \"musica\" ou \"alo\" -- so' "
+        "classifique como musica/abraco se o pedido for claro e coerente; na duvida sobre se "
+        "a mensagem faz sentido, escolha guardar.",
+    ]
+
+    if estilos_permitidos:
+        system_prompt_linhas.append(
+            "Este programa SO' toca musica dentro destes estilos/musicas permitidas: "
+            + ", ".join(estilos_permitidos)
+            + ". Se o pedido for de uma musica, artista ou estilo que NAO se encaixa em nenhum "
+            "desses permitidos, classifique como \"guardar\" em vez de \"musica\", mesmo sendo "
+            "um pedido explicito."
+        )
+
+    system_prompt_linhas.append("Responda APENAS com um JSON compacto, sem markdown e sem explicacao:")
+    system_prompt_linhas.append(
+        '{"acao": "musica|abraco|guardar", "musica_query": "artista/musica pedida ou null"}'
+    )
+    system_prompt = "\n".join(system_prompt_linhas)
 
     try:
         texto_resposta = gerar_classificacao(system_prompt, texto_usuario)

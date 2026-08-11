@@ -310,7 +310,8 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
         )
         return {"status": "bloqueado", "motivo": "conteudo"}
 
-    acao, musica_query = classificar_intencao(config, texto_usuario)
+    acao, musica_query = classificar_intencao(config, programa_atual, texto_usuario)
+    logger.info("Mensagem classificada: acao=%s config_id=%s telefone=%s", acao, config.id, telefone)
 
     if acao in ("abraco", "musica"):
         db.add(

@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 import random
 import re
 import unicodedata
@@ -25,6 +26,8 @@ from app.models.programa_radialista import ProgramaRadialista
 from app.models.radio_config import RadioConfig
 from app.tts.client import sintetizar_audio, tts_habilitado
 from app.tts.voices import voz_valida_para_conta
+
+logger = logging.getLogger("radialista.live")
 
 router = APIRouter(prefix="/live", tags=["live"])
 
@@ -298,6 +301,7 @@ def _classificar_bloco_customizado(tipo_original: str, normalizado: str) -> str:
         try:
             categoria = classificar_categoria_bloco(tipo_original)
         except Exception:
+            logger.warning("Falha ao classificar categoria de bloco customizado: %r", tipo_original, exc_info=True)
             categoria = "outro"
         categoria = categoria if categoria in _TIPOS_COM_COMPORTAMENTO else ""
         redis_client.hset(_CACHE_CATEGORIA_CUSTOMIZADA, normalizado, categoria)
@@ -630,6 +634,7 @@ def gerar_proxima_fala(
         try:
             linhas_dialogo = list((extrair_json(resposta_llm) if resposta_llm else {}).get("linhas") or [])
         except (json.JSONDecodeError, TypeError, AttributeError, ValueError):
+            logger.warning("Resposta de dialogo multi-voz invalida: programa_id=%s", programa.id)
             linhas_dialogo = []
 
         roster_por_nome = {_sem_acento(p.radialista.nome_locutor.lower()): p for p in roster}
@@ -693,6 +698,7 @@ def buscar_musica_de_fundo(
 
     musica = buscar_musica_fundo(programa.generos_musicais, bloqueados=programa.musicas_bloqueadas)
     if musica is None:
+        logger.warning("Nenhuma musica de fundo encontrada: programa_id=%s", programa.id)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nenhuma musica de fundo encontrada")
 
     return MusicaFundoResponse(

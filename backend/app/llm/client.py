@@ -1,6 +1,10 @@
+import logging
+
 from anthropic import Anthropic
 
 from app.config.settings import settings
+
+logger = logging.getLogger("radialista.llm")
 
 _client = Anthropic(api_key=settings.anthropic_api_key)
 
@@ -19,6 +23,7 @@ def gerar_resposta(system_prompt: str, mensagem_usuario: str) -> str:
     )
 
     if response.stop_reason == "refusal":
+        logger.warning("LLM recusou gerar resposta")
         return "Desculpa, nao posso responder isso por aqui. Bora falar de outro assunto?"
 
     for block in response.content:
@@ -59,6 +64,7 @@ def gerar_configuracao(system_prompt: str, mensagem_usuario: str) -> str:
     )
 
     if response.stop_reason == "refusal":
+        logger.warning("LLM recusou gerar configuracao")
         return ""
 
     for block in response.content:
@@ -106,6 +112,7 @@ def classificar_categoria_bloco(nome_bloco: str) -> str:
     try:
         resposta = gerar_classificacao(_CATEGORIA_BLOCO_SYSTEM_PROMPT, nome_bloco)
     except Exception:
+        logger.warning("Falha ao classificar categoria de bloco: %r", nome_bloco, exc_info=True)
         return "outro"
 
     resposta = resposta.strip().lower()
@@ -124,6 +131,7 @@ def classificar_tom_fala(texto: str, tipo_bloco: str | None) -> str:
     try:
         resposta = gerar_classificacao(_TOM_SYSTEM_PROMPT, mensagem)
     except Exception:
+        logger.warning("Falha ao classificar tom da fala", exc_info=True)
         return "neutro"
 
     resposta = resposta.strip().lower()

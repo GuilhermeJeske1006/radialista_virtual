@@ -1,9 +1,12 @@
+import logging
 import re
 import subprocess
 
 import yt_dlp
 
 from app.config.redis_client import redis_client
+
+logger = logging.getLogger("radialista.audio_analysis")
 
 # Cache por video_id -- o corte seguro de uma musica nao muda, mesmo cache
 # longo do que a duracao (app/live/music.py::_CACHE_TTL_DURACAO_SEGUNDOS).
@@ -54,6 +57,7 @@ def _url_audio_direta(video_id: str) -> str | None:
             info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
         return info.get("url")
     except Exception:
+        logger.warning("Falha ao extrair URL de audio direta: video_id=%s", video_id, exc_info=True)
         return None
 
 
@@ -72,6 +76,7 @@ def _pontos_de_silencio(url_audio: str, offset_segundos: float) -> list[float]:
             timeout=_TIMEOUT_FFMPEG_SEGUNDOS,
         )
     except (subprocess.TimeoutExpired, OSError):
+        logger.warning("Falha ao rodar ffmpeg pra deteccao de silencio")
         return []
 
     return [offset_segundos + float(m.group(1)) for m in _SILENCE_START_RE.finditer(resultado.stderr)]

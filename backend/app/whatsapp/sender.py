@@ -1,8 +1,11 @@
 import base64
+import logging
 
 import httpx
 
 from app.config.settings import settings
+
+logger = logging.getLogger("radialista.whatsapp_sender")
 
 
 def enviar_mensagem(telefone: str, texto: str, wuzapi_token: str) -> None:
@@ -39,4 +42,5 @@ def buscar_avatar(telefone: str, wuzapi_token: str) -> str | None:
             response.raise_for_status()
             return response.json().get("URL") or None
     except httpx.HTTPError:
+        logger.warning("Falha ao buscar avatar no WuzAPI: telefone=%s", telefone, exc_info=True)
         return None

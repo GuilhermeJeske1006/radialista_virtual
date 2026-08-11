@@ -1,6 +1,9 @@
 import datetime
+import logging
 
 from app.config.redis_client import redis_client as _redis
+
+logger = logging.getLogger("radialista.rate_limit")
 
 
 def dentro_do_limite(wuzapi_token: str, telefone: str, limite_por_hora: int) -> bool:
@@ -11,4 +14,7 @@ def dentro_do_limite(wuzapi_token: str, telefone: str, limite_por_hora: int) -> 
     if contagem == 1:
         _redis.expire(chave, 3600)
 
-    return contagem <= limite_por_hora
+    dentro = contagem <= limite_por_hora
+    if not dentro:
+        logger.warning("Rate limit de mensagens excedido: telefone=%s limite=%s", telefone, limite_por_hora)
+    return dentro

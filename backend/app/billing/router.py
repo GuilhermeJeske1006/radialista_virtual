@@ -90,11 +90,13 @@ async def webhook_stripe(request: Request, db: Session = Depends(get_db)):
 
     try:
         evento = stripe.Webhook.construct_event(payload, assinatura, settings.stripe_webhook_secret)
-    except (ValueError, stripe.error.SignatureVerificationError) as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Payload invalido") from exc
+    except (ValueError, stripe.error.SignatureVerificationError):
+        logger.warning("Webhook Stripe com payload/assinatura invalidos")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Payload invalido")
 
     tipo = evento["type"]
     dados = evento["data"]["object"]
+    logger.info("Webhook Stripe recebido: tipo=%s", tipo)
 
     if tipo == "checkout.session.completed":
         account = db.get(Account, int(dados["client_reference_id"]))
@@ -121,6 +123,9 @@ async def webhook_stripe(request: Request, db: Session = Depends(get_db)):
                 account.stripe_customer_id = dados.get("customer") or account.stripe_customer_id
 
             db.commit()
+            logger.info("Checkout concluido: account_id=%s tipo_compra=%s", account.id, tipo_compra)
+        else:
+            logger.warning("Checkout concluido pra account_id inexistente: %s", dados.get("client_reference_id"))
 
     elif tipo in ("customer.subscription.deleted", "customer.subscription.updated"):
         if tipo == "customer.subscription.updated" and dados.get("status") not in ("canceled", "unpaid"):
@@ -131,6 +136,7 @@ async def webhook_stripe(request: Request, db: Session = Depends(get_db)):
             account.plano_status = "cancelado"
             _definir_ativo(db, account, False)
             db.commit()
+            logger.info("Plano cancelado: account_id=%s", account.id)
 
     return {"status": "ok"}
 

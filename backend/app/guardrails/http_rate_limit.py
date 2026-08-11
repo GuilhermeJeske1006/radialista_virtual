@@ -1,8 +1,11 @@
 import datetime
+import logging
 
 from fastapi import HTTPException, Request, status
 
 from app.config.redis_client import redis_client as _redis
+
+logger = logging.getLogger("radialista.rate_limit")
 
 
 def limite_excedido(chave: str, limite: int, janela_segundos: int = 60) -> bool:
@@ -25,6 +28,7 @@ def limitar_por_ip(chave: str, limite: int, janela_segundos: int = 60):
     def dependencia(request: Request) -> None:
         ip = request.client.host if request.client else "desconhecido"
         if limite_excedido(f"{chave}:{ip}", limite, janela_segundos):
+            logger.warning("Rate limit HTTP excedido: chave=%s ip=%s", chave, ip)
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail="Muitas requisicoes. Tente novamente em instantes.",

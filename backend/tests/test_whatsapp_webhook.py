@@ -121,7 +121,7 @@ def test_audio_transcrito_segue_fluxo_normal(client, conta_no_ar, monkeypatch):
     monkeypatch.setattr("app.whatsapp.webhook.stt_habilitado", lambda: True)
     monkeypatch.setattr("app.whatsapp.webhook.transcrever_audio", lambda audio_b64: "toca uma musica")
     monkeypatch.setattr(
-        "app.whatsapp.webhook.classificar_intencao", lambda config, texto: ("musica", "Legiao Urbana")
+        "app.whatsapp.webhook.classificar_intencao", lambda config, programa, texto: ("musica", "Legiao Urbana")
     )
     resposta = _post_webhook(client, _payload(audio=True, message_id="msg-audio-2"))
     assert resposta.json() == {"status": "ok", "acao": "musica"}
@@ -181,7 +181,7 @@ def test_conteudo_proibido_bloqueia(client, conta_no_ar, db_session):
 def test_pedido_de_musica_entra_na_fila(client, conta_no_ar, monkeypatch, db_session):
     monkeypatch.setattr(
         "app.whatsapp.webhook.classificar_intencao",
-        lambda config, texto: ("musica", "Legiao Urbana"),
+        lambda config, programa, texto: ("musica", "Legiao Urbana"),
     )
     resposta = _post_webhook(client, _payload(texto="toca legiao urbana", message_id="msg-mus-1"))
     assert resposta.json() == {"status": "ok", "acao": "musica"}
@@ -193,7 +193,7 @@ def test_pedido_de_musica_entra_na_fila(client, conta_no_ar, monkeypatch, db_ses
 
 @freeze_time(AGORA_UTC)
 def test_pedido_de_abraco_entra_na_fila(client, conta_no_ar, monkeypatch, db_session):
-    monkeypatch.setattr("app.whatsapp.webhook.classificar_intencao", lambda config, texto: ("abraco", None))
+    monkeypatch.setattr("app.whatsapp.webhook.classificar_intencao", lambda config, programa, texto: ("abraco", None))
     resposta = _post_webhook(client, _payload(texto="manda um alo pra mim", message_id="msg-ab-1"))
     assert resposta.json() == {"status": "ok", "acao": "abraco"}
 
@@ -203,7 +203,7 @@ def test_pedido_de_abraco_entra_na_fila(client, conta_no_ar, monkeypatch, db_ses
 
 @freeze_time(AGORA_UTC)
 def test_mensagem_sem_pedido_so_fica_registrada(client, conta_no_ar, monkeypatch, db_session):
-    monkeypatch.setattr("app.whatsapp.webhook.classificar_intencao", lambda config, texto: ("guardar", None))
+    monkeypatch.setattr("app.whatsapp.webhook.classificar_intencao", lambda config, programa, texto: ("guardar", None))
     resposta = _post_webhook(client, _payload(texto="voces sao otimos", message_id="msg-gd-1"))
     assert resposta.json() == {"status": "ok", "acao": "guardar"}
 
@@ -217,7 +217,7 @@ def test_assinatura_hmac_valida_processa_normalmente(client, conta_no_ar, db_ses
     account, _, _ = conta_no_ar
     account.wuzapi_hmac_key = "chave-secreta"
     db_session.commit()
-    monkeypatch.setattr("app.whatsapp.webhook.classificar_intencao", lambda config, texto: ("guardar", None))
+    monkeypatch.setattr("app.whatsapp.webhook.classificar_intencao", lambda config, programa, texto: ("guardar", None))
 
     corpo = json.dumps(_payload(texto="oi", message_id="msg-hmac-ok")).encode()
     assinatura = hmac.new(b"chave-secreta", corpo, hashlib.sha256).hexdigest()

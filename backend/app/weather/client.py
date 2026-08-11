@@ -1,8 +1,11 @@
 import json
+import logging
 
 import httpx
 
 from app.config.redis_client import redis_client
+
+logger = logging.getLogger("radialista.weather")
 
 GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
@@ -60,6 +63,7 @@ def _geocodificar(cidade: str) -> tuple[float, float] | None:
         )
         resposta.raise_for_status()
     except httpx.HTTPError:
+        logger.warning("Falha ao geocodificar cidade: %r", cidade, exc_info=True)
         return None
 
     resultados = resposta.json().get("results") or []
@@ -107,6 +111,7 @@ def obter_clima_atual(cidade: str) -> str | None:
         )
         resposta.raise_for_status()
     except httpx.HTTPError:
+        logger.warning("Falha ao consultar previsao do tempo: %r", cidade, exc_info=True)
         return None
 
     atual = resposta.json().get("current") or {}

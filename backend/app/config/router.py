@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, ValidationError
@@ -16,6 +17,8 @@ from app.models.programa_radialista import ProgramaRadialista
 from app.models.radio_config import RadioConfig
 from app.billing.limites import limite_agentes_efetivo, limite_radialistas_por_programa
 from app.tts.voices import voz_valida_para_conta
+
+logger = logging.getLogger("radialista.config")
 
 router = APIRouter(prefix="/config", tags=["config"])
 
@@ -278,6 +281,7 @@ def criar_radialista(
     db.add(radialista)
     db.commit()
     db.refresh(radialista)
+    logger.info("Radialista criado: id=%s account_id=%s", radialista.id, account.id)
     return radialista
 
 
@@ -300,6 +304,7 @@ def gerar_radialista_ia(
         radialista_dados = RadialistaRequest(**dados_radialista)
         programa_dados = ProgramaRequest(**dados_programa)
     except (ValueError, ValidationError):
+        logger.exception("Falha ao gerar radialista+programa via IA: account_id=%s", account.id)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Nao foi possivel gerar a configuracao agora. Tenta de novo em instantes.",
@@ -318,6 +323,12 @@ def gerar_radialista_ia(
     db.refresh(radialista)
     db.refresh(programa)
 
+    logger.info(
+        "Radialista+programa gerados via IA: radialista_id=%s programa_id=%s account_id=%s",
+        radialista.id,
+        programa.id,
+        account.id,
+    )
     return ConfiguracaoIAResponse(radialista=radialista, programa=programa)
 
 
@@ -366,6 +377,7 @@ def excluir_radialista(
     db.query(Programa).filter_by(radio_config_id=radialista.id).delete()
     db.delete(radialista)
     db.commit()
+    logger.info("Radialista excluido: id=%s account_id=%s", radialista_id, account.id)
 
 
 @router.get("/radialistas/{radialista_id}/programas", response_model=list[ProgramaResponse])
@@ -400,6 +412,7 @@ def criar_programa(
     db.add(programa)
     db.commit()
     db.refresh(programa)
+    logger.info("Programa criado: id=%s radialista_id=%s", programa.id, radialista.id)
     return programa
 
 
@@ -422,6 +435,7 @@ def gerar_programa_ia_endpoint(
         dados_programa = gerar_programa_ia(dados.descricao, radialista.nome_locutor, radialista.personalidade)
         programa_dados = ProgramaRequest(**dados_programa)
     except (ValueError, ValidationError):
+        logger.exception("Falha ao gerar programa via IA: radialista_id=%s", radialista_id)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Nao foi possivel gerar a configuracao agora. Tenta de novo em instantes.",
@@ -432,6 +446,7 @@ def gerar_programa_ia_endpoint(
     db.add(programa)
     db.commit()
     db.refresh(programa)
+    logger.info("Programa gerado via IA: id=%s radialista_id=%s", programa.id, radialista.id)
     return programa
 
 
@@ -470,6 +485,7 @@ def excluir_programa(
     db.query(ProgramaRadialista).filter_by(programa_id=programa.id).delete()
     db.delete(programa)
     db.commit()
+    logger.info("Programa excluido: id=%s account_id=%s", programa_id, account.id)
 
 
 @router.get("/programas/{programa_id}/radialistas", response_model=list[RadialistaProgramaResponse])

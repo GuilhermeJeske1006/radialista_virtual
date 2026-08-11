@@ -1,13 +1,18 @@
+import logging
+
 import stripe
 
 from app.config.settings import settings
 from app.models.account import Account
 from app.planos import PRECO_AGENTE_ADICIONAL, PRECO_EXCEDENTE_1000_MSG
 
+logger = logging.getLogger("radialista.stripe")
+
 stripe.api_key = settings.stripe_secret_key
 
 
 def criar_sessao_checkout(account: Account) -> "stripe.checkout.Session":
+    logger.info("Criando sessao de checkout (assinatura): account_id=%s", account.id)
     return stripe.checkout.Session.create(
         mode="subscription",
         line_items=[{"price": settings.stripe_price_id, "quantity": 1}],
@@ -21,6 +26,7 @@ def criar_sessao_checkout(account: Account) -> "stripe.checkout.Session":
 
 
 def criar_sessao_checkout_agente_extra(account: Account) -> "stripe.checkout.Session":
+    logger.info("Criando sessao de checkout (agente extra): account_id=%s", account.id)
     return stripe.checkout.Session.create(
         mode="subscription",
         line_items=[
@@ -44,6 +50,7 @@ def criar_sessao_checkout_agente_extra(account: Account) -> "stripe.checkout.Ses
 
 
 def criar_sessao_checkout_excedente_mensagens(account: Account, blocos: int) -> "stripe.checkout.Session":
+    logger.info("Criando sessao de checkout (excedente): account_id=%s blocos=%s", account.id, blocos)
     return stripe.checkout.Session.create(
         mode="payment",
         line_items=[
@@ -66,6 +73,7 @@ def criar_sessao_checkout_excedente_mensagens(account: Account, blocos: int) -> 
 
 
 def criar_portal_sessao(account: Account) -> "stripe.billing_portal.Session":
+    logger.info("Criando sessao do portal de billing: account_id=%s", account.id)
     return stripe.billing_portal.Session.create(
         customer=account.stripe_customer_id,
         return_url=f"{settings.frontend_url}/billing",

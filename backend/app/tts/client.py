@@ -1,9 +1,12 @@
+import logging
 import time
 import unicodedata
 
 import httpx
 
 from app.config.settings import settings
+
+logger = logging.getLogger("radialista.tts")
 
 # ElevenLabs 429 (rate limit de conta, comum com varios blocos gerando TTS em
 # sequencia rapida no ao vivo) e' quase sempre transitorio -- vale tentar de novo
@@ -125,9 +128,12 @@ def sintetizar_audio(
         for tentativa in range(1, _TTS_MAX_TENTATIVAS + 1):
             response = client.post(url, headers=headers, json=payload)
             if response.status_code != 429 or tentativa == _TTS_MAX_TENTATIVAS:
+                if response.status_code >= 400:
+                    logger.warning("Falha ao sintetizar audio na ElevenLabs (%s)", response.status_code)
                 response.raise_for_status()
                 return response.content
 
+            logger.warning("Rate limit da ElevenLabs (429) na tentativa %s/%s", tentativa, _TTS_MAX_TENTATIVAS)
             espera = float(response.headers.get("retry-after", 0)) or _TTS_BACKOFF_BASE_SEGUNDOS * tentativa
             time.sleep(espera)
 

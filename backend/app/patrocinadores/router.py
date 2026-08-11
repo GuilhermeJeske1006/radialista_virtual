@@ -1,3 +1,4 @@
+import logging
 import uuid
 from pathlib import Path
 
@@ -11,6 +12,8 @@ from app.db.database import get_db
 from app.models.account import Account
 from app.models.patrocinador import Patrocinador
 from app.tts.voices import voz_valida_para_conta
+
+logger = logging.getLogger("radialista.patrocinadores")
 
 router = APIRouter(prefix="/patrocinadores", tags=["patrocinadores"])
 
@@ -126,6 +129,7 @@ async def criar_patrocinador(
     db.add(patrocinador)
     db.commit()
     db.refresh(patrocinador)
+    logger.info("Patrocinador criado: id=%s account_id=%s", patrocinador.id, account.id)
     return patrocinador
 
 
@@ -169,6 +173,7 @@ async def atualizar_patrocinador(
 
     db.commit()
     db.refresh(patrocinador)
+    logger.info("Patrocinador atualizado: id=%s account_id=%s", patrocinador.id, account.id)
     return patrocinador
 
 
@@ -182,6 +187,7 @@ def excluir_patrocinador(
     _remover_audio(patrocinador.audio_path)
     db.delete(patrocinador)
     db.commit()
+    logger.info("Patrocinador excluido: id=%s account_id=%s", patrocinador_id, account.id)
 
 
 @router.get("/{patrocinador_id}/audio")

@@ -1,4 +1,5 @@
 import json
+import logging
 import random
 import re
 from dataclasses import dataclass
@@ -8,6 +9,8 @@ import httpx
 from app.config.redis_client import redis_client
 from app.config.settings import settings
 from app.live.audio_analysis import obter_fim_seguro
+
+logger = logging.getLogger("radialista.music")
 
 YOUTUBE_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
 YOUTUBE_VIDEOS_URL = "https://www.googleapis.com/youtube/v3/videos"
@@ -132,6 +135,7 @@ def _buscar_itens(query: str) -> list[dict]:
         resposta = httpx.get(YOUTUBE_SEARCH_URL, params=params, timeout=8.0)
         resposta.raise_for_status()
     except httpx.HTTPError:
+        logger.warning("Falha na busca do YouTube: query=%r", query, exc_info=True)
         return []
 
     itens = resposta.json().get("items", [])
@@ -179,6 +183,7 @@ def _buscar_duracoes(video_ids: list[str]) -> dict[str, int]:
         resposta = httpx.get(YOUTUBE_VIDEOS_URL, params=params, timeout=8.0)
         resposta.raise_for_status()
     except httpx.HTTPError:
+        logger.warning("Falha ao buscar duracoes de videos no YouTube", exc_info=True)
         return duracoes
 
     for item in resposta.json().get("items", []):
@@ -318,6 +323,7 @@ def buscar_musica(
                 resultado.fim_segundos = obter_fim_seguro(resultado.video_id, duracoes.get(resultado.video_id))
                 return resultado
 
+    logger.warning("Nenhuma musica encontrada: query=%r", query)
     return None
 
 
