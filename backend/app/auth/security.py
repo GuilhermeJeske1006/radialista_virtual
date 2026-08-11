@@ -18,11 +18,11 @@ def verificar_senha(senha: str, hash_: str) -> bool:
     return _pwd_context.verify(senha, hash_)
 
 
-def criar_token(account_id: int) -> str:
+def criar_token(usuario_id: int) -> str:
     expira_em = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
         minutes=settings.jwt_expire_minutes
     )
-    payload = {"sub": str(account_id), "exp": expira_em}
+    payload = {"sub": str(usuario_id), "exp": expira_em}
     return jwt.encode(payload, settings.jwt_secret, algorithm=ALGORITHM)
 
 
@@ -32,8 +32,8 @@ def decodificar_token(token: str) -> int | None:
     except JWTError:
         return None
 
-    account_id = payload.get("sub")
-    if account_id is None:
+    usuario_id = payload.get("sub")
+    if usuario_id is None:
         return None
 
-    return int(account_id)
+    return int(usuario_id)

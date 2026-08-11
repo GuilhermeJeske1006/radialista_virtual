@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_account
+from app.auth.dependencies import get_current_usuario
 from app.auth.email import enviar_email_redefinicao_senha
 from app.auth.security import criar_token, hash_senha, verificar_senha
 from app.db.database import get_db
@@ -16,6 +16,7 @@ from app.models.account import Account
 from app.models.password_reset_token import PasswordResetToken
 from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
+from app.models.usuario import Usuario
 
 logger = logging.getLogger("radialista.auth")
 
@@ -44,6 +45,7 @@ class ContaResponse(BaseModel):
     id: int
     nome: str
     email: str
+    role: str
     plano_status: str
     plano: str
     criado_em: datetime.datetime
@@ -74,12 +76,22 @@ class RedefinirSenhaRequest(BaseModel):
     dependencies=[Depends(limitar_por_ip("auth_register", limite=5, janela_segundos=60))],
 )
 def registrar(dados: RegistroRequest, db: Session = Depends(get_db)):
-    if db.query(Account).filter_by(email=dados.email).first() is not None:
+    if db.query(Usuario).filter_by(email=dados.email).first() is not None:
         logger.warning("Tentativa de registro com e-mail ja cadastrado: %s", dados.email)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="E-mail ja cadastrado")
 
-    account = Account(nome=dados.nome, email=dados.email, senha_hash=hash_senha(dados.senha))
+    account = Account()
     db.add(account)
+    db.flush()
+
+    usuario = Usuario(
+        nome=dados.nome,
+        email=dados.email,
+        senha_hash=hash_senha(dados.senha),
+        account_id=account.id,
+        role="admin",
+    )
+    db.add(usuario)
     db.flush()
 
     radio_config = RadioConfig(account_id=account.id)
@@ -96,8 +108,8 @@ def registrar(dados: RegistroRequest, db: Session = Depends(get_db)):
     db.add(programa)
     db.commit()
 
-    logger.info("Conta registrada: account_id=%s email=%s", account.id, account.email)
-    return TokenResponse(access_token=criar_token(account.id))
+    logger.info("Conta registrada: account_id=%s usuario_id=%s email=%s", account.id, usuario.id, usuario.email)
+    return TokenResponse(access_token=criar_token(usuario.id))
 
 
 @router.post(
@@ -110,12 +122,16 @@ def login(dados: LoginRequest, db: Session = Depends(get_db)):
         status_code=status.HTTP_401_UNAUTHORIZED, detail="E-mail ou senha invalidos"
     )
 
-    account = db.query(Account).filter_by(email=dados.email).first()
-    if account is None or not verificar_senha(dados.senha, account.senha_hash):
+    usuario = db.query(Usuario).filter_by(email=dados.email).first()
+    if (
+        usuario is None
+        or not usuario.ativo
+        or not verificar_senha(dados.senha, usuario.senha_hash)
+    ):
         logger.warning("Login falhou para e-mail: %s", dados.email)
         raise credenciais_invalidas
 
-    return TokenResponse(access_token=criar_token(account.id))
+    return TokenResponse(access_token=criar_token(usuario.id))
 
 
 @router.post(
@@ -124,17 +140,17 @@ def login(dados: LoginRequest, db: Session = Depends(get_db)):
     dependencies=[Depends(limitar_por_ip("auth_esqueci_senha", limite=5, janela_segundos=60))],
 )
 def esqueci_senha(dados: EsqueciSenhaRequest, db: Session = Depends(get_db)):
-    account = db.query(Account).filter_by(email=dados.email).first()
-    if account is not None:
+    usuario = db.query(Usuario).filter_by(email=dados.email).first()
+    if usuario is not None and usuario.ativo:
         token = secrets.token_urlsafe(32)
         token_hash = hashlib.sha256(token.encode()).hexdigest()
         expira_em = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
             minutes=TOKEN_RESET_VALIDADE_MINUTOS
         )
-        db.add(PasswordResetToken(account_id=account.id, token_hash=token_hash, expira_em=expira_em))
+        db.add(PasswordResetToken(usuario_id=usuario.id, token_hash=token_hash, expira_em=expira_em))
         db.commit()
-        enviar_email_redefinicao_senha(account.email, token)
-        logger.info("Solicitacao de redefinicao de senha enviada: account_id=%s", account.id)
+        enviar_email_redefinicao_senha(usuario.email, token)
+        logger.info("Solicitacao de redefinicao de senha enviada: usuario_id=%s", usuario.id)
 
     # Sempre 204, exista ou nao a conta -- evita expor quais e-mails estao cadastrados.
 
@@ -166,70 +182,66 @@ def redefinir_senha(dados: RedefinirSenhaRequest, db: Session = Depends(get_db))
         logger.warning("Tentativa de redefinicao de senha com token invalido ou expirado")
         raise link_invalido
 
-    account = db.query(Account).filter_by(id=reset_token.account_id).first()
-    if account is None:
+    usuario = db.query(Usuario).filter_by(id=reset_token.usuario_id).first()
+    if usuario is None:
         raise link_invalido
 
-    account.senha_hash = hash_senha(dados.senha_nova)
+    usuario.senha_hash = hash_senha(dados.senha_nova)
     reset_token.usado_em = agora
     db.commit()
-    logger.info("Senha redefinida via token: account_id=%s", account.id)
+    logger.info("Senha redefinida via token: usuario_id=%s", usuario.id)
+
+
+def _conta_response(usuario: Usuario, db: Session) -> ContaResponse:
+    tem_radio_config = db.query(RadioConfig).filter_by(account_id=usuario.account_id).first() is not None
+    return ContaResponse(
+        id=usuario.account_id,
+        nome=usuario.nome,
+        email=usuario.email,
+        role=usuario.role,
+        plano_status=usuario.account.plano_status,
+        plano=usuario.account.plano,
+        criado_em=usuario.account.criado_em,
+        tem_radio_config=tem_radio_config,
+    )
 
 
 @router.get("/me", response_model=ContaResponse)
-def me(account: Account = Depends(get_current_account), db: Session = Depends(get_db)):
-    tem_radio_config = db.query(RadioConfig).filter_by(account_id=account.id).first() is not None
-    return ContaResponse(
-        id=account.id,
-        nome=account.nome,
-        email=account.email,
-        plano_status=account.plano_status,
-        plano=account.plano,
-        criado_em=account.criado_em,
-        tem_radio_config=tem_radio_config,
-    )
+def me(usuario: Usuario = Depends(get_current_usuario), db: Session = Depends(get_db)):
+    return _conta_response(usuario, db)
 
 
 @router.patch("/perfil", response_model=ContaResponse)
 def atualizar_perfil(
     dados: AtualizarPerfilRequest,
-    account: Account = Depends(get_current_account),
+    usuario: Usuario = Depends(get_current_usuario),
     db: Session = Depends(get_db),
 ):
     nome = dados.nome.strip()
     if not nome:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Informe um nome")
 
-    account.nome = nome
+    usuario.nome = nome
     db.commit()
-    db.refresh(account)
+    db.refresh(usuario)
 
-    tem_radio_config = db.query(RadioConfig).filter_by(account_id=account.id).first() is not None
-    return ContaResponse(
-        id=account.id,
-        nome=account.nome,
-        email=account.email,
-        plano_status=account.plano_status,
-        plano=account.plano,
-        criado_em=account.criado_em,
-        tem_radio_config=tem_radio_config,
-    )
+    return _conta_response(usuario, db)
 
 
 @router.put("/senha", status_code=status.HTTP_204_NO_CONTENT)
 def alterar_senha(
     dados: AlterarSenhaRequest,
-    account: Account = Depends(get_current_account),
+    usuario: Usuario = Depends(get_current_usuario),
     db: Session = Depends(get_db),
 ):
-    if not verificar_senha(dados.senha_atual, account.senha_hash):
-        logger.warning("Tentativa de troca de senha com senha atual incorreta: account_id=%s", account.id)
+    if not verificar_senha(dados.senha_atual, usuario.senha_hash):
+        logger.warning("Tentativa de troca de senha com senha atual incorreta: usuario_id=%s", usuario.id)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Senha atual incorreta")
     if len(dados.senha_nova) < 8:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="A nova senha precisa ter pelo menos 8 caracteres"
         )
 
-    account.senha_hash = hash_senha(dados.senha_nova)
+    usuario.senha_hash = hash_senha(dados.senha_nova)
     db.commit()
-    logger.info("Senha alterada: account_id=%s", account.id)
+    logger.info("Senha alterada: usuario_id=%s", usuario.id)

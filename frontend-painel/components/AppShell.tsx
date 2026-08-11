@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "./Sidebar";
 import { clearToken } from "../lib/auth";
+import { limparContaCache, useConta } from "../lib/useConta";
 import { OndaLed, OndaMark } from "./OndaLogo";
 import ThemeToggle from "./ThemeToggle";
 
@@ -14,7 +15,8 @@ const MOBILE_LINKS = [
   { href: "/patrocinadores", label: "Patrocinadores" },
   { href: "/onboarding", label: "WhatsApp" },
   { href: "/live", label: "Ao Vivo" },
-  { href: "/billing", label: "Assinatura" },
+  { href: "/billing", label: "Assinatura", adminOnly: true },
+  { href: "/equipe", label: "Equipe", adminOnly: true },
   { href: "/configuracoes", label: "Configuração" },
   { href: "/perfil", label: "Perfil" },
 ];
@@ -30,9 +32,12 @@ export default function AppShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const conta = useConta();
+  const mobileLinks = MOBILE_LINKS.filter((link) => !link.adminOnly || conta?.role === "admin");
 
   function sair() {
     clearToken();
+    limparContaCache();
     router.push("/login");
   }
 
@@ -63,7 +68,7 @@ export default function AppShell({
             </div>
           </div>
           <nav className="md:hidden flex gap-4 overflow-x-auto px-4 sm:px-6 pb-3 -mt-1">
-            {MOBILE_LINKS.map((link) => (
+            {mobileLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}

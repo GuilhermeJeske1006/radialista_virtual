@@ -11,17 +11,21 @@ from app.billing.router import router as billing_router
 from app.config.router import router as config_router
 from app.config.settings import settings
 from app.db.database import Base, engine
+from app.equipe.router import router as equipe_router
 from app.live.router import router as live_router
 from app.metrics.router import router as metrics_router
 from app.models import (  # noqa: F401 -- garante que as tabelas sejam registradas no metadata
     Account,
+    ConviteUsuario,
     FilaAoVivo,
     InteractionLog,
+    MusicaHistorico,
     PasswordResetToken,
     Patrocinador,
     Programa,
     ProgramaRadialista,
     RadioConfig,
+    Usuario,
     VozClonada,
 )
 from app.onboarding.router import router as onboarding_router
@@ -71,6 +75,7 @@ async def _security_headers(request, call_next):
 
 app.include_router(whatsapp_router)
 app.include_router(auth_router)
+app.include_router(equipe_router)
 app.include_router(config_router)
 app.include_router(onboarding_router)
 app.include_router(metrics_router)
@@ -90,6 +95,8 @@ async def criar_tabelas():
     garantir_colunas_patrocinador()
     migrar_conteudo_para_programas()
     migrar_whatsapp_para_account()
+    migrar_usuarios_de_account()
+    garantir_colunas_password_reset_token()
 
 
 def garantir_colunas_radio_config():
@@ -126,7 +133,6 @@ def garantir_colunas_account():
     colunas = {coluna["name"] for coluna in inspector.get_columns("accounts")}
     novas_colunas = {
         "plano": "VARCHAR DEFAULT 'starter' NOT NULL",
-        "nome": "VARCHAR DEFAULT '' NOT NULL",
         "wuzapi_token": "VARCHAR NULL",
         "wuzapi_user_id": "VARCHAR NULL",
         "wuzapi_hmac_key": "VARCHAR NULL",
@@ -313,6 +319,60 @@ def migrar_whatsapp_para_account():
 
         conn.execute(text("ALTER TABLE radio_configs DROP COLUMN IF EXISTS wuzapi_token"))
         conn.execute(text("ALTER TABLE radio_configs DROP COLUMN IF EXISTS wuzapi_user_id"))
+
+
+def migrar_usuarios_de_account():
+    """Move email/senha_hash/nome de accounts (1 login = 1 conta) pra usuarios
+    (varias pessoas por conta, ver Usuario) -- cada conta existente ganha um
+    usuario admin com os dados que estavam nela. So roda enquanto accounts
+    ainda tiver essas colunas (migracao uma unica vez).
+    """
+    inspector = inspect(engine)
+    if "accounts" not in inspector.get_table_names() or "usuarios" not in inspector.get_table_names():
+        return
+
+    colunas_accounts = {coluna["name"] for coluna in inspector.get_columns("accounts")}
+    if "senha_hash" not in colunas_accounts:
+        return
+
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                """
+                INSERT INTO usuarios (email, senha_hash, nome, account_id, role, ativo, criado_em)
+                SELECT a.email, a.senha_hash, COALESCE(a.nome, ''), a.id, 'admin', true, a.criado_em
+                FROM accounts a
+                WHERE NOT EXISTS (SELECT 1 FROM usuarios u WHERE u.account_id = a.id)
+                """
+            )
+        )
+
+        conn.execute(text("DROP INDEX IF EXISTS ix_accounts_email"))
+        conn.execute(text("ALTER TABLE accounts DROP COLUMN IF EXISTS email"))
+        conn.execute(text("ALTER TABLE accounts DROP COLUMN IF EXISTS senha_hash"))
+        conn.execute(text("ALTER TABLE accounts DROP COLUMN IF EXISTS nome"))
+
+
+def garantir_colunas_password_reset_token():
+    """password_reset_tokens.account_id vira usuario_id -- tokens em voo (validos
+    por so 30min) sao descartados no cutover, quem estava no meio do fluxo pede
+    de novo. So roda enquanto a coluna antiga ainda existir.
+    """
+    inspector = inspect(engine)
+    if "password_reset_tokens" not in inspector.get_table_names():
+        return
+
+    colunas = {coluna["name"] for coluna in inspector.get_columns("password_reset_tokens")}
+    if "account_id" not in colunas:
+        return
+
+    with engine.begin() as conn:
+        conn.execute(text("DROP INDEX IF EXISTS ix_password_reset_tokens_account_id"))
+        conn.execute(text("ALTER TABLE password_reset_tokens DROP COLUMN account_id"))
+        conn.execute(text("ALTER TABLE password_reset_tokens ADD COLUMN usuario_id INTEGER"))
+        conn.execute(
+            text("CREATE INDEX IF NOT EXISTS ix_password_reset_tokens_usuario_id ON password_reset_tokens (usuario_id)")
+        )
 
 
 @app.get("/health")

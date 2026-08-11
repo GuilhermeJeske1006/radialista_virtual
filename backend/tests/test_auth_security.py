@@ -21,7 +21,7 @@ def test_verificar_senha_rejeita_senha_errada():
     assert verificar_senha("outrasenha", hash_) is False
 
 
-def test_criar_token_decodifica_para_o_mesmo_account_id():
+def test_criar_token_decodifica_para_o_mesmo_usuario_id():
     token = criar_token(42)
     assert decodificar_token(token) == 42
 

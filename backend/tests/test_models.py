@@ -9,11 +9,12 @@ from app.models.patrocinador import Patrocinador
 from app.models.programa import Programa
 from app.models.programa_radialista import ProgramaRadialista
 from app.models.radio_config import RadioConfig
+from app.models.usuario import Usuario
 from app.models.voz_clonada import VozClonada
 
 
 def test_account_tem_defaults_esperados(db_session):
-    account = Account(email="a@a.com", senha_hash="hash")
+    account = Account()
     db_session.add(account)
     db_session.commit()
     db_session.refresh(account)
@@ -24,8 +25,36 @@ def test_account_tem_defaults_esperados(db_session):
     assert account.criado_em is not None
 
 
+def test_usuario_defaults(db_session):
+    account = Account()
+    db_session.add(account)
+    db_session.flush()
+
+    usuario = Usuario(email="a@a.com", senha_hash="hash", account_id=account.id)
+    db_session.add(usuario)
+    db_session.commit()
+    db_session.refresh(usuario)
+
+    assert usuario.role == "membro"
+    assert usuario.ativo is True
+    assert usuario.criado_em is not None
+
+
+def test_account_email_reflete_usuario_admin(db_session):
+    account = Account()
+    db_session.add(account)
+    db_session.flush()
+
+    db_session.add(Usuario(email="membro@a.com", senha_hash="hash", account_id=account.id, role="membro"))
+    db_session.add(Usuario(email="admin@a.com", senha_hash="hash", account_id=account.id, role="admin"))
+    db_session.commit()
+    db_session.refresh(account)
+
+    assert account.email == "admin@a.com"
+
+
 def test_radio_config_defaults(db_session):
-    account = Account(email="a@a.com", senha_hash="hash")
+    account = Account()
     db_session.add(account)
     db_session.commit()
 
@@ -40,7 +69,7 @@ def test_radio_config_defaults(db_session):
 
 
 def test_programa_listas_json_persistem(db_session):
-    account = Account(email="a@a.com", senha_hash="hash")
+    account = Account()
     db_session.add(account)
     db_session.commit()
     radio_config = RadioConfig(account_id=account.id)
@@ -65,7 +94,7 @@ def test_programa_listas_json_persistem(db_session):
 
 
 def test_programa_radialista_unique_constraint(db_session):
-    account = Account(email="a@a.com", senha_hash="hash")
+    account = Account()
     db_session.add(account)
     db_session.commit()
     radio_config = RadioConfig(account_id=account.id)
@@ -92,7 +121,7 @@ def test_programa_radialista_unique_constraint(db_session):
 
 
 def test_interaction_log_wuzapi_message_id_e_unico(db_session):
-    account = Account(email="a@a.com", senha_hash="hash")
+    account = Account()
     db_session.add(account)
     db_session.commit()
     radio_config = RadioConfig(account_id=account.id)
@@ -127,7 +156,7 @@ def test_interaction_log_wuzapi_message_id_e_unico(db_session):
 
 
 def test_fila_ao_vivo_default_nao_atendido(db_session):
-    account = Account(email="a@a.com", senha_hash="hash")
+    account = Account()
     db_session.add(account)
     db_session.commit()
     radio_config = RadioConfig(account_id=account.id)
@@ -146,7 +175,7 @@ def test_fila_ao_vivo_default_nao_atendido(db_session):
 
 
 def test_patrocinador_default_tipo_texto(db_session):
-    account = Account(email="a@a.com", senha_hash="hash")
+    account = Account()
     db_session.add(account)
     db_session.commit()
 
@@ -160,7 +189,7 @@ def test_patrocinador_default_tipo_texto(db_session):
 
 
 def test_voz_clonada_voz_id_e_unico(db_session):
-    account = Account(email="a@a.com", senha_hash="hash")
+    account = Account()
     db_session.add(account)
     db_session.commit()
 
@@ -176,7 +205,7 @@ def test_voz_clonada_voz_id_e_unico(db_session):
 
 
 def test_compra_excedente_guarda_mes_referencia(db_session):
-    account = Account(email="a@a.com", senha_hash="hash")
+    account = Account()
     db_session.add(account)
     db_session.commit()
 
@@ -190,15 +219,19 @@ def test_compra_excedente_guarda_mes_referencia(db_session):
 
 
 def test_password_reset_token_hash_e_unico(db_session):
-    account = Account(email="a@a.com", senha_hash="hash")
+    account = Account()
     db_session.add(account)
+    db_session.flush()
+
+    usuario = Usuario(email="a@a.com", senha_hash="hash", account_id=account.id)
+    db_session.add(usuario)
     db_session.commit()
 
     expira_em = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=30)
-    db_session.add(PasswordResetToken(account_id=account.id, token_hash="hash-1", expira_em=expira_em))
+    db_session.add(PasswordResetToken(usuario_id=usuario.id, token_hash="hash-1", expira_em=expira_em))
     db_session.commit()
 
-    db_session.add(PasswordResetToken(account_id=account.id, token_hash="hash-1", expira_em=expira_em))
+    db_session.add(PasswordResetToken(usuario_id=usuario.id, token_hash="hash-1", expira_em=expira_em))
     try:
         db_session.commit()
         assert False, "deveria ter levantado erro de unique constraint"

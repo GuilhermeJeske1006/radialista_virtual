@@ -11,6 +11,7 @@ from app.db.database import Base, SessionLocal, engine
 from app.models.account import Account
 from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
+from app.models.usuario import Usuario
 
 EMAIL_TESTE = "teste@radialista.local"
 SENHA_TESTE = "teste1234"
@@ -20,18 +21,26 @@ def seed() -> None:
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
-        existente = db.query(Account).filter_by(email=EMAIL_TESTE).first()
+        existente = db.query(Usuario).filter_by(email=EMAIL_TESTE).first()
         if existente:
             print("Conta de teste ja existe, nada a fazer.")
             return
 
         account = Account(
-            email=EMAIL_TESTE,
-            senha_hash=hash_senha(SENHA_TESTE),
             plano_status="ativo",
             wuzapi_token=settings.wuzapi_user_token,
         )
         db.add(account)
+        db.flush()
+
+        usuario = Usuario(
+            email=EMAIL_TESTE,
+            senha_hash=hash_senha(SENHA_TESTE),
+            account_id=account.id,
+            role="admin",
+            nome="Radialista Teste",
+        )
+        db.add(usuario)
         db.flush()
 
         config = RadioConfig(

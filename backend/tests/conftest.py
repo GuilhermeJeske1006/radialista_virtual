@@ -34,6 +34,7 @@ import app.models  # noqa: F401, E402 -- registra todas as tabelas no Base.metad
 from app.auth.security import criar_token, hash_senha  # noqa: E402
 from app.db.database import Base, get_db  # noqa: E402
 from app.models.account import Account  # noqa: E402
+from app.models.usuario import Usuario  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -82,8 +83,12 @@ def client(db_session):
 @pytest.fixture()
 def account_factory(db_session):
     def _criar(email: str = "user@example.com", senha: str = "senha12345", **kwargs) -> Account:
-        account = Account(email=email, senha_hash=hash_senha(senha), **kwargs)
+        account = Account(**kwargs)
         db_session.add(account)
+        db_session.flush()
+
+        usuario = Usuario(email=email, senha_hash=hash_senha(senha), account_id=account.id, role="admin")
+        db_session.add(usuario)
         db_session.commit()
         db_session.refresh(account)
         return account
@@ -97,8 +102,21 @@ def account(account_factory) -> Account:
 
 
 @pytest.fixture()
-def auth_headers():
+def usuario_factory(db_session):
+    def _criar(account_id: int, email: str, senha: str = "senha12345", role: str = "membro", **kwargs) -> Usuario:
+        usuario = Usuario(email=email, senha_hash=hash_senha(senha), account_id=account_id, role=role, **kwargs)
+        db_session.add(usuario)
+        db_session.commit()
+        db_session.refresh(usuario)
+        return usuario
+
+    return _criar
+
+
+@pytest.fixture()
+def auth_headers(db_session):
     def _headers(account_id: int) -> dict:
-        return {"Authorization": f"Bearer {criar_token(account_id)}"}
+        usuario = db_session.query(Usuario).filter_by(account_id=account_id, role="admin").first()
+        return {"Authorization": f"Bearer {criar_token(usuario.id)}"}
 
     return _headers

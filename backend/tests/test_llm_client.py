@@ -81,3 +81,26 @@ def test_classificar_tom_fala_excecao_cai_em_neutro(monkeypatch):
 
     monkeypatch.setattr(llm_client, "gerar_classificacao", _levanta)
     assert llm_client.classificar_tom_fala("texto", "comentario") == "neutro"
+
+
+def test_resumir_contexto_musica_devolve_resumo(monkeypatch):
+    monkeypatch.setattr(
+        llm_client, "gerar_classificacao", lambda system, user: "Fala sobre saudade do interior, lancada em 1998."
+    )
+    resultado = llm_client.resumir_contexto_musica("Musica X", "Artista Y", "descricao real", ["sertanejo"], "1998")
+    assert resultado == "Fala sobre saudade do interior, lancada em 1998."
+
+
+def test_resumir_contexto_musica_insuficiente_devolve_vazio(monkeypatch):
+    monkeypatch.setattr(llm_client, "gerar_classificacao", lambda system, user: "insuficiente")
+    resultado = llm_client.resumir_contexto_musica("Musica X", "Artista Y", "", [], None)
+    assert resultado == ""
+
+
+def test_resumir_contexto_musica_excecao_devolve_vazio(monkeypatch):
+    def _levanta(*args, **kwargs):
+        raise RuntimeError("falha")
+
+    monkeypatch.setattr(llm_client, "gerar_classificacao", _levanta)
+    resultado = llm_client.resumir_contexto_musica("Musica X", "Artista Y", "descricao", [], None)
+    assert resultado == ""

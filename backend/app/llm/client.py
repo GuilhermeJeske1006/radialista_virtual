@@ -122,6 +122,28 @@ def classificar_categoria_bloco(nome_bloco: str) -> str:
     return "outro"
 
 
+_TEMA_SYSTEM_PROMPT = (
+    "Extraia o tema principal de uma fala de comentário ou notícia de locutor de rádio, em até "
+    "quatro palavras, sem pontuação, sem explicação, sem aspas. Ex.: 'trânsito na cidade', "
+    "'previsão do tempo', 'aniversário da rádio'."
+)
+
+
+def classificar_tema_fala(texto: str) -> str:
+    """Extrai um rotulo curto do tema de uma fala de comentario/noticia, pra registrar no
+    historico de temas da sessao (ver _historico_temas em app.live.router) -- a janela de
+    historico enviada ao prompt so cobre as ultimas falas, entao sem isso o LLM nao tem como
+    saber que ja comentou o mesmo assunto varios blocos atras. Nunca deve derrubar o ao vivo:
+    qualquer falha cai em string vazia (chamador simplesmente nao registra tema nenhum).
+    """
+    try:
+        resposta = gerar_classificacao(_TEMA_SYSTEM_PROMPT, texto)
+    except Exception:
+        logger.warning("Falha ao classificar tema da fala", exc_info=True)
+        return ""
+    return resposta.strip().strip(".").lower()
+
+
 def classificar_tom_fala(texto: str, tipo_bloco: str | None) -> str:
     """Classifica o tom da fala ja gerada (energico/calmo/neutro) pra modular a voz no TTS
     de acordo com o conteudo real da fala, nao so com o tipo de bloco. Nunca deve derrubar a
@@ -139,3 +161,38 @@ def classificar_tom_fala(texto: str, tipo_bloco: str | None) -> str:
         if tom in resposta:
             return tom
     return "neutro"
+
+
+_CONTEXTO_MUSICA_SYSTEM_PROMPT = (
+    "Voce recebe metadados de um video do YouTube que e uma musica (titulo, canal/artista, ano "
+    "de publicacao, tags e descricao, quando existirem). Resuma em ate duas frases curtas um "
+    "contexto real que um locutor de radio possa citar ao anunciar essa musica -- tema da letra, "
+    "historia por tras dela, curiosidade real, ano. Use SOMENTE informacao que apareca no texto "
+    "fornecido: nunca invente fato, data, premio ou curiosidade que voce nao tenha certeza de ter "
+    "visto ali. Se nao houver informacao real suficiente pra dizer algo com confianca, responda "
+    "exatamente 'insuficiente', sem mais nada."
+)
+
+
+def resumir_contexto_musica(titulo: str, canal: str, descricao: str, tags: list[str], ano: str | None) -> str:
+    """Resume contexto real (tema/curiosidade) de uma musica a partir dos metadados do YouTube
+    (ver _buscar_metadados_musica em app.live.music), pra injetar no prompt antes do locutor
+    anunciar a faixa (ver _contexto_musica em app.live.router) -- em vez dele so' saber
+    titulo/canal. O prompt e' estrito sobre so' usar o que foi fornecido e devolver
+    'insuficiente' quando nao da, porque metadado de video costuma ser escasso e inventar fato
+    sobre a musica (ano errado, premio que ela nunca ganhou) e pior que nao dizer nada.
+    """
+    mensagem = (
+        f"Titulo: {titulo}\nCanal/artista: {canal}\nAno de publicacao: {ano or 'desconhecido'}\n"
+        f"Tags: {', '.join(tags) if tags else 'nenhuma'}\nDescricao: {descricao or 'nenhuma'}"
+    )
+    try:
+        resposta = gerar_classificacao(_CONTEXTO_MUSICA_SYSTEM_PROMPT, mensagem)
+    except Exception:
+        logger.warning("Falha ao resumir contexto de musica: titulo=%r", titulo, exc_info=True)
+        return ""
+
+    resposta = resposta.strip()
+    if not resposta or resposta.lower().startswith("insuficiente"):
+        return ""
+    return resposta

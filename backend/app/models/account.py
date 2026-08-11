@@ -1,19 +1,25 @@
 import datetime
 
 from sqlalchemy import DateTime, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
 
 
 class Account(Base):
+    """Representa a radio (tenant). Login/pessoa vive em Usuario (varios por conta)."""
+
     __tablename__ = "accounts"
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    email: Mapped[str] = mapped_column(String, unique=True, index=True)
-    senha_hash: Mapped[str] = mapped_column(String)
-    nome: Mapped[str] = mapped_column(String, default="")
+    usuarios = relationship("Usuario", back_populates="account")
+
+    @property
+    def email(self) -> str | None:
+        """Compat pra billing/stripe_client.py -- email do usuario admin da conta."""
+        admin = next((u for u in self.usuarios if u.role == "admin" and u.ativo), None)
+        return admin.email if admin else None
 
     # Dados da emissora (unicos por conta -- todos os radialistas da conta falam pela mesma radio).
     nome_radio: Mapped[str] = mapped_column(String, default="")

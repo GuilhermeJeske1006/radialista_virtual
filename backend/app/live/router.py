@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_account
@@ -15,11 +16,19 @@ from app.config.redis_client import redis_client
 from app.db.database import get_db
 from app.guardrails.schedule import minutos_restantes
 from app.live.music import MusicaEncontrada, buscar_musica, buscar_musica_fundo
-from app.llm.client import classificar_categoria_bloco, classificar_tom_fala, gerar_configuracao, gerar_resposta
+from app.llm.client import (
+    classificar_categoria_bloco,
+    classificar_tema_fala,
+    classificar_tom_fala,
+    gerar_configuracao,
+    gerar_resposta,
+    resumir_contexto_musica,
+)
 from app.llm.json_utils import extrair_json
 from app.llm.prompt_builder import ParticipantePrograma, montar_system_prompt
 from app.models.account import Account
 from app.models.fila_ao_vivo import FilaAoVivo
+from app.models.musica_historico import MusicaHistorico
 from app.models.patrocinador import Patrocinador
 from app.models.programa import Programa
 from app.models.programa_radialista import ProgramaRadialista
@@ -257,13 +266,14 @@ def _hora_certa_por_extenso(agora: datetime.datetime) -> str:
     return f"{hora_extenso} e {_numero_0_59_por_extenso(agora.minute)}"
 
 
-# Historico de musicas tocadas no programa (por sessao ao vivo), pra buscar_musica evitar
-# repetir a mesma faixa ou saturar de um so' artista (ver limite_por_canal em app.live.music).
-# TTL de 6h cobre uma transmissao inteira sem acumular lixo de sessoes antigas no Redis.
-_TTL_HISTORICO_MUSICA = 6 * 60 * 60
+# TTL generico p/ estado de sessao ao vivo no Redis (historico de musica, historico de temas,
+# rotacao de frases). 6h cobre uma transmissao inteira sem acumular lixo de sessoes antigas.
+_TTL_SESSAO_AO_VIVO = 6 * 60 * 60
 
 
 def _historico_musicas(programa_id: int) -> tuple[set[str], dict[str, int]]:
+    """Musicas tocadas no programa (por sessao ao vivo), pra buscar_musica evitar repetir a
+    mesma faixa ou saturar de um so' artista (ver limite_por_canal em app.live.music)."""
     ids = redis_client.smembers(f"musicas_tocadas:ids:{programa_id}")
     canais_raw = redis_client.hgetall(f"musicas_tocadas:canais:{programa_id}")
     return set(ids), {canal: int(contagem) for canal, contagem in canais_raw.items()}
@@ -273,9 +283,117 @@ def _registrar_musica_tocada(programa_id: int, musica: MusicaEncontrada) -> None
     chave_ids = f"musicas_tocadas:ids:{programa_id}"
     chave_canais = f"musicas_tocadas:canais:{programa_id}"
     redis_client.sadd(chave_ids, musica.video_id)
-    redis_client.expire(chave_ids, _TTL_HISTORICO_MUSICA)
+    redis_client.expire(chave_ids, _TTL_SESSAO_AO_VIVO)
     redis_client.hincrby(chave_canais, musica.canal.lower(), 1)
-    redis_client.expire(chave_canais, _TTL_HISTORICO_MUSICA)
+    redis_client.expire(chave_canais, _TTL_SESSAO_AO_VIVO)
+
+
+# Quantos temas de comentario/noticia guardar no historico da sessao (ver _historico_temas).
+_MAX_TEMAS_HISTORICO = 15
+
+
+def _historico_temas(programa_id: int) -> list[str]:
+    """Temas de comentario/noticia ja abordados nesta sessao ao vivo, do mais recente pro
+    mais antigo -- cobre a transmissao inteira, ao contrario do 'historico' de falas que o
+    frontend manda (so as ultimas 8), pra evitar repetir assunto depois de varios blocos."""
+    return redis_client.lrange(f"temas_comentados:{programa_id}", 0, _MAX_TEMAS_HISTORICO - 1)
+
+
+def _registrar_tema(programa_id: int, tema: str) -> None:
+    chave = f"temas_comentados:{programa_id}"
+    redis_client.lrem(chave, 0, tema)
+    redis_client.lpush(chave, tema)
+    redis_client.ltrim(chave, 0, _MAX_TEMAS_HISTORICO - 1)
+    redis_client.expire(chave, _TTL_SESSAO_AO_VIVO)
+
+
+# Quantas falas recentes guardar por categoria de bloco (ver _historico_falas) pra checagem de
+# similaridade -- so entre blocos do mesmo tipo, pra abertura de hoje nao ser comparada com
+# noticia de ontem (mesmo programa, blocos diferentes tendem a compartilhar vocabulario normal
+# da radio sem serem repeticao de verdade).
+_MAX_FALAS_HISTORICO_POR_CATEGORIA = 8
+
+# Sobreposicao de palavras (Jaccard) a partir da qual duas falas do mesmo tipo de bloco sao
+# tratadas como repeticao. Falas muito curtas (menos que isso de palavras) nao entram na
+# checagem -- sobreposicao alta em frase curta e normal, nao indica repeticao.
+_LIMIAR_SIMILARIDADE_REPETICAO = 0.6
+_MIN_PALAVRAS_SIMILARIDADE = 5
+
+_PONTUACAO_RE = re.compile(r"[^\w\s]")
+
+
+def _historico_falas(programa_id: int, categoria: str) -> list[str]:
+    return redis_client.lrange(f"falas_geradas:{programa_id}:{categoria}", 0, -1)
+
+
+def _registrar_fala_gerada(programa_id: int, categoria: str, texto: str) -> None:
+    chave = f"falas_geradas:{programa_id}:{categoria}"
+    redis_client.lpush(chave, texto)
+    redis_client.ltrim(chave, 0, _MAX_FALAS_HISTORICO_POR_CATEGORIA - 1)
+    redis_client.expire(chave, _TTL_SESSAO_AO_VIVO)
+
+
+def _palavras_normalizadas(texto: str) -> set[str]:
+    sem_acento = _sem_acento(texto.lower())
+    sem_pontuacao = _PONTUACAO_RE.sub(" ", sem_acento)
+    return {p for p in sem_pontuacao.split() if p}
+
+
+def _fala_semelhante_no_historico(fala: str, historico_falas: list[str]) -> str | None:
+    """Rede de seguranca em runtime: mesmo com as instrucoes de variacao no prompt, o LLM as
+    vezes ainda produz uma fala quase igual a uma de varios blocos atras (janela enviada ao
+    prompt so cobre as ultimas falas). Compara por sobreposicao de palavras contra o historico
+    da sessao pro mesmo tipo de bloco; devolve a fala anterior que colidiu (pra citar no retry),
+    ou None se nao achou repeticao.
+    """
+    palavras_fala = _palavras_normalizadas(fala)
+    if len(palavras_fala) < _MIN_PALAVRAS_SIMILARIDADE:
+        return None
+    for anterior in historico_falas:
+        palavras_anterior = _palavras_normalizadas(anterior)
+        if len(palavras_anterior) < _MIN_PALAVRAS_SIMILARIDADE:
+            continue
+        uniao = palavras_fala | palavras_anterior
+        if not uniao:
+            continue
+        similaridade = len(palavras_fala & palavras_anterior) / len(uniao)
+        if similaridade >= _LIMIAR_SIMILARIDADE_REPETICAO:
+            return anterior
+    return None
+
+
+def _proxima_variacao(programa_id: int, chave: str, opcoes: list[str]) -> str:
+    """Roda por uma lista de variacoes de frase sem repetir a mesma ate esgotar o pool --
+    round-robin persistido no Redis por programa. Existe porque so pedir pro LLM 'variar' no
+    prompt nao e garantia: sem estado nenhum entre chamadas, ele tende a gravitar pra mesma
+    construcao de maior probabilidade sempre que o contexto se parece (ver historico_musicas
+    pra o mesmo problema resolvido do lado das musicas)."""
+    redis_key = f"rotacao:{chave}:{programa_id}"
+    indice = redis_client.incr(redis_key)
+    redis_client.expire(redis_key, _TTL_SESSAO_AO_VIVO)
+    return opcoes[(indice - 1) % len(opcoes)]
+
+
+_VARIACOES_CONVITE_OUVINTE = [
+    "Quando o bloco for chamada_ouvinte, convide o público a mandar recado pelo WhatsApp da rádio.",
+    "Quando o bloco for chamada_ouvinte, convide o público a pedir uma música pelo WhatsApp da rádio.",
+    "Quando o bloco for chamada_ouvinte, convide o público a mandar um áudio de voz com recado pelo "
+    "WhatsApp da rádio.",
+    "Quando o bloco for chamada_ouvinte, pergunte de onde o ouvinte está sintonizando e convide a "
+    "responder pelo WhatsApp da rádio.",
+    "Quando o bloco for chamada_ouvinte, convide o público a mandar uma dedicatória ou saudação pelo "
+    "WhatsApp da rádio.",
+]
+
+_VARIACOES_VERBO_IDENTIFICACAO = [
+    "toca com a gente",
+    "aqui é a",
+    "você tá na",
+    "segue ligado na",
+    "não sai da",
+    "cola aqui na",
+    "permanece com a gente na",
+]
 
 
 _PATROCINADOR_RE = re.compile(r"^patrocinador:(\d+)$")
@@ -358,15 +476,131 @@ def _genero_do_rotulo(rotulo: str) -> str:
     return _PREFIXO_MUSICA_RE.sub("", rotulo).strip()
 
 
+# Pesos relativos pra escolha ponderada da query de musica quando o bloco nao tem rotulo de
+# genero proprio (ver _escolher_query_musica). Posicao na lista curada pelo admin pesa mais que
+# frequencia de pedido do publico: e' curadoria deliberada, enquanto pedido do publico e' sinal
+# real porem mais ruidoso (mesmo artista escrito de jeitos diferentes, pedido por brincadeira, etc.).
+_PESO_POSICAO_ADMIN = 3.0
+_PESO_PEDIDO_PUBLICO = 1.0
+
+# Janela de tempo pra contar pedido do publico como sinal de preferencia (ver
+# _pedidos_publico_mais_frequentes) -- pedido de meses atras nao deveria pesar pra sempre,
+# o gosto do publico muda.
+_DIAS_JANELA_PEDIDOS_PUBLICO = 90
+_MAX_PEDIDOS_PUBLICO_NO_POOL = 5
+
+
+def _pedidos_publico_mais_frequentes(db: Session, programa_id: int) -> list[tuple[str, int]]:
+    """Musicas/artistas mais pedidos pelo publico via WhatsApp neste programa nos ultimos
+    _DIAS_JANELA_PEDIDOS_PUBLICO dias (ver MusicaHistorico, origem="pedido_ouvinte") --
+    persiste entre transmissoes, ao contrario do historico de sessao no Redis. Agrupa pela
+    query normalizada (sem acento, minuscula) pra "Chitaozinho e Xororo" e "chitãozinho e
+    xororó" contarem como o mesmo pedido.
+    """
+    limiar = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=_DIAS_JANELA_PEDIDOS_PUBLICO)
+    linhas = (
+        db.query(MusicaHistorico.query_normalizada, func.count().label("contagem"))
+        .filter(
+            MusicaHistorico.programa_id == programa_id,
+            MusicaHistorico.origem == "pedido_ouvinte",
+            MusicaHistorico.criado_em >= limiar,
+        )
+        .group_by(MusicaHistorico.query_normalizada)
+        .order_by(func.count().desc())
+        .limit(_MAX_PEDIDOS_PUBLICO_NO_POOL)
+        .all()
+    )
+    return list(linhas)
+
+
+def _escolher_query_musica(db: Session, programa: Programa) -> tuple[str, str | None]:
+    """Escolhe a query de busca pra um bloco de musica sem rotulo de genero proprio.
+
+    Combina curadoria do admin (musicas_permitidas, pesada pela posicao -- primeiro item da
+    lista conta mais) com o que o publico mais pediu de verdade pelo WhatsApp (ver
+    _pedidos_publico_mais_frequentes), numa escolha ponderada. So cai pro genero generico da
+    radio quando nenhum dos dois tem dado nenhum; e so cai pra instrumental generico quando a
+    radio nao configurou genero nenhum. Devolve (query, genero_pra_filtrar) -- genero so vem
+    preenchido na queda pro genero generico, porque musica_permitida/pedido do publico ja e'
+    uma query especifica o suficiente (nome de musica/artista), nao precisa de filtro extra.
+    """
+    candidatos: list[str] = []
+    pesos: list[float] = []
+
+    total_permitidas = len(programa.musicas_permitidas)
+    for indice, item in enumerate(programa.musicas_permitidas):
+        candidatos.append(item)
+        pesos.append((total_permitidas - indice) * _PESO_POSICAO_ADMIN)
+
+    for query_normalizada, contagem in _pedidos_publico_mais_frequentes(db, programa.id):
+        candidatos.append(query_normalizada)
+        pesos.append(contagem * _PESO_PEDIDO_PUBLICO)
+
+    if candidatos:
+        return random.choices(candidatos, weights=pesos, k=1)[0], None
+
+    if programa.generos_musicais:
+        genero = random.choice(programa.generos_musicais)
+        return f"{genero} musica", genero
+
+    return "musica instrumental", None
+
+
+def _normalizar_query_musica(texto: str) -> str:
+    return _sem_acento(texto.strip().lower())
+
+
+def _registrar_historico_persistente(
+    db: Session, programa_id: int, musica: MusicaEncontrada, query: str, origem: str
+) -> None:
+    db.add(
+        MusicaHistorico(
+            programa_id=programa_id,
+            video_id=musica.video_id,
+            titulo=musica.titulo,
+            canal=musica.canal,
+            query=query,
+            query_normalizada=_normalizar_query_musica(query),
+            origem=origem,
+        )
+    )
+    db.commit()
+
+
+# Contexto real de uma musica (tema/curiosidade, ver resumir_contexto_musica) nao muda depois
+# de gerado -- cache bem mais longo que o de sessao, mesma logica do cache de duracao/metadados
+# em app.live.music.
+_TTL_CONTEXTO_MUSICA = 30 * 24 * 60 * 60
+
+
+def _contexto_musica(musica: MusicaEncontrada) -> str:
+    """Contexto real (tema da letra, curiosidade, ano) que o locutor pode citar ao anunciar a
+    musica -- cacheado por video_id porque e' sempre a mesma resposta pra mesma faixa. So chama
+    o LLM quando ha' metadado nenhum (descricao/tags/ano) pra resumir; sem isso, nem vale a
+    chamada, o LLM so' devolveria 'insuficiente' mesmo.
+    """
+    if not (musica.descricao or musica.tags or musica.ano):
+        return ""
+
+    chave_cache = f"cache:contexto_musica:{musica.video_id}"
+    em_cache = redis_client.get(chave_cache)
+    if em_cache is not None:
+        return em_cache
+
+    contexto = resumir_contexto_musica(musica.titulo, musica.canal, musica.descricao, musica.tags, musica.ano)
+    redis_client.set(chave_cache, contexto, ex=_TTL_CONTEXTO_MUSICA)
+    return contexto
+
+
 def _montar_bloco_musicas(
-    programa: Programa, primeira: MusicaEncontrada, quantidade: int, rotulo_bloco: str | None = None
+    db: Session, programa: Programa, primeira: MusicaEncontrada, quantidade: int, rotulo_bloco: str | None = None
 ) -> list[MusicaEncontrada]:
     musicas = [primeira]
     usados = {primeira.video_id}
     tentativas = 0
     while len(musicas) < quantidade and tentativas < quantidade * 3:
         tentativas += 1
-        extra = _buscar_musica_para_bloco(programa, rotulo_bloco)
+        extra = _buscar_musica_para_bloco(db, programa, rotulo_bloco)
         if extra is None:
             break
         if extra.video_id in usados:
@@ -376,28 +610,45 @@ def _montar_bloco_musicas(
     return musicas
 
 
-def _buscar_musica_para_bloco(programa: Programa, rotulo_bloco: str | None = None) -> MusicaEncontrada | None:
+def _buscar_musica_para_bloco(
+    db: Session, programa: Programa, rotulo_bloco: str | None = None
+) -> MusicaEncontrada | None:
     genero_bloco = _genero_do_rotulo(rotulo_bloco) if rotulo_bloco else ""
-    if programa.musicas_permitidas:
-        query = random.choice(programa.musicas_permitidas)
-    elif genero_bloco and _sem_acento(genero_bloco.lower()) != "musica":
-        # rotulo do bloco customizado carrega o proprio genero/estilo (ex.: "Vaneira",
-        # "chamame e xote") -- usa isso na busca em vez de cair no genero generico da radio.
-        query = f"{genero_bloco} musica"
-    elif programa.generos_musicais:
-        query = f"{random.choice(programa.generos_musicais)} musica"
+    if genero_bloco and _sem_acento(genero_bloco.lower()) != "musica":
+        # rotulo do bloco customizado carrega o proprio genero/estilo (ex.: "Vaneira", "Xote")
+        # -- tem prioridade sobre a curadoria generica da radio (e' o sinal mais especifico pra
+        # este bloco), e o proprio genero vira filtro de busca (ver genero= em buscar_musica)
+        # pra nao deixar o YouTube derivar pra um genero vizinho (xote virando chamame).
+        query, genero_filtro = f"{genero_bloco} musica", genero_bloco
     else:
-        query = "musica instrumental"
+        query, genero_filtro = _escolher_query_musica(db, programa)
 
     ids_tocadas, canais_tocados = _historico_musicas(programa.id)
     musica = buscar_musica(
         query,
+        genero=genero_filtro,
         bloqueados=programa.musicas_bloqueadas,
         evitar_video_ids=ids_tocadas,
         canais_recentes=canais_tocados,
     )
+    if musica is None and query.strip().lower() != "musica instrumental":
+        # query especifica (curadoria do admin, pedido do publico ou genero/rotulo do bloco) nao
+        # achou nada -- sem isso, o locutor recebia instrucao pra anunciar um genero/artista
+        # "permitido" mesmo com `musica` None, e a fala saia prometendo uma faixa que nunca
+        # tocava (ver ramo `else` do anuncio de musica em gerar_proxima_fala). Tenta mais uma
+        # vez com a query mais generica possivel antes de desistir de vez.
+        query_fallback = "musica instrumental"
+        musica = buscar_musica(
+            query_fallback,
+            bloqueados=programa.musicas_bloqueadas,
+            evitar_video_ids=ids_tocadas,
+            canais_recentes=canais_tocados,
+        )
+        if musica is not None:
+            query = query_fallback
     if musica is not None:
         _registrar_musica_tocada(programa.id, musica)
+        _registrar_historico_persistente(db, programa.id, musica, query, origem="auto")
     return musica
 
 
@@ -466,6 +717,7 @@ def gerar_proxima_fala(
     multi_voz = len(roster) > 1 and categoria != "musica"
 
     pedido_musica = _proximo_pedido_fila(db, radialista, "musica") if categoria == "musica" else None
+    pedido_sem_resultado = False
     if pedido_musica is not None:
         query = pedido_musica.musica_query or pedido_musica.mensagem_usuario
         ids_tocadas, canais_tocados = _historico_musicas(programa.id)
@@ -477,10 +729,33 @@ def gerar_proxima_fala(
         )
         if musica is not None:
             _registrar_musica_tocada(programa.id, musica)
+            # pedido real do ouvinte via WhatsApp -- alimenta o sinal de preferencia do
+            # publico (ver _pedidos_publico_mais_frequentes) usado em blocos futuros sem
+            # pedido pendente.
+            _registrar_historico_persistente(db, programa.id, musica, query, origem="pedido_ouvinte")
+        else:
+            # _proximo_pedido_fila ja marcou o pedido como atendido antes da busca rodar --
+            # sem esse fallback, a musica pedida simplesmente sumia (nada tocava, nada
+            # anunciado, ouvinte nunca sabe que o pedido dele nao foi encontrado) porque
+            # `musica` ficava None e o bloco caia direto no anuncio generico "nao encontrei
+            # nada". Cai pra escolha automatica pra sempre tocar algo neste bloco.
+            pedido_sem_resultado = True
+            logger.warning(
+                "Pedido de musica sem resultado na busca, caindo pra escolha automatica: "
+                "programa_id=%s query=%r",
+                programa.id,
+                query,
+            )
+            musica = _buscar_musica_para_bloco(db, programa, tipo)
     else:
-        musica = _buscar_musica_para_bloco(programa, tipo) if categoria == "musica" else None
+        musica = _buscar_musica_para_bloco(db, programa, tipo) if categoria == "musica" else None
 
     pedido_abraco = _proximo_pedido_fila(db, radialista, "abraco") if categoria == "chamada_ouvinte" else None
+
+    temas_usados = _historico_temas(programa.id) if categoria in ("comentario", "noticia") else []
+    variacao_verbo_identificacao = _proxima_variacao(
+        programa.id, "verbo_identificacao", _VARIACOES_VERBO_IDENTIFICACAO
+    )
 
     roteiro_ativo = [t.strip() for t in programa.estrutura_blocos if t.strip()] or _ROTEIRO_PADRAO
 
@@ -518,6 +793,10 @@ def gerar_proxima_fala(
         "Tenha consciência de qual momento do programa você está vivendo agora e conecte a fala com o que "
         "vem antes e depois dela, mantendo transição natural (não repita a mesma abertura ou o mesmo gancho "
         "toda vez).",
+        f"Esta é aproximadamente a fala número {total_falas + 1} desde que o programa entrou no ar, na volta "
+        f"{total_falas // len(roteiro_ativo) + 1} da estrutura de blocos acima. Quanto mais alto esse número, "
+        "maior a chance de você já ter usado uma piada, gancho ou frase parecida antes -- redobre o cuidado "
+        "pra trazer algo com cara nova em vez de cair no automático.",
         "Antes de escrever, releia a última fala do histórico (a mais recente na lista) e identifique um "
         "detalhe concreto nela -- um assunto, um nome, uma palavra, um clima que ficou no ar. Abra ou emende "
         "a fala atual com um gancho real (callback) nesse detalhe, em vez de uma transição genérica tipo "
@@ -529,9 +808,9 @@ def gerar_proxima_fala(
         "puxar (início do programa, ou virada de bloco que exige assunto totalmente novo).",
         "Ao citar a identificação da rádio (nome, frequência, slogan) pra fechar ou emendar uma fala, nunca "
         "repita a mesma frase pronta do bloco anterior (ex: sempre 'Fica comigo na 87,5 FM, a Rádio da sua "
-        "cidade'). Varie a construção a cada vez -- troque a ordem das informações, use só parte delas, mude o "
-        "verbo de chamada ('toca com a gente', 'aqui é a', 'você tá na', 'segue ligado na'), ou nem cite a "
-        "identificação nessa fala. Trate isso como qualquer outro gancho: repetição literal soa de robô.",
+        f"cidade'). Se for citar a identificação nessa fala, prefira o verbo de chamada "
+        f"'{variacao_verbo_identificacao}' -- troque a ordem das outras informações, use só parte delas, ou nem "
+        "cite a identificação nessa fala. Trate isso como qualquer outro gancho: repetição literal soa de robô.",
         "Ao mudar de tópico dentro da fala ou encerrar o bloco pra entrar no próximo, marque uma pausa mais "
         "longa que o normal: use reticências duplas (\"......\") ou um respiro curto antes de virar o assunto, "
         "em vez de emendar direto.",
@@ -557,7 +836,16 @@ def gerar_proxima_fala(
         "conteúdo sólido pro bloco, mantenha a fala curta e direta em vez de enrolar.",
         "Quando o bloco for comentário, escolha um assunto diferente do último comentado no histórico.",
         "Se pesquisa externa estiver desabilitada, não invente fatos recentes: faça chamadas gerais e atemporais.",
+        "Nunca soe como se o programa estivesse terminando ou se despedindo (frases tipo 'por hoje é só', "
+        "'foi um prazer ficar com vocês', 'até a próxima', 'foi isso por agora') a não ser que o bloco atual "
+        "seja o de encerramento -- despedida só é permitida na fala do bloco 'encerramento', em nenhum outro.",
     ]
+
+    if temas_usados:
+        system_prompt_linhas.append(
+            "Temas de comentário/notícia já abordados nesta transmissão, do mais recente pro mais antigo -- "
+            f"não repita nenhum deles agora, escolha um assunto novo: {', '.join(temas_usados)}."
+        )
 
     if tipo != "encerramento" and random.random() < _PROB_HORA_CERTA:
         hora_certa = _hora_certa_por_extenso(datetime.datetime.now(ZoneInfo(radialista.timezone)))
@@ -568,7 +856,15 @@ def gerar_proxima_fala(
             "como veio acima, nunca em algarismo. Encaixe sem soar forçado, não precisa ser a primeira frase."
         )
 
-    if musica is not None and pedido_musica is not None:
+    if musica is not None and pedido_musica is not None and pedido_sem_resultado:
+        nome_pedido = pedido_musica.nome or "um ouvinte"
+        system_prompt_linhas.append(
+            f"{nome_pedido} pediu uma música pelo WhatsApp, mas ela não foi encontrada. Quando o bloco for "
+            f"música, avise rapidamente que não achou a música pedida e anuncie que vai tocar "
+            f"'{musica.titulo}' de '{musica.canal}' no lugar dela. Não anuncie outra música nem prometa "
+            "achar a música pedida depois."
+        )
+    elif musica is not None and pedido_musica is not None:
         nome_pedido = pedido_musica.nome or "um ouvinte"
         system_prompt_linhas.append(
             f"Quando o bloco for música, anuncie que {nome_pedido} pediu pelo WhatsApp a música "
@@ -581,9 +877,20 @@ def gerar_proxima_fala(
         )
     else:
         system_prompt_linhas.append(
-            "Quando o bloco for música, anuncie uma música/artista permitido ou um gênero permitido "
-            "(nenhuma faixa foi encontrada para tocar ao vivo agora)."
+            "Nenhuma faixa foi encontrada pra tocar ao vivo agora. Quando o bloco for música, NÃO anuncie "
+            "nenhuma música, artista ou gênero específico -- nada vai tocar de verdade nesse bloco, e "
+            "anunciar uma faixa que não toca soa quebrado pro ouvinte. Em vez disso, faça uma transição "
+            "curta e natural (comentário rápido, chamada pro próximo momento do programa) sem prometer "
+            "nenhuma música."
         )
+
+    if musica is not None:
+        contexto_musica = _contexto_musica(musica)
+        if contexto_musica:
+            system_prompt_linhas.append(
+                f"Contexto real sobre essa música, pra você citar naturalmente ao anunciar se fizer sentido "
+                f"(não force, não é obrigatório usar tudo): {contexto_musica}"
+            )
 
     if categoria == "musica" and musica is not None:
         system_prompt_linhas.append(
@@ -603,8 +910,7 @@ def gerar_proxima_fala(
         )
     else:
         system_prompt_linhas.append(
-            "Quando o bloco for chamada_ouvinte, convide o público a mandar recado ou pedido de música "
-            "no WhatsApp da rádio."
+            _proxima_variacao(programa.id, "convite_chamada_ouvinte", _VARIACOES_CONVITE_OUVINTE)
         )
 
     if categoria == "encerramento":
@@ -628,9 +934,11 @@ def gerar_proxima_fala(
         ]
     )
 
-    falas_bloco: list[FalaItem] = []
-    if multi_voz:
-        resposta_llm = gerar_configuracao(system_prompt, mensagem)
+    def _gerar_falas_bloco(prompt: str) -> tuple[list[FalaItem], str]:
+        if not multi_voz:
+            return [], _limpar_fala(gerar_resposta(prompt, mensagem))
+
+        resposta_llm = gerar_configuracao(prompt, mensagem)
         try:
             linhas_dialogo = list((extrair_json(resposta_llm) if resposta_llm else {}).get("linhas") or [])
         except (json.JSONDecodeError, TypeError, AttributeError, ValueError):
@@ -638,12 +946,13 @@ def gerar_proxima_fala(
             linhas_dialogo = []
 
         roster_por_nome = {_sem_acento(p.radialista.nome_locutor.lower()): p for p in roster}
+        falas: list[FalaItem] = []
         for linha in linhas_dialogo:
             texto_linha = _limpar_fala(str(linha.get("texto") or ""))
             if not texto_linha:
                 continue
             participante = roster_por_nome.get(_sem_acento(str(linha.get("locutor") or "").lower()), roster[0])
-            falas_bloco.append(
+            falas.append(
                 FalaItem(
                     radio_config_id=participante.radialista.id,
                     nome_locutor=participante.radialista.nome_locutor,
@@ -651,20 +960,42 @@ def gerar_proxima_fala(
                     texto=texto_linha,
                 )
             )
-
-    if falas_bloco:
-        fala = " ".join(item.texto for item in falas_bloco)
-    elif multi_voz:
+        if falas:
+            return falas, " ".join(item.texto for item in falas)
         # LLM nao retornou dialogo em JSON valido -- nao trava o ao vivo, segue com uma fala generica.
-        fala = "Seguimos no ar, ja volto com mais uma novidade."
-    else:
-        fala = _limpar_fala(gerar_resposta(system_prompt, mensagem))
+        return [], "Seguimos no ar, ja volto com mais uma novidade."
+
+    falas_bloco, fala = _gerar_falas_bloco(system_prompt)
+
+    # Rede de seguranca: se a fala saiu parecida com uma fala recente do mesmo tipo de bloco
+    # nesta sessao, tenta gerar de novo uma unica vez com a colisao apontada explicitamente --
+    # nao entra em loop pra nao multiplicar custo/latencia por fala.
+    historico_falas_categoria = _historico_falas(programa.id, categoria)
+    fala_parecida = _fala_semelhante_no_historico(fala, historico_falas_categoria)
+    if fala_parecida:
+        logger.info(
+            "Fala repetitiva detectada, regenerando uma vez: programa_id=%s tipo=%s", programa.id, tipo
+        )
+        prompt_retry = system_prompt + (
+            "\n\nATENÇÃO: a fala que você ia gerar agora ficou muito parecida com esta fala anterior sua, "
+            f'já usada nesta transmissão: "{fala_parecida}". Reescreva com conteúdo, palavras e construção '
+            "diferentes, mantendo o mesmo tipo de bloco e as regras acima."
+        )
+        falas_bloco, fala = _gerar_falas_bloco(prompt_retry)
 
     musicas_bloco: list[MusicaEncontrada] = []
     if categoria == "musica":
         fala, quantidade = _extrair_quantidade_musicas(fala)
         if musica is not None:
-            musicas_bloco = _montar_bloco_musicas(programa, musica, quantidade, tipo)
+            musicas_bloco = _montar_bloco_musicas(db, programa, musica, quantidade, tipo)
+
+    if fala.strip():
+        _registrar_fala_gerada(programa.id, categoria, fala)
+
+    if categoria in ("comentario", "noticia") and fala.strip():
+        tema = classificar_tema_fala(fala)
+        if tema:
+            _registrar_tema(programa.id, tema)
 
     return LiveProgramResponse(
         tipo=tipo,

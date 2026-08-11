@@ -14,7 +14,7 @@ def _sem_clima_real(monkeypatch):
 
 
 def _account(**kwargs):
-    padrao = dict(nome_radio="Radio Teste", email="a@a.com", senha_hash="x")
+    padrao = dict(nome_radio="Radio Teste")
     padrao.update(kwargs)
     return Account(**padrao)
 

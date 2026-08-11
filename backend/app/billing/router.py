@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_account
+from app.auth.dependencies import exigir_admin, get_current_account
 from app.billing.limites import (
     limite_agentes_efetivo,
     limite_mensagens_efetivo,
@@ -42,13 +42,13 @@ def _exigir_plano_ativo(account: Account) -> None:
 
 
 @router.post("/checkout")
-def checkout(account: Account = Depends(get_current_account)):
+def checkout(account: Account = Depends(get_current_account), _admin=Depends(exigir_admin)):
     sessao = criar_sessao_checkout(account)
     return {"url": sessao.url}
 
 
 @router.post("/agentes-extras/checkout")
-def checkout_agente_extra(account: Account = Depends(get_current_account)):
+def checkout_agente_extra(account: Account = Depends(get_current_account), _admin=Depends(exigir_admin)):
     _exigir_plano_ativo(account)
     sessao = criar_sessao_checkout_agente_extra(account)
     return {"url": sessao.url}
@@ -56,7 +56,9 @@ def checkout_agente_extra(account: Account = Depends(get_current_account)):
 
 @router.post("/excedente-mensagens/checkout")
 def checkout_excedente_mensagens(
-    dados: ExcedenteMensagensRequest, account: Account = Depends(get_current_account)
+    dados: ExcedenteMensagensRequest,
+    account: Account = Depends(get_current_account),
+    _admin=Depends(exigir_admin),
 ):
     _exigir_plano_ativo(account)
     sessao = criar_sessao_checkout_excedente_mensagens(account, dados.blocos)

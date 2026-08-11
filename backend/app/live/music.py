@@ -2,7 +2,8 @@ import json
 import logging
 import random
 import re
-from dataclasses import dataclass
+import unicodedata
+from dataclasses import dataclass, field
 
 import httpx
 
@@ -35,6 +36,22 @@ _DURACAO_MIN_SEGUNDOS = 61
 _DURACAO_MAX_SEGUNDOS = 8 * 60
 
 
+def _sem_acento(texto: str) -> str:
+    return "".join(c for c in unicodedata.normalize("NFD", texto) if unicodedata.category(c) != "Mn")
+
+
+# Palavras que nao carregam sentido de genero sozinhas -- ignoradas ao extrair as palavras-chave
+# de um genero pedido (ver _palavras_chave_genero), pra "chamame e xote" virar ["chamame", "xote"]
+# em vez de incluir "e" como palavra-chave exigida.
+_PALAVRAS_IGNORADAS_GENERO = {"e", "de", "da", "do", "dos", "das", "musica", "música"}
+
+
+def _palavras_chave_genero(genero: str) -> list[str]:
+    normalizado = _sem_acento(genero.lower())
+    palavras = re.split(r"[\s,/]+", normalizado)
+    return [p for p in palavras if p and p not in _PALAVRAS_IGNORADAS_GENERO]
+
+
 @dataclass
 class MusicaEncontrada:
     video_id: str
@@ -44,6 +61,12 @@ class MusicaEncontrada:
     # Segundo em que cortar antes do fim do video (silencio longo ou fala apos a
     # musica -- ver app/live/audio_analysis.py). None = toca ate o fim do video.
     fim_segundos: int | None = None
+    # Contexto real do video (descricao/tags/ano, ver _buscar_metadados_musica) -- usado pra
+    # dar ao locutor material real pra comentar a musica antes de toca-la (ver
+    # resumir_contexto_musica em app.llm.client), em vez de so' saber titulo/canal.
+    descricao: str = ""
+    tags: list[str] = field(default_factory=list)
+    ano: str | None = None
 
 
 TERMOS_AO_VIVO = [
@@ -76,10 +99,13 @@ TERMOS_REACAO = [
 # Ranking/coletanea (ex: "O TOP 50 MUDOU MUITO!", "AS MAIS TOCADAS") mistura varios
 # artistas/musicas num video so' -- nunca e' a musica pedida sozinha, mesmo quando ela
 # aparece no titulo pelo nome.
-PADRAO_TOP_N = re.compile(r"top\s*\d+")
+PADRAO_TOP_N = re.compile(r"top\s*\d+|\btop\b.{0,40}\b(19|20)\d{2}\b")
 TERMOS_COLETANEA = [
     "as mais tocadas", "as mais ouvidas", "melhores musicas", "melhores músicas",
     "mega funk", "setlist", "coletanea", "coletânea", "playlist", "sequencia de",
+    "sequência de", "só hits", "so hits", "sucessos", "grandes sucessos",
+    "sem parar", "non stop", "nonstop", "hora de musica", "hora de música",
+    "horas de musica", "horas de música", "musicas para trabalhar", "músicas para trabalhar",
 ]
 
 # Conteudo educativo/institucional SOBRE musica (tutorial, bastidores de producao,
@@ -195,11 +221,65 @@ def _buscar_duracoes(video_ids: list[str]) -> dict[str, int]:
     return duracoes
 
 
+def _buscar_metadados_musica(video_id: str) -> dict:
+    """Descricao, tags e ano de publicacao do video ESCOLHIDO -- contexto real pra injetar no
+    prompt antes do locutor falar da musica (ver resumir_contexto_musica em app.llm.client),
+    em vez dele so' saber titulo/canal. So busca pro video que ja venceu a escolha (nao pros
+    candidatos descartados), pra nao gastar cota da API a toa; video_id nao muda depois de
+    publicado, entao o cache e' de longa duracao igual o de duracao.
+    """
+    if not settings.youtube_api_key:
+        return {}
+
+    chave_cache = f"cache:youtube_metadados:{video_id}"
+    em_cache = redis_client.get(chave_cache)
+    if em_cache is not None:
+        return json.loads(em_cache)
+
+    params = {
+        "key": settings.youtube_api_key,
+        "part": "snippet",
+        "id": video_id,
+    }
+
+    try:
+        resposta = httpx.get(YOUTUBE_VIDEOS_URL, params=params, timeout=8.0)
+        resposta.raise_for_status()
+    except httpx.HTTPError:
+        logger.warning("Falha ao buscar metadados de video no YouTube: video_id=%r", video_id, exc_info=True)
+        return {}
+
+    itens = resposta.json().get("items", [])
+    if not itens:
+        return {}
+
+    snippet = itens[0].get("snippet", {})
+    metadados = {
+        # descricao pode ser bem longa (varios paragrafos de credito/link) -- trunca pro
+        # prompt nao inchar com coisa que o locutor nunca vai citar.
+        "descricao": (snippet.get("description") or "").strip()[:500],
+        "tags": snippet.get("tags") or [],
+        "ano": (snippet.get("publishedAt") or "")[:4] or None,
+    }
+    redis_client.set(chave_cache, json.dumps(metadados), ex=_CACHE_TTL_DURACAO_SEGUNDOS)
+    return metadados
+
+
+def _preencher_extras(resultado: MusicaEncontrada, duracoes: dict[str, int]) -> MusicaEncontrada:
+    resultado.fim_segundos = obter_fim_seguro(resultado.video_id, duracoes.get(resultado.video_id))
+    metadados = _buscar_metadados_musica(resultado.video_id)
+    resultado.descricao = metadados.get("descricao", "")
+    resultado.tags = metadados.get("tags") or []
+    resultado.ano = metadados.get("ano")
+    return resultado
+
+
 _LIMITE_PADRAO_POR_CANAL = 2
 
 
 def buscar_musica(
     query: str,
+    genero: str | None = None,
     bloqueados: list[str] | None = None,
     evitar_video_ids: set[str] | None = None,
     canais_recentes: dict[str, int] | None = None,
@@ -212,6 +292,12 @@ def buscar_musica(
     pelo caller, que e' quem sabe o que ja tocou nessa sessao. Se o limite por canal
     deixar zero resultado (genero com pouca variedade), a 2a rodada ignora esse limite
     em vez de travar a busca -- so' o video_id exato e os bloqueados continuam valendo.
+
+    genero (opcional) exige que ao menos uma palavra-chave dele apareca no titulo/canal do
+    resultado -- sem isso, a busca do YouTube as vezes deriva pra um genero vizinho (pedir
+    "xote" e devolver "chamame", por exemplo, porque o algoritmo de relacionados do YouTube
+    mistura generos regionais proximos). So relaxa (aceita qualquer genero) como ultimo
+    recurso, mesma logica de "preferencia, nunca bloqueio duro" do limite por canal/duracao.
     """
     if not settings.youtube_api_key:
         return None
@@ -219,6 +305,7 @@ def buscar_musica(
     bloqueados_lower = [b.lower() for b in (bloqueados or [])]
     evitar_video_ids = evitar_video_ids or set()
     canais_recentes = canais_recentes or {}
+    palavras_genero = _palavras_chave_genero(genero) if genero else []
 
     def escolher(
         itens: list[dict],
@@ -226,18 +313,32 @@ def buscar_musica(
         respeitar_limite_canal: bool,
         duracoes: dict[str, int],
         respeitar_duracao: bool = True,
+        respeitar_genero: bool = True,
     ) -> MusicaEncontrada | None:
         def repetido(canal: str) -> bool:
             return respeitar_limite_canal and canais_recentes.get(canal.lower(), 0) >= limite_por_canal
 
-        def duracao_invalida(video_id: str) -> bool:
-            if not respeitar_duracao:
+        def genero_invalido(texto_sem_acento: str) -> bool:
+            if not respeitar_genero or not palavras_genero:
                 return False
-            duracao = duracoes.get(video_id)
-            return duracao is not None and not (_DURACAO_MIN_SEGUNDOS <= duracao <= _DURACAO_MAX_SEGUNDOS)
+            return not any(palavra in texto_sem_acento for palavra in palavras_genero)
 
-        # 1a passada: canal oficial (auto-gerado "- Topic" ou VEVO) so' publica a
-        # faixa em si -- pula direto o blocklist inteiro, so' respeita bloqueados/repeticao/duracao.
+        def duracao_invalida(video_id: str) -> bool:
+            duracao = duracoes.get(video_id)
+            # Duracao CONHECIDA fora da faixa e' sempre invalida, mesmo no passo relaxado --
+            # bug corrigido aqui: antes, respeitar_duracao=False perdoava qualquer duracao
+            # conhecida (inclusive medley/coletanea de 1h que passou reto pelo filtro de
+            # titulo), quando o unico caso que deveria ser perdoado como ultimo recurso e'
+            # duracao DESCONHECIDA (falha/cota da API de videos.list).
+            if duracao is None:
+                return respeitar_duracao
+            return not (_DURACAO_MIN_SEGUNDOS <= duracao <= _DURACAO_MAX_SEGUNDOS)
+
+        # 1a passada: canal oficial (auto-gerado "- Topic" ou VEVO) so' publica
+        # faixa em si na maioria dos casos -- pula blocklist de reacao/historia/
+        # tutorial, mas NAO pula coletanea/top-n: selo tambem publica playlist/
+        # mix inteiro no canal oficial (ex: "Verao Brasil 2026 ... So Hits"),
+        # so' respeita bloqueados/repeticao/duracao/coletanea.
         for item in itens:
             titulo = item["snippet"]["title"]
             canal = item["snippet"]["channelTitle"]
@@ -245,7 +346,11 @@ def buscar_musica(
             texto = f"{titulo.lower()} {canal.lower()}"
             if video_id in evitar_video_ids or repetido(canal) or duracao_invalida(video_id):
                 continue
+            if genero_invalido(_sem_acento(texto)):
+                continue
             if PADRAO_SHORTS_REELS.search(texto):
+                continue
+            if any(termo in texto for termo in TERMOS_COLETANEA) or PADRAO_TOP_N.search(texto):
                 continue
             if _eh_canal_oficial(canal) and not any(termo in texto for termo in bloqueados_lower):
                 return MusicaEncontrada(video_id=video_id, titulo=titulo, canal=canal, inicio_segundos=0)
@@ -256,6 +361,8 @@ def buscar_musica(
             video_id = item["id"]["videoId"]
             texto = f"{titulo.lower()} {canal.lower()}"
             if video_id in evitar_video_ids or repetido(canal) or duracao_invalida(video_id):
+                continue
+            if genero_invalido(_sem_acento(texto)):
                 continue
             if any(termo in texto for termo in bloqueados_lower):
                 continue
@@ -284,46 +391,52 @@ def buscar_musica(
         [item["id"]["videoId"] for item in itens_estudio + itens_geral]
     )
 
+    # respeitar_genero relaxa primeiro que tudo (loop mais externo): genero pedido e' o sinal
+    # mais importante de acerto (ver docstring), so' aceita resultado de genero errado quando
+    # nenhuma combinacao de duracao/canal/ao-vivo achou nada dentro do genero pedido.
     # respeitar_duracao relaxa por ultimo, so' quando nenhuma combinacao de canal/ao-vivo
     # deu resultado -- mesma logica de "nao trava a busca" do limite_por_canal: preferencia
     # de qualidade, nunca bloqueio duro (senao um genero onde toda gravacao disponivel foge
     # da faixa 40s-8min, ex. so' tem versao "ao vivo" longa, para de tocar musica nenhuma).
-    for respeitar_duracao in (True, False):
-        for respeitar_limite_canal in (True, False):
-            resultado = escolher(
-                itens_estudio,
-                permitir_ao_vivo=False,
-                respeitar_limite_canal=respeitar_limite_canal,
-                duracoes=duracoes,
-                respeitar_duracao=respeitar_duracao,
-            )
-            if resultado:
-                resultado.fim_segundos = obter_fim_seguro(resultado.video_id, duracoes.get(resultado.video_id))
-                return resultado
+    for respeitar_genero in (True, False):
+        if not palavras_genero and not respeitar_genero:
+            break  # sem genero pedido, relaxar de novo e' repetir a mesma busca a toa.
+        for respeitar_duracao in (True, False):
+            for respeitar_limite_canal in (True, False):
+                resultado = escolher(
+                    itens_estudio,
+                    permitir_ao_vivo=False,
+                    respeitar_limite_canal=respeitar_limite_canal,
+                    duracoes=duracoes,
+                    respeitar_duracao=respeitar_duracao,
+                    respeitar_genero=respeitar_genero,
+                )
+                if resultado:
+                    return _preencher_extras(resultado, duracoes)
 
-            resultado = escolher(
-                itens_geral,
-                permitir_ao_vivo=False,
-                respeitar_limite_canal=respeitar_limite_canal,
-                duracoes=duracoes,
-                respeitar_duracao=respeitar_duracao,
-            )
-            if resultado:
-                resultado.fim_segundos = obter_fim_seguro(resultado.video_id, duracoes.get(resultado.video_id))
-                return resultado
+                resultado = escolher(
+                    itens_geral,
+                    permitir_ao_vivo=False,
+                    respeitar_limite_canal=respeitar_limite_canal,
+                    duracoes=duracoes,
+                    respeitar_duracao=respeitar_duracao,
+                    respeitar_genero=respeitar_genero,
+                )
+                if resultado:
+                    return _preencher_extras(resultado, duracoes)
 
-            resultado = escolher(
-                itens_geral,
-                permitir_ao_vivo=True,
-                respeitar_limite_canal=respeitar_limite_canal,
-                duracoes=duracoes,
-                respeitar_duracao=respeitar_duracao,
-            )
-            if resultado:
-                resultado.fim_segundos = obter_fim_seguro(resultado.video_id, duracoes.get(resultado.video_id))
-                return resultado
+                resultado = escolher(
+                    itens_geral,
+                    permitir_ao_vivo=True,
+                    respeitar_limite_canal=respeitar_limite_canal,
+                    duracoes=duracoes,
+                    respeitar_duracao=respeitar_duracao,
+                    respeitar_genero=respeitar_genero,
+                )
+                if resultado:
+                    return _preencher_extras(resultado, duracoes)
 
-    logger.warning("Nenhuma musica encontrada: query=%r", query)
+    logger.warning("Nenhuma musica encontrada: query=%r genero=%r", query, genero)
     return None
 
 

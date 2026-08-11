@@ -10,10 +10,10 @@ class PasswordResetToken(Base):
     __tablename__ = "password_reset_tokens"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    account_id: Mapped[int] = mapped_column(Integer, ForeignKey("accounts.id"), index=True)
+    usuario_id: Mapped[int] = mapped_column(Integer, ForeignKey("usuarios.id"), index=True)
 
     # Guardamos o hash (sha256) do token, nunca o valor em texto puro -- mesmo
-    # padrao de senha_hash em Account, so que aqui e so pra permitir lookup por igualdade.
+    # padrao de senha_hash em Usuario, so que aqui e so pra permitir lookup por igualdade.
     token_hash: Mapped[str] = mapped_column(String, unique=True, index=True)
 
     expira_em: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True))

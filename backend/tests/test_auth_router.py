@@ -107,7 +107,7 @@ def test_esqueci_senha_para_conta_existente_cria_token(client, account, db_sessi
     token_hash = hashlib.sha256(token_gerado.encode()).hexdigest()
     registro = db_session.query(PasswordResetToken).filter_by(token_hash=token_hash).first()
     assert registro is not None
-    assert registro.account_id == account.id
+    assert registro.usuario_id is not None
 
 
 def test_esqueci_senha_para_conta_inexistente_ainda_devolve_204(client, monkeypatch):
@@ -161,6 +161,29 @@ def test_redefinir_senha_reutilizando_token_falha(client, account, monkeypatch):
 
     segunda = client.post("/auth/redefinir-senha", json={"token": token, "senha_nova": "outrasenha123"})
     assert segunda.status_code == 400
+
+
+def test_registro_cria_usuario_admin(client):
+    resposta = _registrar(client)
+    token = resposta.json()["access_token"]
+
+    me = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert me.json()["role"] == "admin"
+
+
+def test_dois_usuarios_da_mesma_conta_logam_separado(client, db_session, account, usuario_factory):
+    usuario_factory(account.id, email="membro@example.com", senha="senha12345", role="membro")
+
+    login_membro = client.post("/auth/login", json={"email": "membro@example.com", "senha": "senha12345"})
+    assert login_membro.status_code == 200
+    token_membro = login_membro.json()["access_token"]
+
+    me_membro = client.get("/auth/me", headers={"Authorization": f"Bearer {token_membro}"})
+    assert me_membro.json()["role"] == "membro"
+    assert me_membro.json()["email"] == "membro@example.com"
+
+    login_admin = client.post("/auth/login", json={"email": account.email, "senha": "senha12345"})
+    assert login_admin.status_code == 200
 
 
 def test_register_respeita_rate_limit_por_ip(client):

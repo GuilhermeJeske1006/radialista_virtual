@@ -4,9 +4,7 @@ from app.planos import PRECO_AGENTE_ADICIONAL, PRECO_EXCEDENTE_1000_MSG
 
 
 def _account(**kwargs):
-    padrao = dict(email="a@a.com", senha_hash="x")
-    padrao.update(kwargs)
-    return Account(id=1, **padrao)
+    return Account(id=1, **kwargs)
 
 
 def test_criar_sessao_checkout_usa_client_reference_id(monkeypatch):

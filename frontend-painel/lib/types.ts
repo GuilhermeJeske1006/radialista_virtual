@@ -195,8 +195,26 @@ export type Conta = {
   id: number;
   nome: string;
   email: string;
+  role: "admin" | "membro";
   plano_status: string;
   plano: string;
   criado_em: string;
   tem_radio_config: boolean;
+};
+
+export type UsuarioEquipe = {
+  id: number;
+  nome: string;
+  email: string;
+  role: "admin" | "membro";
+  ativo: boolean;
+  criado_em: string;
+};
+
+export type ConviteEquipe = {
+  id: number;
+  email: string;
+  role: "admin" | "membro";
+  expira_em: string;
+  criado_em: string;
 };
