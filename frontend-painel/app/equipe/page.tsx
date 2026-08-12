@@ -20,11 +20,13 @@ export default function EquipePage() {
   const [convites, setConvites] = useState<ConviteEquipe[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
+  const [mensagem, setMensagem] = useState("");
 
   const [emailConvite, setEmailConvite] = useState("");
   const [roleConvite, setRoleConvite] = useState<"admin" | "membro">("membro");
   const [convidando, setConvidando] = useState(false);
   const [erroConvite, setErroConvite] = useState("");
+  const [mensagemConvite, setMensagemConvite] = useState("");
 
   const [paraRemover, setParaRemover] = useState<UsuarioEquipe | null>(null);
   const [paraRevogar, setParaRevogar] = useState<ConviteEquipe | null>(null);
@@ -53,12 +55,18 @@ export default function EquipePage() {
   async function convidar(e: React.FormEvent) {
     e.preventDefault();
     setErroConvite("");
+    setMensagemConvite("");
     setConvidando(true);
     try {
-      await apiFetch("/equipe/convites", {
+      const convite = await apiFetch<ConviteEquipe>("/equipe/convites", {
         method: "POST",
         body: JSON.stringify({ email: emailConvite.trim(), role: roleConvite }),
       });
+      setMensagemConvite(
+        convite.email_enviado
+          ? `Convite enviado para ${convite.email}.`
+          : `Convite criado, mas falha ao enviar o e-mail para ${convite.email}. Tente reenviar.`
+      );
       setEmailConvite("");
       setRoleConvite("membro");
       carregar();
@@ -71,6 +79,7 @@ export default function EquipePage() {
 
   async function alterarRole(usuario: UsuarioEquipe, role: "admin" | "membro") {
     setErro("");
+    setMensagem("");
     try {
       await apiFetch(`/equipe/${usuario.id}/role`, { method: "PATCH", body: JSON.stringify({ role }) });
       carregar();
@@ -81,6 +90,7 @@ export default function EquipePage() {
 
   async function remover(usuario: UsuarioEquipe) {
     setErro("");
+    setMensagem("");
     try {
       await apiFetch(`/equipe/${usuario.id}`, { method: "DELETE" });
       carregar();
@@ -93,8 +103,14 @@ export default function EquipePage() {
 
   async function reenviar(convite: ConviteEquipe) {
     setErro("");
+    setMensagem("");
     try {
-      await apiFetch(`/equipe/convites/${convite.id}/reenviar`, { method: "POST" });
+      const resp = await apiFetch<ConviteEquipe>(`/equipe/convites/${convite.id}/reenviar`, { method: "POST" });
+      setMensagem(
+        resp.email_enviado
+          ? `Convite reenviado para ${resp.email}.`
+          : `Falha ao reenviar o e-mail para ${resp.email}. Tente novamente em instantes.`
+      );
       carregar();
     } catch (err) {
       setErro(err instanceof ApiError ? err.message : "Erro ao reenviar convite");
@@ -103,6 +119,7 @@ export default function EquipePage() {
 
   async function revogar(convite: ConviteEquipe) {
     setErro("");
+    setMensagem("");
     try {
       await apiFetch(`/equipe/convites/${convite.id}`, { method: "DELETE" });
       carregar();
@@ -129,6 +146,7 @@ export default function EquipePage() {
     <AppShell title="Equipe" maxWidthClassName="max-w-3xl">
       <div className="space-y-5">
         {erro && <p className="text-sm text-rust">{erro}</p>}
+        {mensagem && <p className="text-sm text-teal">{mensagem}</p>}
 
         <form onSubmit={convidar} className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
           <h2 className="font-display text-base font-bold text-fg mb-1">Convidar</h2>
@@ -159,6 +177,7 @@ export default function EquipePage() {
             </button>
           </div>
           {erroConvite && <p className="mt-3 text-sm text-rust">{erroConvite}</p>}
+          {mensagemConvite && <p className="mt-3 text-sm text-teal">{mensagemConvite}</p>}
         </form>
 
         <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">

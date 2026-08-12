@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import DateTime, Integer, String
+from sqlalchemy import Boolean, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -59,6 +59,11 @@ class Account(Base):
     # /webhook/whatsapp, unica forma de confirmar que a chamada veio mesmo do WuzAPI
     # (e nao de alguem forjando o "userID", que e' sequencial e nao secreto).
     wuzapi_hmac_key: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    # True assim que o WhatsApp conecta pela primeira vez (onboarding concluido) --
+    # usado so pra disparar o e-mail de boas-vindas uma unica vez (ver
+    # app/onboarding/router.py::status_sessao), ja que o status e' pollado a cada 3s.
+    onboarding_email_enviado: Mapped[bool] = mapped_column(Boolean, default=False)
 
     criado_em: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.datetime.now(datetime.timezone.utc)

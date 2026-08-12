@@ -217,4 +217,5 @@ export type ConviteEquipe = {
   role: "admin" | "membro";
   expira_em: string;
   criado_em: string;
+  email_enviado: boolean;
 };

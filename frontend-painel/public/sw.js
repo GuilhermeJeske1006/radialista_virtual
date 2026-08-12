@@ -10,5 +10,11 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  // So intercepta same-origin (assets/paginas). Requests cross-origin (ex.: API
+  // backend em outra porta) ficam pro browser lidar direto -- refazer o fetch aqui
+  // dentro do SW quebra CORS em POST/PUT cross-origin.
+  if (new URL(event.request.url).origin !== self.location.origin) {
+    return;
+  }
   event.respondWith(fetch(event.request));
 });

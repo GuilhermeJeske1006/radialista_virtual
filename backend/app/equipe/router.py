@@ -46,6 +46,7 @@ class ConviteResponse(BaseModel):
     role: str
     expira_em: datetime.datetime
     criado_em: datetime.datetime
+    email_enviado: bool = True
 
 
 class AceitarConviteRequest(BaseModel):
@@ -122,10 +123,10 @@ def convidar(
     db.commit()
     db.refresh(convite)
 
-    enviar_email_convite(dados.email, token, usuario.account.nome_radio)
+    email_enviado = enviar_email_convite(dados.email, token, usuario.account.nome_radio)
     logger.info("Convite criado: account_id=%s email=%s role=%s", usuario.account_id, dados.email, dados.role)
 
-    return convite
+    return ConviteResponse.model_validate(convite).model_copy(update={"email_enviado": email_enviado})
 
 
 @router.post(
@@ -150,10 +151,10 @@ def reenviar_convite(
     db.commit()
     db.refresh(convite)
 
-    enviar_email_convite(convite.email, token, usuario.account.nome_radio)
+    email_enviado = enviar_email_convite(convite.email, token, usuario.account.nome_radio)
     logger.info("Convite reenviado: convite_id=%s", convite.id)
 
-    return convite
+    return ConviteResponse.model_validate(convite).model_copy(update={"email_enviado": email_enviado})
 
 
 @router.delete("/equipe/convites/{convite_id}", status_code=status.HTTP_204_NO_CONTENT)

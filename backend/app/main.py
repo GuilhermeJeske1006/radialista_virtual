@@ -138,6 +138,7 @@ def garantir_colunas_account():
         "wuzapi_hmac_key": "VARCHAR NULL",
         "agentes_extras": "INTEGER DEFAULT 0 NOT NULL",
         "cidade": "VARCHAR DEFAULT '' NOT NULL",
+        "onboarding_email_enviado": "BOOLEAN DEFAULT FALSE NOT NULL",
     }
 
     with engine.begin() as conn:

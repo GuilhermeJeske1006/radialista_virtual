@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_account
+from app.auth.email import enviar_email_boas_vindas
 from app.config.settings import settings
 from app.db.database import get_db
 from app.models.account import Account
@@ -107,11 +108,21 @@ def desconectar(account: Account = Depends(get_current_account)):
 
 
 @router.get("/status")
-def status_sessao(account: Account = Depends(get_current_account)):
+def status_sessao(account: Account = Depends(get_current_account), db: Session = Depends(get_db)):
     if not account.wuzapi_token:
         return {"connected": False}
 
     try:
-        return obter_status_sessao(account.wuzapi_token)
+        resultado = obter_status_sessao(account.wuzapi_token)
     except httpx.HTTPStatusError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Falha ao obter status da sessao") from exc
+
+    logado = (resultado.get("data") or {}).get("loggedIn", False)
+    if logado and not account.onboarding_email_enviado:
+        admin = next((u for u in account.usuarios if u.role == "admin" and u.ativo), None)
+        if admin is not None:
+            enviar_email_boas_vindas(admin.email, admin.nome)
+        account.onboarding_email_enviado = True
+        db.commit()
+
+    return resultado
