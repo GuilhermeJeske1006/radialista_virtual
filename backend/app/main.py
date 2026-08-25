@@ -7,7 +7,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import inspect, text
 
 from app.auth.router import router as auth_router
+from app.biblioteca_audio.router import router as biblioteca_audio_router
 from app.billing.router import router as billing_router
+from app.categorias_vinheta.defaults import CATEGORIAS_PADRAO
+from app.categorias_vinheta.router import router as categorias_vinheta_router
 from app.config.router import router as config_router
 from app.config.settings import settings
 from app.db.database import Base, engine
@@ -16,6 +19,8 @@ from app.live.router import router as live_router
 from app.metrics.router import router as metrics_router
 from app.models import (  # noqa: F401 -- garante que as tabelas sejam registradas no metadata
     Account,
+    BibliotecaAudioItem,
+    CategoriaVinheta,
     ConviteUsuario,
     FilaAoVivo,
     InteractionLog,
@@ -83,6 +88,8 @@ app.include_router(billing_router)
 app.include_router(live_router)
 app.include_router(tts_router)
 app.include_router(patrocinadores_router)
+app.include_router(biblioteca_audio_router)
+app.include_router(categorias_vinheta_router)
 
 
 @app.on_event("startup")
@@ -93,6 +100,10 @@ async def criar_tabelas():
     garantir_colunas_programa()
     garantir_colunas_interaction_log()
     garantir_colunas_patrocinador()
+    garantir_colunas_categoria_vinheta()
+    corrigir_tipo_categoria_vinheta_legado()
+    migrar_categoria_biblioteca_audio()
+    semear_categorias_padrao_em_contas_existentes()
     migrar_conteudo_para_programas()
     migrar_whatsapp_para_account()
     migrar_usuarios_de_account()
@@ -219,12 +230,116 @@ def garantir_colunas_patrocinador():
     colunas = {coluna["name"] for coluna in inspector.get_columns("patrocinadores")}
     novas_colunas = {
         "voz_id": "VARCHAR NULL",
+        "duracao_segundos": "INTEGER NULL",
+        "categoria_id": "INTEGER NULL",
     }
 
     with engine.begin() as conn:
         for nome, definicao in novas_colunas.items():
             if nome not in colunas:
                 conn.execute(text(f"ALTER TABLE patrocinadores ADD COLUMN {nome} {definicao}"))
+
+
+def garantir_colunas_categoria_vinheta():
+    inspector = inspect(engine)
+    if "categorias_vinheta" not in inspector.get_table_names():
+        return
+
+    colunas = {coluna["name"] for coluna in inspector.get_columns("categorias_vinheta")}
+    if "tipo" not in colunas:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE categorias_vinheta ADD COLUMN tipo VARCHAR DEFAULT 'biblioteca' NOT NULL"))
+
+
+def corrigir_tipo_categoria_vinheta_legado():
+    """tipo da categoria de vinhetagem se chamava "vinheta" e foi renomeado pra "biblioteca"
+    (bate com o nome real do model/rota -- BibliotecaAudioItem / /biblioteca-audio). Corrige
+    categoria criada com o nome antigo. Vira no-op depois que roda a primeira vez.
+    """
+    inspector = inspect(engine)
+    if "categorias_vinheta" not in inspector.get_table_names():
+        return
+    with engine.begin() as conn:
+        conn.execute(text("UPDATE categorias_vinheta SET tipo = 'biblioteca' WHERE tipo = 'vinheta'"))
+
+
+def migrar_categoria_biblioteca_audio():
+    """biblioteca_audio_itens.categoria (string livre) virou categoria_id (FK pra
+    CategoriaVinheta), compartilhada com Patrocinador.categoria_id -- ver
+    app/categorias_vinheta/router.py. Cada valor de string distinto vira uma categoria
+    de verdade. So roda enquanto a coluna antiga ainda existir.
+    """
+    inspector = inspect(engine)
+    if "biblioteca_audio_itens" not in inspector.get_table_names():
+        return
+
+    colunas = {coluna["name"] for coluna in inspector.get_columns("biblioteca_audio_itens")}
+
+    with engine.begin() as conn:
+        if "categoria_id" not in colunas:
+            conn.execute(text("ALTER TABLE biblioteca_audio_itens ADD COLUMN categoria_id INTEGER NULL"))
+
+        if "categoria" not in colunas:
+            return
+
+        linhas = conn.execute(
+            text(
+                "SELECT DISTINCT account_id, categoria FROM biblioteca_audio_itens "
+                "WHERE categoria IS NOT NULL AND categoria <> ''"
+            )
+        ).fetchall()
+
+        for account_id, categoria in linhas:
+            categoria_id = conn.execute(
+                text("SELECT id FROM categorias_vinheta WHERE account_id = :account_id AND nome = :nome"),
+                {"account_id": account_id, "nome": categoria},
+            ).scalar()
+            if categoria_id is None:
+                categoria_id = conn.execute(
+                    text(
+                        "INSERT INTO categorias_vinheta (account_id, nome, tipo, criado_em) "
+                        "VALUES (:account_id, :nome, 'biblioteca', now()) RETURNING id"
+                    ),
+                    {"account_id": account_id, "nome": categoria},
+                ).scalar()
+            conn.execute(
+                text(
+                    "UPDATE biblioteca_audio_itens SET categoria_id = :categoria_id "
+                    "WHERE account_id = :account_id AND categoria = :nome"
+                ),
+                {"categoria_id": categoria_id, "account_id": account_id, "nome": categoria},
+            )
+
+        conn.execute(text("ALTER TABLE biblioteca_audio_itens DROP COLUMN categoria"))
+
+
+def semear_categorias_padrao_em_contas_existentes():
+    """Conta nova ja ganha as categorias padrao em app/auth/router.py (registrar). Essa funcao
+    cobre quem se cadastrou antes dessa tela existir (ou teve as categorias zeradas por
+    engano) -- so preenche conta que hoje esta com zero categorias, pra nao duplicar quem
+    ja organizou as proprias.
+    """
+    inspector = inspect(engine)
+    if "categorias_vinheta" not in inspector.get_table_names() or "accounts" not in inspector.get_table_names():
+        return
+
+    with engine.begin() as conn:
+        contas_sem_categoria = conn.execute(
+            text(
+                "SELECT a.id FROM accounts a "
+                "WHERE NOT EXISTS (SELECT 1 FROM categorias_vinheta c WHERE c.account_id = a.id)"
+            )
+        ).fetchall()
+
+        for (account_id,) in contas_sem_categoria:
+            for nome, tipo in CATEGORIAS_PADRAO:
+                conn.execute(
+                    text(
+                        "INSERT INTO categorias_vinheta (account_id, nome, tipo, criado_em) "
+                        "VALUES (:account_id, :nome, :tipo, now())"
+                    ),
+                    {"account_id": account_id, "nome": nome, "tipo": tipo},
+                )
 
 
 def migrar_conteudo_para_programas():

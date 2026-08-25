@@ -49,10 +49,6 @@ export default function EditarRadialistaForm({
   const [erro, setErro] = useState("");
   const [confirmandoExclusaoRadialista, setConfirmandoExclusaoRadialista] = useState(false);
   const [programaParaExcluir, setProgramaParaExcluir] = useState<Programa | null>(null);
-  const [modalIAAberto, setModalIAAberto] = useState(false);
-  const [descricaoIA, setDescricaoIA] = useState("");
-  const [gerandoIA, setGerandoIA] = useState(false);
-  const [erroIA, setErroIA] = useState("");
   const [mensagemLimiteAgentes, setMensagemLimiteAgentes] = useState("");
   const [comprandoAgenteExtra, setComprandoAgenteExtra] = useState(false);
   const [erroCompraAgenteExtra, setErroCompraAgenteExtra] = useState("");
@@ -155,29 +151,6 @@ export default function EditarRadialistaForm({
     }
   }
 
-  async function gerarProgramaComIA() {
-    if (!descricaoIA.trim() || idEfetivo === null) return;
-    setGerandoIA(true);
-    setErroIA("");
-    try {
-      const criado = await apiFetch<Programa>(`/config/radialistas/${idEfetivo}/programas/gerar-ia`, {
-        method: "POST",
-        body: JSON.stringify({ descricao: descricaoIA.trim() }),
-      });
-      setModalIAAberto(false);
-      if (onAbrirPrograma) {
-        carregarProgramas();
-        onAbrirPrograma(criado.id);
-      } else {
-        window.location.href = `/radialista/${idEfetivo}/programas/${criado.id}`;
-      }
-    } catch (err) {
-      setErroIA(err instanceof ApiError ? err.message : "Erro ao gerar programa com IA");
-    } finally {
-      setGerandoIA(false);
-    }
-  }
-
   async function excluirPrograma(programa: Programa) {
     try {
       await apiFetch(`/config/programas/${programa.id}`, { method: "DELETE" });
@@ -276,26 +249,13 @@ export default function EditarRadialistaForm({
         <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
           <div className="flex items-center justify-between mb-1">
             <h2 className="font-display text-base font-bold text-fg">Programação</h2>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setErroIA("");
-                  setDescricaoIA("");
-                  setModalIAAberto(true);
-                }}
-                className="text-sm font-medium text-amber hover:text-amber-dim"
-              >
-                ✨ Gerar com IA
-              </button>
-              <button
-                type="button"
-                onClick={abrirNovoPrograma}
-                className="text-sm font-medium text-amber hover:text-amber-dim"
-              >
-                + Novo programa
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={abrirNovoPrograma}
+              className="text-sm font-medium text-amber hover:text-amber-dim"
+            >
+              + Novo programa
+            </button>
           </div>
           <p className="text-sm text-fg/55 mb-5">
             Cada programa tem seu próprio tom, tópicos, músicas, notícias e regras de pesquisa, além do horário em que
@@ -359,52 +319,6 @@ export default function EditarRadialistaForm({
               ))}
             </div>
           )}
-        </div>
-      )}
-
-      {modalIAAberto && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4"
-          onClick={() => !gerandoIA && setModalIAAberto(false)}
-        >
-          <div
-            className="w-full max-w-lg rounded-2xl border border-border-strong bg-surface p-6 shadow-theme-xs"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-display text-base font-bold text-fg mb-2">Gerar programa com IA</h2>
-            <p className="text-sm text-fg/70 mb-4">
-              Descreva o gênero, o tom e o horário do programa. A IA preenche tópicos, estrutura de
-              blocos, músicas e todo o resto, coerente com a persona de {config.nome_locutor || "este radialista"} —
-              depois é só revisar e ajustar.
-            </p>
-            <textarea
-              value={descricaoIA}
-              onChange={(e) => setDescricaoIA(e.target.value)}
-              disabled={gerandoIA}
-              rows={4}
-              placeholder="Ex: programa noturno de sertanejo raiz, mais calmo e romântico, foco em modão"
-              className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2.5 text-sm text-fg placeholder:text-fg/35 focus:outline-none focus:ring-2 focus:ring-amber/40 disabled:opacity-60"
-            />
-            {erroIA && <p className="text-sm text-rust mt-2">{erroIA}</p>}
-            <div className="flex justify-end gap-3 mt-5">
-              <button
-                type="button"
-                onClick={() => setModalIAAberto(false)}
-                disabled={gerandoIA}
-                className="rounded-lg px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg disabled:opacity-60"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={gerarProgramaComIA}
-                disabled={gerandoIA || !descricaoIA.trim()}
-                className="rounded-lg bg-amber px-4 py-2.5 text-sm font-medium text-ink hover:bg-amber/90 disabled:opacity-60"
-              >
-                {gerandoIA ? "Gerando..." : "Gerar"}
-              </button>
-            </div>
-          </div>
         </div>
       )}
 

@@ -14,7 +14,7 @@ from app.models.account import Account
 from app.models.voz_clonada import VozClonada
 from app.planos import limites_do_plano
 from app.tts.client import clonar_voz, excluir_voz_clonada
-from app.tts.voices import listar_vozes
+from app.tts.voices import listar_vozes_com_preview
 
 logger = logging.getLogger("radialista.tts")
 
@@ -40,7 +40,7 @@ class VozClonadaResponse(BaseModel):
 
 @router.get("/voices", dependencies=[Depends(limitar_por_ip("tts_voices", limite=30, janela_segundos=60))])
 def vozes():
-    return listar_vozes()
+    return listar_vozes_com_preview()
 
 
 @router.get("/vozes-clonadas", response_model=list[VozClonadaResponse])

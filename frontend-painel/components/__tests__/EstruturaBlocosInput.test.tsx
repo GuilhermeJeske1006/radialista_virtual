@@ -61,7 +61,7 @@ describe("EstruturaBlocosInput", () => {
       <EstruturaBlocosInput
         blocos={[]}
         onChange={() => {}}
-        patrocinadores={[{ id: 1, nome: "Loja X", tipo_conteudo: "texto", ativo: true }]}
+        patrocinadores={[{ id: 1, nome: "Loja X", categoria_id: null, tipo_conteudo: "texto", ativo: true }]}
       />
     );
     expect(screen.getByText("+ Patrocinador")).toBeInTheDocument();
@@ -73,7 +73,7 @@ describe("EstruturaBlocosInput", () => {
       <EstruturaBlocosInput
         blocos={[]}
         onChange={onChange}
-        patrocinadores={[{ id: 7, nome: "Loja X", tipo_conteudo: "texto", ativo: true }]}
+        patrocinadores={[{ id: 7, nome: "Loja X", categoria_id: null, tipo_conteudo: "texto", ativo: true }]}
       />
     );
 
@@ -86,7 +86,7 @@ describe("EstruturaBlocosInput", () => {
       <EstruturaBlocosInput
         blocos={["patrocinador:7"]}
         onChange={() => {}}
-        patrocinadores={[{ id: 7, nome: "Loja X", tipo_conteudo: "texto", ativo: true }]}
+        patrocinadores={[{ id: 7, nome: "Loja X", categoria_id: null, tipo_conteudo: "texto", ativo: true }]}
       />
     );
     expect(screen.getByText("Patrocinador: Loja X")).toBeInTheDocument();

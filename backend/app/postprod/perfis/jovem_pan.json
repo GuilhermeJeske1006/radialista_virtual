@@ -1,0 +1,26 @@
+{
+  "eq": {
+    "high_pass_hz": 100,
+    "presence_boost_db": 4.5,
+    "presence_freq_hz": 3500,
+    "brightness_boost_db": 2.0
+  },
+  "compression": {
+    "ratio": 4.0,
+    "attack_ms": 3,
+    "release_ms": 90,
+    "threshold_db": -16
+  },
+  "saturation": {
+    "drive_db": 3.0
+  },
+  "reverb": {
+    "wet_level": 0.05,
+    "room_size": 0.15
+  },
+  "naturalness": {
+    "pitch_jitter_cents": 6,
+    "room_noise_db": -58
+  },
+  "loudness_target_lufs": -14
+}

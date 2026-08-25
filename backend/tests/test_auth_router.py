@@ -1,5 +1,6 @@
 import hashlib
 
+from app.categorias_vinheta.defaults import CATEGORIAS_PADRAO
 from app.models.password_reset_token import PasswordResetToken
 
 
@@ -17,6 +18,9 @@ def test_registro_cria_conta_radio_config_e_programa_padrao(client, db_session):
     corpo = me.json()
     assert corpo["email"] == "fulano@example.com"
     assert corpo["tem_radio_config"] is True
+
+    categorias = client.get("/categorias-vinheta", headers={"Authorization": f"Bearer {token}"}).json()
+    assert sorted((c["nome"], c["tipo"]) for c in categorias) == sorted(CATEGORIAS_PADRAO)
 
 
 def test_registro_com_email_duplicado_falha(client):

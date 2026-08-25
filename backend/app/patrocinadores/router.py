@@ -1,15 +1,18 @@
+import io
 import logging
 import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
 from pydantic import BaseModel
+from pydub import AudioSegment
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_account
 from app.config.settings import settings
 from app.db.database import get_db
 from app.models.account import Account
+from app.models.categoria_vinheta import CategoriaVinheta
 from app.models.patrocinador import Patrocinador
 from app.tts.voices import voz_valida_para_conta
 
@@ -31,9 +34,11 @@ _EXTENSOES_PERMITIDAS = {
 class PatrocinadorResponse(BaseModel):
     id: int
     nome: str
+    categoria_id: int | None
     tipo_conteudo: str
     texto: str | None
     audio_nome_original: str | None
+    duracao_segundos: int | None
     voz_id: str | None
     ativo: bool
 
@@ -45,6 +50,15 @@ def _validar_voz(db: Session, account: Account, voz_id: str | None) -> str | Non
     if voz_id is not None and not voz_valida_para_conta(db, account.id, voz_id):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Voz invalida")
     return voz_id
+
+
+def _validar_categoria(db: Session, account: Account, categoria_id: int | None) -> int | None:
+    if categoria_id is None:
+        return None
+    categoria = db.query(CategoriaVinheta).filter_by(id=categoria_id, account_id=account.id).first()
+    if categoria is None or categoria.tipo != "propaganda":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Categoria invalida")
+    return categoria_id
 
 
 def _buscar_patrocinador(db: Session, account: Account, patrocinador_id: int) -> Patrocinador:
@@ -60,8 +74,17 @@ def _diretorio_conta(account_id: int) -> Path:
     return diretorio
 
 
-async def _salvar_audio(arquivo: UploadFile, account_id: int) -> tuple[str, str]:
-    """Valida e grava o arquivo no disco. Devolve (audio_path relativo, nome original)."""
+def _duracao_segundos(conteudo: bytes) -> int | None:
+    try:
+        segmento = AudioSegment.from_file(io.BytesIO(conteudo))
+        return round(segmento.duration_seconds)
+    except Exception:
+        logger.warning("Falha ao calcular duracao do audio do patrocinador", exc_info=True)
+        return None
+
+
+async def _salvar_audio(arquivo: UploadFile, account_id: int) -> tuple[str, str, int | None]:
+    """Valida e grava o arquivo no disco. Devolve (audio_path relativo, nome original, duracao_segundos)."""
     extensao = Path(arquivo.filename or "").suffix.lower()
     if extensao not in _EXTENSOES_PERMITIDAS:
         raise HTTPException(
@@ -83,7 +106,8 @@ async def _salvar_audio(arquivo: UploadFile, account_id: int) -> tuple[str, str]
     caminho_absoluto.write_bytes(conteudo)
 
     audio_path = str(Path("patrocinadores") / str(account_id) / nome_arquivo)
-    return audio_path, (arquivo.filename or nome_arquivo)
+    duracao = _duracao_segundos(conteudo)
+    return audio_path, (arquivo.filename or nome_arquivo), duracao
 
 
 def _remover_audio(audio_path: str | None) -> None:
@@ -104,6 +128,7 @@ def listar_patrocinadores(
 @router.post("", response_model=PatrocinadorResponse, status_code=status.HTTP_201_CREATED)
 async def criar_patrocinador(
     nome: str = Form(...),
+    categoria_id: int | None = Form(None),
     tipo_conteudo: str = Form(...),
     texto: str | None = Form(None),
     voz_id: str | None = Form(None),
@@ -114,7 +139,12 @@ async def criar_patrocinador(
     if tipo_conteudo not in ("texto", "audio"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="tipo_conteudo invalido")
 
-    patrocinador = Patrocinador(account_id=account.id, nome=nome, tipo_conteudo=tipo_conteudo)
+    patrocinador = Patrocinador(
+        account_id=account.id,
+        nome=nome,
+        categoria_id=_validar_categoria(db, account, categoria_id),
+        tipo_conteudo=tipo_conteudo,
+    )
 
     if tipo_conteudo == "texto":
         if not texto or not texto.strip():
@@ -124,7 +154,9 @@ async def criar_patrocinador(
     else:
         if arquivo is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Arquivo de audio obrigatorio")
-        patrocinador.audio_path, patrocinador.audio_nome_original = await _salvar_audio(arquivo, account.id)
+        patrocinador.audio_path, patrocinador.audio_nome_original, patrocinador.duracao_segundos = await _salvar_audio(
+            arquivo, account.id
+        )
 
     db.add(patrocinador)
     db.commit()
@@ -137,6 +169,7 @@ async def criar_patrocinador(
 async def atualizar_patrocinador(
     patrocinador_id: int,
     nome: str = Form(...),
+    categoria_id: int | None = Form(None),
     tipo_conteudo: str = Form(...),
     texto: str | None = Form(None),
     voz_id: str | None = Form(None),
@@ -151,6 +184,7 @@ async def atualizar_patrocinador(
     patrocinador = _buscar_patrocinador(db, account, patrocinador_id)
 
     patrocinador.nome = nome
+    patrocinador.categoria_id = _validar_categoria(db, account, categoria_id)
     patrocinador.ativo = ativo
     patrocinador.tipo_conteudo = tipo_conteudo
 
@@ -162,10 +196,13 @@ async def atualizar_patrocinador(
         _remover_audio(patrocinador.audio_path)
         patrocinador.audio_path = None
         patrocinador.audio_nome_original = None
+        patrocinador.duracao_segundos = None
     else:
         if arquivo is not None:
             _remover_audio(patrocinador.audio_path)
-            patrocinador.audio_path, patrocinador.audio_nome_original = await _salvar_audio(arquivo, account.id)
+            patrocinador.audio_path, patrocinador.audio_nome_original, patrocinador.duracao_segundos = (
+                await _salvar_audio(arquivo, account.id)
+            )
         elif patrocinador.audio_path is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Arquivo de audio obrigatorio")
         patrocinador.texto = None

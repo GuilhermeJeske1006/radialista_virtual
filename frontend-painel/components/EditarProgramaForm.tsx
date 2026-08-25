@@ -28,6 +28,9 @@ type EditarProgramaFormProps = {
   programaId: number | null;
   /** obrigatorio quando programaId e' null: radialista dono do programa novo. */
   radioConfigId?: number;
+  /** so' usado no formulario de criacao (programaId === null), pra pre-preencher campos
+   * (ex.: dia/horario escolhidos ao clicar num slot vazio da grade semanal). */
+  valoresIniciais?: Partial<Programa>;
   onSalvo?: (programa: Programa) => void;
   onExcluido?: () => void;
 };
@@ -35,6 +38,7 @@ type EditarProgramaFormProps = {
 export default function EditarProgramaForm({
   programaId,
   radioConfigId,
+  valoresIniciais,
   onSalvo,
   onExcluido,
 }: EditarProgramaFormProps) {
@@ -45,6 +49,10 @@ export default function EditarProgramaForm({
   const [erro, setErro] = useState("");
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const [patrocinadores, setPatrocinadores] = useState<Patrocinador[]>([]);
+  const [iaAberto, setIaAberto] = useState(false);
+  const [descricaoIA, setDescricaoIA] = useState("");
+  const [gerandoIA, setGerandoIA] = useState(false);
+  const [erroIA, setErroIA] = useState("");
 
   // Depois que o POST de criacao roda (dentro de salvar()), guarda o id criado aqui --
   // programaId (prop) continua null enquanto o pai (pagina/modal) nao navegar/atualizar,
@@ -55,7 +63,9 @@ export default function EditarProgramaForm({
 
   useEffect(() => {
     if (idEfetivo === null) {
-      setPrograma(normalizarPrograma({ id: 0, radio_config_id: radioConfigId ?? 0, ...PROGRAMA_VAZIO }));
+      setPrograma(
+        normalizarPrograma({ id: 0, radio_config_id: radioConfigId ?? 0, ...PROGRAMA_VAZIO, ...valoresIniciais })
+      );
       setCarregando(false);
     } else {
       setCarregando(true);
@@ -101,6 +111,27 @@ export default function EditarProgramaForm({
     }
   }
 
+  async function gerarComIA() {
+    if (!descricaoIA.trim() || !radioConfigId) return;
+    setGerandoIA(true);
+    setErroIA("");
+    try {
+      const criado = await apiFetch<Programa>(`/config/radialistas/${radioConfigId}/programas/gerar-ia`, {
+        method: "POST",
+        body: JSON.stringify({ descricao: descricaoIA.trim() }),
+      });
+      setIdCriado(criado.id);
+      setPrograma(normalizarPrograma(criado));
+      setIaAberto(false);
+      setMensagem("Programa gerado com IA -- revise e ajuste o que quiser antes de salvar.");
+      onSalvo?.(criado);
+    } catch (err) {
+      setErroIA(err instanceof ApiError ? err.message : "Erro ao gerar programa com IA");
+    } finally {
+      setGerandoIA(false);
+    }
+  }
+
   async function excluirPrograma() {
     if (!programa || idEfetivo === null) return;
     try {
@@ -139,6 +170,61 @@ export default function EditarProgramaForm({
           </button>
         )}
       </div>
+
+      {criando && radioConfigId && (
+        <div className="mb-4 rounded-xl border border-amber/30 bg-amber/5 p-4">
+          {!iaAberto ? (
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-fg/70">Prefere começar com um rascunho pronto?</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setErroIA("");
+                  setDescricaoIA("");
+                  setIaAberto(true);
+                }}
+                className="shrink-0 text-sm font-medium text-amber hover:text-amber-dim"
+              >
+                ✨ Gerar com IA
+              </button>
+            </div>
+          ) : (
+            <div>
+              <p className="text-sm text-fg/70 mb-3">
+                Descreva o gênero, o tom e o horário do programa. A IA preenche tópicos, estrutura de blocos,
+                músicas e todo o resto -- depois é só revisar e ajustar.
+              </p>
+              <textarea
+                value={descricaoIA}
+                onChange={(e) => setDescricaoIA(e.target.value)}
+                disabled={gerandoIA}
+                rows={3}
+                placeholder="Ex: programa noturno de sertanejo raiz, mais calmo e romântico, foco em modão"
+                className={inputClass}
+              />
+              {erroIA && <p className="text-sm text-rust mt-2">{erroIA}</p>}
+              <div className="flex justify-end gap-3 mt-3">
+                <button
+                  type="button"
+                  onClick={() => setIaAberto(false)}
+                  disabled={gerandoIA}
+                  className="rounded-lg px-4 py-2 text-sm font-medium text-fg/60 hover:text-fg disabled:opacity-60"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={gerarComIA}
+                  disabled={gerandoIA || !descricaoIA.trim()}
+                  className="rounded-lg bg-amber px-4 py-2 text-sm font-medium text-ink hover:bg-amber/90 disabled:opacity-60"
+                >
+                  {gerandoIA ? "Gerando..." : "Gerar"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {erro && <p className="text-sm text-rust mb-4">{erro}</p>}
       {mensagem && <p className="text-sm text-teal mb-4">{mensagem}</p>}
@@ -269,13 +355,23 @@ export default function EditarProgramaForm({
         <hr className="border-border" />
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-mono text-xs uppercase tracking-wide text-amber">Estrutura do programa</h3>
-          <Link
-            href="/patrocinadores"
-            target="_blank"
-            className="text-xs font-medium text-amber hover:text-amber-dim"
-          >
-            Gerenciar patrocinadores ↗
-          </Link>
+          <div className="flex items-center gap-3">
+            {!criando && (
+              <Link
+                href={`/radialista/${programa.radio_config_id}/programas/${idEfetivo}/grade`}
+                className="text-xs font-medium text-amber hover:text-amber-dim"
+              >
+                Montar blocos do programa ↗
+              </Link>
+            )}
+            <Link
+              href="/vinhetagem"
+              target="_blank"
+              className="text-xs font-medium text-amber hover:text-amber-dim"
+            >
+              Gerenciar vinhetagem ↗
+            </Link>
+          </div>
         </div>
         <EstruturaBlocosInput
           blocos={programa.estrutura_blocos}

@@ -29,9 +29,9 @@ const ATALHOS = [
     descricao: "Acompanhar programas no ar",
   },
    {
-    href: "/patrocinadores",
-    label: "Patrocinadores",
-    descricao: "Gerenciar patrocinadores",
+    href: "/vinhetagem",
+    label: "Vinhetagem",
+    descricao: "Gerenciar vinhetas, categorias e propagandas",
   },
   {
     href: "/billing",
@@ -113,7 +113,7 @@ export default function DashboardPage() {
       feita: temPatrocinador,
       label: "Cadastrar patrocinador",
       descricao: "Opcional — para inserir chamadas comerciais no ar",
-      href: "/patrocinadores",
+      href: "/vinhetagem",
       opcional: true,
     },
   ];

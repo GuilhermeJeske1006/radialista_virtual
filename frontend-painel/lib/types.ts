@@ -46,6 +46,7 @@ export type Voz = {
   nome: string;
   genero: string;
   descricao: string;
+  preview_url?: string | null;
 };
 
 export type VozClonada = {
@@ -168,15 +169,27 @@ export const BLOCOS_PRESET: { value: string; label: string }[] = [
 ];
 
 const PATROCINADOR_BLOCO_RE = /^patrocinador:(\d+)$/;
+const VINHETA_BLOCO_RE = /^vinheta:(\d+)$/;
 
-// Recebe opcionalmente um mapa id -> nome (lista de patrocinadores da conta) pra resolver
-// o label de blocos "patrocinador:<id>" -- ver EstruturaBlocosInput.tsx.
-export function rotuloBloco(tipo: string, patrocinadores?: Record<number, string>): string {
-  const match = tipo.match(PATROCINADOR_BLOCO_RE);
-  if (match) {
-    const id = Number(match[1]);
+// Recebe opcionalmente mapas id -> nome (patrocinadores/vinhetas da conta) pra resolver o
+// label de blocos "patrocinador:<id>"/"vinheta:<id>" -- ver EstruturaBlocosInput.tsx e
+// GradeProgramacaoForm.tsx.
+export function rotuloBloco(
+  tipo: string,
+  patrocinadores?: Record<number, string>,
+  vinhetas?: Record<number, string>
+): string {
+  const matchPatrocinador = tipo.match(PATROCINADOR_BLOCO_RE);
+  if (matchPatrocinador) {
+    const id = Number(matchPatrocinador[1]);
     const nome = patrocinadores?.[id];
     return nome ? `Patrocinador: ${nome}` : `Patrocinador #${id}`;
+  }
+  const matchVinheta = tipo.match(VINHETA_BLOCO_RE);
+  if (matchVinheta) {
+    const id = Number(matchVinheta[1]);
+    const nome = vinhetas?.[id];
+    return nome ? `Vinheta: ${nome}` : `Vinheta #${id}`;
   }
   return BLOCOS_PRESET.find((b) => b.value === tipo)?.label ?? tipo;
 }
@@ -184,11 +197,21 @@ export function rotuloBloco(tipo: string, patrocinadores?: Record<number, string
 export type Patrocinador = {
   id: number;
   nome: string;
+  categoria_id: number | null;
   tipo_conteudo: "texto" | "audio";
   texto?: string | null;
   audio_nome_original?: string | null;
+  duracao_segundos?: number | null;
   voz_id?: string | null;
   ativo: boolean;
+};
+
+// Categoria de vinhetagem da conta -- agrupa vinhetas (BibliotecaAudioItem) e propagandas
+// (Patrocinador) na tela /vinhetagem. Ver backend/app/models/categoria_vinheta.py.
+export type CategoriaVinheta = {
+  id: number;
+  nome: string;
+  tipo: "biblioteca" | "propaganda";
 };
 
 export type Conta = {

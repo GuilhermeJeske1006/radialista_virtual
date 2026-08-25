@@ -27,12 +27,14 @@ from app.llm.client import (
 from app.llm.json_utils import extrair_json
 from app.llm.prompt_builder import ParticipantePrograma, montar_system_prompt
 from app.models.account import Account
+from app.models.biblioteca_audio import BibliotecaAudioItem
 from app.models.fila_ao_vivo import FilaAoVivo
 from app.models.musica_historico import MusicaHistorico
 from app.models.patrocinador import Patrocinador
 from app.models.programa import Programa
 from app.models.programa_radialista import ProgramaRadialista
 from app.models.radio_config import RadioConfig
+from app.postprod.client import processar_audio
 from app.tts.client import sintetizar_audio, tts_habilitado
 from app.tts.voices import voz_valida_para_conta
 
@@ -53,6 +55,9 @@ class LiveTtsRequest(BaseModel):
     texto: str
     tipo: str | None = None
     voz_id: str | None = None
+    # Nome de um perfil em app/postprod/perfis/*.json (ex.: "alfa_fm"). Nulo = devolve o
+    # mp3 cru da ElevenLabs, sem pos-producao (comportamento atual, preservado por default).
+    perfil_pos_producao: str | None = None
 
 
 class MusicaBlocoItem(BaseModel):
@@ -82,6 +87,7 @@ class LiveProgramResponse(BaseModel):
     patrocinador_id: int | None = None
     patrocinador_audio: bool = False
     patrocinador_voz_id: str | None = None
+    vinheta_id: int | None = None
     # Preenchido só quando o programa tem mais de um radialista (ver ProgramaRadialista):
     # diálogo alternado, uma linha por participante, cada uma com sua própria voz.
     falas: list[FalaItem] | None = None
@@ -397,6 +403,7 @@ _VARIACOES_VERBO_IDENTIFICACAO = [
 
 
 _PATROCINADOR_RE = re.compile(r"^patrocinador:(\d+)$")
+_VINHETA_RE = re.compile(r"^vinheta:(\d+)$")
 
 # tipos de bloco com comportamento automatico (busca de musica, prosodia, fila do whatsapp).
 _TIPOS_COM_COMPORTAMENTO = ("musica", "noticia", "chamada_ouvinte", "abertura", "comentario", "encerramento")
@@ -434,7 +441,7 @@ def _categoria_bloco(tipo: str) -> str:
     "forro pe de serra", nao tem como saber por texto que e um bloco de musica -- por isso cai
     numa classificacao via LLM (cacheada) antes de virar "bloco livre" sem musica nenhuma.
     """
-    if _PATROCINADOR_RE.match(tipo):
+    if _PATROCINADOR_RE.match(tipo) or _VINHETA_RE.match(tipo):
         return tipo
     tipo = tipo.strip()
     normalizado = _sem_acento(tipo.lower())
@@ -450,6 +457,17 @@ def _buscar_patrocinador_ativo(db: Session, account: Account, tipo: str) -> Patr
         return None
     return (
         db.query(Patrocinador)
+        .filter_by(id=int(match.group(1)), account_id=account.id, ativo=True)
+        .first()
+    )
+
+
+def _buscar_vinheta_ativa(db: Session, account: Account, tipo: str) -> BibliotecaAudioItem | None:
+    match = _VINHETA_RE.match(tipo)
+    if not match:
+        return None
+    return (
+        db.query(BibliotecaAudioItem)
         .filter_by(id=int(match.group(1)), account_id=account.id, ativo=True)
         .first()
     )
@@ -703,6 +721,20 @@ def gerar_proxima_fala(
                 patrocinador_voz_id=patrocinador.voz_id,
             )
         tipo = "comentario"  # patrocinador excluido/desativado -- nao trava o ao vivo
+
+    if _VINHETA_RE.match(tipo):
+        vinheta = _buscar_vinheta_ativa(db, account, tipo)
+        if vinheta is not None:
+            # Vinheta e' audio pre-gravado (mesmo padrao do patrocinador em audio) -- nunca
+            # passa pelo LLM/TTS, so' devolve o id pro frontend buscar o binario direto.
+            return LiveProgramResponse(
+                tipo="vinheta",
+                fala="",
+                criado_em=datetime.datetime.now(datetime.timezone.utc),
+                programa_atual=programa.nome,
+                vinheta_id=vinheta.id,
+            )
+        tipo = "comentario"  # vinheta excluida/desativada -- nao trava o ao vivo
 
     categoria = _categoria_bloco(tipo)
     if categoria == "noticia" and not (programa.pode_pesquisar or programa.tipos_noticias or programa.fontes_noticias):
@@ -1060,4 +1092,11 @@ def gerar_audio_fala(
 
     tom = classificar_tom_fala(dados.texto, dados.tipo)
     audio = sintetizar_audio(dados.texto, voz_id, tipo_bloco=dados.tipo, tom=tom)
+
+    if dados.perfil_pos_producao:
+        try:
+            audio = processar_audio(audio, dados.perfil_pos_producao)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
     return Response(content=audio, media_type="audio/mpeg")

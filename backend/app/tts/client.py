@@ -33,10 +33,14 @@ _VOICE_SETTINGS_PADRAO = {
 # ajustes de prosodia por tipo de bloco do programa ao vivo (ver _PROSODIA_BLOCO em app.live.router):
 # blocos de abertura/musica/chamada pedem mais energia e ritmo mais rapido (menos estabilidade, mais estilo);
 # comentario/noticia pedem ritmo mais calmo e estavel.
+#
+# stability abaixo de ~0.3 deixa o v3 instavel demais e sai artefato nas terminacoes de frase/palavra
+# (a propria ElevenLabs recomenda nao descer disso) -- piso levantado pra 0.34/0.37 depois de reclamacao
+# de locucao "com cara de IA" nas terminacoes, mais evidente nos blocos energicos que usavam 0.28/0.32.
 _VOICE_SETTINGS_POR_TIPO = {
-    "abertura": {"stability": 0.28, "style": 0.55, "speed": 1.05},
-    "musica": {"stability": 0.28, "style": 0.55, "speed": 1.05},
-    "chamada_ouvinte": {"stability": 0.32, "style": 0.5, "speed": 1.03},
+    "abertura": {"stability": 0.34, "style": 0.55, "speed": 1.05},
+    "musica": {"stability": 0.34, "style": 0.55, "speed": 1.05},
+    "chamada_ouvinte": {"stability": 0.37, "style": 0.5, "speed": 1.03},
     "comentario": {"stability": 0.45, "style": 0.3, "speed": 0.95},
     "noticia": {"stability": 0.5, "style": 0.25, "speed": 0.93},
     "patrocinador": {"stability": 0.4, "style": 0.35, "speed": 1.0},
@@ -45,16 +49,19 @@ _VOICE_SETTINGS_POR_TIPO = {
 # ajuste fino por cima do tipo de bloco, a partir do tom real da fala gerada (ver
 # app.llm.client.classificar_tom_fala) -- o mesmo tipo de bloco pode sair mais ou menos
 # intenso dependendo do que o locutor realmente falou naquela vez.
+#
+# delta de stability do tom "energico" reduzido (-0.07 -> -0.04): empilhado com o piso ja baixo
+# dos blocos energicos, derrubava a stability efetiva perto de 0.3 de novo.
 _AJUSTE_TOM = {
-    "energico": {"stability": -0.07, "style": 0.1, "speed": 0.04},
+    "energico": {"stability": -0.04, "style": 0.1, "speed": 0.04},
     "calmo": {"stability": 0.07, "style": -0.1, "speed": -0.04},
     "neutro": {},
 }
 
-# eleven_v3 entende audio tags no proprio texto pra dirigir emocao/entonacao. So faz sentido
-# mandar quando o modelo ativo for v3 -- em v2 o tag seria lido literalmente como texto.
+# audio tag [excited] do eleven_v3 (so mandado no tom "energico") direciona uma entrega ofegante --
+# muita respiracao audivel entre as frases, mais que o [calm] do tom oposto. Tirado ate ter como
+# validar por audicao um tag mais neutro; energia do bloco continua vindo so de stability/style/speed.
 _TAG_POR_TOM = {
-    "energico": "[excited]",
     "calmo": "[calm]",
 }
 
@@ -152,6 +159,27 @@ def clonar_voz(nome: str, audio_bytes: bytes, content_type: str, nome_arquivo: s
         response = client.post(_ELEVENLABS_VOICES_URL, headers=headers, data=data, files=files)
         response.raise_for_status()
         return response.json()["voice_id"]
+
+
+def obter_preview_url(voice_id: str) -> str | None:
+    """Busca a preview_url (amostra curta pronta, hospedada pela ElevenLabs) de uma voz.
+
+    Devolve None se a API nao estiver configurada ou a chamada falhar -- o catalogo de
+    vozes cai pra lista sem audio de amostra nesse caso, sem quebrar a pagina.
+    """
+    if not settings.elevenlabs_api_key:
+        return None
+
+    url = _ELEVENLABS_VOICE_URL.format(voice_id=voice_id)
+    headers = {"xi-api-key": settings.elevenlabs_api_key}
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(url, headers=headers)
+            response.raise_for_status()
+            return response.json().get("preview_url")
+    except httpx.HTTPError:
+        logger.warning("Falha ao buscar preview_url da voz %s", voice_id)
+        return None
 
 
 def excluir_voz_clonada(voice_id: str) -> None:

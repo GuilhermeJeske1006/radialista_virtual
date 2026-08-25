@@ -1,4 +1,6 @@
 from app.models.account import Account
+from app.models.biblioteca_audio import BibliotecaAudioItem
+from app.models.categoria_vinheta import CategoriaVinheta
 from app.models.compra_excedente import CompraExcedente
 from app.models.convite_usuario import ConviteUsuario
 from app.models.fila_ao_vivo import FilaAoVivo
@@ -26,4 +28,6 @@ __all__ = [
     "Patrocinador",
     "VozClonada",
     "CompraExcedente",
+    "BibliotecaAudioItem",
+    "CategoriaVinheta",
 ]

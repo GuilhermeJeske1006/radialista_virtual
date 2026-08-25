@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_usuario
 from app.auth.email import enviar_email_redefinicao_senha
 from app.auth.security import criar_token, hash_senha, verificar_senha
+from app.categorias_vinheta.defaults import criar_categorias_padrao
 from app.db.database import get_db
 from app.guardrails.http_rate_limit import limitar_por_ip
 from app.models.account import Account
@@ -106,6 +107,9 @@ def registrar(dados: RegistroRequest, db: Session = Depends(get_db)):
         horario_fim=datetime.time(23, 59),
     )
     db.add(programa)
+
+    criar_categorias_padrao(db, account.id)
+
     db.commit()
 
     logger.info("Conta registrada: account_id=%s usuario_id=%s email=%s", account.id, usuario.id, usuario.email)

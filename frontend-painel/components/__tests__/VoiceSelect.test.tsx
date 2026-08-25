@@ -20,7 +20,9 @@ function mockFetchPadrao({ plano = "starter" }: { plano?: string } = {}) {
     "fetch",
     vi.fn((url: string) => {
       if (url.includes("/tts/voices")) {
-        return respostaJson([{ voz_id: "voz-1", nome: "Rachel", genero: "feminina", descricao: "Calma" }]);
+        return respostaJson([
+          { voz_id: "voz-1", nome: "Rachel", genero: "feminina", descricao: "Calma", preview_url: "https://example.com/rachel.mp3" },
+        ]);
       }
       if (url.includes("/auth/me")) {
         return respostaJson({ plano });
@@ -49,7 +51,7 @@ describe("VoiceSelect", () => {
     render(<VoiceSelect value={null} onChange={onChange} />);
 
     await waitFor(() => screen.getByText("Rachel — feminina, Calma"));
-    await userEvent.selectOptions(screen.getByRole("combobox"), "voz-1");
+    await userEvent.click(screen.getByRole("radio", { name: /Rachel/ }));
 
     expect(onChange).toHaveBeenCalledWith("voz-1");
   });
@@ -71,6 +73,36 @@ describe("VoiceSelect", () => {
     await waitFor(() => {
       expect(screen.getByText("🎙️ Clonar uma voz")).toBeInTheDocument();
     });
+  });
+
+  it("mostra player de amostra pra voz do catalogo com preview_url", async () => {
+    mockFetchPadrao();
+    const { container } = render(<VoiceSelect value={null} onChange={() => {}} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Rachel — feminina, Calma")).toBeInTheDocument();
+    });
+    expect(container.querySelector('audio[src="https://example.com/rachel.mp3"]')).toBeInTheDocument();
+  });
+
+  it("nao mostra player quando a voz nao tem preview_url", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        if (url.includes("/tts/voices")) {
+          return respostaJson([{ voz_id: "voz-2", nome: "Adam", genero: "masculina", descricao: "Seria", preview_url: null }]);
+        }
+        if (url.includes("/auth/me")) return respostaJson({ plano: "starter" });
+        if (url.includes("/tts/vozes-clonadas")) return respostaJson([]);
+        return respostaJson({});
+      })
+    );
+    const { container } = render(<VoiceSelect value={null} onChange={() => {}} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Adam — masculina, Seria")).toBeInTheDocument();
+    });
+    expect(container.querySelector("audio")).not.toBeInTheDocument();
   });
 
   it("lista vozes clonadas da conta num grupo separado", async () => {

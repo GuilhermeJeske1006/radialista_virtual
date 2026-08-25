@@ -38,6 +38,10 @@ class _FakeClient:
         self.chamadas.append(("delete", url, kwargs))
         return self._respostas.pop(0)
 
+    def get(self, url, **kwargs):
+        self.chamadas.append(("get", url, kwargs))
+        return self._respostas.pop(0)
+
 
 def _habilitar_elevenlabs(monkeypatch):
     monkeypatch.setattr(tts_client.settings, "elevenlabs_api_key", "fake-key")
@@ -115,6 +119,27 @@ def test_clonar_voz_devolve_voice_id(monkeypatch):
 
     voice_id = tts_client.clonar_voz("Minha voz", b"audio", "audio/mpeg", "amostra.mp3")
     assert voice_id == "novo-id"
+
+
+def test_obter_preview_url_sem_api_key(monkeypatch):
+    monkeypatch.setattr(tts_client.settings, "elevenlabs_api_key", "")
+    assert tts_client.obter_preview_url("voz-1") is None
+
+
+def test_obter_preview_url_devolve_url(monkeypatch):
+    _habilitar_elevenlabs(monkeypatch)
+    fake = _FakeClient([_FakeResponse(status_code=200, json_data={"preview_url": "https://example.com/preview.mp3"})])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+
+    assert tts_client.obter_preview_url("voz-1") == "https://example.com/preview.mp3"
+
+
+def test_obter_preview_url_devolve_none_em_falha(monkeypatch):
+    _habilitar_elevenlabs(monkeypatch)
+    fake = _FakeClient([_FakeResponse(status_code=500)])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+
+    assert tts_client.obter_preview_url("voz-1") is None
 
 
 def test_excluir_voz_clonada_chama_delete(monkeypatch):

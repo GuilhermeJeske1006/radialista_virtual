@@ -6,6 +6,7 @@ Uso: python -m app.db.seed
 import datetime
 
 from app.auth.security import hash_senha
+from app.categorias_vinheta.defaults import criar_categorias_padrao
 from app.config.settings import settings
 from app.db.database import Base, SessionLocal, engine
 from app.models.account import Account
@@ -61,6 +62,9 @@ def seed() -> None:
             limite_mensagens_hora=1000,
         )
         db.add(programa)
+
+        criar_categorias_padrao(db, account.id)
+
         db.commit()
         print(f"Conta de teste criada: email={EMAIL_TESTE} senha={SENHA_TESTE}")
         print(f"RadioConfig criada: id={config.id} nome={config.nome_locutor}")

@@ -36,29 +36,41 @@ export default function VoiceSelect({ value, onChange }: Props) {
 
   return (
     <div>
-      <select
-        className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
-        value={value ?? ""}
-        onChange={(e) => onChange(e.target.value || null)}
+      <div
+        role="radiogroup"
+        aria-label="Voz"
+        className="max-h-72 divide-y divide-border-strong overflow-y-auto rounded-lg border border-border-strong"
       >
-        <option value="">Voz padrão do servidor</option>
+        <label className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-fg/5">
+          <input type="radio" name="voz" checked={!value} onChange={() => onChange(null)} />
+          Voz padrão do servidor
+        </label>
+
         {vozesClonadas.length > 0 && (
-          <optgroup label="Minhas vozes clonadas">
+          <>
+            <p className="px-3 pt-2 text-xs font-medium text-fg/45">Minhas vozes clonadas</p>
             {vozesClonadas.map((v) => (
-              <option key={v.voz_id} value={v.voz_id}>
+              <label key={v.voz_id} className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-fg/5">
+                <input type="radio" name="voz" checked={value === v.voz_id} onChange={() => onChange(v.voz_id)} />
                 {v.nome}
-              </option>
+              </label>
             ))}
-          </optgroup>
+          </>
         )}
-        <optgroup label="Catálogo">
-          {vozes.map((v) => (
-            <option key={v.voz_id} value={v.voz_id}>
+
+        <p className="px-3 pt-2 text-xs font-medium text-fg/45">Catálogo (com amostra de áudio)</p>
+        {vozes.map((v) => (
+          <div key={v.voz_id} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-fg/5">
+            <label className="flex flex-1 cursor-pointer items-center gap-2">
+              <input type="radio" name="voz" checked={value === v.voz_id} onChange={() => onChange(v.voz_id)} />
               {v.nome} — {v.genero}, {v.descricao}
-            </option>
-          ))}
-        </optgroup>
-      </select>
+            </label>
+            {v.preview_url && (
+              <audio controls preload="none" src={v.preview_url} className="h-8 w-40 shrink-0" />
+            )}
+          </div>
+        ))}
+      </div>
 
       <div className="mt-1.5">
         {permiteClonagemVoz(plano) ? (

@@ -20,6 +20,9 @@ class Patrocinador(Base):
 
     nome: Mapped[str] = mapped_column(String)
 
+    # Categoria de vinhetagem em que a propaganda se encaixa (ver CategoriaVinheta). Nulo = "Sem categoria".
+    categoria_id: Mapped[int | None] = mapped_column(ForeignKey("categorias_vinheta.id"), nullable=True, index=True)
+
     # "texto" (lido pelo TTS do locutor) ou "audio" (arquivo pre-gravado do proprio anunciante).
     tipo_conteudo: Mapped[str] = mapped_column(String, default="texto")
 
@@ -32,6 +35,7 @@ class Patrocinador(Base):
     # Caminho relativo dentro de settings.upload_dir. Nulo quando tipo_conteudo == "texto".
     audio_path: Mapped[str | None] = mapped_column(String, nullable=True)
     audio_nome_original: Mapped[str | None] = mapped_column(String, nullable=True)
+    duracao_segundos: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     ativo: Mapped[bool] = mapped_column(Boolean, default=True)
 

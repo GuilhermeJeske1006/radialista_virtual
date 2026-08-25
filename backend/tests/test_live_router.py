@@ -6,6 +6,7 @@ from freezegun import freeze_time
 
 from app.live.music import MusicaEncontrada
 from app.live.router import _escolher_query_musica, _registrar_historico_persistente
+from app.models.biblioteca_audio import BibliotecaAudioItem
 from app.models.fila_ao_vivo import FilaAoVivo
 from app.models.musica_historico import MusicaHistorico
 from app.models.patrocinador import Patrocinador
@@ -151,6 +152,65 @@ def test_gerar_proxima_fala_patrocinador_desativado_cai_para_comentario(
     assert resposta.json()["tipo"] == "comentario"
 
 
+@freeze_time(AGORA_UTC)
+def test_gerar_proxima_fala_vinheta_nao_passa_pelo_llm(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    radio_config, programa = radialista_e_programa
+    vinheta = BibliotecaAudioItem(
+        account_id=account.id, nome="Vinheta QA", audio_path="biblioteca_audio/1/x.mp3", audio_nome_original="x.mp3"
+    )
+    db_session.add(vinheta)
+    db_session.flush()
+    programa.estrutura_blocos = [f"vinheta:{vinheta.id}"]
+    db_session.commit()
+
+    chamou_llm = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: chamou_llm.append(1) or "nunca deveria chegar aqui"
+    )
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 0},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["tipo"] == "vinheta"
+    assert corpo["fala"] == ""
+    assert corpo["vinheta_id"] == vinheta.id
+    assert chamou_llm == []
+
+
+@freeze_time(AGORA_UTC)
+def test_gerar_proxima_fala_vinheta_desativada_cai_para_comentario(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    radio_config, programa = radialista_e_programa
+    vinheta = BibliotecaAudioItem(
+        account_id=account.id,
+        nome="Vinheta QA",
+        audio_path="biblioteca_audio/1/x.mp3",
+        audio_nome_original="x.mp3",
+        ativo=False,
+    )
+    db_session.add(vinheta)
+    db_session.flush()
+    programa.estrutura_blocos = [f"vinheta:{vinheta.id}"]
+    db_session.commit()
+
+    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: "comentario generico")
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 0},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["tipo"] == "comentario"
+
+
 @freeze_time("2026-08-10 16:58:00")  # 13:58 local -- 2 min antes do fim (14:00)
 def test_gerar_proxima_fala_perto_do_fim_vira_encerramento(
     client, account, auth_headers, radialista_e_programa, monkeypatch
@@ -263,6 +323,45 @@ def test_tts_endpoint_com_voz_invalida_400(client, account, auth_headers, radial
     resposta = client.post(
         f"/live/{radio_config.id}/tts",
         json={"texto": "ola", "voz_id": "voz-invalida"},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 400
+
+
+def test_tts_endpoint_com_perfil_pos_producao(client, account, auth_headers, radialista_e_programa, monkeypatch):
+    radio_config, _ = radialista_e_programa
+    monkeypatch.setattr("app.live.router.tts_habilitado", lambda voz_id=None: True)
+    monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "neutro")
+    monkeypatch.setattr(
+        "app.live.router.sintetizar_audio", lambda texto, voz_id, tipo_bloco=None, tom=None: b"audio-cru"
+    )
+    monkeypatch.setattr(
+        "app.live.router.processar_audio",
+        lambda audio, perfil: audio + b"-processado:" + perfil.encode(),
+    )
+
+    resposta = client.post(
+        f"/live/{radio_config.id}/tts",
+        json={"texto": "ola ouvintes", "perfil_pos_producao": "alfa_fm"},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert resposta.content == b"audio-cru-processado:alfa_fm"
+
+
+def test_tts_endpoint_com_perfil_pos_producao_invalido_400(
+    client, account, auth_headers, radialista_e_programa, monkeypatch
+):
+    radio_config, _ = radialista_e_programa
+    monkeypatch.setattr("app.live.router.tts_habilitado", lambda voz_id=None: True)
+    monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "neutro")
+    monkeypatch.setattr(
+        "app.live.router.sintetizar_audio", lambda texto, voz_id, tipo_bloco=None, tom=None: b"audio-cru"
+    )
+
+    resposta = client.post(
+        f"/live/{radio_config.id}/tts",
+        json={"texto": "ola", "perfil_pos_producao": "perfil-que-nao-existe"},
         headers=auth_headers(account.id),
     )
     assert resposta.status_code == 400

@@ -1,6 +1,7 @@
 import io
 
 import pytest
+from pydub.generators import Sine
 
 from app.config.settings import settings
 
@@ -8,6 +9,12 @@ from app.config.settings import settings
 @pytest.fixture(autouse=True)
 def _upload_dir_temporario(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "upload_dir", str(tmp_path))
+
+
+def _mp3_sintetico(duracao_ms: int = 1000) -> bytes:
+    buffer = io.BytesIO()
+    Sine(440).to_audio_segment(duration=duracao_ms).export(buffer, format="mp3")
+    return buffer.getvalue()
 
 
 def test_listar_patrocinadores_vazio(client, account, auth_headers):
@@ -79,6 +86,18 @@ def test_criar_patrocinador_audio_formato_invalido_falha(client, account, auth_h
         headers=auth_headers(account.id),
     )
     assert resposta.status_code == 400
+
+
+def test_criar_patrocinador_audio_calcula_duracao(client, account, auth_headers):
+    arquivo = io.BytesIO(_mp3_sintetico(1000))
+    resposta = client.post(
+        "/patrocinadores",
+        data={"nome": "Loja Y", "tipo_conteudo": "audio"},
+        files={"arquivo": ("anuncio.mp3", arquivo, "audio/mpeg")},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 201
+    assert resposta.json()["duracao_segundos"] == pytest.approx(1, abs=1)
 
 
 def test_obter_audio_de_patrocinador(client, account, auth_headers):

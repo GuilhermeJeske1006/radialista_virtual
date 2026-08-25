@@ -12,7 +12,7 @@ const MOBILE_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/radialista", label: "Radialistas" },
   { href: "/programas", label: "Programas" },
-  { href: "/patrocinadores", label: "Patrocinadores" },
+  { href: "/vinhetagem", label: "Vinhetagem" },
   { href: "/onboarding", label: "WhatsApp" },
   { href: "/live", label: "Ao Vivo" },
   { href: "/billing", label: "Assinatura", adminOnly: true },
@@ -34,6 +34,7 @@ export default function AppShell({
   const router = useRouter();
   const conta = useConta();
   const mobileLinks = MOBILE_LINKS.filter((link) => !link.adminOnly || conta?.role === "admin");
+  const sidebarColapsada = pathname === "/live";
 
   function sair() {
     clearToken();
@@ -44,7 +45,7 @@ export default function AppShell({
   return (
     <div className="min-h-screen bg-bg">
       <Sidebar />
-      <div className="md:pl-72.5 flex flex-col min-h-screen">
+      <div className={`flex flex-col min-h-screen transition-[padding] duration-150 ${sidebarColapsada ? "md:pl-20" : "md:pl-72.5"}`}>
         <header className="sticky top-0 z-10 bg-bg/90 backdrop-blur border-b border-border">
           <div className="flex items-center justify-between h-16 px-4 sm:px-6">
             <div className="flex items-center gap-3 min-w-0">
