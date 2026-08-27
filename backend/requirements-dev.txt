@@ -5,3 +5,4 @@ pytest-cov==6.0.0
 fakeredis==2.26.2
 freezegun==1.5.1
 ruff==0.8.4
+moto[s3]==5.2.3

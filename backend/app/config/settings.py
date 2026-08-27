@@ -32,9 +32,17 @@ class Settings(BaseSettings):
     elevenlabs_model: str = "eleven_v3"
 
     # Diretorio (local, relativo ou absoluto) onde ficam os arquivos enviados pelo usuario
-    # (ex.: audio de patrocinadores -- app/patrocinadores/router.py). Em producao deve apontar
-    # pra um volume persistente montado no container do backend.
+    # (ex.: audio de patrocinadores -- app/patrocinadores/router.py) quando storage_backend=local.
     upload_dir: str = "uploads"
+
+    # Backend de armazenamento dos arquivos enviados: "local" (disco, dev) ou "s3" (AWS, producao).
+    storage_backend: str = "local"
+    # Bucket S3 (obrigatorio se storage_backend=s3). Credenciais nao ficam aqui: o boto3 resolve
+    # sozinho via AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY, ~/.aws/credentials ou IAM role.
+    aws_s3_bucket: str = ""
+    aws_region: str = "us-east-1"
+    # Endpoint alternativo (ex.: LocalStack/MinIO pra testar S3 localmente). Vazio = AWS de verdade.
+    aws_s3_endpoint_url: str = ""
 
     smtp_host: str = ""
     smtp_port: int = 587

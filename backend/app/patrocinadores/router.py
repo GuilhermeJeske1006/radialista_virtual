@@ -9,11 +9,11 @@ from pydub import AudioSegment
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_account
-from app.config.settings import settings
 from app.db.database import get_db
 from app.models.account import Account
 from app.models.categoria_vinheta import CategoriaVinheta
 from app.models.patrocinador import Patrocinador
+from app.storage import get_storage
 from app.tts.voices import voz_valida_para_conta
 
 logger = logging.getLogger("radialista.patrocinadores")
@@ -68,12 +68,6 @@ def _buscar_patrocinador(db: Session, account: Account, patrocinador_id: int) ->
     return patrocinador
 
 
-def _diretorio_conta(account_id: int) -> Path:
-    diretorio = Path(settings.upload_dir) / "patrocinadores" / str(account_id)
-    diretorio.mkdir(parents=True, exist_ok=True)
-    return diretorio
-
-
 def _duracao_segundos(conteudo: bytes) -> int | None:
     try:
         segmento = AudioSegment.from_file(io.BytesIO(conteudo))
@@ -102,10 +96,9 @@ async def _salvar_audio(arquivo: UploadFile, account_id: int) -> tuple[str, str,
         )
 
     nome_arquivo = f"{uuid.uuid4().hex}{extensao}"
-    caminho_absoluto = _diretorio_conta(account_id) / nome_arquivo
-    caminho_absoluto.write_bytes(conteudo)
+    audio_path = f"patrocinadores/{account_id}/{nome_arquivo}"
+    get_storage().save(audio_path, conteudo)
 
-    audio_path = str(Path("patrocinadores") / str(account_id) / nome_arquivo)
     duracao = _duracao_segundos(conteudo)
     return audio_path, (arquivo.filename or nome_arquivo), duracao
 
@@ -113,8 +106,7 @@ async def _salvar_audio(arquivo: UploadFile, account_id: int) -> tuple[str, str,
 def _remover_audio(audio_path: str | None) -> None:
     if not audio_path:
         return
-    caminho = Path(settings.upload_dir) / audio_path
-    caminho.unlink(missing_ok=True)
+    get_storage().delete(audio_path)
 
 
 @router.get("", response_model=list[PatrocinadorResponse])
@@ -237,9 +229,9 @@ def obter_audio_patrocinador(
     if patrocinador.tipo_conteudo != "audio" or not patrocinador.audio_path:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patrocinador sem audio")
 
-    caminho = Path(settings.upload_dir) / patrocinador.audio_path
-    if not caminho.is_file():
+    conteudo = get_storage().read(patrocinador.audio_path)
+    if conteudo is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Arquivo de audio nao encontrado")
 
-    media_type = _EXTENSOES_PERMITIDAS.get(caminho.suffix.lower(), "application/octet-stream")
-    return Response(content=caminho.read_bytes(), media_type=media_type)
+    media_type = _EXTENSOES_PERMITIDAS.get(Path(patrocinador.audio_path).suffix.lower(), "application/octet-stream")
+    return Response(content=conteudo, media_type=media_type)

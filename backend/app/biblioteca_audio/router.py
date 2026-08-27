@@ -9,11 +9,11 @@ from pydub import AudioSegment
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_account
-from app.config.settings import settings
 from app.db.database import get_db
 from app.models.account import Account
 from app.models.biblioteca_audio import BibliotecaAudioItem
 from app.models.categoria_vinheta import CategoriaVinheta
+from app.storage import get_storage
 
 logger = logging.getLogger("radialista.biblioteca_audio")
 
@@ -59,12 +59,6 @@ def _validar_categoria(db: Session, account: Account, categoria_id: int | None) 
     return categoria_id
 
 
-def _diretorio_conta(account_id: int) -> Path:
-    diretorio = Path(settings.upload_dir) / "biblioteca_audio" / str(account_id)
-    diretorio.mkdir(parents=True, exist_ok=True)
-    return diretorio
-
-
 def _duracao_segundos(conteudo: bytes) -> int | None:
     try:
         segmento = AudioSegment.from_file(io.BytesIO(conteudo))
@@ -93,10 +87,9 @@ async def _salvar_audio(arquivo: UploadFile, account_id: int) -> tuple[str, str,
         )
 
     nome_arquivo = f"{uuid.uuid4().hex}{extensao}"
-    caminho_absoluto = _diretorio_conta(account_id) / nome_arquivo
-    caminho_absoluto.write_bytes(conteudo)
+    audio_path = f"biblioteca_audio/{account_id}/{nome_arquivo}"
+    get_storage().save(audio_path, conteudo)
 
-    audio_path = str(Path("biblioteca_audio") / str(account_id) / nome_arquivo)
     duracao = _duracao_segundos(conteudo)
     return audio_path, (arquivo.filename or nome_arquivo), duracao
 
@@ -104,8 +97,7 @@ async def _salvar_audio(arquivo: UploadFile, account_id: int) -> tuple[str, str,
 def _remover_audio(audio_path: str | None) -> None:
     if not audio_path:
         return
-    caminho = Path(settings.upload_dir) / audio_path
-    caminho.unlink(missing_ok=True)
+    get_storage().delete(audio_path)
 
 
 @router.get("", response_model=list[BibliotecaAudioItemResponse])
@@ -193,9 +185,9 @@ def obter_audio_item(
 ):
     item = _buscar_item(db, account, item_id)
 
-    caminho = Path(settings.upload_dir) / item.audio_path
-    if not caminho.is_file():
+    conteudo = get_storage().read(item.audio_path)
+    if conteudo is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Arquivo de audio nao encontrado")
 
-    media_type = _EXTENSOES_PERMITIDAS.get(caminho.suffix.lower(), "application/octet-stream")
-    return Response(content=caminho.read_bytes(), media_type=media_type)
+    media_type = _EXTENSOES_PERMITIDAS.get(Path(item.audio_path).suffix.lower(), "application/octet-stream")
+    return Response(content=conteudo, media_type=media_type)
