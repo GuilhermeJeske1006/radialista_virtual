@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "../../lib/api";
-import { getEmailLembrado, limparEmailLembrado, setEmailLembrado, setToken } from "../../lib/auth";
-import { OndaLogo } from "../../components/OndaLogo";
+import { getEmailLembrado, limparEmailLembrado, setEmailLembrado } from "../../lib/auth";
+import { LocufyLogo } from "../../components/LocufyLogo";
 import ThemeToggle from "../../components/ThemeToggle";
 
 export default function LoginPage() {
@@ -29,11 +29,11 @@ export default function LoginPage() {
     setErro("");
     setCarregando(true);
     try {
-      const dados = await apiFetch<{ access_token: string }>("/auth/login", {
+      // sessao ja vem via cookie httpOnly no Set-Cookie da resposta -- nada pra guardar aqui.
+      await apiFetch("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, senha }),
       });
-      setToken(dados.access_token);
       if (lembrar) {
         setEmailLembrado(email);
       } else {
@@ -51,7 +51,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-bg flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-center gap-3 mb-6">
-          <OndaLogo size={34} wordmarkClassName="text-2xl" />
+          <LocufyLogo wordmarkClassName="text-2xl" />
           <ThemeToggle className="ml-1" />
         </div>
         <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-sm p-6">
@@ -90,11 +90,11 @@ export default function LoginPage() {
                 />
                 Lembrar senha
               </label>
-              <Link href="/esqueci-senha" className="text-sm text-amber hover:text-amber-dim font-medium">
+              <Link href="/esqueci-senha" className="text-sm text-amber-text hover:text-amber-dim font-medium">
                 Esqueci minha senha
               </Link>
             </div>
-            {erro && <p className="text-sm text-rust">{erro}</p>}
+            {erro && <p className="text-sm text-rust-text">{erro}</p>}
             <button
               type="submit"
               disabled={carregando}
@@ -103,9 +103,9 @@ export default function LoginPage() {
               {carregando ? "Entrando..." : "Entrar"}
             </button>
           </form>
-          <p className="mt-4 text-sm text-fg/55">
+          <p className="mt-4 text-sm text-fg/65">
             Não tem conta?{" "}
-            <Link href="/register" className="text-amber hover:text-amber-dim font-medium">
+            <Link href="/register" className="text-amber-text hover:text-amber-dim font-medium">
               Criar conta
             </Link>
           </p>

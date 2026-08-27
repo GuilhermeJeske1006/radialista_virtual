@@ -1,32 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import {
-  clearToken,
-  getEmailLembrado,
-  getToken,
-  limparEmailLembrado,
-  setEmailLembrado,
-  setToken,
-} from "../auth";
+import { getEmailLembrado, limparEmailLembrado, setEmailLembrado } from "../auth";
 
 beforeEach(() => {
   window.localStorage.clear();
-});
-
-describe("token", () => {
-  it("devolve null quando nao ha token salvo", () => {
-    expect(getToken()).toBeNull();
-  });
-
-  it("salva e le o token", () => {
-    setToken("meu-token-jwt");
-    expect(getToken()).toBe("meu-token-jwt");
-  });
-
-  it("limpa o token", () => {
-    setToken("meu-token-jwt");
-    clearToken();
-    expect(getToken()).toBeNull();
-  });
 });
 
 describe("email lembrado", () => {

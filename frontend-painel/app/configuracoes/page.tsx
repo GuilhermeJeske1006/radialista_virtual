@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import AppShell from "../../components/AppShell";
 import { apiFetch, ApiError } from "../../lib/api";
 import { RADIO_PERFIL_VAZIO, RadioPerfil } from "../../lib/types";
-import { OndaSpin } from "../../components/OndaLogo";
+import { LocufySpin } from "../../components/LocufyLogo";
 
 export default function ConfiguracoesPage() {
   const [radio, setRadio] = useState<RadioPerfil>(RADIO_PERFIL_VAZIO);
@@ -42,8 +42,8 @@ export default function ConfiguracoesPage() {
   if (carregando) {
     return (
       <AppShell title="Configuração da Rádio">
-        <p className="flex items-center gap-2 text-sm text-fg/55">
-          <OndaSpin size={16} /> Carregando...
+        <p className="flex items-center gap-2 text-sm text-fg/65">
+          <LocufySpin size={16} /> Carregando...
         </p>
       </AppShell>
     );
@@ -53,7 +53,7 @@ export default function ConfiguracoesPage() {
     <AppShell title="Configuração da Rádio" maxWidthClassName="max-w-2xl">
       <form onSubmit={salvar} className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
         <h2 className="font-display text-base font-bold text-fg mb-1">Dados da rádio</h2>
-        <p className="text-sm text-fg/55 mb-5">
+        <p className="text-sm text-fg/65 mb-5">
           Essas informações valem pra conta inteira e são usadas pelos seus radialistas de IA quando um ouvinte
           pergunta sobre a rádio.
         </p>
@@ -119,12 +119,12 @@ export default function ConfiguracoesPage() {
               onChange={(e) => setRadio({ ...radio, cidade: e.target.value })}
               className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
             />
-            <p className="text-xs text-fg/50 mt-1">Usada pro locutor comentar o clima real no ar.</p>
+            <p className="text-xs text-fg/65 mt-1">Usada pro locutor comentar o clima real no ar.</p>
           </div>
         </div>
 
-        {erro && <p className="text-sm text-rust mt-4">{erro}</p>}
-        {mensagem && <p className="text-sm text-teal mt-4">{mensagem}</p>}
+        {erro && <p className="text-sm text-rust-text mt-4">{erro}</p>}
+        {mensagem && <p className="text-sm text-teal-text mt-4">{mensagem}</p>}
 
         <button
           type="submit"

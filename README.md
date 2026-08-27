@@ -84,4 +84,4 @@ Só CI por enquanto (sem deploy automático) — deploy continua manual via `sta
 
 ## Docs
 
-Plano técnico completo em [docs/plano-radialista-ia-whatsapp.md](docs/plano-radialista-ia-whatsapp.md).
+Plano técnico completo em [docs/plano.md](docs/plano.md).

@@ -1,5 +1,6 @@
 import datetime
 
+from fastapi import Response
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
@@ -8,6 +9,11 @@ from app.config.settings import settings
 _pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 ALGORITHM = "HS256"
+
+# Cookie httpOnly com o JWT -- alternativa ao Authorization header que o JS do painel
+# nao consegue ler (mitiga roubo de token via XSS). O body ainda devolve access_token
+# tambem (ver auth/router.py), pra nao quebrar clientes que ainda leem de la.
+COOKIE_TOKEN = "radialista_token"
 
 
 def hash_senha(senha: str) -> str:
@@ -24,6 +30,24 @@ def criar_token(usuario_id: int) -> str:
     )
     payload = {"sub": str(usuario_id), "exp": expira_em}
     return jwt.encode(payload, settings.jwt_secret, algorithm=ALGORITHM)
+
+
+def definir_cookie_sessao(response: Response, token: str) -> None:
+    response.set_cookie(
+        key=COOKIE_TOKEN,
+        value=token,
+        httponly=True,
+        # Secure exige HTTPS -- em dev local (frontend_url http://) o cookie nao sairia
+        # nunca se forcado sempre True.
+        secure=settings.frontend_url.startswith("https://"),
+        samesite="lax",
+        max_age=settings.jwt_expire_minutes * 60,
+        path="/",
+    )
+
+
+def limpar_cookie_sessao(response: Response) -> None:
+    response.delete_cookie(key=COOKIE_TOKEN, path="/")
 
 
 def decodificar_token(token: str) -> int | None:

@@ -48,6 +48,29 @@ def test_summary_conta_totais_por_status(client, account, auth_headers, db_sessi
     assert corpo["por_status"]["fila_musica"] == 1
 
 
+def test_summary_mensagens_por_dia_preenche_dias_sem_mensagem(client, account, auth_headers, db_session):
+    radio_config = _radio_config(db_session, account)
+    agora = datetime.datetime.now(datetime.timezone.utc)
+    db_session.add_all(
+        [
+            _log(radio_config.id, criado_em=agora),
+            _log(radio_config.id, criado_em=agora),
+            _log(radio_config.id, criado_em=agora - datetime.timedelta(days=5)),
+        ]
+    )
+    db_session.commit()
+
+    resposta = client.get(f"/metrics/summary?radialista_id={radio_config.id}", headers=auth_headers(account.id))
+    assert resposta.status_code == 200
+    serie = resposta.json()["mensagens_por_dia"]
+
+    assert len(serie) == 30
+    assert serie[-1]["data"] == str(agora.date())
+    assert serie[-1]["total"] == 2
+    assert serie[-1 - 5]["total"] == 1
+    assert serie[0]["total"] == 0
+
+
 def test_interacoes_recentes_filtra_por_origem_ouvinte(client, account, auth_headers, db_session):
     radio_config = _radio_config(db_session, account)
     db_session.add_all(
@@ -139,4 +162,70 @@ def test_metrics_de_outra_conta_nao_e_visivel(client, account_factory, auth_head
     radio_config = _radio_config(db_session, dono)
 
     resposta = client.get(f"/metrics/summary?radialista_id={radio_config.id}", headers=auth_headers(outro.id))
+    assert resposta.status_code == 404
+
+
+def test_exportar_csv_inclui_cabecalho_e_linhas(client, account, auth_headers, db_session):
+    radio_config = _radio_config(db_session, account)
+    db_session.add_all(
+        [
+            _log(radio_config.id, telefone="5511111111111", mensagem_usuario="oi", status="guardado"),
+            _log(radio_config.id, telefone="5511222222222", mensagem_usuario="toca uma musica", status="fila_musica"),
+        ]
+    )
+    db_session.commit()
+
+    resposta = client.get("/metrics/export", headers=auth_headers(account.id))
+    assert resposta.status_code == 200
+    assert resposta.headers["content-type"].startswith("text/csv")
+    assert "attachment" in resposta.headers["content-disposition"]
+
+    corpo = resposta.text
+    assert corpo.startswith("﻿data_hora,telefone,nome,radialista,origem,mensagem,resposta,status")
+    assert "5511111111111" in corpo
+    assert "5511222222222" in corpo
+
+
+def test_exportar_csv_filtra_por_radialista(client, account, auth_headers, db_session):
+    radio_config_a = _radio_config(db_session, account)
+    radio_config_b = _radio_config(db_session, account)
+    db_session.add_all(
+        [
+            _log(radio_config_a.id, telefone="5511111111111"),
+            _log(radio_config_b.id, telefone="5511222222222"),
+        ]
+    )
+    db_session.commit()
+
+    resposta = client.get(
+        f"/metrics/export?radialista_id={radio_config_a.id}", headers=auth_headers(account.id)
+    )
+    corpo = resposta.text
+    assert "5511111111111" in corpo
+    assert "5511222222222" not in corpo
+
+
+def test_exportar_csv_filtra_por_periodo(client, account, auth_headers, db_session):
+    radio_config = _radio_config(db_session, account)
+    agora = datetime.datetime.now(datetime.timezone.utc)
+    db_session.add_all(
+        [
+            _log(radio_config.id, telefone="5511111111111", criado_em=agora - datetime.timedelta(days=45)),
+            _log(radio_config.id, telefone="5511222222222", criado_em=agora),
+        ]
+    )
+    db_session.commit()
+
+    resposta = client.get("/metrics/export?dias=30", headers=auth_headers(account.id))
+    corpo = resposta.text
+    assert "5511111111111" not in corpo
+    assert "5511222222222" in corpo
+
+
+def test_exportar_csv_radialista_de_outra_conta_404(client, account_factory, auth_headers, db_session):
+    dono = account_factory(email="dono2@a.com")
+    outro = account_factory(email="outro2@a.com")
+    radio_config = _radio_config(db_session, dono)
+
+    resposta = client.get(f"/metrics/export?radialista_id={radio_config.id}", headers=auth_headers(outro.id))
     assert resposta.status_code == 404

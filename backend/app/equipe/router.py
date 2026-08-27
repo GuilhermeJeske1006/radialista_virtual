@@ -3,13 +3,13 @@ import hashlib
 import logging
 import secrets
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import exigir_admin, get_current_usuario
 from app.auth.email import enviar_email_convite
-from app.auth.security import criar_token, hash_senha
+from app.auth.security import criar_token, definir_cookie_sessao, hash_senha
 from app.db.database import get_db
 from app.guardrails.http_rate_limit import limitar_por_ip
 from app.models.convite_usuario import ConviteUsuario
@@ -177,7 +177,7 @@ def revogar_convite(
     response_model=TokenResponse,
     dependencies=[Depends(limitar_por_ip("equipe_aceitar_convite", limite=10, janela_segundos=60))],
 )
-def aceitar_convite(dados: AceitarConviteRequest, db: Session = Depends(get_db)):
+def aceitar_convite(dados: AceitarConviteRequest, response: Response, db: Session = Depends(get_db)):
     convite_invalido = HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST, detail="Convite invalido, expirado ou ja utilizado"
     )
@@ -218,7 +218,9 @@ def aceitar_convite(dados: AceitarConviteRequest, db: Session = Depends(get_db))
     db.refresh(usuario)
 
     logger.info("Convite aceito: convite_id=%s usuario_id=%s", convite.id, usuario.id)
-    return TokenResponse(access_token=criar_token(usuario.id))
+    token = criar_token(usuario.id)
+    definir_cookie_sessao(response, token)
+    return TokenResponse(access_token=token)
 
 
 @router.patch("/equipe/{usuario_id}/role", response_model=UsuarioResponse)

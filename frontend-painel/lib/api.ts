@@ -1,5 +1,3 @@
-import { clearToken, getToken } from "./auth";
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export class ApiError extends Error {
@@ -23,19 +21,16 @@ async function mensagemDeErro(response: Response): Promise<string> {
 }
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getToken();
   const headers: Record<string, string> = {
     "content-type": "application/json",
     ...(options.headers as Record<string, string> | undefined),
   };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
 
-  const response = await fetch(`${API_URL}${path}`, { ...options, headers });
+  // sessao via cookie httpOnly (setado pelo backend no login/registro) -- o
+  // browser manda sozinho, sem o JS precisar ler/guardar token nenhum.
+  const response = await fetch(`${API_URL}${path}`, { ...options, headers, credentials: "include" });
 
   if (response.status === 401) {
-    clearToken();
     if (typeof window !== "undefined") {
       window.location.href = "/login";
     }
@@ -56,16 +51,9 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
 // Usada pra multipart/form-data (upload de arquivo) -- nao seta content-type manualmente,
 // o browser gera o boundary sozinho a partir do FormData.
 export async function apiFetchForm<T>(path: string, formData: FormData, method: "POST" | "PUT" = "POST"): Promise<T> {
-  const token = getToken();
-  const headers: Record<string, string> = {};
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  const response = await fetch(`${API_URL}${path}`, { method, headers, body: formData });
+  const response = await fetch(`${API_URL}${path}`, { method, body: formData, credentials: "include" });
 
   if (response.status === 401) {
-    clearToken();
     if (typeof window !== "undefined") {
       window.location.href = "/login";
     }
@@ -84,20 +72,30 @@ export async function apiFetchForm<T>(path: string, formData: FormData, method: 
 }
 
 export async function apiFetchBlob(path: string, options: RequestInit = {}): Promise<Blob> {
-  const token = getToken();
   const headers: Record<string, string> = {
     "content-type": "application/json",
     ...(options.headers as Record<string, string> | undefined),
   };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
 
-  const response = await fetch(`${API_URL}${path}`, { ...options, headers });
+  const response = await fetch(`${API_URL}${path}`, { ...options, headers, credentials: "include" });
 
   if (!response.ok) {
     throw new ApiError(response.status, await mensagemDeErro(response));
   }
 
   return response.blob();
+}
+
+// Baixa a resposta de `path` (ex.: um CSV com Content-Disposition: attachment)
+// direto pro disco do usuario, sem precisar de link <a> nenhum no JSX.
+export async function apiFetchDownload(path: string, nomeArquivo: string): Promise<void> {
+  const blob = await apiFetchBlob(path);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = nomeArquivo;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }

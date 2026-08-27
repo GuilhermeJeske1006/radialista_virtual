@@ -3,13 +3,13 @@ import hashlib
 import logging
 import secrets
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_usuario
 from app.auth.email import enviar_email_redefinicao_senha
-from app.auth.security import criar_token, hash_senha, verificar_senha
+from app.auth.security import criar_token, definir_cookie_sessao, hash_senha, limpar_cookie_sessao, verificar_senha
 from app.categorias_vinheta.defaults import criar_categorias_padrao
 from app.db.database import get_db
 from app.guardrails.http_rate_limit import limitar_por_ip
@@ -76,7 +76,7 @@ class RedefinirSenhaRequest(BaseModel):
     response_model=TokenResponse,
     dependencies=[Depends(limitar_por_ip("auth_register", limite=5, janela_segundos=60))],
 )
-def registrar(dados: RegistroRequest, db: Session = Depends(get_db)):
+def registrar(dados: RegistroRequest, response: Response, db: Session = Depends(get_db)):
     if db.query(Usuario).filter_by(email=dados.email).first() is not None:
         logger.warning("Tentativa de registro com e-mail ja cadastrado: %s", dados.email)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="E-mail ja cadastrado")
@@ -113,7 +113,9 @@ def registrar(dados: RegistroRequest, db: Session = Depends(get_db)):
     db.commit()
 
     logger.info("Conta registrada: account_id=%s usuario_id=%s email=%s", account.id, usuario.id, usuario.email)
-    return TokenResponse(access_token=criar_token(usuario.id))
+    token = criar_token(usuario.id)
+    definir_cookie_sessao(response, token)
+    return TokenResponse(access_token=token)
 
 
 @router.post(
@@ -121,7 +123,7 @@ def registrar(dados: RegistroRequest, db: Session = Depends(get_db)):
     response_model=TokenResponse,
     dependencies=[Depends(limitar_por_ip("auth_login", limite=10, janela_segundos=60))],
 )
-def login(dados: LoginRequest, db: Session = Depends(get_db)):
+def login(dados: LoginRequest, response: Response, db: Session = Depends(get_db)):
     credenciais_invalidas = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED, detail="E-mail ou senha invalidos"
     )
@@ -135,7 +137,14 @@ def login(dados: LoginRequest, db: Session = Depends(get_db)):
         logger.warning("Login falhou para e-mail: %s", dados.email)
         raise credenciais_invalidas
 
-    return TokenResponse(access_token=criar_token(usuario.id))
+    token = criar_token(usuario.id)
+    definir_cookie_sessao(response, token)
+    return TokenResponse(access_token=token)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(response: Response):
+    limpar_cookie_sessao(response)
 
 
 @router.post(

@@ -1,5 +1,6 @@
 import hashlib
 
+from app.auth.security import COOKIE_TOKEN
 from app.categorias_vinheta.defaults import CATEGORIAS_PADRAO
 from app.models.password_reset_token import PasswordResetToken
 
@@ -34,6 +35,42 @@ def test_login_com_credenciais_corretas(client):
     resposta = client.post("/auth/login", json={"email": "fulano@example.com", "senha": "senha12345"})
     assert resposta.status_code == 200
     assert resposta.json()["token_type"] == "bearer"
+
+
+def test_registro_seta_cookie_httponly_de_sessao(client):
+    resposta = _registrar(client)
+    assert COOKIE_TOKEN in resposta.cookies
+    set_cookie = resposta.headers["set-cookie"]
+    assert "HttpOnly" in set_cookie
+
+
+def test_login_seta_cookie_httponly_de_sessao(client):
+    _registrar(client)
+    resposta = client.post("/auth/login", json={"email": "fulano@example.com", "senha": "senha12345"})
+    assert COOKIE_TOKEN in resposta.cookies
+
+
+def test_me_autentica_via_cookie_de_sessao_sem_header(client):
+    _registrar(client)
+    # TestClient guarda o cookie recebido no registro e manda de volta sozinho --
+    # sem passar Authorization, simulando o painel autenticado so' pelo cookie.
+    resposta = client.get("/auth/me")
+    assert resposta.status_code == 200
+    assert resposta.json()["email"] == "fulano@example.com"
+
+
+def test_logout_limpa_o_cookie_de_sessao(client):
+    _registrar(client)
+    resposta = client.post("/auth/logout")
+    assert resposta.status_code == 204
+
+    set_cookie = resposta.headers["set-cookie"]
+    assert COOKIE_TOKEN in set_cookie
+    assert "Max-Age=0" in set_cookie
+
+    client.cookies.clear()
+    sem_sessao = client.get("/auth/me")
+    assert sem_sessao.status_code == 401
 
 
 def test_login_com_senha_errada_falha(client):

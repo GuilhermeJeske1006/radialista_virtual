@@ -45,7 +45,7 @@ export default function GradeSemanalView({
             {DIAS_SEMANA_LABEL.map((label) => (
               <div
                 key={label}
-                className="px-2 py-2.5 text-center text-xs font-mono font-semibold uppercase tracking-wide text-fg/55 border-l border-border"
+                className="px-2 py-2.5 text-center text-xs font-mono font-semibold uppercase tracking-wide text-fg/65 border-l border-border"
               >
                 {label}
               </div>
@@ -58,7 +58,7 @@ export default function GradeSemanalView({
                 {HORAS.map((h) => (
                   <div
                     key={h}
-                    className="absolute right-2 -translate-y-1/2 font-mono text-[10px] text-fg/35"
+                    className="absolute right-2 -translate-y-1/2 font-mono text-[10px] text-fg/65"
                     style={{ top: h * ALTURA_HORA_PX }}
                   >
                     {String(h).padStart(2, "0")}h
@@ -143,7 +143,7 @@ function DiaColuna({
             <p className={`text-[11px] font-medium leading-tight truncate ${cor.texto} ${!programa.ativo ? "opacity-45" : ""}`}>
               {programa.nome}
             </p>
-            <p className="text-[10px] leading-tight text-fg/50 truncate">
+            <p className="text-[10px] leading-tight text-fg/65 truncate">
               {programa.radialista.nome_locutor} · {formatarFaixa(programa)}
               {programa.data_especifica ? " · avulso" : ""}
             </p>

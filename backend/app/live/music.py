@@ -67,6 +67,11 @@ class MusicaEncontrada:
     descricao: str = ""
     tags: list[str] = field(default_factory=list)
     ano: str | None = None
+    # Duracao real do video inteiro, em segundos (buscada via YouTube Data API, ver
+    # _buscar_duracoes) -- ja era buscada so' pra filtrar candidatos na faixa valida e depois
+    # descartada; guardada aqui pra caller (ver MusicaBlocoItem em app.live.router) saber
+    # quanto tempo a musica realmente dura, em vez de nao ter dado nenhum.
+    duracao_segundos: int | None = None
 
 
 TERMOS_AO_VIVO = [
@@ -266,6 +271,7 @@ def _buscar_metadados_musica(video_id: str) -> dict:
 
 
 def _preencher_extras(resultado: MusicaEncontrada, duracoes: dict[str, int]) -> MusicaEncontrada:
+    resultado.duracao_segundos = duracoes.get(resultado.video_id)
     resultado.fim_segundos = obter_fim_seguro(resultado.video_id, duracoes.get(resultado.video_id))
     metadados = _buscar_metadados_musica(resultado.video_id)
     resultado.descricao = metadados.get("descricao", "")

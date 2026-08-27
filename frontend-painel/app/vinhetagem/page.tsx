@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import AppShell from "../../components/AppShell";
 import Modal from "../../components/Modal";
 import ConfirmDialog from "../../components/ConfirmDialog";
@@ -8,10 +9,10 @@ import VoiceSelect from "../../components/VoiceSelect";
 import { apiFetch, apiFetchForm, apiFetchBlob, ApiError } from "../../lib/api";
 import { BibliotecaAudioItem, formatarDuracao } from "../../lib/bibliotecaAudio";
 import { CategoriaVinheta, Patrocinador, Radialista } from "../../lib/types";
-import { OndaSpin } from "../../components/OndaLogo";
+import { LocufySpin } from "../../components/LocufyLogo";
 
 const inputClass =
-  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/35 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20";
+  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20";
 const labelClass = "block text-sm font-medium text-fg/80 mb-1.5";
 
 type FormCategoria = { id: number | null; nome: string; tipo: "biblioteca" | "propaganda" };
@@ -63,6 +64,7 @@ function SeletorCategoria({
   const opcoes = categorias.filter((c) => c.tipo === tipo);
   return (
     <select
+      aria-label="Categoria"
       value={value ?? ""}
       onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
       className={inputClass}
@@ -283,9 +285,13 @@ export default function VinhetagemPage() {
   return (
     <AppShell title="Vinhetagem" maxWidthClassName="max-w-6xl">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
-        <p className="text-sm text-fg/55 max-w-2xl">
+        <p className="text-sm text-fg/65 max-w-2xl">
           Crie categorias (cada uma já marcada como biblioteca ou propaganda) e adicione as inserções dentro de cada
-          uma -- o tipo é sempre o da categoria escolhida.
+          uma -- o tipo é sempre o da categoria escolhida. Vinhetas de biblioteca aparecem como botões no cartwall do{" "}
+          <Link href="/live" className="text-amber-text underline hover:text-amber-dim">
+            Ao Vivo
+          </Link>
+          ; propagandas entram nos blocos &quot;Chamada ao ouvinte&quot; da programação de cada radialista.
         </p>
         <div className="flex flex-wrap gap-2 shrink-0">
           <button
@@ -298,15 +304,15 @@ export default function VinhetagemPage() {
         </div>
       </div>
 
-      {erro && <p className="text-sm text-rust mb-4">{erro}</p>}
+      {erro && <p className="text-sm text-rust-text mb-4">{erro}</p>}
 
       {carregando ? (
-        <p className="flex items-center gap-2 text-sm text-fg/55">
-          <OndaSpin size={16} /> Carregando...
+        <p className="flex items-center gap-2 text-sm text-fg/65">
+          <LocufySpin size={16} /> Carregando...
         </p>
       ) : categorias.length === 0 && vinhetas.length === 0 && propagandas.length === 0 ? (
         <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
-          <p className="text-sm text-fg/55">
+          <p className="text-sm text-fg/65">
             Nada cadastrado ainda. Comece criando uma categoria (ex.: &quot;Vinhetas&quot;, &quot;Comerciais&quot;) e
             depois adicione inserções dentro dela.
           </p>
@@ -334,7 +340,7 @@ export default function VinhetagemPage() {
                   <div className="flex items-center gap-2">
                     <h2 className="font-display text-base font-bold text-fg">{categoria.nome}</h2>
                     {categoria.tipo && (
-                      <span className="rounded-full bg-fg/5 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-fg/45">
+                      <span className="rounded-full bg-fg/5 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-fg/65">
                         {categoria.tipo === "biblioteca" ? "Biblioteca" : "Propaganda"}
                       </span>
                     )}
@@ -345,21 +351,21 @@ export default function VinhetagemPage() {
                         <button
                           type="button"
                           onClick={() => setFormCategoria({ id: categoriaId, nome: categoria.nome, tipo: categoria.tipo! })}
-                          className="text-xs font-medium text-amber hover:text-amber-dim"
+                          className="text-xs font-medium text-amber-text hover:text-amber-dim"
                         >
                           Renomear
                         </button>
                         <button
                           type="button"
                           onClick={() => setParaExcluirCategoria({ id: categoriaId, nome: categoria.nome, tipo: categoria.tipo! })}
-                          className="text-xs font-medium text-rust hover:text-rust/80"
+                          className="text-xs font-medium text-rust-text hover:text-rust/80"
                         >
                           Excluir categoria
                         </button>
                         <button
                           type="button"
                           onClick={() => setFormInsercao(novaInsercaoVazia(categoria.tipo!, categoriaId))}
-                          className="text-xs font-medium text-amber hover:text-amber-dim"
+                          className="text-xs font-medium text-amber-text hover:text-amber-dim"
                         >
                           + Inserção
                         </button>
@@ -369,7 +375,7 @@ export default function VinhetagemPage() {
                 </div>
 
                 {itensDaCategoria.length === 0 ? (
-                  <p className="text-sm text-fg/45">Nada cadastrado nessa categoria.</p>
+                  <p className="text-sm text-fg/65">Nada cadastrado nessa categoria.</p>
                 ) : (
                   <div className="space-y-1.5">
                     {itensDaCategoria.map((entrada) =>
@@ -381,30 +387,30 @@ export default function VinhetagemPage() {
                           <button
                             type="button"
                             onClick={() => tocarVinheta(entrada.item)}
-                            className="shrink-0 text-amber hover:text-amber-dim"
+                            className="shrink-0 text-amber-text hover:text-amber-dim"
                             title="Tocar"
                           >
-                            {tocandoId === entrada.item.id ? <OndaSpin size={14} /> : "▶"}
+                            {tocandoId === entrada.item.id ? <LocufySpin size={14} /> : "▶"}
                           </button>
                           <div className="min-w-0 flex-1">
-                            <p className={`truncate ${entrada.item.ativo ? "text-fg" : "text-fg/35"}`}>
+                            <p className={`truncate ${entrada.item.ativo ? "text-fg" : "text-fg/65"}`}>
                               {entrada.item.nome}
                             </p>
                           </div>
-                          <span className="shrink-0 font-mono text-xs text-fg/35">
+                          <span className="shrink-0 font-mono text-xs text-fg/65">
                             {formatarDuracao(entrada.item.duracao_segundos)}
                           </span>
                           <button
                             type="button"
                             onClick={() => editarVinheta(entrada.item)}
-                            className="shrink-0 text-xs font-medium text-amber hover:text-amber-dim"
+                            className="shrink-0 text-xs font-medium text-amber-text hover:text-amber-dim"
                           >
                             Editar
                           </button>
                           <button
                             type="button"
                             onClick={() => setParaExcluirInsercao({ tipo: "biblioteca", item: entrada.item })}
-                            className="shrink-0 text-xs font-medium text-rust hover:text-rust/80"
+                            className="shrink-0 text-xs font-medium text-rust-text hover:text-rust/80"
                           >
                             Excluir
                           </button>
@@ -415,13 +421,13 @@ export default function VinhetagemPage() {
                           className="flex items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-sm"
                         >
                           <div className="min-w-0 flex-1">
-                            <p className={`truncate ${entrada.item.ativo ? "text-fg" : "text-fg/35"}`}>
+                            <p className={`truncate ${entrada.item.ativo ? "text-fg" : "text-fg/65"}`}>
                               {entrada.item.nome}
                               {!entrada.item.ativo && (
-                                <span className="ml-2 text-xs font-medium text-fg/45">(inativo)</span>
+                                <span className="ml-2 text-xs font-medium text-fg/65">(inativo)</span>
                               )}
                             </p>
-                            <p className="text-xs text-fg/45 font-mono">
+                            <p className="text-xs text-fg/65 font-mono">
                               {entrada.item.tipo_conteudo === "texto"
                                 ? "Texto (TTS)"
                                 : `Áudio${entrada.item.audio_nome_original ? ` · ${entrada.item.audio_nome_original}` : ""}`}
@@ -430,14 +436,14 @@ export default function VinhetagemPage() {
                           <button
                             type="button"
                             onClick={() => editarPropaganda(entrada.item)}
-                            className="shrink-0 text-xs font-medium text-amber hover:text-amber-dim"
+                            className="shrink-0 text-xs font-medium text-amber-text hover:text-amber-dim"
                           >
                             Editar
                           </button>
                           <button
                             type="button"
                             onClick={() => setParaExcluirInsercao({ tipo: "propaganda", item: entrada.item })}
-                            className="shrink-0 text-xs font-medium text-rust hover:text-rust/80"
+                            className="shrink-0 text-xs font-medium text-rust-text hover:text-rust/80"
                           >
                             Excluir
                           </button>
@@ -490,7 +496,7 @@ export default function VinhetagemPage() {
                   Propaganda (patrocinador)
                 </label>
               </div>
-              <p className="text-xs text-fg/45 mt-1.5">
+              <p className="text-xs text-fg/65 mt-1.5">
                 Define o que pode ser adicionado dentro dessa categoria.
               </p>
             </div>
@@ -541,7 +547,7 @@ export default function VinhetagemPage() {
                 value={formInsercao.categoria_id}
                 onChange={(categoria_id) => setFormInsercao({ ...formInsercao, categoria_id })}
               />
-              <p className="text-xs text-fg/45 mt-1.5">
+              <p className="text-xs text-fg/65 mt-1.5">
                 {formInsercao.tipo === "biblioteca" ? "Categorias de biblioteca" : "Categorias de propaganda"} apenas.
               </p>
             </div>
@@ -576,7 +582,7 @@ export default function VinhetagemPage() {
                     onChange={(e) => setFormInsercao({ ...formInsercao, arquivo: e.target.files?.[0] ?? null })}
                     className={inputClass}
                   />
-                  <p className="text-xs text-fg/45 mt-1.5">
+                  <p className="text-xs text-fg/65 mt-1.5">
                     {formInsercao.id !== null ? "Deixe em branco pra manter o áudio atual." : "Obrigatório."}
                   </p>
                 </div>
@@ -635,7 +641,7 @@ export default function VinhetagemPage() {
                           value={formInsercao.voz_id}
                           onChange={(vozId) => setFormInsercao({ ...formInsercao, voz_id: vozId })}
                         />
-                        <p className="text-xs text-fg/45 mt-1.5">
+                        <p className="text-xs text-fg/65 mt-1.5">
                           Sem escolha aqui, o patrocinador é lido com a voz do radialista que estiver no ar.
                         </p>
                       </div>
@@ -650,7 +656,7 @@ export default function VinhetagemPage() {
                       onChange={(e) => setFormInsercao({ ...formInsercao, arquivo: e.target.files?.[0] ?? null })}
                       className={inputClass}
                     />
-                    <p className="text-xs text-fg/45 mt-1.5">
+                    <p className="text-xs text-fg/65 mt-1.5">
                       {formInsercao.id !== null
                         ? "Deixe em branco pra manter o áudio atual."
                         : "Obrigatório pra propaganda em áudio."}

@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { apiFetchBlob, ApiError } from "../../lib/api";
 import { BibliotecaAudioItem, formatarDuracao } from "../../lib/bibliotecaAudio";
-import { OndaSpin } from "../OndaLogo";
+import { LocufySpin } from "../LocufyLogo";
 
 type Props = {
   itens: BibliotecaAudioItem[];
@@ -74,17 +74,17 @@ export default function CartwallPanel({ itens, duckMusicaFundo, programaAtivo, o
       <div className="flex items-center justify-between mb-1">
         <h2 className="font-display text-base font-bold text-fg">Cartwall</h2>
         {tocandoId !== null && (
-          <button type="button" onClick={pararTudo} className="text-xs font-medium text-rust hover:text-rust/80">
+          <button type="button" onClick={pararTudo} className="text-xs font-medium text-rust-text hover:text-rust/80">
             Parar
           </button>
         )}
       </div>
-      <p className="text-xs text-fg/45 mb-3">Toque manual durante a transmissão.</p>
+      <p className="text-xs text-fg/65 mb-3">Toque manual durante a transmissão.</p>
 
-      {erro && <p className="text-xs text-rust mb-3">{erro}</p>}
+      {erro && <p className="text-xs text-rust-text mb-3">{erro}</p>}
 
       {itens.length === 0 ? (
-        <p className="text-sm text-fg/55">
+        <p className="text-sm text-fg/65">
           Nenhum áudio ativo na biblioteca ainda. Cadastre em Biblioteca (aqui do lado) ou em /vinhetagem pra eles
           aparecerem aqui como botões.
         </p>
@@ -105,9 +105,9 @@ export default function CartwallPanel({ itens, duckMusicaFundo, programaAtivo, o
                 }`}
               >
                 <p className="text-sm font-medium text-fg truncate">{item.nome}</p>
-                <p className="mt-1 flex items-center gap-1.5 font-mono text-xs text-fg/45">
+                <p className="mt-1 flex items-center gap-1.5 font-mono text-xs text-fg/65">
                   {carregandoId === item.id ? (
-                    <OndaSpin size={12} />
+                    <LocufySpin size={12} />
                   ) : (
                     <span>{ativo ? "■ tocando" : "▶"}</span>
                   )}

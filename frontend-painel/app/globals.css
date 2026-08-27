@@ -6,12 +6,17 @@
   --font-mono: var(--font-plex-mono), monospace;
 
   /* theme-aware roles: swap value under [data-theme="light"] below */
-  --color-bg: var(--onda-bg);
-  --color-surface: var(--onda-surface);
-  --color-surface-2: var(--onda-surface-2);
-  --color-fg: var(--onda-fg);
-  --color-border: var(--onda-border);
-  --color-border-strong: var(--onda-border-strong);
+  --color-bg: var(--locufy-bg);
+  --color-surface: var(--locufy-surface);
+  --color-surface-2: var(--locufy-surface-2);
+  --color-fg: var(--locufy-fg);
+  --color-border: var(--locufy-border);
+  --color-border-strong: var(--locufy-border-strong);
+  /* amber/rust/teal, darkened enough in the light theme to hit 4.5:1 as text -- borders/bg/buttons
+     keep using the plain --color-amber/rust/teal unchanged, this is only for text-* (links, labels). */
+  --color-amber-text: var(--locufy-amber-text);
+  --color-rust-text: var(--locufy-rust-text);
+  --color-teal-text: var(--locufy-teal-text);
 
   /* fixed brand hues: same in both themes */
   --color-ink: #15130f;
@@ -21,7 +26,7 @@
   --color-teal: #33c2a8;
   --color-rust: #e2543a;
 
-  /* brand-* ramp mirrors the ONDA amber so existing bg-brand-500 / text-brand-600 /
+  /* brand-* ramp mirrors the Locufy amber so existing bg-brand-500 / text-brand-600 /
      focus:ring-brand-500 utilities across the app pick up the identity for free */
   --color-brand-25: #fdf6ea;
   --color-brand-50: #faecd3;
@@ -40,21 +45,27 @@
 }
 
 :root {
-  --onda-bg: #15130f;
-  --onda-surface: #1e1b15;
-  --onda-surface-2: #262117;
-  --onda-fg: #f4ead9;
-  --onda-border: rgba(244, 234, 217, 0.14);
-  --onda-border-strong: rgba(244, 234, 217, 0.28);
+  --locufy-bg: #15130f;
+  --locufy-surface: #1e1b15;
+  --locufy-surface-2: #262117;
+  --locufy-fg: #f4ead9;
+  --locufy-border: rgba(244, 234, 217, 0.14);
+  --locufy-border-strong: rgba(244, 234, 217, 0.28);
+  --locufy-amber-text: #e8a33d;
+  --locufy-rust-text: #e2543a;
+  --locufy-teal-text: #33c2a8;
 }
 
 [data-theme="light"] {
-  --onda-bg: #f4ead9;
-  --onda-surface: #fffdf8;
-  --onda-surface-2: #f9f1e2;
-  --onda-fg: #15130f;
-  --onda-border: rgba(21, 19, 15, 0.1);
-  --onda-border-strong: rgba(21, 19, 15, 0.18);
+  --locufy-bg: #f4ead9;
+  --locufy-surface: #fffdf8;
+  --locufy-surface-2: #f9f1e2;
+  --locufy-fg: #15130f;
+  --locufy-border: rgba(21, 19, 15, 0.1);
+  --locufy-border-strong: rgba(21, 19, 15, 0.18);
+  --locufy-amber-text: #8b5a10;
+  --locufy-rust-text: #c1361c;
+  --locufy-teal-text: #1f7565;
 
   --shadow-theme-xs: 0 1px 2px 0 rgba(21, 19, 15, 0.08);
   --shadow-theme-sm: 0 1px 3px 0 rgba(21, 19, 15, 0.12), 0 1px 2px 0 rgba(21, 19, 15, 0.08);

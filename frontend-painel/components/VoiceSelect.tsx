@@ -48,7 +48,7 @@ export default function VoiceSelect({ value, onChange }: Props) {
 
         {vozesClonadas.length > 0 && (
           <>
-            <p className="px-3 pt-2 text-xs font-medium text-fg/45">Minhas vozes clonadas</p>
+            <p className="px-3 pt-2 text-xs font-medium text-fg/65">Minhas vozes clonadas</p>
             {vozesClonadas.map((v) => (
               <label key={v.voz_id} className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-fg/5">
                 <input type="radio" name="voz" checked={value === v.voz_id} onChange={() => onChange(v.voz_id)} />
@@ -58,7 +58,7 @@ export default function VoiceSelect({ value, onChange }: Props) {
           </>
         )}
 
-        <p className="px-3 pt-2 text-xs font-medium text-fg/45">Catálogo (com amostra de áudio)</p>
+        <p className="px-3 pt-2 text-xs font-medium text-fg/65">Catálogo (com amostra de áudio)</p>
         {vozes.map((v) => (
           <div key={v.voz_id} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-fg/5">
             <label className="flex flex-1 cursor-pointer items-center gap-2">
@@ -77,15 +77,15 @@ export default function VoiceSelect({ value, onChange }: Props) {
           <button
             type="button"
             onClick={() => setModalAberto(true)}
-            className="text-xs font-medium text-amber hover:text-amber-dim"
+            className="text-xs font-medium text-amber-text hover:text-amber-dim"
           >
             🎙️ Clonar uma voz
           </button>
         ) : (
           plano && (
-            <p className="text-xs text-fg/45">
+            <p className="text-xs text-fg/65">
               Clonar sua própria voz é um recurso do plano Growth em diante.{" "}
-              <Link href="/billing" className="text-amber hover:underline">
+              <Link href="/billing" className="text-amber-text hover:underline">
                 Fazer upgrade
               </Link>
             </p>

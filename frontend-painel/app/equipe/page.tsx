@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import AppShell from "../../components/AppShell";
 import ConfirmDialog from "../../components/ConfirmDialog";
-import { OndaSpin } from "../../components/OndaLogo";
+import { LocufySpin } from "../../components/LocufyLogo";
 import { apiFetch, ApiError } from "../../lib/api";
 import { Conta, ConviteEquipe, UsuarioEquipe } from "../../lib/types";
 
 const inputClass =
-  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/35 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20";
+  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20";
 
 function formatarData(iso: string): string {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
@@ -133,8 +133,8 @@ export default function EquipePage() {
   if (carregando) {
     return (
       <AppShell title="Equipe">
-        <p className="flex items-center gap-2 text-sm text-fg/55">
-          <OndaSpin size={16} /> Carregando...
+        <p className="flex items-center gap-2 text-sm text-fg/65">
+          <LocufySpin size={16} /> Carregando...
         </p>
       </AppShell>
     );
@@ -145,12 +145,12 @@ export default function EquipePage() {
   return (
     <AppShell title="Equipe" maxWidthClassName="max-w-3xl">
       <div className="space-y-5">
-        {erro && <p className="text-sm text-rust">{erro}</p>}
-        {mensagem && <p className="text-sm text-teal">{mensagem}</p>}
+        {erro && <p className="text-sm text-rust-text">{erro}</p>}
+        {mensagem && <p className="text-sm text-teal-text">{mensagem}</p>}
 
         <form onSubmit={convidar} className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
           <h2 className="font-display text-base font-bold text-fg mb-1">Convidar</h2>
-          <p className="text-sm text-fg/55 mb-4">A pessoa recebe um link por e-mail para criar a senha e entrar na equipe.</p>
+          <p className="text-sm text-fg/65 mb-4">A pessoa recebe um link por e-mail para criar a senha e entrar na equipe.</p>
           <div className="flex flex-col sm:flex-row items-start gap-3">
             <input
               type="email"
@@ -161,6 +161,7 @@ export default function EquipePage() {
               className={`${inputClass} sm:flex-1`}
             />
             <select
+              aria-label="Papel do convite"
               value={roleConvite}
               onChange={(e) => setRoleConvite(e.target.value as "admin" | "membro")}
               className={`${inputClass} sm:w-40`}
@@ -176,8 +177,12 @@ export default function EquipePage() {
               {convidando ? "Enviando..." : "Enviar convite"}
             </button>
           </div>
-          {erroConvite && <p className="mt-3 text-sm text-rust">{erroConvite}</p>}
-          {mensagemConvite && <p className="mt-3 text-sm text-teal">{mensagemConvite}</p>}
+          <p className="mt-3 text-xs text-fg/65">
+            Membro usa o painel no dia a dia (radialistas, programação, ao vivo). Admin também gerencia a equipe e a
+            assinatura.
+          </p>
+          {erroConvite && <p className="mt-3 text-sm text-rust-text">{erroConvite}</p>}
+          {mensagemConvite && <p className="mt-3 text-sm text-teal-text">{mensagemConvite}</p>}
         </form>
 
         <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
@@ -190,10 +195,11 @@ export default function EquipePage() {
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-fg truncate">{usuario.nome || usuario.email}</p>
-                  <p className="text-xs text-fg/55 truncate">{usuario.email}</p>
+                  <p className="text-xs text-fg/65 truncate">{usuario.email}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <select
+                    aria-label={`Papel de ${usuario.nome || usuario.email}`}
                     value={usuario.role}
                     onChange={(e) => alterarRole(usuario, e.target.value as "admin" | "membro")}
                     disabled={usuario.id === conta?.id}
@@ -207,7 +213,7 @@ export default function EquipePage() {
                     onClick={() => setParaRemover(usuario)}
                     disabled={usuario.id === conta?.id}
                     title={usuario.id === conta?.id ? "Você não pode remover sua própria conta" : "Remover"}
-                    className="rounded-lg border border-rust/40 px-3 py-1.5 text-xs font-medium text-rust hover:bg-rust/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="rounded-lg border border-rust/40 px-3 py-1.5 text-xs font-medium text-rust-text hover:bg-rust/10 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Remover
                   </button>
@@ -228,7 +234,7 @@ export default function EquipePage() {
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-fg truncate">{convite.email}</p>
-                    <p className="text-xs text-fg/55">
+                    <p className="text-xs text-fg/65">
                       {convite.role === "admin" ? "Admin" : "Membro"} · expira em {formatarData(convite.expira_em)}
                     </p>
                   </div>
@@ -243,7 +249,7 @@ export default function EquipePage() {
                     <button
                       type="button"
                       onClick={() => setParaRevogar(convite)}
-                      className="rounded-lg border border-rust/40 px-3 py-1.5 text-xs font-medium text-rust hover:bg-rust/10"
+                      className="rounded-lg border border-rust/40 px-3 py-1.5 text-xs font-medium text-rust-text hover:bg-rust/10"
                     >
                       Revogar
                     </button>

@@ -1,3 +1,4 @@
+from app.auth.security import COOKIE_TOKEN
 from app.models.convite_usuario import ConviteUsuario
 
 
@@ -58,6 +59,7 @@ def test_aceitar_convite_cria_usuario_e_loga(client, account, auth_headers, db_s
     )
     assert resposta.status_code == 200
     assert "access_token" in resposta.json()
+    assert COOKIE_TOKEN in resposta.cookies
 
     me = client.get("/auth/me", headers={"Authorization": f"Bearer {resposta.json()['access_token']}"})
     assert me.json()["role"] == "membro"

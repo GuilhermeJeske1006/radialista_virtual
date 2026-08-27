@@ -42,6 +42,13 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from: str = "Radialista Virtual <no-reply@radialista.app>"
 
+    # Monitoramento de erros (sentry.io) -- deixe vazio pra desativar (dev local).
+    sentry_dsn: str = ""
+    sentry_environment: str = "development"
+    # Fracao de requests com tracing de performance (0.0 a 1.0) -- 0 manda so' erros,
+    # sem overhead de tracing. Sentry cobra por evento de trace, entao comeca conservador.
+    sentry_traces_sample_rate: float = 0.0
+
     class Config:
         env_file = ".env"
         extra = "ignore"

@@ -8,7 +8,7 @@ import GradeSemanalView, { ProgramaComRadialista } from "../../components/progra
 import { apiFetch, ApiError } from "../../lib/api";
 import { corPorIndice } from "../../lib/gradeSemanal";
 import { DIAS_SEMANA_LABEL, Programa, Radialista } from "../../lib/types";
-import { OndaSpin } from "../../components/OndaLogo";
+import { LocufySpin } from "../../components/LocufyLogo";
 
 function horarioMaisUmaHora(horario: string): string {
   const [h, m] = horario.split(":").map(Number);
@@ -80,13 +80,13 @@ export default function ProgramacaoPage() {
   return (
     <AppShell title="Grade de Programação" maxWidthClassName="max-w-[1100px]">
       <div className="flex items-start justify-between gap-4 mb-5">
-        <p className="text-sm text-fg/55">
+        <p className="text-sm text-fg/65">
           Todos os programas de todos os radialistas, por dia e horário. Clique num programa pra editar, ou num
           espaço vazio pra criar um novo ali.
         </p>
       </div>
 
-      {erro && <p className="text-sm text-rust mb-4">{erro}</p>}
+      {erro && <p className="text-sm text-rust-text mb-4">{erro}</p>}
 
       {radialistasOrdenados.length > 0 && (
         <div className="flex flex-wrap gap-3 mb-4">
@@ -103,12 +103,12 @@ export default function ProgramacaoPage() {
       )}
 
       {carregando ? (
-        <p className="flex items-center gap-2 text-sm text-fg/55">
-          <OndaSpin size={16} /> Carregando...
+        <p className="flex items-center gap-2 text-sm text-fg/65">
+          <LocufySpin size={16} /> Carregando...
         </p>
       ) : radialistas.length === 0 ? (
         <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
-          <p className="text-sm text-fg/55">Crie um radialista primeiro para poder montar a programação.</p>
+          <p className="text-sm text-fg/65">Crie um radialista primeiro para poder montar a programação.</p>
         </div>
       ) : (
         <GradeSemanalView
@@ -129,7 +129,7 @@ export default function ProgramacaoPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="font-display text-base font-bold text-fg mb-1">Para qual radialista?</h2>
-            <p className="text-xs text-fg/45 mb-4">
+            <p className="text-xs text-fg/65 mb-4">
               {DIAS_SEMANA_LABEL[escolhaPendente.dia]} às {escolhaPendente.horario.slice(0, 5)}
             </p>
             <div className="space-y-2">

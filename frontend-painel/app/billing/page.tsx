@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import AppShell from "../../components/AppShell";
 import { apiFetch, ApiError } from "../../lib/api";
-import { OndaLed, OndaSpin } from "../../components/OndaLogo";
+import { LocufyLed, LocufySpin } from "../../components/LocufyLogo";
 import { PLANOS, PRECO_AGENTE_ADICIONAL, PRECO_EXCEDENTE_1000_MSG, formatarReais } from "../../lib/planos";
 
 type StatusPlano = {
@@ -83,8 +83,8 @@ export default function BillingPage() {
       <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6 mb-8 max-w-lg">
         <h2 className="font-display text-base font-bold text-fg mb-4">Plano atual</h2>
         {carregando ? (
-          <p className="flex items-center gap-2 text-sm text-fg/55">
-            <OndaSpin size={16} /> Carregando...
+          <p className="flex items-center gap-2 text-sm text-fg/65">
+            <LocufySpin size={16} /> Carregando...
           </p>
         ) : statusPlano ? (
           <>
@@ -92,14 +92,14 @@ export default function BillingPage() {
               <span className="text-sm text-fg/65">Status:</span>
               <span
                 className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                  ativo ? "bg-teal/10 text-teal" : "bg-amber/10 text-amber"
+                  ativo ? "bg-teal/10 text-teal-text" : "bg-amber/10 text-amber-text"
                 }`}
               >
-                <OndaLed color={ativo ? "teal" : "amber"} pulse={false} />
+                <LocufyLed color={ativo ? "teal" : "amber"} pulse={false} />
                 {statusPlano.plano_status}
               </span>
               {planoAtual && (
-                <span className="text-sm text-fg/45">— {planoAtual.nome}</span>
+                <span className="text-sm text-fg/65">— {planoAtual.nome}</span>
               )}
             </div>
 
@@ -122,39 +122,50 @@ export default function BillingPage() {
         <h2 className="font-display text-base font-bold text-fg mb-2">
           {ativo ? "Trocar de plano" : "Escolha seu plano"}
         </h2>
-        <p className="text-sm text-fg/55">
+        <p className="text-sm text-fg/65">
           Todos os planos incluem os mesmos agentes de IA (comercial, qualificação, agendamento,
           suporte, pós-venda e mais), sempre atendendo pelo único número de WhatsApp da sua rádio —
           o que muda é quantos agentes você pode rodar ao mesmo tempo.
         </p>
       </div>
 
-      {erro && <p className="text-sm text-rust mb-4">{erro}</p>}
+      {erro && <p className="text-sm text-rust-text mb-4">{erro}</p>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {PLANOS.map((plano) => (
+        {PLANOS.map((plano) => {
+          const ehPlanoSelecionado = plano.id === statusPlano?.plano;
+          const ehPlanoAtual = ativo && ehPlanoSelecionado;
+          return (
           <div
             key={plano.id}
             className={`relative flex flex-col rounded-2xl border p-6 shadow-theme-xs ${
-              plano.destaque
+              ehPlanoSelecionado
+                ? "bg-surface border-teal/50 ring-1 ring-teal/30"
+                : plano.destaque
                 ? "bg-surface border-amber/50 ring-1 ring-amber/30"
                 : "bg-surface border-border-strong"
             }`}
           >
-            {plano.destaque && (
-              <span className="absolute -top-3 left-6 rounded-full bg-brand-500 px-2.5 py-0.5 text-[11px] font-semibold text-ink">
-                Mais escolhido
+            {ehPlanoSelecionado ? (
+              <span className="absolute -top-3 left-6 rounded-full bg-teal px-2.5 py-0.5 text-[11px] font-semibold text-ink">
+                Seu plano atual
               </span>
+            ) : (
+              plano.destaque && (
+                <span className="absolute -top-3 left-6 rounded-full bg-brand-500 px-2.5 py-0.5 text-[11px] font-semibold text-ink">
+                  Mais escolhido
+                </span>
+              )
             )}
 
             <h2 className="font-display text-base font-bold text-fg">{plano.nome}</h2>
-            <p className="text-xs text-fg/55 mt-1 mb-5">{plano.descricao}</p>
+            <p className="text-xs text-fg/65 mt-1 mb-5">{plano.descricao}</p>
 
             <div className="mb-5">
               <span className="font-display text-3xl font-bold text-fg">
                 R$ {formatarReais(plano.preco)}
               </span>
-              <span className="text-sm text-fg/45">/mês</span>
+              <span className="text-sm text-fg/65">/mês</span>
             </div>
 
             <ul className="space-y-2.5 mb-6 flex-1">
@@ -164,25 +175,32 @@ export default function BillingPage() {
               <Feature texto="Encaminhamento pra atendimento humano" />
             </ul>
 
-            <button
-              onClick={() => assinar(plano.id)}
-              disabled={carregandoId === plano.id}
-              className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed ${
-                plano.destaque
-                  ? "bg-brand-500 text-ink hover:bg-brand-600"
-                  : "bg-paper/10 text-fg hover:bg-paper/15"
-              }`}
-            >
-              {carregandoId === plano.id ? (
-                <>
-                  <OndaSpin size={14} /> Redirecionando...
-                </>
-              ) : (
-                "Assinar"
-              )}
-            </button>
+            {ehPlanoAtual ? (
+              <span className="flex items-center justify-center rounded-lg border border-teal/40 bg-teal/10 px-4 py-2.5 text-sm font-medium text-teal-text">
+                Plano atual
+              </span>
+            ) : (
+              <button
+                onClick={() => assinar(plano.id)}
+                disabled={carregandoId === plano.id}
+                className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed ${
+                  plano.destaque
+                    ? "bg-brand-500 text-ink hover:bg-brand-600"
+                    : "bg-paper/10 text-fg hover:bg-paper/15"
+                }`}
+              >
+                {carregandoId === plano.id ? (
+                  <>
+                    <LocufySpin size={14} /> Redirecionando...
+                  </>
+                ) : (
+                  "Assinar"
+                )}
+              </button>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="mt-6 bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
@@ -194,7 +212,7 @@ export default function BillingPage() {
               <span className="font-semibold text-fg">R$ {formatarReais(PRECO_AGENTE_ADICIONAL)}/mês cada</span>.
               Sem trocar de plano, sem migração — o agente novo entra no ar na hora.
               {!!statusPlano?.agentes_extras && (
-                <span className="block text-fg/45 mt-1">
+                <span className="block text-fg/65 mt-1">
                   Você já tem {statusPlano.agentes_extras} agente(s) extra(s) ativo(s).
                 </span>
               )}
@@ -209,7 +227,7 @@ export default function BillingPage() {
             >
               {comprandoAgenteExtra ? (
                 <>
-                  <OndaSpin size={14} /> Redirecionando...
+                  <LocufySpin size={14} /> Redirecionando...
                 </>
               ) : (
                 "+ Agente extra"
@@ -217,7 +235,7 @@ export default function BillingPage() {
             </button>
           )}
         </div>
-        {erroAgenteExtra && <p className="text-sm text-rust mt-2">{erroAgenteExtra}</p>}
+        {erroAgenteExtra && <p className="text-sm text-rust-text mt-2">{erroAgenteExtra}</p>}
 
         <div className="mt-5 pt-5 border-t border-border flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -225,7 +243,7 @@ export default function BillingPage() {
               Excedente de mensagens acima do limite do plano: R$ {formatarReais(PRECO_EXCEDENTE_1000_MSG)} a cada
               1.000 mensagens adicionais.
               {!!statusPlano?.mensagens_extras && (
-                <span className="block text-fg/45 mt-1">
+                <span className="block text-fg/65 mt-1">
                   {statusPlano.mensagens_extras.toLocaleString("pt-BR")} mensagens extras compradas este mês.
                 </span>
               )}
@@ -267,10 +285,10 @@ export default function BillingPage() {
               disabled={comprandoExcedente}
               className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-amber/40 disabled:opacity-60"
             />
-            <p className="text-sm text-fg/55 mt-2">
+            <p className="text-sm text-fg/65 mt-2">
               Total: <span className="font-semibold text-fg">R$ {formatarReais(blocosExcedente * PRECO_EXCEDENTE_1000_MSG)}</span>
             </p>
-            {erroExcedente && <p className="text-sm text-rust mt-2">{erroExcedente}</p>}
+            {erroExcedente && <p className="text-sm text-rust-text mt-2">{erroExcedente}</p>}
             <div className="flex justify-end gap-3 mt-5">
               <button
                 type="button"
@@ -288,7 +306,7 @@ export default function BillingPage() {
               >
                 {comprandoExcedente ? (
                   <>
-                    <OndaSpin size={14} /> Redirecionando...
+                    <LocufySpin size={14} /> Redirecionando...
                   </>
                 ) : (
                   "Comprar"
@@ -319,7 +337,7 @@ function BarraUso({
   return (
     <div className={className}>
       <div className="flex items-baseline justify-between mb-1.5">
-        <span className="text-xs text-fg/55">{rotulo}</span>
+        <span className="text-xs text-fg/65">{rotulo}</span>
         <span className="text-xs font-medium text-fg/70">
           {usado.toLocaleString("pt-BR")} / {limite.toLocaleString("pt-BR")}
         </span>
@@ -338,7 +356,7 @@ function Feature({ texto }: { texto: string }) {
   return (
     <li className="flex items-start gap-2 text-sm text-fg/75">
       <svg
-        className="h-4.5 w-4.5 shrink-0 text-teal mt-0.5"
+        className="h-4.5 w-4.5 shrink-0 text-teal-text mt-0.5"
         fill="none"
         viewBox="0 0 24 24"
         strokeWidth={2}

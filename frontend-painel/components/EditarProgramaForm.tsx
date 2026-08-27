@@ -8,10 +8,10 @@ import EstruturaBlocosInput from "./EstruturaBlocosInput";
 import RadialistasProgramaSection from "./RadialistasProgramaSection";
 import { apiFetch, ApiError } from "../lib/api";
 import { DIAS_SEMANA_LABEL, normalizarPrograma, Patrocinador, Programa, PROGRAMA_VAZIO } from "../lib/types";
-import { OndaSpin } from "./OndaLogo";
+import { LocufySpin } from "./LocufyLogo";
 
 const inputClass =
-  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/35 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20";
+  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20";
 const labelClass = "block text-sm font-medium text-fg/80 mb-1.5";
 
 function semCamposSistema(p: Programa) {
@@ -146,14 +146,14 @@ export default function EditarProgramaForm({
 
   if (carregando) {
     return (
-      <p className="flex items-center gap-2 text-sm text-fg/55">
-        <OndaSpin size={16} /> Carregando...
+      <p className="flex items-center gap-2 text-sm text-fg/65">
+        <LocufySpin size={16} /> Carregando...
       </p>
     );
   }
 
   if (!programa) {
-    return <p className="text-sm text-rust">{erro || "Programa não encontrado."}</p>;
+    return <p className="text-sm text-rust-text">{erro || "Programa não encontrado."}</p>;
   }
 
   return (
@@ -164,7 +164,7 @@ export default function EditarProgramaForm({
           <button
             type="button"
             onClick={() => setConfirmandoExclusao(true)}
-            className="text-xs font-medium text-rust hover:text-rust/80"
+            className="text-xs font-medium text-rust-text hover:text-rust/80"
           >
             Excluir programa
           </button>
@@ -183,7 +183,7 @@ export default function EditarProgramaForm({
                   setDescricaoIA("");
                   setIaAberto(true);
                 }}
-                className="shrink-0 text-sm font-medium text-amber hover:text-amber-dim"
+                className="shrink-0 text-sm font-medium text-amber-text hover:text-amber-dim"
               >
                 ✨ Gerar com IA
               </button>
@@ -202,7 +202,7 @@ export default function EditarProgramaForm({
                 placeholder="Ex: programa noturno de sertanejo raiz, mais calmo e romântico, foco em modão"
                 className={inputClass}
               />
-              {erroIA && <p className="text-sm text-rust mt-2">{erroIA}</p>}
+              {erroIA && <p className="text-sm text-rust-text mt-2">{erroIA}</p>}
               <div className="flex justify-end gap-3 mt-3">
                 <button
                   type="button"
@@ -226,11 +226,21 @@ export default function EditarProgramaForm({
         </div>
       )}
 
-      {erro && <p className="text-sm text-rust mb-4">{erro}</p>}
-      {mensagem && <p className="text-sm text-teal mb-4">{mensagem}</p>}
+      {erro && (
+        <div className="mb-4">
+          <p className="text-sm text-rust-text">{erro}</p>
+          {erro.toLowerCase().includes("conflita") && (
+            <p className="text-sm text-fg/65 mt-1">
+              Ajuste o horário do programa mencionado acima (ou o dele mesmo) pra abrir espaço, ou escolha outro
+              horário pra este aqui.
+            </p>
+          )}
+        </div>
+      )}
+      {mensagem && <p className="text-sm text-teal-text mb-4">{mensagem}</p>}
 
       <form onSubmit={salvar} className="space-y-4">
-        <h3 className="font-mono text-xs uppercase tracking-wide text-amber">No ar</h3>
+        <h3 className="font-mono text-xs uppercase tracking-wide text-amber-text">No ar</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className={labelClass}>Nome do programa</label>
@@ -310,7 +320,7 @@ export default function EditarProgramaForm({
                 value={programa.data_especifica}
                 onChange={(e) => setPrograma({ ...programa, data_especifica: e.target.value })}
               />
-              <p className="text-xs text-fg/35 mt-1">Programa avulso: vai ao ar só nessa data.</p>
+              <p className="text-xs text-fg/65 mt-1">Programa avulso: vai ao ar só nessa data.</p>
             </div>
           ) : (
             <div>
@@ -330,7 +340,7 @@ export default function EditarProgramaForm({
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-fg/35">Nenhum dia marcado = programa vai ao ar todos os dias.</p>
+              <p className="text-xs text-fg/65">Nenhum dia marcado = programa vai ao ar todos os dias.</p>
             </div>
           )}
         </div>
@@ -339,7 +349,7 @@ export default function EditarProgramaForm({
             type="checkbox"
             checked={programa.ativo}
             onChange={(e) => setPrograma({ ...programa, ativo: e.target.checked })}
-            className="h-4 w-4 rounded border-border-strong bg-bg text-amber focus:ring-amber/40"
+            className="h-4 w-4 rounded border-border-strong bg-bg text-amber-text focus:ring-amber/40"
           />
           Programa ativo
         </label>
@@ -347,19 +357,19 @@ export default function EditarProgramaForm({
         {!criando && idEfetivo !== null && (
           <>
             <hr className="border-border" />
-            <h3 className="font-mono text-xs uppercase tracking-wide text-amber">Radialistas</h3>
+            <h3 className="font-mono text-xs uppercase tracking-wide text-amber-text">Radialistas</h3>
             <RadialistasProgramaSection programaId={idEfetivo} />
           </>
         )}
 
         <hr className="border-border" />
         <div className="flex items-center justify-between gap-2">
-          <h3 className="font-mono text-xs uppercase tracking-wide text-amber">Estrutura do programa</h3>
+          <h3 className="font-mono text-xs uppercase tracking-wide text-amber-text">Estrutura do programa</h3>
           <div className="flex items-center gap-3">
             {!criando && (
               <Link
                 href={`/radialista/${programa.radio_config_id}/programas/${idEfetivo}/grade`}
-                className="text-xs font-medium text-amber hover:text-amber-dim"
+                className="text-xs font-medium text-amber-text hover:text-amber-dim"
               >
                 Montar blocos do programa ↗
               </Link>
@@ -367,7 +377,7 @@ export default function EditarProgramaForm({
             <Link
               href="/vinhetagem"
               target="_blank"
-              className="text-xs font-medium text-amber hover:text-amber-dim"
+              className="text-xs font-medium text-amber-text hover:text-amber-dim"
             >
               Gerenciar vinhetagem ↗
             </Link>
@@ -383,13 +393,13 @@ export default function EditarProgramaForm({
             type="checkbox"
             checked={programa.ia_pode_adicionar_blocos}
             onChange={(e) => setPrograma({ ...programa, ia_pode_adicionar_blocos: e.target.checked })}
-            className="h-4 w-4 rounded border-border-strong bg-bg text-amber focus:ring-amber/40"
+            className="h-4 w-4 rounded border-border-strong bg-bg text-amber-text focus:ring-amber/40"
           />
           IA pode inserir blocos extras entre os da sequência
         </label>
 
         <hr className="border-border" />
-        <h3 className="font-mono text-xs uppercase tracking-wide text-amber">Persona e conteúdo</h3>
+        <h3 className="font-mono text-xs uppercase tracking-wide text-amber-text">Persona e conteúdo</h3>
         <div>
           <label className={labelClass}>Tom de voz</label>
           <textarea
@@ -437,7 +447,7 @@ export default function EditarProgramaForm({
         </div>
 
         <hr className="border-border" />
-        <h3 className="font-mono text-xs uppercase tracking-wide text-amber">Músicas</h3>
+        <h3 className="font-mono text-xs uppercase tracking-wide text-amber-text">Músicas</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
           <TagInput
             label="Gêneros permitidos"
@@ -466,7 +476,7 @@ export default function EditarProgramaForm({
         </div>
 
         <hr className="border-border" />
-        <h3 className="font-mono text-xs uppercase tracking-wide text-amber">Assuntos e notícias</h3>
+        <h3 className="font-mono text-xs uppercase tracking-wide text-amber-text">Assuntos e notícias</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
           <TagInput
             label="Assuntos do ao vivo"
@@ -487,13 +497,13 @@ export default function EditarProgramaForm({
 
         <hr className="border-border" />
         <div className="flex items-center justify-between gap-4">
-          <h3 className="font-mono text-xs uppercase tracking-wide text-amber">Pesquisa externa</h3>
+          <h3 className="font-mono text-xs uppercase tracking-wide text-amber-text">Pesquisa externa</h3>
           <label className="inline-flex items-center gap-2 text-sm font-medium text-fg/80">
             <input
               type="checkbox"
               checked={programa.pode_pesquisar}
               onChange={(e) => setPrograma({ ...programa, pode_pesquisar: e.target.checked })}
-              className="h-4 w-4 rounded border-border-strong bg-bg text-amber focus:ring-amber/40"
+              className="h-4 w-4 rounded border-border-strong bg-bg text-amber-text focus:ring-amber/40"
             />
             Pode pesquisar
           </label>

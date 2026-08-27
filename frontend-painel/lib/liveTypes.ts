@@ -1,6 +1,12 @@
 import { Programa } from "./types";
 
-export type MusicaBloco = { video_id: string; titulo: string; inicio_segundos?: number; fim_segundos?: number | null };
+export type MusicaBloco = {
+  video_id: string;
+  titulo: string;
+  inicio_segundos?: number;
+  fim_segundos?: number | null;
+  duracao_segundos?: number | null;
+};
 
 // Uma linha de dialogo multi-voz (ver ProgramaRadialista no backend) -- so vem preenchido
 // quando o programa tem mais de um radialista, uma linha por participante que falou no bloco.
@@ -22,6 +28,10 @@ export type ProgramSegment = {
   patrocinador_voz_id?: string | null;
   vinheta_id?: number | null;
   falas?: FalaItem[] | null;
+  // Duracao REAL do bloco inteiro (soma do tempo de ar de cada musica + cada fala que
+  // compoe esse bloco, medida ao vivo pelo player/audio -- ver atualizarDuracaoFala em
+  // useLiveEngine.ts), preenchida so' depois que o bloco termina de tocar.
+  duracao_segundos?: number;
 };
 
 export type LiveProgramResponse = {

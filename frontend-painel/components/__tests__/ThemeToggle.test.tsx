@@ -26,10 +26,10 @@ describe("ThemeToggle", () => {
 
     await userEvent.click(botao);
     expect(document.documentElement.getAttribute("data-theme")).toBe("light");
-    expect(window.localStorage.getItem("onda-theme")).toBe("light");
+    expect(window.localStorage.getItem("locufy-theme")).toBe("light");
 
     await userEvent.click(botao);
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
-    expect(window.localStorage.getItem("onda-theme")).toBe("dark");
+    expect(window.localStorage.getItem("locufy-theme")).toBe("dark");
   });
 });

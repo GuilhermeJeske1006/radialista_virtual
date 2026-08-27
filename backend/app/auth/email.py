@@ -138,6 +138,38 @@ def enviar_email_boas_vindas(email: str, nome: str) -> bool:
         return False
 
 
+def enviar_email_alerta_desconexao(email: str, nome: str) -> bool:
+    link = f"{settings.frontend_url}/onboarding"
+
+    if not settings.smtp_host:
+        # Sem SMTP configurado (dev local) -- loga em vez de falhar o job.
+        logger.info("SMTP nao configurado. Alerta de desconexao do WhatsApp para %s", email)
+        return True
+
+    mensagem = EmailMessage()
+    mensagem["Subject"] = "WhatsApp desconectado - Radialista Virtual"
+    mensagem["From"] = settings.smtp_from
+    mensagem["To"] = email
+    mensagem.set_content(
+        f"Ola, {nome}!\n\n"
+        "O WhatsApp da sua radio caiu e o Radialista Virtual parou de atender os ouvintes ate a "
+        "sessao voltar.\n\n"
+        f"Acesse o painel e reconecte escaneando o QR Code novamente:\n{link}\n\n"
+        "Assim que a sessao voltar, o atendimento volta a funcionar sozinho."
+    )
+
+    try:
+        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10) as smtp:
+            smtp.starttls()
+            if settings.smtp_user:
+                smtp.login(settings.smtp_user, settings.smtp_password)
+            smtp.send_message(mensagem)
+        return True
+    except (smtplib.SMTPException, OSError):
+        logger.exception("Falha ao enviar e-mail de alerta de desconexao para %s", email)
+        return False
+
+
 def enviar_email_convite(email: str, token: str, nome_radio: str) -> bool:
     link = f"{settings.frontend_url}/convite?token={token}"
 

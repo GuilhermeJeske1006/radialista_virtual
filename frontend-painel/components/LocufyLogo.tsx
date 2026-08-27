@@ -1,7 +1,7 @@
 type MarkProps = { size?: number; className?: string };
 
-/** Dial/tuner needle — the signature ONDA motif, reused across the app. */
-export function OndaMark({ size = 34, className = "" }: MarkProps) {
+/** Dial/tuner needle — the signature Locufy motif, reused across the app. */
+export function LocufyMark({ size = 34, className = "" }: MarkProps) {
   return (
     <svg
       width={size}
@@ -28,26 +28,51 @@ export function OndaMark({ size = 34, className = "" }: MarkProps) {
   );
 }
 
-export function OndaWordmark({ className = "" }: { className?: string }) {
+/** Same dial, sized to sit in place of the "o" in the wordmark. */
+function DialGlyph() {
   return (
-    <span className={`font-display font-bold tracking-tight ${className}`}>
-      ONDA
-      <span className="text-amber">.</span>
+    <svg
+      viewBox="0 0 64 64"
+      fill="none"
+      aria-hidden="true"
+      className="inline-block align-[-0.09em]"
+      style={{ width: "0.74em", height: "0.74em" }}
+    >
+      <circle cx="32" cy="32" r="30" stroke="var(--color-amber)" strokeWidth="4" />
+      <circle cx="32" cy="32" r="18" stroke="var(--color-teal)" strokeWidth="2.5" strokeDasharray="3 7" />
+      <line
+        x1="32"
+        y1="8"
+        x2="32"
+        y2="26"
+        stroke="var(--color-amber)"
+        strokeWidth="4"
+        strokeLinecap="round"
+        transform="rotate(-28 32 32)"
+      />
+      <circle cx="32" cy="32" r="5" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** L[dial]cufy — the tuner dial standing in for the "o", so the mark and the name are one glyph. */
+export function LocufyWordmark({ className = "" }: { className?: string }) {
+  return (
+    <span className={`inline-flex items-baseline font-display font-bold tracking-tight ${className}`}>
+      L
+      <DialGlyph />
+      cufy
+      <span className="text-amber-text">.</span>
     </span>
   );
 }
 
-export function OndaLogo({ size = 30, wordmarkClassName = "text-lg" }: { size?: number; wordmarkClassName?: string }) {
-  return (
-    <span className="flex items-center gap-2.5">
-      <OndaMark size={size} />
-      <OndaWordmark className={wordmarkClassName} />
-    </span>
-  );
+export function LocufyLogo({ wordmarkClassName = "text-lg" }: { wordmarkClassName?: string }) {
+  return <LocufyWordmark className={wordmarkClassName} />;
 }
 
 /** Small blinking status LED, e.g. "no ar" / conectado / gravando. */
-export function OndaLed({ color = "amber" as "amber" | "teal" | "rust", pulse = true }) {
+export function LocufyLed({ color = "amber" as "amber" | "teal" | "rust", pulse = true }) {
   const dot = { amber: "bg-amber shadow-[0_0_8px_var(--color-amber)]", teal: "bg-teal shadow-[0_0_8px_var(--color-teal)]", rust: "bg-rust shadow-[0_0_8px_var(--color-rust)]" }[color];
   return (
     <span className="relative flex h-2.5 w-2.5 shrink-0">
@@ -58,7 +83,7 @@ export function OndaLed({ color = "amber" as "amber" | "teal" | "rust", pulse = 
 }
 
 /** Compact spinning dial, used as a loading indicator in place of plain "Carregando..." text. */
-export function OndaSpin({ size = 20 }: { size?: number }) {
+export function LocufySpin({ size = 20 }: { size?: number }) {
   return (
     <span className="inline-flex animate-spin" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -70,7 +95,7 @@ export function OndaSpin({ size = 20 }: { size?: number }) {
 }
 
 /** Tiny animated waveform, used to indicate live audio/generation. */
-export function OndaWaveform({ bars = 10, className = "" }: { bars?: number; className?: string }) {
+export function LocufyWaveform({ bars = 10, className = "" }: { bars?: number; className?: string }) {
   return (
     <span className={`inline-flex items-end gap-[2px] h-4 ${className}`}>
       {Array.from({ length: bars }).map((_, i) => (

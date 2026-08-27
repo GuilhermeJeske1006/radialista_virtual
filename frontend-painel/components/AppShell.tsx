@@ -3,18 +3,21 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "./Sidebar";
-import { clearToken } from "../lib/auth";
+import { apiFetch } from "../lib/api";
 import { limparContaCache, useConta } from "../lib/useConta";
-import { OndaLed, OndaMark } from "./OndaLogo";
+import { LocufyLed, LocufyMark } from "./LocufyLogo";
 import ThemeToggle from "./ThemeToggle";
 
 const MOBILE_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/radialista", label: "Radialistas" },
-  { href: "/programas", label: "Programas" },
+  { href: "/radialista", label: "1. Radialistas" },
+  { href: "/programas", label: "2. Programas" },
+  { href: "/onboarding", label: "3. WhatsApp" },
+  { href: "/programacao", label: "Grade" },
   { href: "/vinhetagem", label: "Vinhetagem" },
-  { href: "/onboarding", label: "WhatsApp" },
   { href: "/live", label: "Ao Vivo" },
+  { href: "/metrics", label: "Métricas" },
+  { href: "/conversas", label: "Conversas" },
   { href: "/billing", label: "Assinatura", adminOnly: true },
   { href: "/equipe", label: "Equipe", adminOnly: true },
   { href: "/configuracoes", label: "Configuração" },
@@ -37,7 +40,7 @@ export default function AppShell({
   const sidebarColapsada = pathname === "/live";
 
   function sair() {
-    clearToken();
+    apiFetch("/auth/logout", { method: "POST" }).catch(() => {});
     limparContaCache();
     router.push("/login");
   }
@@ -49,19 +52,19 @@ export default function AppShell({
         <header className="sticky top-0 z-10 bg-bg/90 backdrop-blur border-b border-border">
           <div className="flex items-center justify-between h-16 px-4 sm:px-6">
             <div className="flex items-center gap-3 min-w-0">
-              <OndaMark size={22} className="shrink-0 md:hidden" />
+              <LocufyMark size={22} className="shrink-0 md:hidden" />
               <h1 className="font-display text-xl font-bold text-fg truncate">{title}</h1>
             </div>
             <div className="flex items-center gap-3 shrink-0">
               <span className="hidden sm:flex items-center gap-2 rounded-full border border-border-strong px-3 py-1.5 font-mono text-[11px] tracking-wider text-fg/70">
-                <OndaLed color="amber" />
+                <LocufyLed color="amber" />
                 NO AR
               </span>
               <ThemeToggle />
               <Link
                 href="/perfil"
                 title="Perfil"
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-amber/10 text-amber text-xs font-semibold hover:bg-amber/20"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-amber/10 text-amber-text text-xs font-semibold hover:bg-amber/20"
               >
                 RV
               </Link>
@@ -75,8 +78,8 @@ export default function AppShell({
                 href={link.href}
                 className={`text-sm font-medium whitespace-nowrap pb-1 border-b-2 ${
                   pathname === link.href
-                    ? "border-amber text-amber"
-                    : "border-transparent text-fg/55"
+                    ? "border-amber text-amber-text"
+                    : "border-transparent text-fg/65"
                 }`}
               >
                 {link.label}

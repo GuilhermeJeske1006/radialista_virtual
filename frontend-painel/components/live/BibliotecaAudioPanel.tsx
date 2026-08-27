@@ -6,10 +6,10 @@ import ConfirmDialog from "../ConfirmDialog";
 import { apiFetch, apiFetchForm, apiFetchBlob, ApiError } from "../../lib/api";
 import { BibliotecaAudioItem, agruparPorCategoria, formatarDuracao } from "../../lib/bibliotecaAudio";
 import { CategoriaVinheta } from "../../lib/types";
-import { OndaSpin } from "../OndaLogo";
+import { LocufySpin } from "../LocufyLogo";
 
 const inputClass =
-  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/35 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20";
+  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20";
 const labelClass = "block text-sm font-medium text-fg/80 mb-1.5";
 
 type FormState = {
@@ -149,24 +149,24 @@ export default function BibliotecaAudioPanel({
           + Áudio
         </button>
       </div>
-      <p className="text-xs text-fg/45 mb-3">Cadastro de vinhetas e efeitos -- toque em Cartwall pra disparar.</p>
+      <p className="text-xs text-fg/65 mb-3">Cadastro de vinhetas e efeitos -- toque em Cartwall pra disparar.</p>
 
-      {erro && <p className="text-xs text-rust mb-3">{erro}</p>}
+      {erro && <p className="text-xs text-rust-text mb-3">{erro}</p>}
 
       {carregando ? (
-        <p className="flex items-center gap-2 text-sm text-fg/55">
-          <OndaSpin size={16} /> Carregando...
+        <p className="flex items-center gap-2 text-sm text-fg/65">
+          <LocufySpin size={16} /> Carregando...
         </p>
       ) : itens.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border-strong p-5 text-center">
-          <p className="text-sm text-fg/55">Nenhum áudio cadastrado.</p>
-          <p className="text-xs text-fg/40 mt-1">Suba vinhetas, efeitos ou jingles próprios pra começar.</p>
+          <p className="text-sm text-fg/65">Nenhum áudio cadastrado.</p>
+          <p className="text-xs text-fg/65 mt-1">Suba vinhetas, efeitos ou jingles próprios pra começar.</p>
         </div>
       ) : (
         <div className="space-y-4 max-h-96 overflow-y-auto pr-1 -mr-1">
           {agruparPorCategoria(itens, categorias).map(([categoria, itensDaCategoria]) => (
             <div key={categoria.id ?? "sem-categoria"}>
-              <p className="text-xs font-mono font-medium text-fg/40 uppercase tracking-wide mb-1.5">
+              <p className="text-xs font-mono font-medium text-fg/65 uppercase tracking-wide mb-1.5">
                 {categoria.nome}
               </p>
               <div className="space-y-1.5">
@@ -178,22 +178,22 @@ export default function BibliotecaAudioPanel({
                     <button
                       type="button"
                       onClick={() => tocar(item)}
-                      className="shrink-0 text-amber hover:text-amber-dim"
+                      className="shrink-0 text-amber-text hover:text-amber-dim"
                       title="Tocar"
                     >
-                      {tocandoId === item.id ? <OndaSpin size={14} /> : "▶"}
+                      {tocandoId === item.id ? <LocufySpin size={14} /> : "▶"}
                     </button>
                     <div className="min-w-0 flex-1">
-                      <p className={`truncate ${item.ativo ? "text-fg" : "text-fg/35"}`}>{item.nome}</p>
+                      <p className={`truncate ${item.ativo ? "text-fg" : "text-fg/65"}`}>{item.nome}</p>
                     </div>
-                    <span className="shrink-0 font-mono text-xs text-fg/35">
+                    <span className="shrink-0 font-mono text-xs text-fg/65">
                       {formatarDuracao(item.duracao_segundos)}
                     </span>
                     <button
                       type="button"
                       onClick={() => abrirEdicao(item)}
                       title="Editar"
-                      className="shrink-0 flex h-6 w-6 items-center justify-center rounded-md text-amber hover:bg-amber/10"
+                      className="shrink-0 flex h-6 w-6 items-center justify-center rounded-md text-amber-text hover:bg-amber/10"
                     >
                       ✎
                     </button>
@@ -201,7 +201,7 @@ export default function BibliotecaAudioPanel({
                       type="button"
                       onClick={() => setParaExcluir(item)}
                       title="Excluir"
-                      className="shrink-0 flex h-6 w-6 items-center justify-center rounded-md text-rust hover:bg-rust/10"
+                      className="shrink-0 flex h-6 w-6 items-center justify-center rounded-md text-rust-text hover:bg-rust/10"
                     >
                       ✕
                     </button>
@@ -230,6 +230,7 @@ export default function BibliotecaAudioPanel({
             <div>
               <label className={labelClass}>Categoria</label>
               <select
+                aria-label="Categoria"
                 value={form.categoria_id ?? ""}
                 onChange={(e) => setForm({ ...form, categoria_id: e.target.value ? Number(e.target.value) : null })}
                 className={inputClass}
@@ -243,7 +244,7 @@ export default function BibliotecaAudioPanel({
                     </option>
                   ))}
               </select>
-              <p className="text-xs text-fg/45 mt-1.5">
+              <p className="text-xs text-fg/65 mt-1.5">
                 Categorias são cadastradas na tela de Vinhetagem.
               </p>
             </div>
@@ -275,7 +276,7 @@ export default function BibliotecaAudioPanel({
                 onChange={(e) => setForm({ ...form, arquivo: e.target.files?.[0] ?? null })}
                 className={inputClass}
               />
-              <p className="text-xs text-fg/45 mt-1.5">
+              <p className="text-xs text-fg/65 mt-1.5">
                 {form.id !== null ? "Deixe em branco pra manter o áudio atual." : "Obrigatório."}
               </p>
             </div>

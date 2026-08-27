@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { apiFetch, ApiError } from "../../lib/api";
-import { OndaLed, OndaSpin } from "../OndaLogo";
+import { STATUS_STYLE, STATUS_LABEL } from "../../lib/statusInteracao";
+import { LocufyLed, LocufySpin } from "../LocufyLogo";
 
 type Interaction = {
   id: number;
@@ -12,24 +13,6 @@ type Interaction = {
   resposta: string | null;
   status: string;
   criado_em: string;
-};
-
-const STATUS_STYLE: Record<string, string> = {
-  fila_musica: "bg-teal/10 text-teal",
-  fila_abraco: "bg-amber/10 text-amber",
-  guardado: "bg-paper/10 text-fg/60",
-  bloqueado_horario: "bg-amber/10 text-amber",
-  bloqueado_rate_limit: "bg-amber/10 text-amber",
-  bloqueado_conteudo: "bg-rust/10 text-rust",
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  fila_musica: "Pedido de musica na fila",
-  fila_abraco: "Na fila do alo",
-  guardado: "So guardado",
-  bloqueado_horario: "Fora do horario",
-  bloqueado_rate_limit: "Limite atingido",
-  bloqueado_conteudo: "Topico bloqueado",
 };
 
 const POLL_MS = 4000;
@@ -89,38 +72,38 @@ export default function InteracoesPanel({ radialistaId, nomeLocutor, pulso, onNo
       <div className="flex items-center justify-between mb-4 shrink-0">
         <h2 className="font-display text-base font-bold text-fg flex items-center gap-2">
           Conversas
-          <OndaLed color="rust" pulse={Boolean(pulso)} />
+          <LocufyLed color="rust" pulse={Boolean(pulso)} />
         </h2>
-        <span className="font-mono text-xs font-medium text-fg/35">Atualiza a cada 4s</span>
+        <span className="font-mono text-xs font-medium text-fg/65">Atualiza a cada 4s</span>
       </div>
 
-      {erro && <p className="text-sm text-rust mb-3">{erro}</p>}
+      {erro && <p className="text-sm text-rust-text mb-3">{erro}</p>}
 
       {carregando ? (
-        <p className="flex items-center gap-2 text-sm text-fg/55">
-          <OndaSpin size={16} /> Carregando conversas...
+        <p className="flex items-center gap-2 text-sm text-fg/65">
+          <LocufySpin size={16} /> Carregando conversas...
         </p>
       ) : interacoes.length === 0 ? (
-        <p className="text-sm text-fg/55">
+        <p className="text-sm text-fg/65">
           Nenhuma interacao ainda. Assim que um ouvinte mandar mensagem no WhatsApp, ela aparece aqui.
         </p>
       ) : (
         <div className="space-y-3 max-h-96 overflow-y-auto pr-1 -mr-1">
           {interacoes.map((it) => (
             <article key={it.id} className="rounded-xl border border-border-strong p-4">
-              <div className="flex items-center justify-between font-mono text-xs text-fg/35 mb-2">
+              <div className="flex items-center justify-between font-mono text-xs text-fg/65 mb-2">
                 <span>{it.nome ? `${it.nome} · ${it.telefone}` : `Ouvinte ${it.telefone}`}</span>
                 <span>{formatarHora(it.criado_em)}</span>
               </div>
 
               <div className="text-sm text-fg/85 mb-2">
-                <span className="font-medium text-fg/55">Ouvinte: </span>
+                <span className="font-medium text-fg/65">Ouvinte: </span>
                 {it.mensagem_usuario}
               </div>
 
               {it.resposta && (
                 <div className="text-sm text-fg/85">
-                  <span className="font-medium text-amber">{nomeLocutor}: </span>
+                  <span className="font-medium text-amber-text">{nomeLocutor}: </span>
                   {it.resposta}
                 </div>
               )}

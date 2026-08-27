@@ -1,6 +1,7 @@
 import datetime
 import json
 import logging
+import math
 import random
 import re
 import unicodedata
@@ -14,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_account
 from app.config.redis_client import redis_client
 from app.db.database import get_db
-from app.guardrails.schedule import minutos_restantes
+from app.guardrails.schedule import encontrar_programa_atual, minutos_restantes
 from app.live.music import MusicaEncontrada, buscar_musica, buscar_musica_fundo
 from app.llm.client import (
     classificar_categoria_bloco,
@@ -65,6 +66,10 @@ class MusicaBlocoItem(BaseModel):
     titulo: str
     inicio_segundos: int = 0
     fim_segundos: int | None = None
+    # Duracao real do video inteiro (YouTube), None quando a API nao devolveu --
+    # ver MusicaEncontrada.duracao_segundos em app.live.music. Nao confundir com
+    # fim_segundos: duracao_segundos e' o video inteiro, fim_segundos e' onde corta.
+    duracao_segundos: int | None = None
 
 
 class FalaItem(BaseModel):
@@ -82,6 +87,7 @@ class LiveProgramResponse(BaseModel):
     titulo_musica: str | None = None
     inicio_segundos: int = 0
     fim_segundos: int | None = None
+    duracao_segundos: int | None = None
     musicas: list[MusicaBlocoItem] = Field(default_factory=list)
     programa_atual: str | None = None
     patrocinador_id: int | None = None
@@ -98,6 +104,37 @@ class MusicaFundoResponse(BaseModel):
     titulo: str
     inicio_segundos: int = 0
     fim_segundos: int | None = None
+    duracao_segundos: int | None = None
+
+
+class RadialistaNoArResponse(BaseModel):
+    no_ar: bool
+    radialista_id: int | None = None
+    radialista_nome: str | None = None
+    programa_id: int | None = None
+    programa_nome: str | None = None
+
+
+class PedidoFilaResponse(BaseModel):
+    id: int
+    telefone: str
+    nome: str
+    tipo: str
+    mensagem_usuario: str
+    musica_query: str | None
+    atendido: bool
+    atendido_em: datetime.datetime | None
+    criado_em: datetime.datetime
+
+    model_config = {"from_attributes": True}
+
+
+class FilaHistoricoPaginadaResponse(BaseModel):
+    pedidos: list[PedidoFilaResponse]
+    pagina: int
+    tamanho_pagina: int
+    total: int
+    total_paginas: int
 
 
 def _buscar_radialista(db: Session, account: Account, radialista_id: int) -> RadioConfig:
@@ -1037,9 +1074,14 @@ def gerar_proxima_fala(
         titulo_musica=musica.titulo if musica else None,
         inicio_segundos=musica.inicio_segundos if musica else 0,
         fim_segundos=musica.fim_segundos if musica else None,
+        duracao_segundos=musica.duracao_segundos if musica else None,
         musicas=[
             MusicaBlocoItem(
-                video_id=m.video_id, titulo=m.titulo, inicio_segundos=m.inicio_segundos, fim_segundos=m.fim_segundos
+                video_id=m.video_id,
+                titulo=m.titulo,
+                inicio_segundos=m.inicio_segundos,
+                fim_segundos=m.fim_segundos,
+                duracao_segundos=m.duracao_segundos,
             )
             for m in musicas_bloco
         ],
@@ -1069,6 +1111,7 @@ def buscar_musica_de_fundo(
         titulo=musica.titulo,
         inicio_segundos=musica.inicio_segundos,
         fim_segundos=musica.fim_segundos,
+        duracao_segundos=musica.duracao_segundos,
     )
 
 
@@ -1100,3 +1143,66 @@ def gerar_audio_fala(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     return Response(content=audio, media_type="audio/mpeg")
+
+
+@router.get("/no-ar", response_model=RadialistaNoArResponse)
+def radialista_no_ar(account: Account = Depends(get_current_account), db: Session = Depends(get_db)):
+    """Qual radialista (de todos os ativos da conta) esta na escala agora, se algum
+    estiver -- pro indicador "no ar" do painel. Mesma logica de selecao usada pra
+    decidir quem atende o WhatsApp (app/whatsapp/webhook.py::_radialista_no_ar), mas
+    sem o fallback pro primeiro radialista: aqui, ninguem na escala = ninguem no ar."""
+    configs = db.query(RadioConfig).filter_by(account_id=account.id, ativo=True).order_by(RadioConfig.id.asc()).all()
+    for config in configs:
+        programas = db.query(Programa).filter_by(radio_config_id=config.id, ativo=True).all()
+        programa_atual = encontrar_programa_atual(programas, config.timezone)
+        if programa_atual is not None:
+            return RadialistaNoArResponse(
+                no_ar=True,
+                radialista_id=config.id,
+                radialista_nome=config.nome_locutor,
+                programa_id=programa_atual.id,
+                programa_nome=programa_atual.nome,
+            )
+    return RadialistaNoArResponse(no_ar=False)
+
+
+@router.get("/{radialista_id}/fila/historico", response_model=FilaHistoricoPaginadaResponse)
+def historico_fila(
+    radialista_id: int,
+    pagina: int = 1,
+    tamanho_pagina: int = 20,
+    atendido: bool | None = None,
+    dias: int = 30,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Pedidos de ouvinte (musica/abraco) recebidos via WhatsApp pra esse radialista,
+    mais recentes primeiro -- FilaAoVivo nunca e' apagada ao ser consumida (so' marcada
+    atendido=True em _proximo_pedido_fila), entao o historico completo fica disponivel."""
+    radialista = _buscar_radialista(db, account, radialista_id)
+
+    pagina = max(1, pagina)
+    tamanho_pagina = max(1, min(tamanho_pagina, 100))
+    dias = max(1, min(dias, 365))
+
+    desde = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=dias)
+
+    base = db.query(FilaAoVivo).filter(FilaAoVivo.radio_config_id == radialista.id, FilaAoVivo.criado_em >= desde)
+    if atendido is not None:
+        base = base.filter(FilaAoVivo.atendido == atendido)
+
+    total = base.count()
+    pedidos = (
+        base.order_by(FilaAoVivo.criado_em.desc())
+        .offset((pagina - 1) * tamanho_pagina)
+        .limit(tamanho_pagina)
+        .all()
+    )
+
+    return FilaHistoricoPaginadaResponse(
+        pedidos=pedidos,
+        pagina=pagina,
+        tamanho_pagina=tamanho_pagina,
+        total=total,
+        total_paginas=max(1, math.ceil(total / tamanho_pagina)),
+    )

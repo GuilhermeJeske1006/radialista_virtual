@@ -5,10 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AppShell from "../../components/AppShell";
 import { apiFetch, ApiError } from "../../lib/api";
-import { clearToken } from "../../lib/auth";
 import { Conta } from "../../lib/types";
 import { PLANOS } from "../../lib/planos";
-import { OndaLed, OndaSpin } from "../../components/OndaLogo";
+import { LocufyLed, LocufySpin } from "../../components/LocufyLogo";
 
 const STATUS_LABEL: Record<string, string> = {
   trial: "Em teste",
@@ -25,9 +24,9 @@ const STATUS_COR: Record<string, "teal" | "amber" | "rust"> = {
 };
 
 const STATUS_CLASSE: Record<"teal" | "amber" | "rust", string> = {
-  teal: "bg-teal/10 text-teal",
-  amber: "bg-amber/10 text-amber",
-  rust: "bg-rust/10 text-rust",
+  teal: "bg-teal/10 text-teal-text",
+  amber: "bg-amber/10 text-amber-text",
+  rust: "bg-rust/10 text-rust-text",
 };
 
 function formatarData(iso: string): string {
@@ -119,15 +118,15 @@ export default function PerfilPage() {
   }
 
   function sair() {
-    clearToken();
+    apiFetch("/auth/logout", { method: "POST" }).catch(() => {});
     router.push("/login");
   }
 
   if (carregando) {
     return (
       <AppShell title="Perfil">
-        <p className="flex items-center gap-2 text-sm text-fg/55">
-          <OndaSpin size={16} /> Carregando...
+        <p className="flex items-center gap-2 text-sm text-fg/65">
+          <LocufySpin size={16} /> Carregando...
         </p>
       </AppShell>
     );
@@ -136,7 +135,7 @@ export default function PerfilPage() {
   if (!conta) {
     return (
       <AppShell title="Perfil">
-        <p className="text-sm text-rust">{erro || "Não foi possível carregar seu perfil."}</p>
+        <p className="text-sm text-rust-text">{erro || "Não foi possível carregar seu perfil."}</p>
       </AppShell>
     );
   }
@@ -152,8 +151,9 @@ export default function PerfilPage() {
 
           <form onSubmit={salvarNome} className="flex items-end gap-2 mb-4">
             <div className="flex-1 min-w-0">
-              <label className="block text-sm font-medium text-fg/80 mb-1.5">Nome</label>
+              <label htmlFor="perfil-nome" className="block text-sm font-medium text-fg/80 mb-1.5">Nome</label>
               <input
+                id="perfil-nome"
                 type="text"
                 required
                 value={nome}
@@ -169,35 +169,35 @@ export default function PerfilPage() {
               {salvandoNome ? "Salvando..." : "Salvar"}
             </button>
           </form>
-          {erroNome && <p className="text-sm text-rust mb-4">{erroNome}</p>}
-          {mensagemNome && <p className="text-sm text-teal mb-4">{mensagemNome}</p>}
+          {erroNome && <p className="text-sm text-rust-text mb-4">{erroNome}</p>}
+          {mensagemNome && <p className="text-sm text-teal-text mb-4">{mensagemNome}</p>}
 
           <dl className="space-y-4">
             <div className="flex items-center justify-between gap-4">
-              <dt className="text-sm text-fg/55">E-mail</dt>
+              <dt className="text-sm text-fg/65">E-mail</dt>
               <dd className="text-sm font-medium text-fg">{conta.email}</dd>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <dt className="text-sm text-fg/55">Membro desde</dt>
+              <dt className="text-sm text-fg/65">Membro desde</dt>
               <dd className="text-sm font-medium text-fg">{formatarData(conta.criado_em)}</dd>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <dt className="text-sm text-fg/55">Plano</dt>
+              <dt className="text-sm text-fg/65">Plano</dt>
               <dd className="text-sm font-medium text-fg">{nomePlano}</dd>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <dt className="text-sm text-fg/55">Status</dt>
+              <dt className="text-sm text-fg/65">Status</dt>
               <dd>
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_CLASSE[statusCor]}`}
                 >
-                  <OndaLed color={statusCor} pulse={false} />
+                  <LocufyLed color={statusCor} pulse={false} />
                   {STATUS_LABEL[conta.plano_status] ?? conta.plano_status}
                 </span>
               </dd>
             </div>
           </dl>
-          <Link href="/billing" className="mt-5 inline-block text-sm font-medium text-amber hover:text-amber-dim">
+          <Link href="/billing" className="mt-5 inline-block text-sm font-medium text-amber-text hover:text-amber-dim">
             Gerenciar assinatura →
           </Link>
         </div>
@@ -206,8 +206,9 @@ export default function PerfilPage() {
           <h2 className="font-display text-base font-bold text-fg mb-5">Alterar senha</h2>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-fg/80 mb-1.5">Senha atual</label>
+              <label htmlFor="perfil-senha-atual" className="block text-sm font-medium text-fg/80 mb-1.5">Senha atual</label>
               <input
+                id="perfil-senha-atual"
                 type="password"
                 required
                 value={senhaAtual}
@@ -217,8 +218,9 @@ export default function PerfilPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">Nova senha</label>
+                <label htmlFor="perfil-senha-nova" className="block text-sm font-medium text-fg/80 mb-1.5">Nova senha</label>
                 <input
+                  id="perfil-senha-nova"
                   type="password"
                   required
                   minLength={8}
@@ -228,8 +230,9 @@ export default function PerfilPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">Confirmar nova senha</label>
+                <label htmlFor="perfil-senha-confirmar" className="block text-sm font-medium text-fg/80 mb-1.5">Confirmar nova senha</label>
                 <input
+                  id="perfil-senha-confirmar"
                   type="password"
                   required
                   minLength={8}
@@ -239,8 +242,8 @@ export default function PerfilPage() {
                 />
               </div>
             </div>
-            {erroSenha && <p className="text-sm text-rust">{erroSenha}</p>}
-            {mensagemSenha && <p className="text-sm text-teal">{mensagemSenha}</p>}
+            {erroSenha && <p className="text-sm text-rust-text">{erroSenha}</p>}
+            {mensagemSenha && <p className="text-sm text-teal-text">{mensagemSenha}</p>}
             <button
               type="submit"
               disabled={salvandoSenha}
@@ -253,11 +256,11 @@ export default function PerfilPage() {
 
         <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
           <h2 className="font-display text-base font-bold text-fg mb-1">Sessão</h2>
-          <p className="text-sm text-fg/55 mb-4">Encerrar sua sessão neste dispositivo.</p>
+          <p className="text-sm text-fg/65 mb-4">Encerrar sua sessão neste dispositivo.</p>
           <button
             type="button"
             onClick={sair}
-            className="rounded-lg border border-rust/40 px-4 py-2.5 text-sm font-medium text-rust hover:bg-rust/10"
+            className="rounded-lg border border-rust/40 px-4 py-2.5 text-sm font-medium text-rust-text hover:bg-rust/10"
           >
             Sair da conta
           </button>

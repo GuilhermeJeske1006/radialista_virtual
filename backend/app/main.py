@@ -2,6 +2,7 @@ import logging
 import logging.handlers
 import pathlib
 
+import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import inspect, text
@@ -50,6 +51,14 @@ _arquivo_handler = logging.handlers.RotatingFileHandler(
 _arquivo_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
 
 logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(), _arquivo_handler])
+
+# DSN vazio (dev local sem Sentry configurado) desativa o SDK inteiro -- init() com
+# dsn=None e' um no-op documentado, sem custo nem chamada de rede.
+sentry_sdk.init(
+    dsn=settings.sentry_dsn or None,
+    environment=settings.sentry_environment,
+    traces_sample_rate=settings.sentry_traces_sample_rate,
+)
 
 app = FastAPI(title="Radialista Virtual")
 
@@ -150,6 +159,7 @@ def garantir_colunas_account():
         "agentes_extras": "INTEGER DEFAULT 0 NOT NULL",
         "cidade": "VARCHAR DEFAULT '' NOT NULL",
         "onboarding_email_enviado": "BOOLEAN DEFAULT FALSE NOT NULL",
+        "wuzapi_desconectado_alerta_enviado": "BOOLEAN DEFAULT FALSE NOT NULL",
     }
 
     with engine.begin() as conn:

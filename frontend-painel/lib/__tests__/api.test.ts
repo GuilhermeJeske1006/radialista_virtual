@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch, apiFetchBlob, apiFetchForm, ApiError } from "../api";
-import { setToken } from "../auth";
 
 function respostaJson(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -18,25 +17,15 @@ afterEach(() => {
 });
 
 describe("apiFetch", () => {
-  it("faz a requisicao sem Authorization quando nao ha token", async () => {
+  it("manda a sessao via cookie (credentials: include), sem Authorization", async () => {
     const fetchMock = vi.fn().mockResolvedValue(respostaJson({ ok: true }));
     vi.stubGlobal("fetch", fetchMock);
 
     await apiFetch("/algo");
 
     const [, options] = fetchMock.mock.calls[0];
+    expect(options.credentials).toBe("include");
     expect(options.headers["Authorization"]).toBeUndefined();
-  });
-
-  it("inclui o header Authorization quando ha token salvo", async () => {
-    setToken("token-123");
-    const fetchMock = vi.fn().mockResolvedValue(respostaJson({ ok: true }));
-    vi.stubGlobal("fetch", fetchMock);
-
-    await apiFetch("/algo");
-
-    const [, options] = fetchMock.mock.calls[0];
-    expect(options.headers["Authorization"]).toBe("Bearer token-123");
   });
 
   it("devolve o corpo json em requisicao com sucesso", async () => {
@@ -64,17 +53,15 @@ describe("apiFetch", () => {
     await expect(apiFetch("/algo")).rejects.toMatchObject({ message: "erro interno", status: 500 });
   });
 
-  it("em 401 limpa o token e lanca ApiError", async () => {
-    setToken("token-antigo");
+  it("em 401 lanca ApiError", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 401 })));
 
     await expect(apiFetch("/algo")).rejects.toBeInstanceOf(ApiError);
-    expect(window.localStorage.getItem("radialista_token")).toBeNull();
   });
 });
 
 describe("apiFetchForm", () => {
-  it("nao seta content-type manualmente", async () => {
+  it("nao seta content-type manualmente e manda credentials: include", async () => {
     const fetchMock = vi.fn().mockResolvedValue(respostaJson({ ok: true }));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -83,7 +70,8 @@ describe("apiFetchForm", () => {
     await apiFetchForm("/upload", formData);
 
     const [, options] = fetchMock.mock.calls[0];
-    expect(options.headers["content-type"]).toBeUndefined();
+    expect(options.headers).toBeUndefined();
+    expect(options.credentials).toBe("include");
     expect(options.body).toBe(formData);
   });
 

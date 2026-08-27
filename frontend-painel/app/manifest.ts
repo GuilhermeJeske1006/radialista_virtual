@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "ONDA — Painel do Radialista Virtual",
-    short_name: "ONDA",
+    name: "Locufy — Painel do Radialista Virtual",
+    short_name: "Locufy",
     description: "Painel de configuração do radialista virtual",
     start_url: "/",
     display: "standalone",

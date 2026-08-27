@@ -14,7 +14,7 @@ export default function GradeProgramacaoPage() {
     <AppShell title="Montagem de blocos" maxWidthClassName="max-w-6xl">
       <Link
         href={`/radialista/${radialistaId}/programas/${programaId}`}
-        className="text-sm text-amber hover:underline mb-4 inline-block"
+        className="text-sm text-amber-text hover:underline mb-4 inline-block"
       >
         ← Voltar para o programa
       </Link>

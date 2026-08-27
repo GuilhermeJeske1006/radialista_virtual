@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import AppShell from "../../components/AppShell";
 import ConfirmDialog from "../../components/ConfirmDialog";
+import Modal from "../../components/Modal";
+import EditarProgramaForm from "../../components/EditarProgramaForm";
 import { apiFetch, ApiError } from "../../lib/api";
 import { DIAS_SEMANA_LABEL, Programa, Radialista } from "../../lib/types";
-import { OndaSpin } from "../../components/OndaLogo";
+import { LocufySpin } from "../../components/LocufyLogo";
 
 type ProgramaComRadialista = Programa & { radialista: Radialista };
+type ModalEdicao = { radialistaId: number; programaId: number | null };
 
 function formatarDias(dias: number[], dataEspecifica?: string | null): string {
   if (dataEspecifica) return `Avulso em ${dataEspecifica.split("-").reverse().join("/")}`;
@@ -23,6 +25,7 @@ export default function ProgramasPage() {
   const [escolhendoRadialista, setEscolhendoRadialista] = useState(false);
   const [programaParaExcluir, setProgramaParaExcluir] = useState<ProgramaComRadialista | null>(null);
   const [erro, setErro] = useState("");
+  const [modal, setModal] = useState<ModalEdicao | null>(null);
 
   function carregar() {
     setCarregando(true);
@@ -56,7 +59,7 @@ export default function ProgramasPage() {
   function aoClicarNovoPrograma() {
     if (radialistas.length === 0) return;
     if (radialistas.length === 1) {
-      window.location.href = `/radialista/${radialistas[0].id}/programas/novo`;
+      setModal({ radialistaId: radialistas[0].id, programaId: null });
     } else {
       setEscolhendoRadialista(true);
     }
@@ -76,7 +79,7 @@ export default function ProgramasPage() {
   return (
     <AppShell title="Programas" maxWidthClassName="max-w-4xl">
       <div className="flex items-center justify-between mb-5">
-        <p className="text-sm text-fg/55">Todos os programas cadastrados, de todos os radialistas.</p>
+        <p className="text-sm text-fg/65">Todos os programas cadastrados, de todos os radialistas.</p>
         <button
           type="button"
           onClick={aoClicarNovoPrograma}
@@ -87,15 +90,15 @@ export default function ProgramasPage() {
         </button>
       </div>
 
-      {erro && <p className="text-sm text-rust mb-4">{erro}</p>}
+      {erro && <p className="text-sm text-rust-text mb-4">{erro}</p>}
 
       {carregando ? (
-        <p className="flex items-center gap-2 text-sm text-fg/55">
-          <OndaSpin size={16} /> Carregando...
+        <p className="flex items-center gap-2 text-sm text-fg/65">
+          <LocufySpin size={16} /> Carregando...
         </p>
       ) : programas.length === 0 ? (
         <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
-          <p className="text-sm text-fg/55">
+          <p className="text-sm text-fg/65">
             {radialistas.length === 0
               ? "Crie um radialista primeiro para poder cadastrar programas."
               : "Nenhum programa cadastrado ainda."}
@@ -108,27 +111,32 @@ export default function ProgramasPage() {
               key={p.id}
               className="flex flex-wrap items-center justify-between gap-2 bg-surface rounded-2xl border border-border-strong shadow-theme-xs px-4 py-3"
             >
-              <Link href={`/radialista/${p.radialista.id}/programas/${p.id}`} className="min-w-0">
-                <p className={`text-sm font-medium ${p.ativo ? "text-fg" : "text-fg/35"} hover:text-amber`}>
+              <button
+                type="button"
+                onClick={() => setModal({ radialistaId: p.radialista.id, programaId: p.id })}
+                className="min-w-0 text-left"
+              >
+                <p className={`text-sm font-medium ${p.ativo ? "text-fg" : "text-fg/65"} hover:text-amber-text`}>
                   {p.nome}
-                  {!p.ativo && <span className="ml-2 text-xs font-medium text-fg/45">(pausado)</span>}
+                  {!p.ativo && <span className="ml-2 text-xs font-medium text-fg/65">(pausado)</span>}
                 </p>
-                <p className="text-xs text-fg/45 font-mono">
+                <p className="text-xs text-fg/65 font-mono">
                   {p.radialista.nome_locutor || `Radialista #${p.radialista.id}`} · {formatarDias(p.dias_semana, p.data_especifica)} ·{" "}
                   {p.horario_inicio.slice(0, 5)} às {p.horario_fim.slice(0, 5)}
                 </p>
-              </Link>
+              </button>
               <div className="flex items-center gap-3 shrink-0">
-                <Link
-                  href={`/radialista/${p.radialista.id}/programas/${p.id}`}
-                  className="text-xs font-medium text-amber hover:text-amber-dim"
+                <button
+                  type="button"
+                  onClick={() => setModal({ radialistaId: p.radialista.id, programaId: p.id })}
+                  className="text-xs font-medium text-amber-text hover:text-amber-dim"
                 >
                   Editar
-                </Link>
+                </button>
                 <button
                   type="button"
                   onClick={() => setProgramaParaExcluir(p)}
-                  className="text-xs font-medium text-rust hover:text-rust/80"
+                  className="text-xs font-medium text-rust-text hover:text-rust/80"
                 >
                   Excluir
                 </button>
@@ -155,7 +163,7 @@ export default function ProgramasPage() {
                   type="button"
                   onClick={() => {
                     setEscolhendoRadialista(false);
-                    window.location.href = `/radialista/${r.id}/programas/novo`;
+                    setModal({ radialistaId: r.id, programaId: null });
                   }}
                   className="w-full text-left rounded-lg border border-border-strong px-3 py-2.5 text-sm font-medium text-fg hover:border-amber/40"
                 >
@@ -183,6 +191,25 @@ export default function ProgramasPage() {
         onConfirmar={() => programaParaExcluir && excluirPrograma(programaParaExcluir)}
         onCancelar={() => setProgramaParaExcluir(null)}
       />
+
+      <Modal
+        open={modal !== null}
+        onClose={() => setModal(null)}
+        title={modal?.programaId === null ? "Novo programa" : "Editar programa"}
+        maxWidthClassName="max-w-4xl"
+      >
+        {modal !== null && (
+          <EditarProgramaForm
+            programaId={modal.programaId}
+            radioConfigId={modal.radialistaId}
+            onSalvo={() => carregar()}
+            onExcluido={() => {
+              setModal(null);
+              carregar();
+            }}
+          />
+        )}
+      </Modal>
     </AppShell>
   );
 }

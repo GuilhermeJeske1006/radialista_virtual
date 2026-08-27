@@ -35,7 +35,7 @@ export default function EstruturaBlocosInput({ blocos, onChange, patrocinadores 
   return (
     <div className="mb-4 min-w-0">
       <label className="block text-sm font-medium text-fg/80 mb-1.5">Sequência de blocos do programa</label>
-      <p className="text-xs text-fg/45 mb-2">
+      <p className="text-xs text-fg/65 mb-2">
         Monte a ordem que o ao vivo deve seguir (ex.: Abertura → Saudação → Música → Notícia → Música). Pode repetir
         blocos quantas vezes quiser.
       </p>
@@ -44,15 +44,15 @@ export default function EstruturaBlocosInput({ blocos, onChange, patrocinadores 
         <ol className="flex flex-wrap items-center gap-1.5 mb-3">
           {blocos.map((bloco, i) => (
             <li key={`${bloco}-${i}`} className="flex items-center gap-1.5">
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber/10 text-amber border border-amber/25 pl-2.5 pr-1.5 py-0.5 text-sm">
-                <span className="font-mono text-[10px] text-amber/60">{i + 1}</span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber/10 text-amber-text border border-amber/25 pl-2.5 pr-1.5 py-0.5 text-sm">
+                <span className="font-mono text-[10px] text-amber-text/60">{i + 1}</span>
                 {rotuloBloco(bloco, nomesPatrocinadores)}
                 <span className="flex items-center">
                   <button
                     type="button"
                     onClick={() => mover(i, -1)}
                     disabled={i === 0}
-                    className="text-amber/70 hover:text-amber leading-none px-0.5 disabled:opacity-25"
+                    className="text-amber-text/70 hover:text-amber-text leading-none px-0.5 disabled:opacity-25"
                     title="Mover pra esquerda"
                   >
                     ‹
@@ -61,7 +61,7 @@ export default function EstruturaBlocosInput({ blocos, onChange, patrocinadores 
                     type="button"
                     onClick={() => mover(i, 1)}
                     disabled={i === blocos.length - 1}
-                    className="text-amber/70 hover:text-amber leading-none px-0.5 disabled:opacity-25"
+                    className="text-amber-text/70 hover:text-amber-text leading-none px-0.5 disabled:opacity-25"
                     title="Mover pra direita"
                   >
                     ›
@@ -69,7 +69,7 @@ export default function EstruturaBlocosInput({ blocos, onChange, patrocinadores 
                   <button
                     type="button"
                     onClick={() => remover(i)}
-                    className="text-amber/70 hover:text-amber leading-none text-base px-0.5"
+                    className="text-amber-text/70 hover:text-amber-text leading-none text-base px-0.5"
                     title="Remover"
                   >
                     ×
@@ -88,19 +88,20 @@ export default function EstruturaBlocosInput({ blocos, onChange, patrocinadores 
             key={preset.value}
             type="button"
             onClick={() => adicionar(preset.value)}
-            className="rounded-full px-3 py-1 text-xs font-medium border border-border-strong text-fg/65 hover:border-amber/40 hover:text-amber"
+            className="rounded-full px-3 py-1 text-xs font-medium border border-border-strong text-fg/65 hover:border-amber/40 hover:text-amber-text"
           >
             + {preset.label}
           </button>
         ))}
         {patrocinadores.filter((p) => p.ativo).length > 0 && (
           <select
+            aria-label="Adicionar bloco de patrocinador"
             value=""
             onChange={(e) => {
               if (e.target.value) adicionar(`patrocinador:${e.target.value}`);
               e.target.value = "";
             }}
-            className="rounded-full px-3 py-1 text-xs font-medium border border-border-strong text-fg/65 bg-bg hover:border-amber/40 hover:text-amber"
+            className="rounded-full px-3 py-1 text-xs font-medium border border-border-strong text-fg/65 bg-bg hover:border-amber/40 hover:text-amber-text"
           >
             <option value="">+ Patrocinador</option>
             {patrocinadores
@@ -126,7 +127,7 @@ export default function EstruturaBlocosInput({ blocos, onChange, patrocinadores 
             }
           }}
           placeholder="Bloco personalizado e pressione Enter"
-          className="flex-1 min-w-0 rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/35 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+          className="flex-1 min-w-0 rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
         />
         <button
           type="button"
@@ -136,7 +137,7 @@ export default function EstruturaBlocosInput({ blocos, onChange, patrocinadores 
           Adicionar
         </button>
       </div>
-      <p className="text-xs text-fg/35 mt-1.5">
+      <p className="text-xs text-fg/65 mt-1.5">
         Blocos dos botões acima (Abertura, Música, Comentário, Notícia, Chamada ao ouvinte) têm comportamento
         especial no ao vivo (busca música de verdade, atende pedidos do WhatsApp). Blocos personalizados viram
         falas livres, sem essa automação.

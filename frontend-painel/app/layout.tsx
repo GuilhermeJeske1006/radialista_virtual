@@ -20,12 +20,12 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ONDA — Painel",
+  title: "Locufy — Painel",
   description: "Painel de configuração do radialista virtual",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "ONDA",
+    title: "Locufy",
   },
 };
 
@@ -33,7 +33,7 @@ export const viewport: Viewport = {
   themeColor: "#15130f",
 };
 
-const TEMA_INICIAL_SCRIPT = `(function(){try{var t=localStorage.getItem("onda-theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();`;
+const TEMA_INICIAL_SCRIPT = `(function(){try{var t=localStorage.getItem("locufy-theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();`;
 
 const SW_REGISTER_SCRIPT = `if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}`;
 

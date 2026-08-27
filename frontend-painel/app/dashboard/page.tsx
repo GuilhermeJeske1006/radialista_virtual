@@ -5,33 +5,28 @@ import Link from "next/link";
 import AppShell from "../../components/AppShell";
 import { apiFetch, ApiError } from "../../lib/api";
 import { Conta, Patrocinador, Programa, Radialista, RadioConta } from "../../lib/types";
-import { OndaLed, OndaSpin } from "../../components/OndaLogo";
+import { LocufyLed, LocufySpin } from "../../components/LocufyLogo";
 
 const ATALHOS = [
-  {
-    href: "/radialista",
-    label: "Radialistas",
-    descricao: "Gerenciar locutores e programação",
-  },
-  {
-    href: "/programas",
-    label: "Programas",
-    descricao: "Gerenciar programação",
-  },
-  {
-    href: "/onboarding",
-    label: "WhatsApp",
-    descricao: "Conectar ou revisar conexão",
-  },
   {
     href: "/live",
     label: "Ao Vivo",
     descricao: "Acompanhar programas no ar",
   },
-   {
+  {
     href: "/vinhetagem",
     label: "Vinhetagem",
     descricao: "Gerenciar vinhetas, categorias e propagandas",
+  },
+  {
+    href: "/metrics",
+    label: "Métricas",
+    descricao: "Acompanhar interações dos ouvintes",
+  },
+  {
+    href: "/conversas",
+    label: "Conversas",
+    descricao: "Ver histórico de mensagens do WhatsApp",
   },
   {
     href: "/billing",
@@ -45,12 +40,23 @@ const ATALHOS = [
   },
 ];
 
+type NoArResponse = {
+  no_ar: boolean;
+  radialista_id: number | null;
+  radialista_nome: string | null;
+  programa_id: number | null;
+  programa_nome: string | null;
+};
+
+const INTERVALO_NO_AR_MS = 30_000;
+
 export default function DashboardPage() {
   const [conta, setConta] = useState<Conta | null>(null);
   const [radialistas, setRadialistas] = useState<Radialista[]>([]);
   const [radioConta, setRadioConta] = useState<RadioConta | null>(null);
   const [programas, setProgramas] = useState<Programa[]>([]);
   const [patrocinadores, setPatrocinadores] = useState<Patrocinador[]>([]);
+  const [noAr, setNoAr] = useState<NoArResponse | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
 
@@ -76,6 +82,20 @@ export default function DashboardPage() {
       })
       .catch((err) => setErro(err instanceof ApiError ? err.message : "Erro ao carregar painel"))
       .finally(() => setCarregando(false));
+  }, []);
+
+  useEffect(() => {
+    function buscarNoAr() {
+      apiFetch<NoArResponse>("/live/no-ar")
+        .then(setNoAr)
+        .catch(() => {
+          // ignora falha isolada, mantem o ultimo estado conhecido
+        });
+    }
+
+    buscarNoAr();
+    const intervalo = setInterval(buscarNoAr, INTERVALO_NO_AR_MS);
+    return () => clearInterval(intervalo);
   }, []);
 
   const whatsappConectado = Boolean(radioConta?.wuzapi_token);
@@ -121,37 +141,52 @@ export default function DashboardPage() {
 
   return (
     <AppShell title="Dashboard" maxWidthClassName="max-w-4xl">
-      {erro && <p className="text-sm text-rust mb-4">{erro}</p>}
+      {erro && <p className="text-sm text-rust-text mb-4">{erro}</p>}
 
       {carregando ? (
-        <p className="flex items-center gap-2 text-sm text-fg/55">
-          <OndaSpin size={16} /> Carregando...
+        <p className="flex items-center gap-2 text-sm text-fg/65">
+          <LocufySpin size={16} /> Carregando...
         </p>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">
-              <p className="text-xs font-medium uppercase tracking-wide text-fg/45 mb-1">Radialistas</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">Radialistas</p>
               <p className="font-display text-2xl font-bold text-fg">{radialistas.length}</p>
             </div>
             <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">
-              <p className="text-xs font-medium uppercase tracking-wide text-fg/45 mb-1">WhatsApp da rádio</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">WhatsApp da rádio</p>
               <p className="flex items-center gap-2 font-display text-2xl font-bold text-fg">
-                <OndaLed color={whatsappConectado ? "teal" : "amber"} pulse={false} />
+                <LocufyLed color={whatsappConectado ? "teal" : "amber"} pulse={false} />
                 {whatsappConectado ? "Conectado" : "Não conectado"}
               </p>
             </div>
             <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">
-              <p className="text-xs font-medium uppercase tracking-wide text-fg/45 mb-1">Plano</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">No ar agora</p>
+              {noAr?.no_ar ? (
+                <>
+                  <p className="flex items-center gap-2 font-display text-2xl font-bold text-fg truncate">
+                    <LocufyLed color="rust" pulse /> {noAr.radialista_nome}
+                  </p>
+                  <p className="text-xs text-fg/65 mt-0.5 truncate">{noAr.programa_nome}</p>
+                </>
+              ) : (
+                <p className="flex items-center gap-2 font-display text-2xl font-bold text-fg/65">
+                  <LocufyLed color="amber" pulse={false} /> Ninguém
+                </p>
+              )}
+            </div>
+            <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">
+              <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">Plano</p>
               <p className="font-display text-2xl font-bold text-fg capitalize">{conta?.plano ?? "-"}</p>
-              <p className="text-xs text-fg/45 mt-0.5 capitalize">{conta?.plano_status ?? ""}</p>
+              <p className="text-xs text-fg/65 mt-0.5 capitalize">{conta?.plano_status ?? ""}</p>
             </div>
           </div>
 
           <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5 mb-6">
             <div className="flex items-center justify-between mb-3">
               <p className="font-display text-sm font-bold text-fg">Pronto para o ao vivo</p>
-              <span className="text-xs font-medium text-fg/45">
+              <span className="text-xs font-medium text-fg/65">
                 {pendentes === 0 ? "Tudo certo" : `${pendentes} pendente${pendentes > 1 ? "s" : ""}`}
               </span>
             </div>
@@ -161,7 +196,7 @@ export default function DashboardPage() {
                   <Link href={t.href} className="flex items-start gap-3 group">
                     <span
                       className={`mt-0.5 shrink-0 w-4 h-4 rounded-full border flex items-center justify-center ${
-                        t.feita ? "bg-teal border-teal text-bg" : "border-border-strong text-transparent"
+                        t.feita ? "bg-teal border-teal text-ink" : "border-border-strong text-transparent"
                       }`}
                     >
                       <svg viewBox="0 0 16 16" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -170,13 +205,13 @@ export default function DashboardPage() {
                     </span>
                     <span className="flex-1">
                       <span
-                        className={`text-sm font-medium group-hover:text-amber transition-colors ${
-                          t.feita ? "text-fg/45 line-through" : "text-fg"
+                        className={`text-sm font-medium group-hover:text-amber-text transition-colors ${
+                          t.feita ? "text-fg/65 line-through" : "text-fg"
                         }`}
                       >
                         {t.label}
                       </span>
-                      <span className="block text-xs text-fg/45">{t.descricao}</span>
+                      <span className="block text-xs text-fg/65">{t.descricao}</span>
                     </span>
                   </Link>
                 </li>
@@ -184,7 +219,7 @@ export default function DashboardPage() {
             </ul>
           </div>
 
-          <p className="text-sm font-medium text-fg/55 mb-3">Acesso rápido</p>
+          <p className="text-sm font-medium text-fg/65 mb-3">Acesso rápido</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {ATALHOS.map((a) => (
               <Link
@@ -194,9 +229,9 @@ export default function DashboardPage() {
               >
                 <div>
                   <p className="font-display text-sm font-bold text-fg">{a.label}</p>
-                  <p className="text-sm text-fg/55 mt-0.5">{a.descricao}</p>
+                  <p className="text-sm text-fg/65 mt-0.5">{a.descricao}</p>
                 </div>
-                <span className="text-amber shrink-0">→</span>
+                <span className="text-amber-text shrink-0">→</span>
               </Link>
             ))}
           </div>

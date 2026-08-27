@@ -6,7 +6,7 @@ import AppShell from "../../components/AppShell";
 import { apiFetch, ApiError } from "../../lib/api";
 import { ConfiguracaoIA, DIAS_SEMANA_LABEL, Programa, Radialista } from "../../lib/types";
 import { setRadialistaAtualId } from "../../lib/radialistas";
-import { OndaSpin } from "../../components/OndaLogo";
+import { LocufySpin } from "../../components/LocufyLogo";
 import { PRECO_AGENTE_ADICIONAL, formatarReais } from "../../lib/planos";
 
 function formatarDias(dias: number[], dataEspecifica?: string | null): string {
@@ -90,7 +90,7 @@ export default function DashboardPage() {
   return (
     <AppShell title="Radialistas" maxWidthClassName="max-w-4xl">
       <div className="flex items-center justify-between mb-5">
-        <p className="text-sm text-fg/55">Seus radialistas e a programação cadastrada de cada um.</p>
+        <p className="text-sm text-fg/65">Seus radialistas e a programação cadastrada de cada um.</p>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -99,7 +99,7 @@ export default function DashboardPage() {
               setDescricaoIA("");
               setModalIAAberto(true);
             }}
-            className="rounded-lg border border-amber/40 px-4 py-2.5 text-sm font-medium text-amber hover:bg-amber/10"
+            className="rounded-lg border border-amber/40 px-4 py-2.5 text-sm font-medium text-amber-text hover:bg-amber/10"
           >
             ✨ Gerar com IA
           </button>
@@ -112,15 +112,16 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {erro && <p className="text-sm text-rust mb-4">{erro}</p>}
+      {erro && <p className="text-sm text-rust-text mb-4">{erro}</p>}
 
       {carregando ? (
-        <p className="flex items-center gap-2 text-sm text-fg/55">
-          <OndaSpin size={16} /> Carregando...
+        <p className="flex items-center gap-2 text-sm text-fg/65">
+          <LocufySpin size={16} /> Carregando...
         </p>
       ) : radialistas.length === 0 ? (
         <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
-          <p className="text-sm text-fg/55">Nenhum radialista ainda. Crie o primeiro para começar.</p>
+          <p className="text-sm text-fg/65">Nenhum radialista ainda. Crie o primeiro para começar.</p>
+          <p className="text-sm text-fg/65 mt-1">Depois, você cria os programas dele e conecta o WhatsApp.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -136,24 +137,24 @@ export default function DashboardPage() {
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div>
                     <h2 className="font-display text-base font-bold text-fg">{r.nome_locutor || `Radialista #${r.id}`}</h2>
-                    <p className="text-xs text-fg/55 mt-1">Atende pelo WhatsApp da rádio</p>
+                    <p className="text-xs text-fg/65 mt-1">Atende pelo WhatsApp da rádio</p>
                   </div>
-                  <span className="text-xs font-medium text-amber shrink-0">Editar →</span>
+                  <span className="text-xs font-medium text-amber-text shrink-0">Editar →</span>
                 </div>
 
                 {programas.length === 0 ? (
-                  <p className="text-sm text-fg/35">Nenhum programa cadastrado.</p>
+                  <p className="text-sm text-fg/65">Nenhum programa cadastrado.</p>
                 ) : (
                   <ul className="space-y-1.5">
                     {programas.map((p) => (
                       <li key={p.id} className="flex flex-wrap items-center gap-2 text-sm">
-                        <span className={`font-medium ${p.ativo ? "text-fg" : "text-fg/35"}`}>{p.nome}</span>
-                        <span className="text-xs text-fg/45 font-mono">
+                        <span className={`font-medium ${p.ativo ? "text-fg" : "text-fg/65"}`}>{p.nome}</span>
+                        <span className="text-xs text-fg/65 font-mono">
                           {formatarDias(p.dias_semana, p.data_especifica)} · {p.horario_inicio.slice(0, 5)} às{" "}
                           {p.horario_fim.slice(0, 5)}
                         </span>
                         {!p.ativo && (
-                          <span className="rounded-full bg-paper/5 px-2 py-0.5 text-xs font-medium text-fg/45">
+                          <span className="rounded-full bg-paper/5 px-2 py-0.5 text-xs font-medium text-fg/65">
                             Pausado
                           </span>
                         )}
@@ -187,9 +188,9 @@ export default function DashboardPage() {
               disabled={gerandoIA}
               rows={4}
               placeholder="Ex: sertanejo, tom alegre e animado, programa de manhã pro público do interior"
-              className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2.5 text-sm text-fg placeholder:text-fg/35 focus:outline-none focus:ring-2 focus:ring-amber/40 disabled:opacity-60"
+              className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2.5 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:ring-2 focus:ring-amber/40 disabled:opacity-60"
             />
-            {erroIA && <p className="text-sm text-rust mt-2">{erroIA}</p>}
+            {erroIA && <p className="text-sm text-rust-text mt-2">{erroIA}</p>}
             <div className="flex justify-end gap-3 mt-5">
               <button
                 type="button"
@@ -228,7 +229,7 @@ export default function DashboardPage() {
               <span className="font-semibold text-fg">R$ {formatarReais(PRECO_AGENTE_ADICIONAL)}/mês</span>, sem
               trocar de plano — ele entra no ar assim que o pagamento confirmar.
             </p>
-            {erroCompraAgenteExtra && <p className="text-sm text-rust mb-3">{erroCompraAgenteExtra}</p>}
+            {erroCompraAgenteExtra && <p className="text-sm text-rust-text mb-3">{erroCompraAgenteExtra}</p>}
             <div className="flex justify-end gap-3">
               <button
                 type="button"
@@ -252,7 +253,7 @@ export default function DashboardPage() {
               >
                 {comprandoAgenteExtra ? (
                   <>
-                    <OndaSpin size={14} /> Redirecionando...
+                    <LocufySpin size={14} /> Redirecionando...
                   </>
                 ) : (
                   "Adicionar agente extra"

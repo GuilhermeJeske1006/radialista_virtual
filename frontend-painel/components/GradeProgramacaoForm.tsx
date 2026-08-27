@@ -6,7 +6,7 @@ import { BLOCOS_PRESET, CategoriaVinheta, normalizarPrograma, Patrocinador, Prog
 import { estimarDuracaoBloco, formatarDuracaoBloco } from "../lib/duracaoBloco";
 import { agruparPorCategoria, BibliotecaAudioItem, formatarDuracao } from "../lib/bibliotecaAudio";
 import RadialistasProgramaSection from "./RadialistasProgramaSection";
-import { OndaSpin } from "./OndaLogo";
+import { LocufySpin } from "./LocufyLogo";
 
 function semCamposSistema(p: Programa) {
   const { id, radio_config_id, ...dados } = p;
@@ -157,14 +157,14 @@ export default function GradeProgramacaoForm({ programaId }: Props) {
 
   if (carregando) {
     return (
-      <p className="flex items-center gap-2 text-sm text-fg/55">
-        <OndaSpin size={16} /> Carregando...
+      <p className="flex items-center gap-2 text-sm text-fg/65">
+        <LocufySpin size={16} /> Carregando...
       </p>
     );
   }
 
   if (!programa) {
-    return <p className="text-sm text-rust">{erro || "Programa não encontrado."}</p>;
+    return <p className="text-sm text-rust-text">{erro || "Programa não encontrado."}</p>;
   }
 
   const nomesPatrocinadores = Object.fromEntries(patrocinadores.map((p) => [p.id, p.nome]));
@@ -203,21 +203,21 @@ export default function GradeProgramacaoForm({ programaId }: Props) {
   return (
     <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
       <h2 className="font-display text-lg font-bold text-fg mb-1">Montagem de blocos · {programa.nome}</h2>
-      <p className="text-sm text-fg/55 mb-5">
+      <p className="text-sm text-fg/65 mb-5">
         Arraste vinhetas, propagandas e blocos automáticos da paleta pra sequência (ou clique pra adicionar no
         fim). O ao vivo segue essa sequência em loop. Durações abaixo são estimativas -- o motor real varia por
         prosódia e a IA pode inserir blocos extra.
       </p>
 
-      {erro && <p className="text-sm text-rust mb-4">{erro}</p>}
-      {mensagem && <p className="text-sm text-teal mb-4">{mensagem}</p>}
+      {erro && <p className="text-sm text-rust-text mb-4">{erro}</p>}
+      {mensagem && <p className="text-sm text-teal-text mb-4">{mensagem}</p>}
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6">
         <div>
           {programa.estrutura_blocos.length === 0 ? (
             <div
               {...dropHandlers(0)}
-              className={`rounded-xl border border-dashed p-6 text-center text-sm text-fg/45 ${
+              className={`rounded-xl border border-dashed p-6 text-center text-sm text-fg/65 ${
                 indiceArrastandoSobre === 0 ? "border-amber/60 bg-amber/5" : "border-border-strong"
               }`}
             >
@@ -246,9 +246,9 @@ export default function GradeProgramacaoForm({ programaId }: Props) {
                         : "border-border-strong bg-bg"
                     }`}
                   >
-                    <span className="font-mono text-xs text-fg/35 w-5 shrink-0">{i + 1}</span>
+                    <span className="font-mono text-xs text-fg/65 w-5 shrink-0">{i + 1}</span>
                     <span className="flex-1 min-w-0 text-sm font-medium text-fg truncate">{rotulo(bloco)}</span>
-                    <span className="shrink-0 font-mono text-xs text-fg/45">
+                    <span className="shrink-0 font-mono text-xs text-fg/65">
                       ~{formatarDuracaoBloco(duracao.segundos)}
                       {duracao.estimada ? "" : " (real)"}
                     </span>
@@ -257,7 +257,7 @@ export default function GradeProgramacaoForm({ programaId }: Props) {
                         type="button"
                         onClick={() => mover(i, -1)}
                         disabled={i === 0}
-                        className="text-amber/70 hover:text-amber leading-none px-1 disabled:opacity-25"
+                        className="text-amber-text/70 hover:text-amber-text leading-none px-1 disabled:opacity-25"
                         title="Mover pra cima"
                       >
                         ‹
@@ -266,7 +266,7 @@ export default function GradeProgramacaoForm({ programaId }: Props) {
                         type="button"
                         onClick={() => mover(i, 1)}
                         disabled={i === programa.estrutura_blocos.length - 1}
-                        className="text-amber/70 hover:text-amber leading-none px-1 disabled:opacity-25"
+                        className="text-amber-text/70 hover:text-amber-text leading-none px-1 disabled:opacity-25"
                         title="Mover pra baixo"
                       >
                         ›
@@ -274,7 +274,7 @@ export default function GradeProgramacaoForm({ programaId }: Props) {
                       <button
                         type="button"
                         onClick={() => remover(i)}
-                        className="text-amber/70 hover:text-amber leading-none text-base px-1"
+                        className="text-amber-text/70 hover:text-amber-text leading-none text-base px-1"
                         title="Remover"
                       >
                         ×
@@ -285,7 +285,7 @@ export default function GradeProgramacaoForm({ programaId }: Props) {
               })}
               <li
                 {...dropHandlers(programa.estrutura_blocos.length)}
-                className={`rounded-lg border border-dashed px-4 py-2 text-center text-xs text-fg/35 ${
+                className={`rounded-lg border border-dashed px-4 py-2 text-center text-xs text-fg/65 ${
                   indiceArrastandoSobre === programa.estrutura_blocos.length
                     ? "border-amber/60 bg-amber/5"
                     : "border-border"
@@ -308,7 +308,7 @@ export default function GradeProgramacaoForm({ programaId }: Props) {
                 }
               }}
               placeholder="Bloco personalizado e pressione Enter"
-              className="flex-1 min-w-0 rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/35 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+              className="flex-1 min-w-0 rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
             />
             <button
               type="button"
@@ -324,7 +324,7 @@ export default function GradeProgramacaoForm({ programaId }: Props) {
               1 volta completa da estrutura ≈ {formatarDuracaoBloco(totalCicloSegundos)}
             </p>
             {totalCicloSegundos > 0 && (
-              <p className="text-xs text-fg/45 mt-1">
+              <p className="text-xs text-fg/65 mt-1">
                 Na janela do programa ({formatarDuracaoBloco(janela)}), isso dá aproximadamente{" "}
                 {ciclosNaJanela < 1 ? ciclosNaJanela.toFixed(1) : Math.round(ciclosNaJanela)} volta(s) -- estimativa,
                 o motor real varia por prosódia e blocos extra da IA.
@@ -353,7 +353,7 @@ export default function GradeProgramacaoForm({ programaId }: Props) {
 
         <div className="space-y-5">
           <section>
-            <h3 className="font-mono text-xs uppercase tracking-wide text-amber mb-2">Blocos automáticos</h3>
+            <h3 className="font-mono text-xs uppercase tracking-wide text-amber-text mb-2">Blocos automáticos</h3>
             <div className="grid grid-cols-2 gap-1.5">
               {BLOCOS_PRESET.map((preset) => (
                 <ItemArrastavel key={preset.value} valor={preset.value} onAdicionar={adicionar}>
@@ -364,21 +364,21 @@ export default function GradeProgramacaoForm({ programaId }: Props) {
           </section>
 
           <section>
-            <h3 className="font-mono text-xs uppercase tracking-wide text-amber mb-2">Vinhetas</h3>
+            <h3 className="font-mono text-xs uppercase tracking-wide text-amber-text mb-2">Vinhetas</h3>
             {vinhetas.length === 0 ? (
-              <p className="text-xs text-fg/45">Nenhuma vinheta cadastrada. Suba em /vinhetagem.</p>
+              <p className="text-xs text-fg/65">Nenhuma vinheta cadastrada. Suba em /vinhetagem.</p>
             ) : (
               <div className="space-y-3">
                 {agruparPorCategoria(vinhetas, categoriasVinheta).map(([categoria, itens]) => (
                   <div key={categoria.id ?? "sem-categoria-vinheta"}>
-                    <p className="text-[10px] font-mono font-medium text-fg/40 uppercase tracking-wide mb-1">
+                    <p className="text-[10px] font-mono font-medium text-fg/65 uppercase tracking-wide mb-1">
                       {categoria.nome}
                     </p>
                     <div className="space-y-1">
                       {itens.map((v) => (
                         <ItemArrastavel key={v.id} valor={`vinheta:${v.id}`} onAdicionar={adicionar} className="w-full flex items-center justify-between gap-2">
                           <span className="truncate">{v.nome}</span>
-                          <span className="shrink-0 font-mono text-xs text-fg/40">{formatarDuracao(v.duracao_segundos)}</span>
+                          <span className="shrink-0 font-mono text-xs text-fg/65">{formatarDuracao(v.duracao_segundos)}</span>
                         </ItemArrastavel>
                       ))}
                     </div>
@@ -389,14 +389,14 @@ export default function GradeProgramacaoForm({ programaId }: Props) {
           </section>
 
           <section>
-            <h3 className="font-mono text-xs uppercase tracking-wide text-amber mb-2">Propagandas</h3>
+            <h3 className="font-mono text-xs uppercase tracking-wide text-amber-text mb-2">Propagandas</h3>
             {patrocinadores.length === 0 ? (
-              <p className="text-xs text-fg/45">Nenhuma propaganda cadastrada. Cadastre em /vinhetagem.</p>
+              <p className="text-xs text-fg/65">Nenhuma propaganda cadastrada. Cadastre em /vinhetagem.</p>
             ) : (
               <div className="space-y-3">
                 {agruparPorCategoria(patrocinadores, categoriasPropaganda).map(([categoria, itens]) => (
                   <div key={categoria.id ?? "sem-categoria-propaganda"}>
-                    <p className="text-[10px] font-mono font-medium text-fg/40 uppercase tracking-wide mb-1">
+                    <p className="text-[10px] font-mono font-medium text-fg/65 uppercase tracking-wide mb-1">
                       {categoria.nome}
                     </p>
                     <div className="space-y-1">
@@ -415,8 +415,8 @@ export default function GradeProgramacaoForm({ programaId }: Props) {
           </section>
 
           <section>
-            <h3 className="font-mono text-xs uppercase tracking-wide text-amber mb-2">Elenco do programa</h3>
-            <p className="text-xs text-fg/45 mb-2">
+            <h3 className="font-mono text-xs uppercase tracking-wide text-amber-text mb-2">Elenco do programa</h3>
+            <p className="text-xs text-fg/65 mb-2">
               Quem participa do diálogo -- o motor já monta a conversa entre todos automaticamente, sem precisar
               apontar radialista por bloco.
             </p>

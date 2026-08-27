@@ -3,7 +3,8 @@
 import { MutableRefObject } from "react";
 import { ProgramSegment, EstagioAoVivo } from "../../lib/liveTypes";
 import { Programa } from "../../lib/types";
-import { OndaLed, OndaSpin, OndaWaveform } from "../OndaLogo";
+import { formatarDuracao } from "../../lib/bibliotecaAudio";
+import { LocufyLed, LocufySpin, LocufyWaveform } from "../LocufyLogo";
 import { useElapsedRemaining } from "../../hooks/useElapsedRemaining";
 import ProximosBlocosPanel from "./ProximosBlocosPanel";
 
@@ -63,8 +64,8 @@ export default function PlaylistCentral({
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
-            {programaAtivo && <OndaLed color="rust" />}
-            <p className={`font-mono text-xs font-semibold uppercase tracking-wide truncate ${programaAtivo ? "text-rust" : "text-fg/35"}`}>
+            {programaAtivo && <LocufyLed color="rust" />}
+            <p className={`font-mono text-xs font-semibold uppercase tracking-wide truncate ${programaAtivo ? "text-rust-text" : "text-fg/65"}`}>
               {programaAtivo ? "Transmitindo" : "Pausado"}
             </p>
           </div>
@@ -81,13 +82,13 @@ export default function PlaylistCentral({
         <div className="mt-2">
           {musicaAtual ? (
             <h2 className="font-display text-lg font-bold text-fg flex items-center gap-2.5 min-w-0">
-              <OndaWaveform bars={6} />
+              <LocufyWaveform bars={6} />
               <span className="truncate">{musicaAtual}</span>
             </h2>
           ) : (
             <h2 className="font-display text-lg font-bold text-fg">Programa no ar</h2>
           )}
-          <p className="text-sm text-fg/55 mt-1">
+          <p className="text-sm text-fg/65 mt-1">
             O agente gera chamadas, comentarios, noticias e blocos musicais conforme a configuracao do programa.
           </p>
         </div>
@@ -100,7 +101,7 @@ export default function PlaylistCentral({
                 style={{ width: `${transport.percentConcluido ?? 0}%` }}
               />
             </div>
-            <div className="mt-1.5 flex justify-between font-mono text-xs text-fg/45">
+            <div className="mt-1.5 flex justify-between font-mono text-xs text-fg/65">
               <span>
                 Decorrido <b className="text-fg font-semibold">{transport.decorridoFmt ?? "--:--"}</b>
               </span>
@@ -124,11 +125,11 @@ export default function PlaylistCentral({
       <section className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display text-base font-bold text-fg">Historico de falas</h2>
-          <span className="font-mono text-xs text-fg/35">{falasPrograma.length} nesta transmissao</span>
+          <span className="font-mono text-xs text-fg/65">{falasPrograma.length} nesta transmissao</span>
         </div>
         <div className="rounded-xl border border-border bg-bg p-4 min-h-32 max-h-96 overflow-y-auto">
           {falasPrograma.length === 0 ? (
-            <p className="text-sm text-fg/55">
+            <p className="text-sm text-fg/65">
               {programaAtivo
                 ? "Gerando a primeira fala..."
                 : "Clique em comecar transmissao acima, ou aguarde o horario agendado comecar."}
@@ -141,22 +142,30 @@ export default function PlaylistCentral({
                   className={
                     index === 0
                       ? "rounded-lg bg-surface border border-rust/30 p-3 text-fg shadow-theme-xs"
-                      : "text-fg/55"
+                      : "text-fg/65"
                   }
                 >
                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <span className="rounded-full bg-teal/10 px-2 py-0.5 text-xs font-medium text-teal">
+                    <span className="rounded-full bg-teal/10 px-2 py-0.5 text-xs font-medium text-teal-text">
                       {fala.tipo.replace("_", " ")}
                     </span>
-                    <span className="font-mono text-xs text-fg/35">{formatarHora(fala.criado_em)}</span>
+                    <span className="font-mono text-xs text-fg/65">{formatarHora(fala.criado_em)}</span>
+                    {fala.duracao_segundos != null && (
+                      <span
+                        className="font-mono text-xs text-fg/65"
+                        title="Duracao real do bloco (fala + musica), medida ao vivo"
+                      >
+                        · {formatarDuracao(fala.duracao_segundos)}
+                      </span>
+                    )}
                     {fala.origem === "local" && (
-                      <span className="rounded-full bg-amber/10 px-2 py-0.5 text-xs font-medium text-amber">
+                      <span className="rounded-full bg-amber/10 px-2 py-0.5 text-xs font-medium text-amber-text">
                         fallback local
                       </span>
                     )}
                     {index === 0 && gerandoFala && (
-                      <span className="flex items-center gap-1.5 text-xs text-fg/35 italic">
-                        <OndaSpin size={12} /> gerando proxima...
+                      <span className="flex items-center gap-1.5 text-xs text-fg/65 italic">
+                        <LocufySpin size={12} /> gerando proxima...
                       </span>
                     )}
                   </div>

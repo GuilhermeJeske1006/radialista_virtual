@@ -19,7 +19,7 @@ export async function GET() {
           fontFamily: "sans-serif",
         }}
       >
-        O
+        L
       </div>
     ),
     { width: 192, height: 192 }

@@ -10,6 +10,7 @@ import PlaylistCentral from "../../components/live/PlaylistCentral";
 import BibliotecaAudioPanel from "../../components/live/BibliotecaAudioPanel";
 import CartwallPanel from "../../components/live/CartwallPanel";
 import InteracoesPanel from "../../components/live/InteracoesPanel";
+import HistoricoFilaPanel from "../../components/live/HistoricoFilaPanel";
 import { apiFetch, ApiError } from "../../lib/api";
 import { BibliotecaAudioItem } from "../../lib/bibliotecaAudio";
 import { CategoriaVinheta } from "../../lib/types";
@@ -57,15 +58,15 @@ export default function LivePage() {
 
       {(engine.erro || erroBiblioteca || engine.abaEmSegundoPlano || engine.avisoGravacao) && (
         <div className="space-y-2 mb-4">
-          {engine.erro && <p className="text-sm text-rust">{engine.erro}</p>}
-          {erroBiblioteca && <p className="text-sm text-rust">{erroBiblioteca}</p>}
+          {engine.erro && <p className="text-sm text-rust-text">{engine.erro}</p>}
+          {erroBiblioteca && <p className="text-sm text-rust-text">{erroBiblioteca}</p>}
           {engine.abaEmSegundoPlano && (
-            <p className="text-sm text-rust">
+            <p className="text-sm text-rust-text">
               Aba em segundo plano -- o navegador pode pausar o ao vivo. Mantenha esta aba aberta e em foco pra
               transmissao nao parar.
             </p>
           )}
-          {engine.avisoGravacao && <p className="text-sm text-teal">{engine.avisoGravacao}</p>}
+          {engine.avisoGravacao && <p className="text-sm text-teal-text">{engine.avisoGravacao}</p>}
         </div>
       )}
 
@@ -91,7 +92,7 @@ export default function LivePage() {
 
       {!engine.programaId ? (
         <section className="mt-5 bg-surface rounded-2xl border border-dashed border-border-strong p-10 text-center">
-          <p className="text-sm text-fg/55">
+          <p className="text-sm text-fg/65">
             Selecione um programa acima para carregar os dados do locutor e liberar a transmissao.
           </p>
         </section>
@@ -137,6 +138,7 @@ export default function LivePage() {
               pulso={pulso}
               onNovaInteracao={avisarNovaInteracao}
             />
+            <HistoricoFilaPanel radialistaId={engine.radialistaId} />
           </div>
         </div>
       )}

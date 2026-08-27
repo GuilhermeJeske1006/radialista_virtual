@@ -44,7 +44,7 @@ export default function Modal({ open, onClose, title, children, maxWidthClassNam
             type="button"
             onClick={onClose}
             aria-label="Fechar"
-            className="rounded-lg p-1 text-fg/55 hover:bg-paper/10 hover:text-fg"
+            className="rounded-lg p-1 text-fg/65 hover:bg-paper/10 hover:text-fg"
           >
             ✕
           </button>

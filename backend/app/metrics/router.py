@@ -1,7 +1,9 @@
+import csv
 import datetime
+import io
 import math
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -99,7 +101,28 @@ def resumo(
         "por_status": por_status,
         "ultimos_7_dias": ultimos_7_dias,
         "ultimos_30_dias": ultimos_30_dias,
+        "mensagens_por_dia": _mensagens_por_dia(db, config.id, agora),
     }
+
+
+def _mensagens_por_dia(db: Session, radio_config_id: int, agora: datetime.datetime) -> list[dict]:
+    """Total de mensagens por dia nos ultimos 30 dias, com os dias sem mensagem
+    preenchidos com 0 -- pro grafico do painel ter um eixo continuo."""
+    inicio = (agora - datetime.timedelta(days=29)).date()
+
+    serie = (
+        db.query(func.date(InteractionLog.criado_em).label("dia"), func.count(InteractionLog.id))
+        .filter(
+            InteractionLog.radio_config_id == radio_config_id,
+            InteractionLog.criado_em >= agora - datetime.timedelta(days=29),
+        )
+        .group_by("dia")
+        .all()
+    )
+    totais_por_dia = {str(dia): total for dia, total in serie}
+
+    dias = [inicio + datetime.timedelta(days=offset) for offset in range(30)]
+    return [{"data": str(dia), "total": totais_por_dia.get(str(dia), 0)} for dia in dias]
 
 
 @router.get("/interactions", response_model=list[InteractionLogResponse])
@@ -275,3 +298,57 @@ def avatar_da_conversa(
         return AvatarResponse(url=None)
 
     return AvatarResponse(url=buscar_avatar(telefone, account.wuzapi_token))
+
+
+@router.get("/export")
+def exportar_csv(
+    radialista_id: int | None = None,
+    dias: int | None = None,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """CSV das interacoes da conta -- todos os radialistas, ou so' um se
+    radialista_id vier preenchido (usado pela tela de Metricas, que ja e' por
+    radialista). dias limita ao periodo, sem ele exporta o historico completo."""
+    query = (
+        db.query(InteractionLog, RadioConfig.nome_locutor)
+        .join(RadioConfig, InteractionLog.radio_config_id == RadioConfig.id)
+        .filter(RadioConfig.account_id == account.id)
+    )
+
+    if radialista_id is not None:
+        _buscar_radialista(db, account, radialista_id)
+        query = query.filter(InteractionLog.radio_config_id == radialista_id)
+
+    if dias is not None:
+        desde = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=max(1, dias))
+        query = query.filter(InteractionLog.criado_em >= desde)
+
+    linhas = query.order_by(InteractionLog.criado_em.asc()).all()
+
+    buffer = io.StringIO()
+    escritor = csv.writer(buffer)
+    escritor.writerow(["data_hora", "telefone", "nome", "radialista", "origem", "mensagem", "resposta", "status"])
+    for log, nome_radialista in linhas:
+        escritor.writerow(
+            [
+                log.criado_em.isoformat(),
+                log.telefone,
+                log.nome or "",
+                nome_radialista,
+                log.origem,
+                log.mensagem_usuario,
+                log.resposta or "",
+                log.status,
+            ]
+        )
+
+    nome_arquivo = f"interacoes-{datetime.date.today().isoformat()}.csv"
+    # BOM UTF-8 -- sem isso o Excel abre acento (a, c, ~ etc) como lixo.
+    conteudo = "\ufeff" + buffer.getvalue()
+
+    return Response(
+        content=conteudo,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{nome_arquivo}"'},
+    )

@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiFetch, ApiError } from "../lib/api";
 import { PAPEIS_SUGERIDOS, Radialista, RadialistaPrograma } from "../lib/types";
-import { OndaSpin } from "./OndaLogo";
+import { LocufySpin } from "./LocufyLogo";
 
 const inputClass =
-  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/35 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20";
+  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20";
 
 type Props = {
   programaId: number;
@@ -90,14 +90,14 @@ export default function RadialistasProgramaSection({ programaId }: Props) {
 
   if (carregando) {
     return (
-      <p className="flex items-center gap-2 text-sm text-fg/55">
-        <OndaSpin size={16} /> Carregando radialistas...
+      <p className="flex items-center gap-2 text-sm text-fg/65">
+        <LocufySpin size={16} /> Carregando radialistas...
       </p>
     );
   }
 
   if (!roster) {
-    return <p className="text-sm text-rust">{erro || "Não foi possível carregar os radialistas do programa."}</p>;
+    return <p className="text-sm text-rust-text">{erro || "Não foi possível carregar os radialistas do programa."}</p>;
   }
 
   const disponiveisPraAdicionar = radialistasConta.filter(
@@ -106,12 +106,12 @@ export default function RadialistasProgramaSection({ programaId }: Props) {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-fg/45">
+      <p className="text-xs text-fg/65">
         Mais de um radialista no programa gera um diálogo alternado entre eles no ao vivo, cada um com sua própria
         voz. Defina o papel e como cada um deve se comportar.
       </p>
 
-      {erro && <p className="text-sm text-rust">{erro}</p>}
+      {erro && <p className="text-sm text-rust-text">{erro}</p>}
 
       <div className="space-y-3">
         {roster.map((item) => (
@@ -120,7 +120,7 @@ export default function RadialistasProgramaSection({ programaId }: Props) {
               <span className="text-sm font-medium text-fg">
                 {item.nome_locutor}
                 {item.e_dono && (
-                  <span className="ml-2 rounded-full bg-amber/10 px-2 py-0.5 text-xs font-medium text-amber">
+                  <span className="ml-2 rounded-full bg-amber/10 px-2 py-0.5 text-xs font-medium text-amber-text">
                     Dono do programa
                   </span>
                 )}
@@ -130,7 +130,7 @@ export default function RadialistasProgramaSection({ programaId }: Props) {
                   type="button"
                   onClick={() => remover(item.radio_config_id)}
                   disabled={salvandoId === item.radio_config_id}
-                  className="text-xs font-medium text-rust hover:text-rust/80 disabled:opacity-60"
+                  className="text-xs font-medium text-rust-text hover:text-rust/80 disabled:opacity-60"
                 >
                   Remover
                 </button>
@@ -182,6 +182,7 @@ export default function RadialistasProgramaSection({ programaId }: Props) {
 
       {disponiveisPraAdicionar.length > 0 && (
         <select
+          aria-label="Adicionar radialista ao programa"
           value=""
           onChange={(e) => {
             if (e.target.value) adicionar(Number(e.target.value));

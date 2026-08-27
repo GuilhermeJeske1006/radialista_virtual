@@ -311,8 +311,12 @@ export function useLiveEngine() {
   }
 
   // toca um audio ja sintetizado (preparado com antecedencia por prepararSegmento);
-  // se nao tiver audio pronto (TTS indisponivel), cai pra voz do navegador
-  async function reproduzirAudioPreparado(audioUrl: string | null, texto: string): Promise<void> {
+  // se nao tiver audio pronto (TTS indisponivel), cai pra voz do navegador.
+  // Devolve quanto tempo (segundos, medido no relogio de parede) o audio ficou
+  // realmente no ar -- e' a duracao REAL da fala, nao uma estimativa (ver
+  // atualizarDuracaoFala, que soma isso por bloco).
+  async function reproduzirAudioPreparado(audioUrl: string | null, texto: string): Promise<number> {
+    const inicio = Date.now();
     duckMusicaFundo(true);
     setEstagioAtual("fala");
     try {
@@ -328,9 +332,10 @@ export function useLiveEngine() {
         if (audioFalaRef.current === audio) {
           audioFalaRef.current = null;
         }
-        return;
+        return (Date.now() - inicio) / 1000;
       }
       await falarComVozNavegador(texto);
+      return (Date.now() - inicio) / 1000;
     } finally {
       duckMusicaFundo(false);
       setEstagioAtual("idle");
@@ -421,31 +426,35 @@ export function useLiveEngine() {
     });
   }
 
+  // Toca uma faixa e devolve quanto tempo (segundos, relogio de parede) ela ficou
+  // realmente no ar -- duracao REAL, igual reproduzirAudioPreparado, pra somar por
+  // bloco (ver atualizarDuracaoFala).
   function tocarMusica(
     videoId: string,
     titulo: string,
     inicioSegundos = 0,
     fimSegundos: number | null = null
-  ): Promise<void> {
+  ): Promise<number> {
     const TIMEOUT_SEGURANCA_MS = 6 * 60 * 1000;
     const POLL_FIM_MS = 500;
+    const inicio = Date.now();
 
     return new Promise((resolvePromise) => {
       async function iniciar() {
         if (typeof window === "undefined" || !ytApiPromiseRef.current) {
-          resolvePromise();
+          resolvePromise(0);
           return;
         }
 
         try {
           await ytApiPromiseRef.current;
         } catch {
-          resolvePromise();
+          resolvePromise(0);
           return;
         }
 
         if (!window.YT || !window.YT.Player) {
-          resolvePromise();
+          resolvePromise(0);
           return;
         }
 
@@ -472,7 +481,7 @@ export function useLiveEngine() {
           setMusicaAtual(null);
           setMusicaFimSegundos(null);
           setEstagioAtual("idle");
-          resolvePromise();
+          resolvePromise((Date.now() - inicio) / 1000);
         };
         timeoutId = setTimeout(finalizar, TIMEOUT_SEGURANCA_MS);
         musicStopRef.current = finalizar;
@@ -524,6 +533,18 @@ export function useLiveEngine() {
     totalFalasRef.current += 1;
     setTotalFalas(totalFalasRef.current);
     return novaFala;
+  }
+
+  // Grava a duracao REAL de um bloco ja tocado (soma do tempo de ar de cada musica +
+  // cada fala que o compoe, medida em gerarProximaFala/inserirNaTransmissao) no item de
+  // historico correspondente -- so' preenchido depois que o bloco termina de tocar,
+  // porque antes disso a duracao real ainda nao existe.
+  function atualizarDuracaoFala(id: number, duracaoSegundos: number) {
+    const atualizadas = falasProgramaRef.current.map((f) =>
+      f.id === id ? { ...f, duracao_segundos: Math.round(duracaoSegundos) } : f
+    );
+    falasProgramaRef.current = atualizadas;
+    setFalasPrograma(atualizadas);
   }
 
   // gera o texto e ja sintetiza o audio do proximo bloco, sem tocar --
@@ -667,9 +688,14 @@ export function useLiveEngine() {
     gerandoFalaRef.current = false;
     setGerandoFala(false);
 
+    // Duracao REAL do bloco inteiro: soma o tempo de ar de cada musica + cada fala que
+    // compoe ele (medido no relogio de parede por reproduzirAudioPreparado/tocarMusica),
+    // em vez de uma estimativa -- grava no historico ao final (ver atualizarDuracaoFala).
+    let duracaoBlocoSegundos = 0;
+
     if (novaFala.video_id) {
       try {
-        await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala);
+        duracaoBlocoSegundos += await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala);
         // bloco pode ter mais de uma musica (o agente decidiu emendar) --
         // toca todas seguidas, sem nova fala entre elas, pra manter o embalo
         const bloco =
@@ -685,7 +711,12 @@ export function useLiveEngine() {
               ];
         for (const musica of bloco) {
           if (!programaAtivoRef.current || execucaoAtualRef.current !== minhaExecucao) break;
-          await tocarMusica(musica.video_id, musica.titulo, musica.inicio_segundos ?? 0, musica.fim_segundos ?? null);
+          duracaoBlocoSegundos += await tocarMusica(
+            musica.video_id,
+            musica.titulo,
+            musica.inicio_segundos ?? 0,
+            musica.fim_segundos ?? null
+          );
         }
       } catch {
         // segue o programa mesmo se a musica falhar ao tocar
@@ -695,11 +726,13 @@ export function useLiveEngine() {
       for (let i = 0; i < preparado.audiosFalas.length; i++) {
         if (!programaAtivoRef.current || execucaoAtualRef.current !== minhaExecucao) break;
         const textoLinha = novaFala.falas?.[i]?.texto ?? novaFala.fala;
-        await reproduzirAudioPreparado(preparado.audiosFalas[i].url, textoLinha);
+        duracaoBlocoSegundos += await reproduzirAudioPreparado(preparado.audiosFalas[i].url, textoLinha);
       }
     } else {
-      await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala);
+      duracaoBlocoSegundos += await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala);
     }
+
+    atualizarDuracaoFala(novaFala.id, duracaoBlocoSegundos);
 
     // execucao foi "pulada" (pularFala disparou uma nova) enquanto essa tocava --
     // quem continua o loop a partir daqui e' a execucao nova, nao essa
@@ -776,7 +809,8 @@ export function useLiveEngine() {
       proximoPreparoRef.current = prepararSegmento();
     }
 
-    await reproduzirAudioPreparado(audioUrl, novaFala.fala);
+    const duracaoSegundos = await reproduzirAudioPreparado(audioUrl, novaFala.fala);
+    atualizarDuracaoFala(novaFala.id, duracaoSegundos);
 
     if (execucaoAtualRef.current !== minhaExecucao) return;
 

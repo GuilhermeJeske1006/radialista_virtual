@@ -768,3 +768,122 @@ def test_bloco_musica_sem_metadados_nao_chama_llm_de_contexto(
     )
     assert resposta.status_code == 200
     assert chamou_contexto == []
+
+
+def _pedido_fila(radio_config_id, tipo="musica", telefone="5511999999999", **kwargs):
+    return FilaAoVivo(
+        radio_config_id=radio_config_id,
+        telefone=telefone,
+        nome=kwargs.pop("nome", ""),
+        tipo=tipo,
+        mensagem_usuario=kwargs.pop("mensagem_usuario", "toca uma musica"),
+        musica_query=kwargs.pop("musica_query", None),
+        **kwargs,
+    )
+
+
+@freeze_time(AGORA_UTC)
+def test_no_ar_com_programa_na_escala_agora(client, account, auth_headers, radialista_e_programa):
+    radio_config, programa = radialista_e_programa
+
+    resposta = client.get("/live/no-ar", headers=auth_headers(account.id))
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["no_ar"] is True
+    assert corpo["radialista_id"] == radio_config.id
+    assert corpo["programa_id"] == programa.id
+    assert corpo["programa_nome"] == "Programa Principal"
+
+
+@freeze_time("2026-08-10 23:00:00")  # 20:00 local, fora do 10:00-14:00
+def test_no_ar_fora_do_horario_devolve_false(client, account, auth_headers, radialista_e_programa):
+    resposta = client.get("/live/no-ar", headers=auth_headers(account.id))
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["no_ar"] is False
+    assert corpo["radialista_id"] is None
+
+
+@freeze_time(AGORA_UTC)
+def test_no_ar_ignora_radialista_inativo(client, account, auth_headers, db_session, radialista_e_programa):
+    radio_config, _ = radialista_e_programa
+    radio_config.ativo = False
+    db_session.commit()
+
+    resposta = client.get("/live/no-ar", headers=auth_headers(account.id))
+    assert resposta.json()["no_ar"] is False
+
+
+def test_historico_fila_mais_recente_primeiro(client, account, auth_headers, db_session, radialista_e_programa):
+    radio_config, _ = radialista_e_programa
+    agora = datetime.datetime.now(datetime.timezone.utc)
+    db_session.add_all(
+        [
+            _pedido_fila(radio_config.id, criado_em=agora - datetime.timedelta(minutes=10)),
+            _pedido_fila(radio_config.id, criado_em=agora),
+        ]
+    )
+    db_session.commit()
+
+    resposta = client.get(f"/live/{radio_config.id}/fila/historico", headers=auth_headers(account.id))
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["total"] == 2
+    assert corpo["pedidos"][0]["criado_em"] > corpo["pedidos"][1]["criado_em"]
+
+
+def test_historico_fila_filtra_por_atendido(client, account, auth_headers, db_session, radialista_e_programa):
+    radio_config, _ = radialista_e_programa
+    db_session.add_all(
+        [
+            _pedido_fila(radio_config.id, atendido=True, atendido_em=datetime.datetime.now(datetime.timezone.utc)),
+            _pedido_fila(radio_config.id, atendido=False),
+        ]
+    )
+    db_session.commit()
+
+    atendidos = client.get(
+        f"/live/{radio_config.id}/fila/historico?atendido=true", headers=auth_headers(account.id)
+    )
+    assert atendidos.json()["total"] == 1
+    assert atendidos.json()["pedidos"][0]["atendido"] is True
+
+    pendentes = client.get(
+        f"/live/{radio_config.id}/fila/historico?atendido=false", headers=auth_headers(account.id)
+    )
+    assert pendentes.json()["total"] == 1
+    assert pendentes.json()["pedidos"][0]["atendido"] is False
+
+
+def test_historico_fila_respeita_janela_de_dias(client, account, auth_headers, db_session, radialista_e_programa):
+    radio_config, _ = radialista_e_programa
+    agora = datetime.datetime.now(datetime.timezone.utc)
+    db_session.add_all(
+        [
+            _pedido_fila(radio_config.id, criado_em=agora - datetime.timedelta(days=45)),
+            _pedido_fila(radio_config.id, criado_em=agora),
+        ]
+    )
+    db_session.commit()
+
+    resposta = client.get(f"/live/{radio_config.id}/fila/historico?dias=30", headers=auth_headers(account.id))
+    assert resposta.json()["total"] == 1
+
+
+def test_historico_fila_pagina(client, account, auth_headers, db_session, radialista_e_programa):
+    radio_config, _ = radialista_e_programa
+    db_session.add_all([_pedido_fila(radio_config.id) for _ in range(5)])
+    db_session.commit()
+
+    resposta = client.get(
+        f"/live/{radio_config.id}/fila/historico?pagina=1&tamanho_pagina=2", headers=auth_headers(account.id)
+    )
+    corpo = resposta.json()
+    assert len(corpo["pedidos"]) == 2
+    assert corpo["total"] == 5
+    assert corpo["total_paginas"] == 3
+
+
+def test_historico_fila_radialista_inexistente_404(client, account, auth_headers):
+    resposta = client.get("/live/999999/fila/historico", headers=auth_headers(account.id))
+    assert resposta.status_code == 404

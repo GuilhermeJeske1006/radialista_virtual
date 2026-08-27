@@ -3,10 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { apiFetch, ApiError } from "../../lib/api";
-import { setToken } from "../../lib/auth";
 import { RADIALISTA_VAZIO, Radialista } from "../../lib/types";
 import { PLANOS, formatarReais } from "../../lib/planos";
-import { OndaLogo, OndaSpin } from "../../components/OndaLogo";
+import { LocufyLogo, LocufySpin } from "../../components/LocufyLogo";
 import ThemeToggle from "../../components/ThemeToggle";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -56,6 +55,7 @@ export default function RegisterPage() {
   const [planoId, setPlanoId] = useState("growth");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
+  const [passo, setPasso] = useState<1 | 2 | 3>(1);
   const [campoErros, setCampoErros] = useState<CampoErros>({});
   const [tocado, setTocado] = useState<Record<keyof CampoErros, boolean>>({
     nome: false,
@@ -125,17 +125,60 @@ export default function RegisterPage() {
     return true;
   }
 
+  function validarPasso1(): boolean {
+    const erros = {
+      nome: validarNome(nome),
+      email: validarEmail(email),
+      senha: validarSenha(senha),
+      confirmarSenha: validarConfirmarSenha(senha, confirmarSenha),
+    };
+    setCampoErros((c) => ({ ...c, ...erros }));
+    setTocado((t) => ({ ...t, nome: true, email: true, senha: true, confirmarSenha: true }));
+    const primeiroErro = Object.values(erros).find((m) => m);
+    if (primeiroErro) {
+      setErro(primeiroErro);
+      return false;
+    }
+    setErro("");
+    return true;
+  }
+
+  function validarPasso2(): boolean {
+    const erros = { nomeRadio: validarNomeRadio(nomeRadio), nomeLocutor: validarNomeLocutor(nomeLocutor) };
+    setCampoErros((c) => ({ ...c, ...erros }));
+    setTocado((t) => ({ ...t, nomeRadio: true, nomeLocutor: true }));
+    const primeiroErro = Object.values(erros).find((m) => m);
+    if (primeiroErro) {
+      setErro(primeiroErro);
+      return false;
+    }
+    setErro("");
+    return true;
+  }
+
+  function avancar() {
+    if (passo === 1 && validarPasso1()) setPasso(2);
+    else if (passo === 2 && validarPasso2()) setPasso(3);
+  }
+
+  function voltar() {
+    setErro("");
+    if (passo === 2) setPasso(1);
+    else if (passo === 3) setPasso(2);
+  }
+
   async function concluir(e: React.FormEvent) {
     e.preventDefault();
     setErro("");
+    if (passo !== 3) return;
     if (!validar()) return;
     setCarregando(true);
     try {
-      const conta = await apiFetch<{ access_token: string }>("/auth/register", {
+      // sessao ja vem via cookie httpOnly no Set-Cookie da resposta -- nada pra guardar aqui.
+      await apiFetch("/auth/register", {
         method: "POST",
         body: JSON.stringify({ nome: nome.trim(), email, senha }),
       });
-      setToken(conta.access_token);
 
       await apiFetch("/config/radio", {
         method: "PUT",
@@ -174,24 +217,51 @@ export default function RegisterPage() {
     !!validarNomeRadio(nomeRadio) ||
     !!validarNomeLocutor(nomeLocutor);
 
+  const PASSOS = ["Criar conta", "Sua rádio", "Escolha seu plano"];
+
   return (
     <div className="min-h-screen bg-bg flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-4xl">
         <div className="flex items-center justify-center gap-3 mb-6">
-          <OndaLogo size={34} wordmarkClassName="text-2xl" />
+          <LocufyLogo wordmarkClassName="text-2xl" />
           <ThemeToggle className="ml-1" />
         </div>
 
-        <form onSubmit={concluir} className="bg-surface rounded-2xl border border-border-strong shadow-theme-sm p-6 sm:p-8 space-y-8">
+        <form onSubmit={concluir} className="bg-surface rounded-2xl border border-border-strong shadow-theme-sm p-6 sm:p-8">
+          <ol className="flex items-center gap-2 mb-8">
+            {PASSOS.map((label, i) => {
+              const numero = (i + 1) as 1 | 2 | 3;
+              const ativo = passo === numero;
+              const concluido = passo > numero;
+              return (
+                <li key={label} className="flex items-center gap-2 flex-1 last:flex-none">
+                  <span
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                      ativo || concluido ? "bg-amber text-ink" : "bg-bg border border-border-strong text-fg/65"
+                    }`}
+                  >
+                    {concluido ? (
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                    ) : (
+                      numero
+                    )}
+                  </span>
+                  <span className={`hidden sm:inline text-sm font-medium ${ativo ? "text-fg" : "text-fg/65"}`}>
+                    {label}
+                  </span>
+                  {numero < 3 && <span className="flex-1 h-px bg-border mx-1" />}
+                </li>
+              );
+            })}
+          </ol>
+
+          {passo === 1 && (
           <div>
-            <div className="flex items-center gap-3 mb-5">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber text-ink text-sm font-bold">
-                1
-              </span>
-              <div>
-                <h1 className="font-display text-lg font-bold text-fg">Criar conta</h1>
-                <p className="text-sm text-fg/55">Seus dados de acesso ao painel.</p>
-              </div>
+            <div className="mb-5">
+              <h1 className="font-display text-lg font-bold text-fg">Criar conta</h1>
+              <p className="text-sm text-fg/65">Seus dados de acesso ao painel.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5">
               <div>
@@ -210,7 +280,7 @@ export default function RegisterPage() {
                   }`}
                 />
                 {tocado.nome && campoErros.nome && (
-                  <p className="mt-1 text-xs text-rust">{campoErros.nome}</p>
+                  <p className="mt-1 text-xs text-rust-text">{campoErros.nome}</p>
                 )}
               </div>
               <div>
@@ -229,7 +299,7 @@ export default function RegisterPage() {
                   }`}
                 />
                 {tocado.email && campoErros.email && (
-                  <p className="mt-1 text-xs text-rust">{campoErros.email}</p>
+                  <p className="mt-1 text-xs text-rust-text">{campoErros.email}</p>
                 )}
               </div>
               <div>
@@ -249,9 +319,9 @@ export default function RegisterPage() {
                   }`}
                 />
                 {tocado.senha && campoErros.senha ? (
-                  <p className="mt-1 text-xs text-rust">{campoErros.senha}</p>
+                  <p className="mt-1 text-xs text-rust-text">{campoErros.senha}</p>
                 ) : (
-                  <p className="mt-1 text-xs text-fg/40">Mínimo de 8 caracteres</p>
+                  <p className="mt-1 text-xs text-fg/65">Mínimo de 8 caracteres</p>
                 )}
               </div>
               <div>
@@ -271,21 +341,18 @@ export default function RegisterPage() {
                   }`}
                 />
                 {tocado.confirmarSenha && campoErros.confirmarSenha && (
-                  <p className="mt-1 text-xs text-rust">{campoErros.confirmarSenha}</p>
+                  <p className="mt-1 text-xs text-rust-text">{campoErros.confirmarSenha}</p>
                 )}
               </div>
             </div>
           </div>
+          )}
 
-          <div className="border-t border-border pt-8">
-            <div className="flex items-center gap-3 mb-5">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber text-ink text-sm font-bold">
-                2
-              </span>
-              <div>
-                <h2 className="font-display text-lg font-bold text-fg">Sua rádio</h2>
-                <p className="text-sm text-fg/55">Dados da emissora e do locutor de IA que vai atender os ouvintes.</p>
-              </div>
+          {passo === 2 && (
+          <div>
+            <div className="mb-5">
+              <h2 className="font-display text-lg font-bold text-fg">Sua rádio</h2>
+              <p className="text-sm text-fg/65">Dados da emissora e do locutor de IA que vai atender os ouvintes.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5">
               <div>
@@ -304,7 +371,7 @@ export default function RegisterPage() {
                   }`}
                 />
                 {tocado.nomeRadio && campoErros.nomeRadio && (
-                  <p className="mt-1 text-xs text-rust">{campoErros.nomeRadio}</p>
+                  <p className="mt-1 text-xs text-rust-text">{campoErros.nomeRadio}</p>
                 )}
               </div>
               <div>
@@ -323,12 +390,12 @@ export default function RegisterPage() {
                   }`}
                 />
                 {tocado.nomeLocutor && campoErros.nomeLocutor && (
-                  <p className="mt-1 text-xs text-rust">{campoErros.nomeLocutor}</p>
+                  <p className="mt-1 text-xs text-rust-text">{campoErros.nomeLocutor}</p>
                 )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-fg/80 mb-1.5">
-                  Slogan <span className="text-fg/40 font-normal">(opcional)</span>
+                  Slogan <span className="text-fg/65 font-normal">(opcional)</span>
                 </label>
                 <input
                   type="text"
@@ -340,7 +407,7 @@ export default function RegisterPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-fg/80 mb-1.5">
-                  Frequência <span className="text-fg/40 font-normal">(opcional)</span>
+                  Frequência <span className="text-fg/65 font-normal">(opcional)</span>
                 </label>
                 <input
                   type="text"
@@ -352,7 +419,7 @@ export default function RegisterPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-fg/80 mb-1.5">
-                  Telefone da rádio <span className="text-fg/40 font-normal">(opcional)</span>
+                  Telefone da rádio <span className="text-fg/65 font-normal">(opcional)</span>
                 </label>
                 <input
                   type="text"
@@ -364,7 +431,7 @@ export default function RegisterPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-fg/80 mb-1.5">
-                  Endereço <span className="text-fg/40 font-normal">(opcional)</span>
+                  Endereço <span className="text-fg/65 font-normal">(opcional)</span>
                 </label>
                 <input
                   type="text"
@@ -376,7 +443,7 @@ export default function RegisterPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-fg/80 mb-1.5">
-                  Cidade <span className="text-fg/40 font-normal">(opcional)</span>
+                  Cidade <span className="text-fg/65 font-normal">(opcional)</span>
                 </label>
                 <input
                   type="text"
@@ -385,20 +452,17 @@ export default function RegisterPage() {
                   onChange={(e) => setCidadeRadio(e.target.value)}
                   className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
                 />
-                <p className="text-xs text-fg/50 mt-1">Usada pro locutor comentar o clima real no ar.</p>
+                <p className="text-xs text-fg/65 mt-1">Usada pro locutor comentar o clima real no ar.</p>
               </div>
             </div>
           </div>
+          )}
 
-          <div className="border-t border-border pt-8">
-            <div className="flex items-center gap-3 mb-5">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber text-ink text-sm font-bold">
-                3
-              </span>
-              <div>
-                <h2 className="font-display text-lg font-bold text-fg">Escolha seu plano</h2>
-                <p className="text-sm text-fg/55">Você vai ser redirecionado pro checkout seguro pra confirmar a assinatura.</p>
-              </div>
+          {passo === 3 && (
+          <div>
+            <div className="mb-5">
+              <h2 className="font-display text-lg font-bold text-fg">Escolha seu plano</h2>
+              <p className="text-sm text-fg/65">Você vai ser redirecionado pro checkout seguro pra confirmar a assinatura.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {PLANOS.map((plano) => {
@@ -433,12 +497,12 @@ export default function RegisterPage() {
                         )}
                       </span>
                     </div>
-                    <p className="text-xs text-fg/55 mb-3">{plano.descricao}</p>
+                    <p className="text-xs text-fg/65 mb-3">{plano.descricao}</p>
                     <div className="mb-2">
                       <span className="font-display text-xl font-bold text-fg">R$ {formatarReais(plano.preco)}</span>
-                      <span className="text-xs text-fg/45">/mês</span>
+                      <span className="text-xs text-fg/65">/mês</span>
                     </div>
-                    <p className="text-xs text-fg/55">
+                    <p className="text-xs text-fg/65">
                       {plano.agentes} {plano.agentes === 1 ? "agente" : "agentes"} ·{" "}
                       {plano.mensagens.toLocaleString("pt-BR")} msgs/mês
                     </p>
@@ -447,29 +511,53 @@ export default function RegisterPage() {
               })}
             </div>
           </div>
+          )}
 
-          <div className="border-t border-border pt-6">
-            {erro && <p className="mb-3 text-sm text-rust">{erro}</p>}
-
-            <button
-              type="submit"
-              disabled={carregando || formInvalido}
-              className="w-full flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {carregando ? (
-                <>
-                  <OndaSpin size={14} /> Criando...
-                </>
-              ) : (
-                "Criar conta e assinar"
+          <div className="border-t border-border pt-6 mt-8">
+            {erro && <p className="mb-3 text-sm text-rust-text">{erro}</p>}
+            <div className="flex items-center gap-3">
+              {passo > 1 && (
+                <button
+                  type="button"
+                  onClick={voltar}
+                  className="rounded-lg border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-paper/5"
+                >
+                  Voltar
+                </button>
               )}
-            </button>
+              <div className="flex-1" />
+              {passo < 3 ? (
+              <button
+                key="continuar"
+                type="button"
+                onClick={avancar}
+                className="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-ink hover:bg-brand-600"
+              >
+                Continuar
+              </button>
+            ) : (
+              <button
+                key="finalizar"
+                type="submit"
+                disabled={carregando || formInvalido}
+                className="flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {carregando ? (
+                  <>
+                    <LocufySpin size={14} /> Criando...
+                  </>
+                ) : (
+                  "Criar conta e assinar"
+                )}
+              </button>
+              )}
+            </div>
           </div>
         </form>
 
-        <p className="mt-4 text-sm text-fg/55 text-center">
+        <p className="mt-4 text-sm text-fg/65 text-center">
           Já tem conta?{" "}
-          <Link href="/login" className="text-amber hover:text-amber-dim font-medium">
+          <Link href="/login" className="text-amber-text hover:text-amber-dim font-medium">
             Entrar
           </Link>
         </p>

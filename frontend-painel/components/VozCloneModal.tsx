@@ -105,7 +105,7 @@ export default function VozCloneModal({ onCriada, onFechar }: Props) {
         <div className="mb-4">
           <label className="block text-sm font-medium text-fg/80 mb-1.5">Nome da voz</label>
           <input
-            className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/35 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+            className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
             value={nome}
             onChange={(e) => setNome(e.target.value)}
             placeholder="Ex: Voz do Zé"
@@ -133,7 +133,7 @@ export default function VozCloneModal({ onCriada, onFechar }: Props) {
                 ⏹ Parar
               </button>
             )}
-            <span className="text-sm text-fg/45">ou</span>
+            <span className="text-sm text-fg/65">ou</span>
             <label className="rounded-lg border border-border-strong px-3 py-2 text-sm font-medium text-fg hover:border-amber/50 cursor-pointer">
               Enviar arquivo
               <input
@@ -146,7 +146,7 @@ export default function VozCloneModal({ onCriada, onFechar }: Props) {
             </label>
           </div>
 
-          {arquivo && <p className="text-xs text-fg/55">Arquivo: {arquivo.name}</p>}
+          {arquivo && <p className="text-xs text-fg/65">Arquivo: {arquivo.name}</p>}
           {audioUrl && (
             <audio controls src={audioUrl} className="w-full h-9">
               Seu navegador nao suporta audio.
@@ -154,7 +154,7 @@ export default function VozCloneModal({ onCriada, onFechar }: Props) {
           )}
         </div>
 
-        {erro && <p className="text-sm text-rust mb-3">{erro}</p>}
+        {erro && <p className="text-sm text-rust-text mb-3">{erro}</p>}
 
         <div className="flex justify-end gap-3">
           <button
@@ -175,9 +175,9 @@ export default function VozCloneModal({ onCriada, onFechar }: Props) {
           </button>
         </div>
 
-        <p className="text-xs text-fg/40 mt-3">
+        <p className="text-xs text-fg/65 mt-3">
           Recurso do plano Growth em diante.{" "}
-          <Link href="/billing" className="text-amber hover:underline">
+          <Link href="/billing" className="text-amber-text hover:underline">
             Ver planos
           </Link>
         </p>

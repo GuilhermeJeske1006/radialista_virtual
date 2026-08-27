@@ -79,14 +79,18 @@ export default function ProximosBlocosPanel({ programa, totalFalas, variant = "c
   const tipos = proximosTipos(programa.estrutura_blocos, totalFalas, QUANTIDADE_PREVIEW);
 
   const lista = (
-    <ol className={variant === "strip" ? "flex gap-2 overflow-x-auto pb-1" : "mt-4 space-y-2"}>
+    <ol
+      className={variant === "strip" ? "flex gap-2 overflow-x-auto pb-1" : "mt-4 space-y-2"}
+      tabIndex={variant === "strip" ? 0 : undefined}
+      aria-label={variant === "strip" ? "Próximos blocos na grade" : undefined}
+    >
       {tipos.map((tipo, i) =>
         variant === "strip" ? (
           <li
             key={i}
             className={`shrink-0 whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs ${
               i === 0
-                ? "bg-amber/10 border-amber/30 text-amber font-semibold"
+                ? "bg-amber/10 border-amber/30 text-amber-text font-semibold"
                 : "bg-bg border-border-strong text-fg/60"
             }`}
           >
@@ -97,7 +101,7 @@ export default function ProximosBlocosPanel({ programa, totalFalas, variant = "c
           <li
             key={i}
             className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm ${
-              i === 0 ? "bg-amber/10 border border-amber/25 text-amber font-medium" : "text-fg/65"
+              i === 0 ? "bg-amber/10 border border-amber/25 text-amber-text font-medium" : "text-fg/65"
             }`}
           >
             <span className="font-mono text-xs w-5 shrink-0">{i === 0 ? "▶" : i + 1}</span>
@@ -112,13 +116,13 @@ export default function ProximosBlocosPanel({ programa, totalFalas, variant = "c
   if (variant === "strip") {
     return (
       <div>
-        <p className="text-xs font-mono font-semibold uppercase tracking-wide text-fg/40 mb-2">A seguir na grade</p>
+        <p className="text-xs font-mono font-semibold uppercase tracking-wide text-fg/65 mb-2">A seguir na grade</p>
         <div className="relative">
           {lista}
           <div className="pointer-events-none absolute right-0 top-0 bottom-1.5 w-10 bg-linear-to-l from-surface to-transparent" />
         </div>
         {programa.ia_pode_adicionar_blocos && (
-          <p className="text-xs text-fg/40 mt-2">A IA pode ocasionalmente inserir um comentario extra fora dessa sequencia.</p>
+          <p className="text-xs text-fg/65 mt-2">A IA pode ocasionalmente inserir um comentario extra fora dessa sequencia.</p>
         )}
       </div>
     );
@@ -127,13 +131,13 @@ export default function ProximosBlocosPanel({ programa, totalFalas, variant = "c
   return (
     <section className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
       <h2 className="font-display text-base font-bold text-fg">Proximos blocos</h2>
-      <p className="text-sm text-fg/55 mt-1">
+      <p className="text-sm text-fg/65 mt-1">
         Sequencia planejada pra grade deste programa. So os tipos -- o conteudo real (texto, musica) so e' gerado
         na hora de ir ao ar.
       </p>
       {lista}
       {programa.ia_pode_adicionar_blocos && (
-        <p className="text-xs text-fg/40 mt-3">
+        <p className="text-xs text-fg/65 mt-3">
           A IA pode ocasionalmente inserir um comentario extra fora dessa sequencia.
         </p>
       )}

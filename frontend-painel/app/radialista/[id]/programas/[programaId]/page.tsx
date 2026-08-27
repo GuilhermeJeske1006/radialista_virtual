@@ -13,7 +13,7 @@ export default function EditarProgramaPage() {
 
   return (
     <AppShell title="Programa" maxWidthClassName="max-w-4xl">
-      <Link href={`/radialista/${radialistaId}`} className="text-sm text-amber hover:underline mb-4 inline-block">
+      <Link href={`/radialista/${radialistaId}`} className="text-sm text-amber-text hover:underline mb-4 inline-block">
         ← Voltar para o radialista
       </Link>
 

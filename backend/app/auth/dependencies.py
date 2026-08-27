@@ -1,17 +1,19 @@
 import logging
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from app.auth.security import decodificar_token
+from app.auth.security import COOKIE_TOKEN, decodificar_token
 from app.db.database import get_db
 from app.models.account import Account
 from app.models.usuario import Usuario
 
 logger = logging.getLogger("radialista.auth")
 
-_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+# auto_error=False -- sem Authorization header nao e' erro na hora, o cookie
+# httpOnly (setado no login/registro, ver auth/security.py) e' tentado depois.
+_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 _credenciais_invalidas = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -26,8 +28,14 @@ _acao_restrita_a_admin = HTTPException(
 
 
 def get_current_usuario(
-    token: str = Depends(_oauth2_scheme), db: Session = Depends(get_db)
+    request: Request,
+    token_header: str | None = Depends(_oauth2_scheme),
+    db: Session = Depends(get_db),
 ) -> Usuario:
+    token = token_header or request.cookies.get(COOKIE_TOKEN)
+    if token is None:
+        raise _credenciais_invalidas
+
     usuario_id = decodificar_token(token)
     if usuario_id is None:
         logger.warning("Token invalido ou expirado")

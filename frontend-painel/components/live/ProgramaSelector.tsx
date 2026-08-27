@@ -70,20 +70,21 @@ export default function ProgramaSelector({
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="font-mono text-[10.5px] font-semibold uppercase tracking-wide text-fg/40">
+            <p className="font-mono text-[10.5px] font-semibold uppercase tracking-wide text-fg/65">
               Programa selecionado
             </p>
             <h2 className="font-display text-lg font-bold text-fg truncate mt-0.5">
               {programaSelecionado ? programaSelecionado.nome : "Nenhum programa selecionado"}
             </h2>
             {programaSelecionado && (
-              <p className="text-xs text-fg/55 mt-0.5">
+              <p className="text-xs text-fg/65 mt-0.5">
                 {programaSelecionado.radialistaNome} · {formatarFaixaHorario(programaSelecionado)}
               </p>
             )}
 
             <div className="mt-3.5 flex flex-col gap-2 sm:flex-row sm:items-center">
               <select
+                aria-label="Selecionar programa"
                 className="w-full sm:max-w-sm rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
                 value={programaId ?? ""}
                 disabled={carregandoProgramas || programaAtivo}
@@ -137,10 +138,10 @@ export default function ProgramaSelector({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto shrink-0">
           <span
             className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
-              aoVivoAtivo ? "bg-teal/10 text-teal" : "bg-amber/10 text-amber"
+              aoVivoAtivo ? "bg-teal/10 text-teal-text" : "bg-amber/10 text-amber-text"
             }`}
           >
             {aoVivoAtivo ? "Agente online" : "Aguardando conexao"}
@@ -148,7 +149,7 @@ export default function ProgramaSelector({
           {programaSelecionado && (
             <span
               className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                programaSelecionadoNoAr ? "bg-teal/10 text-teal" : "bg-amber/10 text-amber"
+                programaSelecionadoNoAr ? "bg-teal/10 text-teal-text" : "bg-amber/10 text-amber-text"
               }`}
             >
               {programaSelecionadoNoAr ? "No ar agora" : "Fora do horario"}
@@ -179,14 +180,14 @@ export default function ProgramaSelector({
             <button
               type="button"
               onClick={() => onEditarRadialista(programaSelecionado.radialistaId)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-amber/25 bg-amber/10 px-3 py-1.5 text-xs font-semibold text-amber hover:bg-amber/20"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-amber/25 bg-amber/10 px-3 py-1.5 text-xs font-semibold text-amber-text hover:bg-amber/20"
             >
               ✎ Editar radialista
             </button>
             <button
               type="button"
               onClick={() => onEditarPrograma(programaSelecionado.radialistaId, programaSelecionado.id)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-amber/25 bg-amber/10 px-3 py-1.5 text-xs font-semibold text-amber hover:bg-amber/20"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-amber/25 bg-amber/10 px-3 py-1.5 text-xs font-semibold text-amber-text hover:bg-amber/20"
             >
               ✎ Editar programa
             </button>

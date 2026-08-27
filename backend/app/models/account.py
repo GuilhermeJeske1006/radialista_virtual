@@ -65,6 +65,11 @@ class Account(Base):
     # app/onboarding/router.py::status_sessao), ja que o status e' pollado a cada 3s.
     onboarding_email_enviado: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # True enquanto a sessao do WhatsApp esta caida E o alerta ja foi mandado pro admin
+    # (ver app/onboarding/alertar_desconexao.py) -- evita reenviar e-mail a cada execucao
+    # do job. Volta pra False assim que a sessao reconecta, pra proxima queda avisar de novo.
+    wuzapi_desconectado_alerta_enviado: Mapped[bool] = mapped_column(Boolean, default=False)
+
     criado_em: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.datetime.now(datetime.timezone.utc)
     )
