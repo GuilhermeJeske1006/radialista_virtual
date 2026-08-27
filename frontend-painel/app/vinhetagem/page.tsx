@@ -50,6 +50,12 @@ function novaInsercaoVazia(tipo: "biblioteca" | "propaganda", categoriaId: numbe
   };
 }
 
+const ITENS_POR_PAGINA = 8;
+
+function chaveCategoria(categoriaId: number | null): string {
+  return categoriaId === null ? "sem-categoria" : String(categoriaId);
+}
+
 function SeletorCategoria({
   categorias,
   tipo,
@@ -88,6 +94,9 @@ export default function VinhetagemPage() {
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [tocandoId, setTocandoId] = useState<number | null>(null);
+
+  const [filtros, setFiltros] = useState<Record<string, string>>({});
+  const [paginas, setPaginas] = useState<Record<string, number>>({});
 
   const [formCategoria, setFormCategoria] = useState<FormCategoria | null>(null);
   const [paraExcluirCategoria, setParaExcluirCategoria] = useState<CategoriaVinheta | null>(null);
@@ -321,6 +330,7 @@ export default function VinhetagemPage() {
         <div className="space-y-5">
           {gruposExibidos.map((categoria) => {
             const categoriaId = categoria.id;
+            const chave = chaveCategoria(categoriaId);
             const itensDaCategoria: (
               | { tipo: "biblioteca"; item: BibliotecaAudioItem }
               | { tipo: "propaganda"; item: Patrocinador }
@@ -330,6 +340,24 @@ export default function VinhetagemPage() {
                 .filter((p) => p.categoria_id === categoriaId)
                 .map((item) => ({ tipo: "propaganda" as const, item })),
             ].sort((a, b) => a.item.nome.localeCompare(b.item.nome));
+
+            const filtro = filtros[chave] ?? "";
+            const itensFiltrados = filtro.trim()
+              ? itensDaCategoria.filter((entrada) =>
+                  entrada.item.nome.toLowerCase().includes(filtro.trim().toLowerCase())
+                )
+              : itensDaCategoria;
+
+            const totalPaginas = Math.max(1, Math.ceil(itensFiltrados.length / ITENS_POR_PAGINA));
+            const paginaAtual = Math.min(paginas[chave] ?? 1, totalPaginas);
+            const itensPaginados = itensFiltrados.slice(
+              (paginaAtual - 1) * ITENS_POR_PAGINA,
+              paginaAtual * ITENS_POR_PAGINA
+            );
+
+            function mudarPagina(pagina: number) {
+              setPaginas((atual) => ({ ...atual, [chave]: pagina }));
+            }
 
             return (
               <section
@@ -377,9 +405,25 @@ export default function VinhetagemPage() {
                 {itensDaCategoria.length === 0 ? (
                   <p className="text-sm text-fg/65">Nada cadastrado nessa categoria.</p>
                 ) : (
-                  <div className="space-y-1.5">
-                    {itensDaCategoria.map((entrada) =>
-                      entrada.tipo === "biblioteca" ? (
+                  <>
+                    {itensDaCategoria.length > ITENS_POR_PAGINA && (
+                      <input
+                        type="text"
+                        value={filtro}
+                        onChange={(e) => {
+                          setFiltros((atual) => ({ ...atual, [chave]: e.target.value }));
+                          mudarPagina(1);
+                        }}
+                        placeholder="Filtrar por nome..."
+                        className={`${inputClass} mb-3`}
+                      />
+                    )}
+                    {itensFiltrados.length === 0 ? (
+                      <p className="text-sm text-fg/65">Nenhum item encontrado pro filtro.</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {itensPaginados.map((entrada) =>
+                          entrada.tipo === "biblioteca" ? (
                         <div
                           key={`vinheta-${entrada.item.id}`}
                           className="flex items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-sm"
@@ -448,9 +492,34 @@ export default function VinhetagemPage() {
                             Excluir
                           </button>
                         </div>
-                      )
+                          )
+                        )}
+                      </div>
                     )}
-                  </div>
+                    {totalPaginas > 1 && (
+                      <div className="flex items-center justify-end gap-3 mt-3">
+                        <button
+                          type="button"
+                          disabled={paginaAtual <= 1}
+                          onClick={() => mudarPagina(paginaAtual - 1)}
+                          className="text-xs font-medium text-amber-text hover:text-amber-dim disabled:opacity-40 disabled:hover:text-amber-text"
+                        >
+                          ◀ Anterior
+                        </button>
+                        <span className="text-xs font-mono text-fg/65">
+                          Página {paginaAtual} de {totalPaginas}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={paginaAtual >= totalPaginas}
+                          onClick={() => mudarPagina(paginaAtual + 1)}
+                          className="text-xs font-medium text-amber-text hover:text-amber-dim disabled:opacity-40 disabled:hover:text-amber-text"
+                        >
+                          Próxima ▶
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </section>
             );
