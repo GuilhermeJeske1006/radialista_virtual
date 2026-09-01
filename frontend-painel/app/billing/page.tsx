@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import AppShell from "../../components/AppShell";
+import CheckoutModal from "../../components/CheckoutModal";
 import { apiFetch, ApiError } from "../../lib/api";
 import { LocufyLed, LocufySpin } from "../../components/LocufyLogo";
 import { PLANOS, PRECO_AGENTE_ADICIONAL, PRECO_EXCEDENTE_1000_MSG, formatarReais } from "../../lib/planos";
@@ -23,16 +24,16 @@ export default function BillingPage() {
   const [carregando, setCarregando] = useState(true);
   const [carregandoId, setCarregandoId] = useState<string | null>(null);
   const [erro, setErro] = useState("");
-  const [comprandoAgenteExtra, setComprandoAgenteExtra] = useState(false);
-  const [erroAgenteExtra, setErroAgenteExtra] = useState("");
+  const [checkoutAgenteExtraAberto, setCheckoutAgenteExtraAberto] = useState(false);
   const [modalExcedenteAberto, setModalExcedenteAberto] = useState(false);
   const [blocosExcedente, setBlocosExcedente] = useState(1);
-  const [comprandoExcedente, setComprandoExcedente] = useState(false);
-  const [erroExcedente, setErroExcedente] = useState("");
+  const [checkoutExcedenteBlocos, setCheckoutExcedenteBlocos] = useState<number | null>(null);
   const [assinaturaConfirmada, setAssinaturaConfirmada] = useState(false);
+  const [compraConfirmada, setCompraConfirmada] = useState<string | null>(null);
   const [planoTrocado, setPlanoTrocado] = useState(false);
   const [abrindoPortal, setAbrindoPortal] = useState(false);
   const [erroPortal, setErroPortal] = useState("");
+  const [checkoutPlanoId, setCheckoutPlanoId] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch<StatusPlano>("/billing/status")
@@ -45,8 +46,14 @@ export default function BillingPage() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("success") !== "true") return;
     window.history.replaceState(null, "", "/billing");
-    // primeira assinatura confirmada e ainda sem locutor pronto -- manda pro wizard guiado
-    // em vez de deixar o usuario "cair" direto no painel sem saber o proximo passo.
+    confirmarAssinatura();
+  }, []);
+
+  // primeira assinatura confirmada e ainda sem locutor pronto -- manda pro wizard guiado em
+  // vez de deixar o usuario "cair" direto no painel sem saber o proximo passo. Chamada tanto
+  // pelo fallback de redirect (?success=true, caso raro de 3DS) quanto pelo onSuccess do
+  // checkout embutido (caminho comum, sem navegar a pagina).
+  function confirmarAssinatura() {
     apiFetch<Radialista[]>("/config/radialistas")
       .then((radialistas) => {
         const jaTemLocutorPronto = radialistas.some((r) => r.ativo && r.voz_id);
@@ -57,32 +64,40 @@ export default function BillingPage() {
         }
       })
       .catch(() => setAssinaturaConfirmada(true));
-  }, []);
+  }
+
+  // Webhook confirma a compra de forma assincrona (um instante depois do confirmPayment
+  // resolver no navegador) -- reconsulta /billing/status algumas vezes pra pegar o estado
+  // atualizado (plano ativo, contador de agentes extras, etc.) sem precisar recarregar a pagina.
+  function repollStatus(tentativas = 5) {
+    apiFetch<StatusPlano>("/billing/status")
+      .then(setStatusPlano)
+      .catch(() => {});
+    if (tentativas > 1) setTimeout(() => repollStatus(tentativas - 1), 1500);
+  }
 
   async function assinar(planoId: string) {
     setErro("");
     setPlanoTrocado(false);
+    if (!ativo) {
+      // ainda sem assinatura: abre o checkout transparente (embutido na pagina) --
+      // o pagamento acontece sem sair do painel.
+      setCheckoutPlanoId(planoId);
+      return;
+    }
+    // ja assinante: troca o price da assinatura existente na hora (com proration),
+    // sem passar pelo checkout de novo -- ver POST /billing/trocar-plano.
     setCarregandoId(planoId);
     try {
-      if (ativo) {
-        // ja assinante: troca o price da assinatura existente na hora (com proration),
-        // sem passar pelo checkout de novo -- ver POST /billing/trocar-plano.
-        const atualizado = await apiFetch<StatusPlano>("/billing/trocar-plano", {
-          method: "POST",
-          body: JSON.stringify({ plano_id: planoId }),
-        });
-        setStatusPlano(atualizado);
-        setPlanoTrocado(true);
-        setCarregandoId(null);
-      } else {
-        const { url } = await apiFetch<{ url: string }>("/billing/checkout", {
-          method: "POST",
-          body: JSON.stringify({ plano_id: planoId }),
-        });
-        window.location.href = url;
-      }
+      const atualizado = await apiFetch<StatusPlano>("/billing/trocar-plano", {
+        method: "POST",
+        body: JSON.stringify({ plano_id: planoId }),
+      });
+      setStatusPlano(atualizado);
+      setPlanoTrocado(true);
     } catch (err) {
       setErro(err instanceof ApiError ? err.message : "Erro ao trocar de plano");
+    } finally {
       setCarregandoId(null);
     }
   }
@@ -99,31 +114,11 @@ export default function BillingPage() {
     }
   }
 
-  async function comprarAgenteExtra() {
-    setComprandoAgenteExtra(true);
-    setErroAgenteExtra("");
-    try {
-      const { url } = await apiFetch<{ url: string }>("/billing/agentes-extras/checkout", { method: "POST" });
-      window.location.href = url;
-    } catch (err) {
-      setErroAgenteExtra(err instanceof ApiError ? err.message : "Erro ao iniciar compra");
-      setComprandoAgenteExtra(false);
-    }
-  }
-
-  async function comprarExcedente() {
-    setComprandoExcedente(true);
-    setErroExcedente("");
-    try {
-      const { url } = await apiFetch<{ url: string }>("/billing/excedente-mensagens/checkout", {
-        method: "POST",
-        body: JSON.stringify({ blocos: blocosExcedente }),
-      });
-      window.location.href = url;
-    } catch (err) {
-      setErroExcedente(err instanceof ApiError ? err.message : "Erro ao iniciar compra");
-      setComprandoExcedente(false);
-    }
+  function comprarExcedente() {
+    // fecha o seletor de quantidade e abre o checkout transparente ja' travado
+    // na quantidade escolhida.
+    setModalExcedenteAberto(false);
+    setCheckoutExcedenteBlocos(blocosExcedente);
   }
 
   const ativo = statusPlano?.plano_status === "ativo";
@@ -137,6 +132,20 @@ export default function BillingPage() {
           <button
             type="button"
             onClick={() => setAssinaturaConfirmada(false)}
+            aria-label="Dispensar aviso"
+            className="shrink-0 text-fg/50 hover:text-fg"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {compraConfirmada && (
+        <div className="flex items-center justify-between gap-4 rounded-2xl border border-teal/40 bg-teal/10 px-5 py-3 mb-6 max-w-2xl">
+          <p className="text-sm font-medium text-fg">{compraConfirmada}</p>
+          <button
+            type="button"
+            onClick={() => setCompraConfirmada(null)}
             aria-label="Dispensar aviso"
             className="shrink-0 text-fg/50 hover:text-fg"
           >
@@ -289,7 +298,7 @@ export default function BillingPage() {
               >
                 {carregandoId === plano.id ? (
                   <>
-                    <LocufySpin size={14} /> {ativo ? "Trocando..." : "Redirecionando..."}
+                    <LocufySpin size={14} /> Trocando...
                   </>
                 ) : ativo ? (
                   "Trocar pra esse plano"
@@ -321,21 +330,13 @@ export default function BillingPage() {
           {ativo && (
             <button
               type="button"
-              onClick={comprarAgenteExtra}
-              disabled={comprandoAgenteExtra}
-              className="flex items-center gap-2 shrink-0 rounded-lg bg-paper/10 px-4 py-2.5 text-sm font-medium text-fg hover:bg-paper/15 disabled:opacity-60"
+              onClick={() => setCheckoutAgenteExtraAberto(true)}
+              className="flex items-center gap-2 shrink-0 rounded-lg bg-paper/10 px-4 py-2.5 text-sm font-medium text-fg hover:bg-paper/15"
             >
-              {comprandoAgenteExtra ? (
-                <>
-                  <LocufySpin size={14} /> Redirecionando...
-                </>
-              ) : (
-                "+ Agente extra"
-              )}
+              + Agente extra
             </button>
           )}
         </div>
-        {erroAgenteExtra && <p className="text-sm text-rust-text mt-2">{erroAgenteExtra}</p>}
 
         <div className="mt-5 pt-5 border-t border-border flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -364,7 +365,7 @@ export default function BillingPage() {
       {modalExcedenteAberto && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4"
-          onClick={() => !comprandoExcedente && setModalExcedenteAberto(false)}
+          onClick={() => setModalExcedenteAberto(false)}
         >
           <div
             className="w-full max-w-sm rounded-2xl border border-border-strong bg-surface p-6 shadow-theme-xs"
@@ -382,39 +383,70 @@ export default function BillingPage() {
               max={50}
               value={blocosExcedente}
               onChange={(e) => setBlocosExcedente(Math.min(50, Math.max(1, Number(e.target.value) || 1)))}
-              disabled={comprandoExcedente}
-              className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-amber/40 disabled:opacity-60"
+              className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-amber/40"
             />
             <p className="text-sm text-fg/65 mt-2">
               Total: <span className="font-semibold text-fg">R$ {formatarReais(blocosExcedente * PRECO_EXCEDENTE_1000_MSG)}</span>
             </p>
-            {erroExcedente && <p className="text-sm text-rust-text mt-2">{erroExcedente}</p>}
             <div className="flex justify-end gap-3 mt-5">
               <button
                 type="button"
                 onClick={() => setModalExcedenteAberto(false)}
-                disabled={comprandoExcedente}
-                className="rounded-lg px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg disabled:opacity-60"
+                className="rounded-lg px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={comprarExcedente}
-                disabled={comprandoExcedente}
-                className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60"
+                className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600"
               >
-                {comprandoExcedente ? (
-                  <>
-                    <LocufySpin size={14} /> Redirecionando...
-                  </>
-                ) : (
-                  "Comprar"
-                )}
+                Comprar
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {checkoutPlanoId && (
+        <CheckoutModal
+          open
+          endpoint="/billing/checkout"
+          body={{ plano_id: checkoutPlanoId }}
+          onClose={() => setCheckoutPlanoId(null)}
+          onSuccess={() => {
+            setCheckoutPlanoId(null);
+            repollStatus();
+            confirmarAssinatura();
+          }}
+        />
+      )}
+
+      {checkoutAgenteExtraAberto && (
+        <CheckoutModal
+          open
+          endpoint="/billing/agentes-extras/checkout"
+          onClose={() => setCheckoutAgenteExtraAberto(false)}
+          onSuccess={() => {
+            setCheckoutAgenteExtraAberto(false);
+            repollStatus();
+            setCompraConfirmada("Agente extra ativado.");
+          }}
+        />
+      )}
+
+      {checkoutExcedenteBlocos !== null && (
+        <CheckoutModal
+          open
+          endpoint="/billing/excedente-mensagens/checkout"
+          body={{ blocos: checkoutExcedenteBlocos }}
+          onClose={() => setCheckoutExcedenteBlocos(null)}
+          onSuccess={() => {
+            setCheckoutExcedenteBlocos(null);
+            repollStatus();
+            setCompraConfirmada("Excedente de mensagens creditado.");
+          }}
+        />
       )}
     </AppShell>
   );

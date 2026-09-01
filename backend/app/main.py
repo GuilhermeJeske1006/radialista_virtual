@@ -5,6 +5,7 @@ import pathlib
 import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sentry_sdk.integrations.logging import LoggingIntegration
 from sqlalchemy import inspect, text
 
 from app.auth.router import router as auth_router
@@ -61,6 +62,11 @@ sentry_sdk.init(
     dsn=settings.sentry_dsn or None,
     environment=settings.sentry_environment,
     traces_sample_rate=settings.sentry_traces_sample_rate,
+    enable_logs=settings.sentry_enable_logs,
+    integrations=[
+        # warning+ vira log buscavel no Sentry; error+ continua virando evento (default).
+        LoggingIntegration(sentry_logs_level=logging.WARNING),
+    ],
 )
 
 app = FastAPI(title="Radialista Virtual")

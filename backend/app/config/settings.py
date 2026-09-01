@@ -58,6 +58,8 @@ class Settings(BaseSettings):
     # Fracao de requests com tracing de performance (0.0 a 1.0) -- 0 manda so' erros,
     # sem overhead de tracing. Sentry cobra por evento de trace, entao comeca conservador.
     sentry_traces_sample_rate: float = 0.0
+    # Manda logging.warning/error/etc pro Sentry Logs (busca/alerta por log, nao so' por excecao).
+    sentry_enable_logs: bool = True
 
     class Config:
         env_file = ".env"

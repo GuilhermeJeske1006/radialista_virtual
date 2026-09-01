@@ -79,6 +79,7 @@ def _status_plano(account: Account, db: Session) -> dict:
 def checkout(
     dados: CheckoutRequest,
     account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
     _admin=Depends(exigir_admin),
 ):
     _exigir_plano_valido(dados.plano_id)
@@ -87,8 +88,8 @@ def checkout(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Voce ja tem uma assinatura ativa -- use a troca de plano.",
         )
-    sessao = criar_sessao_checkout(account, dados.plano_id)
-    return {"url": sessao.url}
+    assinatura = criar_sessao_checkout(account, dados.plano_id, db)
+    return {"client_secret": assinatura.latest_invoice.payment_intent.client_secret}
 
 
 @router.post("/trocar-plano")
@@ -122,21 +123,26 @@ def portal(account: Account = Depends(get_current_account), _admin=Depends(exigi
 
 
 @router.post("/agentes-extras/checkout")
-def checkout_agente_extra(account: Account = Depends(get_current_account), _admin=Depends(exigir_admin)):
+def checkout_agente_extra(
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+    _admin=Depends(exigir_admin),
+):
     _exigir_plano_ativo(account)
-    sessao = criar_sessao_checkout_agente_extra(account)
-    return {"url": sessao.url}
+    assinatura = criar_sessao_checkout_agente_extra(account, db)
+    return {"client_secret": assinatura.latest_invoice.payment_intent.client_secret}
 
 
 @router.post("/excedente-mensagens/checkout")
 def checkout_excedente_mensagens(
     dados: ExcedenteMensagensRequest,
     account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
     _admin=Depends(exigir_admin),
 ):
     _exigir_plano_ativo(account)
-    sessao = criar_sessao_checkout_excedente_mensagens(account, dados.blocos)
-    return {"url": sessao.url}
+    intent = criar_sessao_checkout_excedente_mensagens(account, dados.blocos, db)
+    return {"client_secret": intent.client_secret}
 
 
 @router.get("/status")
@@ -162,49 +168,80 @@ async def webhook_stripe(request: Request, db: Session = Depends(get_db)):
     dados = evento["data"]["object"]
     logger.info("Webhook Stripe recebido: tipo=%s", tipo)
 
-    if tipo == "checkout.session.completed":
-        client_reference_id = dados.get("client_reference_id")
-        account = db.get(Account, int(client_reference_id)) if client_reference_id else None
-        if account is not None:
-            tipo_compra = dados.get("metadata", {}).get("tipo", "assinatura")
+    if tipo == "invoice.paid":
+        # Assinatura (plano ou agente extra) criada direto via API (payment_behavior=
+        # default_incomplete, ver stripe_client.py) fica "incomplete" ate o pagamento da
+        # primeira invoice ser confirmado -- billing_reason=="subscription_create" so'
+        # acontece nessa primeira invoice, nunca em renovacao mensal (essa vem como
+        # "subscription_cycle"), entao serve de sinal de ativacao sem risco de repetir todo mes.
+        if dados.get("billing_reason") != "subscription_create":
+            return {"status": "ignorado"}
 
-            if tipo_compra == "assinatura":
-                account.plano_status = "ativo"
-                account.plano = dados.get("metadata", {}).get("plano", "starter")
-                account.stripe_customer_id = dados.get("customer")
-                account.stripe_subscription_id = dados.get("subscription")
-                _definir_ativo(db, account, True)
-            elif tipo_compra == "agente_extra":
-                account.agentes_extras += 1
-                account.stripe_customer_id = dados.get("customer") or account.stripe_customer_id
-            elif tipo_compra == "excedente_mensagens":
-                blocos = int(dados.get("metadata", {}).get("blocos", "1"))
-                db.add(
-                    CompraExcedente(
-                        account_id=account.id,
-                        quantidade=blocos * 1000,
-                        mes_referencia=mes_referencia_atual(),
-                    )
-                )
-                account.stripe_customer_id = dados.get("customer") or account.stripe_customer_id
+        # A partir da API version usada nessa conta Stripe, invoice nao tem mais "subscription"/
+        # "subscription_details" no nivel raiz -- o line item (sempre 1, um price por
+        # assinatura) carrega o metadata da subscription e a referencia pra ela.
+        linhas = dados.get("lines", {}).get("data") or []
+        metadata = linhas[0].get("metadata", {}) if linhas else {}
+        subscription_id = None
+        if linhas:
+            detalhes_item = (linhas[0].get("parent") or {}).get("subscription_item_details") or {}
+            subscription_id = detalhes_item.get("subscription")
 
+        account_id = metadata.get("account_id")
+        account = db.get(Account, int(account_id)) if account_id else None
+        if account is None:
+            logger.warning("invoice.paid (subscription_create) sem account_id resolvivel")
+            return {"status": "ok"}
+
+        tipo_compra = metadata.get("tipo")
+        if tipo_compra == "assinatura":
+            account.plano_status = "ativo"
+            account.plano = metadata.get("plano", "starter")
+            account.stripe_subscription_id = subscription_id
+            _definir_ativo(db, account, True)
             db.commit()
-            logger.info("Checkout concluido: account_id=%s tipo_compra=%s", account.id, tipo_compra)
-            if tipo_compra == "assinatura":
-                notificar_admins(
-                    db,
-                    account,
-                    "billing",
-                    "Assinatura ativada",
-                    f"Sua assinatura do plano {account.plano} foi ativada com sucesso.",
-                    link="/billing",
-                )
-        else:
-            logger.warning("Checkout concluido pra account_id inexistente: %s", dados.get("client_reference_id"))
+            logger.info("Assinatura ativada: account_id=%s plano=%s", account.id, account.plano)
+            notificar_admins(
+                db,
+                account,
+                "billing",
+                "Assinatura ativada",
+                f"Sua assinatura do plano {account.plano} foi ativada com sucesso.",
+                link="/billing",
+            )
+        elif tipo_compra == "agente_extra":
+            account.agentes_extras += 1
+            db.commit()
+            logger.info("Agente extra ativado: account_id=%s", account.id)
+
+    elif tipo == "payment_intent.succeeded":
+        metadata = dados.get("metadata", {})
+        if metadata.get("tipo") != "excedente_mensagens":
+            return {"status": "ignorado"}
+
+        account_id = metadata.get("account_id")
+        account = db.get(Account, int(account_id)) if account_id else None
+        if account is None:
+            logger.warning("payment_intent.succeeded (excedente) sem account_id resolvivel")
+            return {"status": "ok"}
+
+        blocos = int(metadata.get("blocos", "1"))
+        db.add(
+            CompraExcedente(
+                account_id=account.id,
+                quantidade=blocos * 1000,
+                mes_referencia=mes_referencia_atual(),
+            )
+        )
+        db.commit()
+        logger.info("Excedente de mensagens creditado: account_id=%s blocos=%s", account.id, blocos)
 
     elif tipo == "customer.subscription.deleted":
         account = db.query(Account).filter_by(stripe_customer_id=dados.get("customer")).first()
-        if account is not None:
+        # Um customer pode ter mais de uma subscription (a do plano + uma por agente extra
+        # comprado) -- so' a subscription principal (account.stripe_subscription_id) representa
+        # a assinatura em si. Cancelar so' um agente extra nao pode derrubar a conta inteira.
+        if account is not None and dados.get("id") == account.stripe_subscription_id:
             account.plano_status = "cancelado"
             _definir_ativo(db, account, False)
             db.commit()
@@ -225,7 +262,9 @@ async def webhook_stripe(request: Request, db: Session = Depends(get_db)):
             return {"status": "ignorado"}
 
         account = db.query(Account).filter_by(stripe_customer_id=dados.get("customer")).first()
-        if account is not None:
+        # Mesmo motivo do subscription.deleted acima: ignora updates de subscriptions que nao
+        # sao a assinatura principal (ex.: subscription de agente extra mudando de status).
+        if account is not None and dados.get("id") == account.stripe_subscription_id:
             if novo_status in ("canceled", "unpaid"):
                 account.plano_status = "cancelado"
                 _definir_ativo(db, account, False)

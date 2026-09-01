@@ -7,6 +7,7 @@ import { RADIALISTA_VAZIO, Radialista, TipoRadio } from "../../lib/types";
 import { PLANOS, formatarReais } from "../../lib/planos";
 import { LocufyLogo, LocufySpin } from "../../components/LocufyLogo";
 import ThemeToggle from "../../components/ThemeToggle";
+import CheckoutModal from "../../components/CheckoutModal";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -16,7 +17,6 @@ type CampoErros = {
   senha?: string;
   confirmarSenha?: string;
   nomeRadio?: string;
-  nomeLocutor?: string;
 };
 
 function validarNome(v: string) {
@@ -36,10 +36,6 @@ function validarConfirmarSenha(senha: string, v: string) {
 function validarNomeRadio(v: string) {
   return v.trim() ? "" : "Dá um nome pra sua rádio";
 }
-function validarNomeLocutor(v: string) {
-  return v.trim() ? "" : "Dá um nome pro seu locutor virtual";
-}
-
 export default function RegisterPage() {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
@@ -48,10 +44,15 @@ export default function RegisterPage() {
   const [nomeRadio, setNomeRadio] = useState("");
   const [tipoRadio, setTipoRadio] = useState("");
   const [tiposRadio, setTiposRadio] = useState<TipoRadio[]>([]);
-  const [nomeLocutor, setNomeLocutor] = useState("");
+  const [endereco, setEndereco] = useState("");
+  const [cidade, setCidade] = useState("");
+  const [slogan, setSlogan] = useState("");
+  const [frequencia, setFrequencia] = useState("");
+  const [telefone, setTelefone] = useState("");
   const [planoId, setPlanoId] = useState("growth");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
+  const [mostrarCheckout, setMostrarCheckout] = useState(false);
   const [passo, setPasso] = useState<1 | 2 | 3>(1);
   const [campoErros, setCampoErros] = useState<CampoErros>({});
   const [tocado, setTocado] = useState<Record<keyof CampoErros, boolean>>({
@@ -60,7 +61,6 @@ export default function RegisterPage() {
     senha: false,
     confirmarSenha: false,
     nomeRadio: false,
-    nomeLocutor: false,
   });
 
   useEffect(() => {
@@ -97,11 +97,6 @@ export default function RegisterPage() {
     setNomeRadio(v);
     setCampoErros((c) => ({ ...c, nomeRadio: validarNomeRadio(v) }));
   }
-  function onChangeNomeLocutor(v: string) {
-    setNomeLocutor(v);
-    setCampoErros((c) => ({ ...c, nomeLocutor: validarNomeLocutor(v) }));
-  }
-
   function validar(): boolean {
     const erros: CampoErros = {
       nome: validarNome(nome),
@@ -109,7 +104,6 @@ export default function RegisterPage() {
       senha: validarSenha(senha),
       confirmarSenha: validarConfirmarSenha(senha, confirmarSenha),
       nomeRadio: validarNomeRadio(nomeRadio),
-      nomeLocutor: validarNomeLocutor(nomeLocutor),
     };
     setCampoErros(erros);
     setTocado({
@@ -118,7 +112,6 @@ export default function RegisterPage() {
       senha: true,
       confirmarSenha: true,
       nomeRadio: true,
-      nomeLocutor: true,
     });
     const primeiroErro = Object.values(erros).find((m) => m);
     if (primeiroErro) {
@@ -147,9 +140,9 @@ export default function RegisterPage() {
   }
 
   function validarPasso2(): boolean {
-    const erros = { nomeRadio: validarNomeRadio(nomeRadio), nomeLocutor: validarNomeLocutor(nomeLocutor) };
+    const erros = { nomeRadio: validarNomeRadio(nomeRadio) };
     setCampoErros((c) => ({ ...c, ...erros }));
-    setTocado((t) => ({ ...t, nomeRadio: true, nomeLocutor: true }));
+    setTocado((t) => ({ ...t, nomeRadio: true }));
     const primeiroErro = Object.values(erros).find((m) => m);
     if (primeiroErro) {
       setErro(primeiroErro);
@@ -190,6 +183,11 @@ export default function RegisterPage() {
         body: JSON.stringify({
           nome_radio: nomeRadio.trim(),
           tipo_radio: tipoRadio,
+          endereco: endereco.trim(),
+          cidade: cidade.trim(),
+          slogan: slogan.trim(),
+          frequencia: frequencia.trim(),
+          telefone: telefone.trim(),
         }),
       });
 
@@ -198,15 +196,14 @@ export default function RegisterPage() {
       if (radialista) {
         await apiFetch(`/config/radialistas/${radialista.id}`, {
           method: "PUT",
-          body: JSON.stringify({ ...RADIALISTA_VAZIO, nome_locutor: nomeLocutor.trim() }),
+          body: JSON.stringify(RADIALISTA_VAZIO),
         });
       }
 
-      const { url } = await apiFetch<{ url: string }>("/billing/checkout", {
-        method: "POST",
-        body: JSON.stringify({ plano_id: planoId }),
-      });
-      window.location.href = url;
+      // conta, radio e radialista prontos -- abre o checkout transparente embutido na
+      // pagina; POST /billing/checkout so' e' chamado dentro do CheckoutModal.
+      setMostrarCheckout(true);
+      setCarregando(false);
     } catch (err) {
       if (contaCriada) {
         // conta ja existe (registro deu certo) -- mostrar "erro ao criar conta" aqui seria
@@ -225,8 +222,7 @@ export default function RegisterPage() {
     !!validarEmail(email) ||
     !!validarSenha(senha) ||
     !!validarConfirmarSenha(senha, confirmarSenha) ||
-    !!validarNomeRadio(nomeRadio) ||
-    !!validarNomeLocutor(nomeLocutor);
+    !!validarNomeRadio(nomeRadio);
 
   const PASSOS = ["Criar conta", "Sua rádio", "Escolha seu plano"];
 
@@ -386,23 +382,54 @@ export default function RegisterPage() {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">Nome do locutor virtual</label>
+                <label className="block text-sm font-medium text-fg/80 mb-1.5">Slogan</label>
                 <input
                   type="text"
-                  required
-                  placeholder="Ex.: Zé do Rádio"
-                  value={nomeLocutor}
-                  onChange={(e) => onChangeNomeLocutor(e.target.value)}
-                  onBlur={() => { onChangeNomeLocutor(nomeLocutor); marcarTocado("nomeLocutor"); }}
-                  className={`w-full rounded-lg border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
-                    tocado.nomeLocutor && campoErros.nomeLocutor
-                      ? "border-rust focus:border-rust focus:ring-rust/20"
-                      : "border-border-strong focus:border-amber/50 focus:ring-amber/20"
-                  }`}
+                  placeholder="Ex.: A rádio que toca pra você"
+                  value={slogan}
+                  onChange={(e) => setSlogan(e.target.value)}
+                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
                 />
-                {tocado.nomeLocutor && campoErros.nomeLocutor && (
-                  <p className="mt-1 text-xs text-rust-text">{campoErros.nomeLocutor}</p>
-                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-fg/80 mb-1.5">Frequência</label>
+                <input
+                  type="text"
+                  placeholder="Ex.: 98.5 FM"
+                  value={frequencia}
+                  onChange={(e) => setFrequencia(e.target.value)}
+                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-fg/80 mb-1.5">Telefone</label>
+                <input
+                  type="text"
+                  placeholder="Ex.: (11) 4000-0000"
+                  value={telefone}
+                  onChange={(e) => setTelefone(e.target.value)}
+                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-fg/80 mb-1.5">Endereço</label>
+                <input
+                  type="text"
+                  placeholder="Ex.: Av. Principal, 123 - Centro"
+                  value={endereco}
+                  onChange={(e) => setEndereco(e.target.value)}
+                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-fg/80 mb-1.5">Cidade</label>
+                <input
+                  type="text"
+                  placeholder="Ex.: Porto Alegre"
+                  value={cidade}
+                  onChange={(e) => setCidade(e.target.value)}
+                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                />
               </div>
             </div>
 
@@ -559,6 +586,25 @@ export default function RegisterPage() {
           .
         </p>
       </div>
+
+      {mostrarCheckout && (
+        <CheckoutModal
+          open
+          endpoint="/billing/checkout"
+          body={{ plano_id: planoId }}
+          onSuccess={() => {
+            // conta acabou de ser criada -- o locutor sempre comeca sem voz definida
+            // (RADIALISTA_VAZIO ali em cima), entao vai direto pro wizard guiado.
+            window.location.href = "/onboarding/locutor";
+          }}
+          onClose={() => {
+            // conta, radio e locutor ja foram criados antes de abrir o checkout --
+            // fechar sem pagar deixa a assinatura pendente, entao manda pro dashboard
+            // que sinaliza isso (mesmo destino usado quando o checkout falha).
+            window.location.href = "/dashboard?onboarding=incompleto";
+          }}
+        />
+      )}
     </div>
   );
 }
