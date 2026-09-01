@@ -4,6 +4,7 @@ import logging
 from app.guardrails.content_filter import TERMOS_SEMPRE_BLOQUEADOS
 from app.llm.client import gerar_configuracao
 from app.llm.json_utils import extrair_json
+from app.llm.tipos_radio import contexto_prompt_tipo_radio
 from app.tts.voices import VOZES_DISPONIVEIS, voz_valida
 
 logger = logging.getLogger("radialista.config_generator")
@@ -48,42 +49,62 @@ def _regras_comuns_texto() -> str:
     return "\n".join(regra.format(bloqueados=bloqueados) for regra in _REGRAS_COMUNS)
 
 
-def _montar_system_prompt_completo() -> str:
-    return "\n".join(
-        [
-            "Voce e um especialista em programacao de radio no Brasil.",
-            "A partir de uma descricao curta do usuario (genero musical, tom, publico etc.), gere a "
-            "configuracao completa de um radialista virtual e do seu primeiro programa, prontos pra uso.",
-            "",
-            "Responda APENAS com um JSON compacto, sem markdown, sem comentarios e sem explicacao, "
-            "exatamente no formato:",
-            f'{{"radialista": {_CAMPOS_RADIALISTA_JSON}, "programa": {_CAMPOS_PROGRAMA_JSON}}}',
-            "",
-            _regras_comuns_texto(),
-            "voz_id tem que ser exatamente um destes ids do catalogo (escolha o que combinar melhor "
-            "com o tom pedido):",
-            _catalogo_vozes_texto(),
-        ]
+def _linha_perfil_tipo_radio(tipo_radio: str | None) -> str | None:
+    contexto = contexto_prompt_tipo_radio(tipo_radio)
+    if not contexto:
+        return None
+    return (
+        f"Perfil da radio (tipo pre-definido escolhido pelo usuario): {contexto} "
+        "Use isso como base pros campos de genero musical, tom e topicos, mesmo que a "
+        "descricao do usuario abaixo seja curta ou vaga -- so desvie desse perfil se a "
+        "descricao pedir algo claramente diferente."
     )
 
 
-def _montar_system_prompt_programa(nome_locutor: str, personalidade: str) -> str:
-    return "\n".join(
-        [
-            "Voce e um especialista em programacao de radio no Brasil.",
-            f"O radialista virtual '{nome_locutor}' ja existe, com esta personalidade: "
-            f"{personalidade or 'nao definida'}.",
-            "A partir de uma descricao curta do usuario (genero musical, tom, publico, horario etc.), "
-            "gere a configuracao completa de um NOVO programa pra esse radialista, prontos pra uso. "
-            "O tom e as mensagens do programa devem soar coerentes com a personalidade do radialista.",
-            "",
-            "Responda APENAS com um JSON compacto, sem markdown, sem comentarios e sem explicacao, "
-            "exatamente no formato:",
-            _CAMPOS_PROGRAMA_JSON,
-            "",
-            _regras_comuns_texto(),
-        ]
+def _montar_system_prompt_completo(tipo_radio: str | None = None) -> str:
+    linhas = [
+        "Voce e um especialista em programacao de radio no Brasil.",
+        "A partir de uma descricao curta do usuario (genero musical, tom, publico etc.), gere a "
+        "configuracao completa de um radialista virtual e do seu primeiro programa, prontos pra uso.",
+        "",
+        "Responda APENAS com um JSON compacto, sem markdown, sem comentarios e sem explicacao, "
+        "exatamente no formato:",
+        f'{{"radialista": {_CAMPOS_RADIALISTA_JSON}, "programa": {_CAMPOS_PROGRAMA_JSON}}}',
+        "",
+    ]
+    linha_perfil = _linha_perfil_tipo_radio(tipo_radio)
+    if linha_perfil:
+        linhas.append(linha_perfil)
+    linhas.append(_regras_comuns_texto())
+    linhas.append(
+        "voz_id tem que ser exatamente um destes ids do catalogo (escolha o que combinar melhor "
+        "com o tom pedido):"
     )
+    linhas.append(_catalogo_vozes_texto())
+    return "\n".join(linhas)
+
+
+def _montar_system_prompt_programa(
+    nome_locutor: str, personalidade: str, tipo_radio: str | None = None
+) -> str:
+    linhas = [
+        "Voce e um especialista em programacao de radio no Brasil.",
+        f"O radialista virtual '{nome_locutor}' ja existe, com esta personalidade: "
+        f"{personalidade or 'nao definida'}.",
+        "A partir de uma descricao curta do usuario (genero musical, tom, publico, horario etc.), "
+        "gere a configuracao completa de um NOVO programa pra esse radialista, prontos pra uso. "
+        "O tom e as mensagens do programa devem soar coerentes com a personalidade do radialista.",
+        "",
+        "Responda APENAS com um JSON compacto, sem markdown, sem comentarios e sem explicacao, "
+        "exatamente no formato:",
+        _CAMPOS_PROGRAMA_JSON,
+        "",
+    ]
+    linha_perfil = _linha_perfil_tipo_radio(tipo_radio)
+    if linha_perfil:
+        linhas.append(linha_perfil)
+    linhas.append(_regras_comuns_texto())
+    return "\n".join(linhas)
 
 
 def _sanitizar_programa(programa: dict) -> dict:
@@ -97,14 +118,17 @@ def _sanitizar_programa(programa: dict) -> dict:
     return programa
 
 
-def gerar_configuracao_ia(descricao_usuario: str) -> tuple[dict, dict]:
+def gerar_configuracao_ia(descricao_usuario: str, tipo_radio: str | None = None) -> tuple[dict, dict]:
     """Gera configuracao completa de radialista + programa a partir de uma descricao livre.
 
-    Retorna (dados_radialista, dados_programa) ja sanitizados (voz_id valido, sem topicos
-    sempre-bloqueados). Levanta ValueError se o LLM nao retornar um JSON valido/completo --
-    quem chama decide como reportar isso (ex.: 502 na API).
+    `tipo_radio` (ver app/llm/tipos_radio.py) entra como perfil padrao no prompt, usado
+    mesmo quando `descricao_usuario` esta vazia. Retorna (dados_radialista, dados_programa)
+    ja sanitizados (voz_id valido, sem topicos sempre-bloqueados). Levanta ValueError se o
+    LLM nao retornar um JSON valido/completo -- quem chama decide como reportar isso
+    (ex.: 502 na API).
     """
-    texto_resposta = gerar_configuracao(_montar_system_prompt_completo(), descricao_usuario)
+    entrada = descricao_usuario or "Sem descricao adicional -- use so o perfil do tipo de radio informado."
+    texto_resposta = gerar_configuracao(_montar_system_prompt_completo(tipo_radio), entrada)
     if not texto_resposta:
         raise ValueError("LLM nao retornou conteudo")
 
@@ -122,14 +146,19 @@ def gerar_configuracao_ia(descricao_usuario: str) -> tuple[dict, dict]:
     return radialista, _sanitizar_programa(programa)
 
 
-def gerar_programa_ia(descricao_usuario: str, nome_locutor: str, personalidade: str) -> dict:
+def gerar_programa_ia(
+    descricao_usuario: str, nome_locutor: str, personalidade: str, tipo_radio: str | None = None
+) -> dict:
     """Gera configuracao completa de um programa novo pra um radialista ja existente.
 
-    Retorna dados_programa ja sanitizado. Levanta ValueError se o LLM nao retornar um JSON
-    valido/completo -- quem chama decide como reportar isso (ex.: 502 na API).
+    `tipo_radio` (ver app/llm/tipos_radio.py) entra como perfil padrao no prompt, usado
+    mesmo quando `descricao_usuario` esta vazia. Retorna dados_programa ja sanitizado.
+    Levanta ValueError se o LLM nao retornar um JSON valido/completo -- quem chama decide
+    como reportar isso (ex.: 502 na API).
     """
-    system_prompt = _montar_system_prompt_programa(nome_locutor, personalidade)
-    texto_resposta = gerar_configuracao(system_prompt, descricao_usuario)
+    system_prompt = _montar_system_prompt_programa(nome_locutor, personalidade, tipo_radio)
+    entrada = descricao_usuario or "Sem descricao adicional -- use so o perfil do tipo de radio informado."
+    texto_resposta = gerar_configuracao(system_prompt, entrada)
     if not texto_resposta:
         raise ValueError("LLM nao retornou conteudo")
 

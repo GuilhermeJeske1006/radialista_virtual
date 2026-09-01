@@ -1,26 +1,52 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "./Sidebar";
+import NotificationBell from "./NotificationBell";
+import OnboardingTour from "./OnboardingTour";
+import SuporteChat from "./SuporteChat";
 import { apiFetch } from "../lib/api";
 import { limparContaCache, useConta } from "../lib/useConta";
+import { useConfiguracaoInicialCompleta } from "../lib/useConfiguracaoInicial";
 import { LocufyLed, LocufyMark } from "./LocufyLogo";
 import ThemeToggle from "./ThemeToggle";
 
+const INTERVALO_NO_AR_MS = 30_000;
+
+function useNoAr() {
+  const [noAr, setNoAr] = useState(false);
+
+  useEffect(() => {
+    function buscar() {
+      apiFetch<{ no_ar: boolean }>("/live/no-ar")
+        .then((r) => setNoAr(r.no_ar))
+        .catch(() => {
+          // ignora falha isolada, mantem o ultimo estado conhecido
+        });
+    }
+    buscar();
+    const intervalo = setInterval(buscar, INTERVALO_NO_AR_MS);
+    return () => clearInterval(intervalo);
+  }, []);
+
+  return noAr;
+}
+
 const MOBILE_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/radialista", label: "1. Radialistas" },
-  { href: "/programas", label: "2. Programas" },
-  { href: "/onboarding", label: "3. WhatsApp" },
+  { href: "/radialista", label: "Radialistas", numeroSetup: 1 },
+  { href: "/programas", label: "Programas", numeroSetup: 2 },
   { href: "/programacao", label: "Grade" },
   { href: "/vinhetagem", label: "Vinhetagem" },
   { href: "/live", label: "Ao Vivo" },
   { href: "/metrics", label: "Métricas" },
   { href: "/conversas", label: "Conversas" },
+  { href: "/onboarding", label: "WhatsApp", numeroSetup: 3 },
   { href: "/billing", label: "Assinatura", adminOnly: true },
   { href: "/equipe", label: "Equipe", adminOnly: true },
-  { href: "/configuracoes", label: "Configuração" },
+  { href: "/configuracoes", label: "Dados da rádio" },
   { href: "/perfil", label: "Perfil" },
 ];
 
@@ -36,7 +62,11 @@ export default function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const conta = useConta();
-  const mobileLinks = MOBILE_LINKS.filter((link) => !link.adminOnly || conta?.role === "admin");
+  const noAr = useNoAr();
+  const setupCompleto = useConfiguracaoInicialCompleta();
+  const mobileLinks = MOBILE_LINKS.filter((link) => !link.adminOnly || conta?.role === "admin").map((link) =>
+    link.numeroSetup && !setupCompleto ? { ...link, label: `${link.numeroSetup}. ${link.label}` } : link
+  );
   const sidebarColapsada = pathname === "/live";
 
   function sair() {
@@ -56,11 +86,17 @@ export default function AppShell({
               <h1 className="font-display text-xl font-bold text-fg truncate">{title}</h1>
             </div>
             <div className="flex items-center gap-3 shrink-0">
-              <span className="hidden sm:flex items-center gap-2 rounded-full border border-border-strong px-3 py-1.5 font-mono text-[11px] tracking-wider text-fg/70">
-                <LocufyLed color="amber" />
-                NO AR
+              <span
+                className={`hidden sm:flex items-center gap-2 rounded-full border border-border-strong px-3 py-1.5 font-mono text-[11px] tracking-wider ${
+                  noAr ? "text-fg/70" : "text-fg/40"
+                }`}
+                title={noAr ? "A rádio está transmitindo ao vivo agora" : "Nenhum programa no ar agora"}
+              >
+                <LocufyLed color={noAr ? "rust" : "amber"} pulse={noAr} />
+                {noAr ? "NO AR" : "FORA DO AR"}
               </span>
               <ThemeToggle />
+              <NotificationBell />
               <Link
                 href="/perfil"
                 title="Perfil"
@@ -91,6 +127,8 @@ export default function AppShell({
           <div className={`${maxWidthClassName} mx-auto`}>{children}</div>
         </main>
       </div>
+      {!setupCompleto && <OnboardingTour />}
+      <SuporteChat />
     </div>
   );
 }

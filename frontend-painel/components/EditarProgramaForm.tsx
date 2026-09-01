@@ -4,10 +4,23 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import ConfirmDialog from "./ConfirmDialog";
 import TagInput from "./TagInput";
-import EstruturaBlocosInput from "./EstruturaBlocosInput";
+import RoteiroBlocosEditor from "./RoteiroBlocosEditor";
 import RadialistasProgramaSection from "./RadialistasProgramaSection";
 import { apiFetch, ApiError } from "../lib/api";
-import { DIAS_SEMANA_LABEL, normalizarPrograma, Patrocinador, Programa, PROGRAMA_VAZIO } from "../lib/types";
+import {
+  CategoriaVinheta,
+  DIAS_SEMANA_LABEL,
+  normalizarPrograma,
+  Patrocinador,
+  Programa,
+  PROGRAMA_VAZIO,
+  RadioPerfil,
+  rotuloBloco,
+  TipoRadio,
+} from "../lib/types";
+import { janelaSegundos } from "../lib/duracaoBloco";
+import { BibliotecaAudioItem } from "../lib/bibliotecaAudio";
+import { CORES_BLOCO, kindDoBloco } from "../lib/blocoVisual";
 import { LocufySpin } from "./LocufyLogo";
 
 const inputClass =
@@ -49,10 +62,25 @@ export default function EditarProgramaForm({
   const [erro, setErro] = useState("");
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const [patrocinadores, setPatrocinadores] = useState<Patrocinador[]>([]);
+  const [vinhetas, setVinhetas] = useState<BibliotecaAudioItem[]>([]);
+  const [categorias, setCategorias] = useState<CategoriaVinheta[]>([]);
   const [iaAberto, setIaAberto] = useState(false);
   const [descricaoIA, setDescricaoIA] = useState("");
   const [gerandoIA, setGerandoIA] = useState(false);
   const [erroIA, setErroIA] = useState("");
+  const [tipoRadioConta, setTipoRadioConta] = useState("");
+  const [tiposRadio, setTiposRadio] = useState<TipoRadio[]>([]);
+
+  useEffect(() => {
+    apiFetch<RadioPerfil>("/config/radio")
+      .then((radio) => setTipoRadioConta(radio.tipo_radio))
+      .catch(() => {});
+    apiFetch<TipoRadio[]>("/config/tipos-radio")
+      .then(setTiposRadio)
+      .catch(() => {});
+  }, []);
+
+  const labelTipoRadioConta = tiposRadio.find((t) => t.value === tipoRadioConta)?.label;
 
   // Depois que o POST de criacao roda (dentro de salvar()), guarda o id criado aqui --
   // programaId (prop) continua null enquanto o pai (pagina/modal) nao navegar/atualizar,
@@ -77,6 +105,12 @@ export default function EditarProgramaForm({
     apiFetch<Patrocinador[]>("/patrocinadores")
       .then(setPatrocinadores)
       .catch(() => setPatrocinadores([]));
+    apiFetch<BibliotecaAudioItem[]>("/biblioteca-audio")
+      .then(setVinhetas)
+      .catch(() => setVinhetas([]));
+    apiFetch<CategoriaVinheta[]>("/categorias-vinheta")
+      .then(setCategorias)
+      .catch(() => setCategorias([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idEfetivo]);
 
@@ -112,7 +146,7 @@ export default function EditarProgramaForm({
   }
 
   async function gerarComIA() {
-    if (!descricaoIA.trim() || !radioConfigId) return;
+    if ((!descricaoIA.trim() && !tipoRadioConta) || !radioConfigId) return;
     setGerandoIA(true);
     setErroIA("");
     try {
@@ -194,12 +228,24 @@ export default function EditarProgramaForm({
                 Descreva o gênero, o tom e o horário do programa. A IA preenche tópicos, estrutura de blocos,
                 músicas e todo o resto -- depois é só revisar e ajustar.
               </p>
+              {tipoRadioConta ? (
+                <p className="text-xs font-medium text-amber-text bg-amber/10 rounded-lg px-3 py-2 mb-3">
+                  Baseado no perfil: {labelTipoRadioConta ?? tipoRadioConta}
+                </p>
+              ) : (
+                <p className="text-xs text-fg/65 bg-paper/5 rounded-lg px-3 py-2 mb-3">
+                  Nenhum tipo de rádio configurado -- a IA vai depender só da descrição.{" "}
+                  <Link href="/configuracoes" className="font-medium text-amber-text hover:underline">
+                    Configurar tipo de rádio →
+                  </Link>
+                </p>
+              )}
               <textarea
                 value={descricaoIA}
                 onChange={(e) => setDescricaoIA(e.target.value)}
                 disabled={gerandoIA}
                 rows={3}
-                placeholder="Ex: programa noturno de sertanejo raiz, mais calmo e romântico, foco em modão"
+                placeholder="Descrição (opcional). Ex: programa noturno, mais calmo e romântico, foco em modão"
                 className={inputClass}
               />
               {erroIA && <p className="text-sm text-rust-text mt-2">{erroIA}</p>}
@@ -215,7 +261,7 @@ export default function EditarProgramaForm({
                 <button
                   type="button"
                   onClick={gerarComIA}
-                  disabled={gerandoIA || !descricaoIA.trim()}
+                  disabled={gerandoIA || (!descricaoIA.trim() && !tipoRadioConta)}
                   className="rounded-lg bg-amber px-4 py-2 text-sm font-medium text-ink hover:bg-amber/90 disabled:opacity-60"
                 >
                   {gerandoIA ? "Gerando..." : "Gerar"}
@@ -364,30 +410,54 @@ export default function EditarProgramaForm({
 
         <hr className="border-border" />
         <div className="flex items-center justify-between gap-2">
-          <h3 className="font-mono text-xs uppercase tracking-wide text-amber-text">Estrutura do programa</h3>
-          <div className="flex items-center gap-3">
-            {!criando && (
-              <Link
-                href={`/radialista/${programa.radio_config_id}/programas/${idEfetivo}/grade`}
-                className="text-xs font-medium text-amber-text hover:text-amber-dim"
-              >
-                Montar blocos do programa ↗
-              </Link>
+          <h3 className="font-mono text-xs uppercase tracking-wide text-amber-text">Roteiro do programa</h3>
+          <Link
+            href="/vinhetagem"
+            target="_blank"
+            className="text-xs font-medium text-amber-text hover:text-amber-dim"
+          >
+            Gerenciar vinhetagem ↗
+          </Link>
+        </div>
+
+        {criando ? (
+          <RoteiroBlocosEditor
+            blocos={programa.estrutura_blocos}
+            onChange={(blocos) => setPrograma({ ...programa, estrutura_blocos: blocos })}
+            patrocinadores={patrocinadores}
+            vinhetas={vinhetas}
+            categorias={categorias}
+            janelaSegundos={janelaSegundos(programa.horario_inicio, programa.horario_fim)}
+          />
+        ) : (
+          <div className="rounded-xl border border-border-strong bg-bg/40 p-4">
+            {programa.estrutura_blocos.length > 0 ? (
+              <ol className="flex flex-wrap items-center gap-1.5 mb-3">
+                {programa.estrutura_blocos.map((bloco, i) => {
+                  const cor = CORES_BLOCO[kindDoBloco(bloco)];
+                  return (
+                    <li key={`${bloco}-${i}`} className="flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber/10 text-amber-text border border-amber/25 px-2.5 py-0.5 text-sm">
+                        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${cor.dot}`} />
+                        {rotuloBloco(bloco, Object.fromEntries(patrocinadores.map((p) => [p.id, p.nome])))}
+                      </span>
+                      {i < programa.estrutura_blocos.length - 1 && <span className="text-fg/25 text-xs">→</span>}
+                    </li>
+                  );
+                })}
+              </ol>
+            ) : (
+              <p className="text-sm text-fg/65 mb-3">Nenhum bloco montado ainda -- o programa não tem roteiro definido.</p>
             )}
             <Link
-              href="/vinhetagem"
-              target="_blank"
-              className="text-xs font-medium text-amber-text hover:text-amber-dim"
+              href={`/radialista/${programa.radio_config_id}/programas/${idEfetivo}/grade`}
+              className="inline-flex items-center gap-1 text-sm font-medium text-amber-text hover:text-amber-dim"
             >
-              Gerenciar vinhetagem ↗
+              {programa.estrutura_blocos.length > 0 ? "Editar sequência do programa" : "Montar sequência do programa"} ↗
             </Link>
           </div>
-        </div>
-        <EstruturaBlocosInput
-          blocos={programa.estrutura_blocos}
-          onChange={(blocos) => setPrograma({ ...programa, estrutura_blocos: blocos })}
-          patrocinadores={patrocinadores}
-        />
+        )}
+
         <label className="inline-flex items-center gap-2 text-sm font-medium text-fg/80">
           <input
             type="checkbox"
@@ -447,58 +517,78 @@ export default function EditarProgramaForm({
         </div>
 
         <hr className="border-border" />
-        <h3 className="font-mono text-xs uppercase tracking-wide text-amber-text">Músicas</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-          <TagInput
-            label="Gêneros permitidos"
-            tags={programa.generos_musicais}
-            onChange={(tags) => setPrograma({ ...programa, generos_musicais: tags })}
-          />
-          <TagInput
-            label="Músicas ou artistas preferidos"
-            tags={programa.musicas_permitidas}
-            onChange={(tags) => setPrograma({ ...programa, musicas_permitidas: tags })}
-          />
-          <TagInput
-            label="Músicas ou artistas bloqueados"
-            tags={programa.musicas_bloqueadas}
-            onChange={(tags) => setPrograma({ ...programa, musicas_bloqueadas: tags })}
-          />
-          <div>
-            <label className={labelClass}>Busca de músicas</label>
-            <textarea
-              className={inputClass}
-              rows={5}
-              value={programa.criterios_busca_musicas}
-              onChange={(e) => setPrograma({ ...programa, criterios_busca_musicas: e.target.value })}
+        <details className="group">
+          <summary className="flex items-center justify-between cursor-pointer list-none py-1 [&::-webkit-details-marker]:hidden">
+            <span className="font-mono text-xs uppercase tracking-wide text-amber-text">
+              Músicas <span className="text-fg/40 normal-case font-sans">-- opcional, ajusta o que a IA toca</span>
+            </span>
+            <span className="text-fg/40 transition-transform group-open:rotate-90">›</span>
+          </summary>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 mt-3">
+            <TagInput
+              label="Gêneros permitidos"
+              tags={programa.generos_musicais}
+              onChange={(tags) => setPrograma({ ...programa, generos_musicais: tags })}
+            />
+            <TagInput
+              label="Músicas ou artistas preferidos"
+              tags={programa.musicas_permitidas}
+              onChange={(tags) => setPrograma({ ...programa, musicas_permitidas: tags })}
+            />
+            <TagInput
+              label="Músicas ou artistas bloqueados"
+              tags={programa.musicas_bloqueadas}
+              onChange={(tags) => setPrograma({ ...programa, musicas_bloqueadas: tags })}
+            />
+            <div>
+              <label className={labelClass}>Busca de músicas</label>
+              <textarea
+                className={inputClass}
+                rows={5}
+                placeholder="Ex.: sertanejo raiz e universitário dos anos 2000 até hoje, evitar remixes eletrônicos"
+                value={programa.criterios_busca_musicas}
+                onChange={(e) => setPrograma({ ...programa, criterios_busca_musicas: e.target.value })}
+              />
+            </div>
+          </div>
+        </details>
+
+        <hr className="border-border" />
+        <details className="group">
+          <summary className="flex items-center justify-between cursor-pointer list-none py-1 [&::-webkit-details-marker]:hidden">
+            <span className="font-mono text-xs uppercase tracking-wide text-amber-text">
+              Assuntos e notícias <span className="text-fg/40 normal-case font-sans">-- opcional</span>
+            </span>
+            <span className="text-fg/40 transition-transform group-open:rotate-90">›</span>
+          </summary>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 mt-3">
+            <TagInput
+              label="Assuntos do ao vivo"
+              tags={programa.assuntos_ao_vivo}
+              onChange={(tags) => setPrograma({ ...programa, assuntos_ao_vivo: tags })}
+            />
+            <TagInput
+              label="Tipos de notícias"
+              tags={programa.tipos_noticias}
+              onChange={(tags) => setPrograma({ ...programa, tipos_noticias: tags })}
+            />
+            <TagInput
+              label="Fontes de notícias"
+              tags={programa.fontes_noticias}
+              onChange={(tags) => setPrograma({ ...programa, fontes_noticias: tags })}
             />
           </div>
-        </div>
+        </details>
 
         <hr className="border-border" />
-        <h3 className="font-mono text-xs uppercase tracking-wide text-amber-text">Assuntos e notícias</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-          <TagInput
-            label="Assuntos do ao vivo"
-            tags={programa.assuntos_ao_vivo}
-            onChange={(tags) => setPrograma({ ...programa, assuntos_ao_vivo: tags })}
-          />
-          <TagInput
-            label="Tipos de notícias"
-            tags={programa.tipos_noticias}
-            onChange={(tags) => setPrograma({ ...programa, tipos_noticias: tags })}
-          />
-          <TagInput
-            label="Fontes de notícias"
-            tags={programa.fontes_noticias}
-            onChange={(tags) => setPrograma({ ...programa, fontes_noticias: tags })}
-          />
-        </div>
-
-        <hr className="border-border" />
-        <div className="flex items-center justify-between gap-4">
-          <h3 className="font-mono text-xs uppercase tracking-wide text-amber-text">Pesquisa externa</h3>
-          <label className="inline-flex items-center gap-2 text-sm font-medium text-fg/80">
+        <details className="group">
+          <summary className="flex items-center justify-between cursor-pointer list-none py-1 [&::-webkit-details-marker]:hidden">
+            <span className="font-mono text-xs uppercase tracking-wide text-amber-text">
+              Pesquisa externa <span className="text-fg/40 normal-case font-sans">-- opcional</span>
+            </span>
+            <span className="text-fg/40 transition-transform group-open:rotate-90">›</span>
+          </summary>
+          <label className="inline-flex items-center gap-2 text-sm font-medium text-fg/80 mt-3 mb-1">
             <input
               type="checkbox"
               checked={programa.pode_pesquisar}
@@ -507,23 +597,24 @@ export default function EditarProgramaForm({
             />
             Pode pesquisar
           </label>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-          <TagInput
-            label="Onde pode pesquisar"
-            tags={programa.fontes_pesquisa}
-            onChange={(tags) => setPrograma({ ...programa, fontes_pesquisa: tags })}
-          />
-          <div>
-            <label className={labelClass}>Regras de pesquisa</label>
-            <textarea
-              className={inputClass}
-              rows={5}
-              value={programa.instrucoes_pesquisa}
-              onChange={(e) => setPrograma({ ...programa, instrucoes_pesquisa: e.target.value })}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+            <TagInput
+              label="Onde pode pesquisar"
+              tags={programa.fontes_pesquisa}
+              onChange={(tags) => setPrograma({ ...programa, fontes_pesquisa: tags })}
             />
+            <div>
+              <label className={labelClass}>Regras de pesquisa</label>
+              <textarea
+                className={inputClass}
+                rows={5}
+                placeholder="Ex.: buscar só em fontes de notícia locais, resumir em até 2 frases, sem opinião"
+                value={programa.instrucoes_pesquisa}
+                onChange={(e) => setPrograma({ ...programa, instrucoes_pesquisa: e.target.value })}
+              />
+            </div>
           </div>
-        </div>
+        </details>
 
         <div className="pt-2">
           <button

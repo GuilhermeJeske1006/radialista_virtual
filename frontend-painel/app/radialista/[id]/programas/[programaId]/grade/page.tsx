@@ -11,7 +11,7 @@ export default function GradeProgramacaoPage() {
   const programaId = Number(params.programaId);
 
   return (
-    <AppShell title="Montagem de blocos" maxWidthClassName="max-w-6xl">
+    <AppShell title="Roteiro do programa" maxWidthClassName="max-w-6xl">
       <Link
         href={`/radialista/${radialistaId}/programas/${programaId}`}
         className="text-sm text-amber-text hover:underline mb-4 inline-block"

@@ -32,6 +32,10 @@ class Account(Base):
     # separada de endereco porque endereco e' texto livre, sem geocoding confiavel.
     cidade: Mapped[str] = mapped_column(String, default="")
 
+    # Tipo de radio pre-definido (ver app/llm/tipos_radio.py) -- usado como perfil
+    # padrao nas geracoes via IA quando a descricao livre nao e' suficiente. "" = nao definido.
+    tipo_radio: Mapped[str] = mapped_column(String, default="")
+
     # trial | ativo | inadimplente | cancelado
     plano_status: Mapped[str] = mapped_column(String, default="trial")
 

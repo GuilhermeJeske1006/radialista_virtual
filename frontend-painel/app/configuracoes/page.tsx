@@ -3,19 +3,23 @@
 import { useEffect, useState } from "react";
 import AppShell from "../../components/AppShell";
 import { apiFetch, ApiError } from "../../lib/api";
-import { RADIO_PERFIL_VAZIO, RadioPerfil } from "../../lib/types";
+import { RADIO_PERFIL_VAZIO, RadioPerfil, TipoRadio } from "../../lib/types";
 import { LocufySpin } from "../../components/LocufyLogo";
 
 export default function ConfiguracoesPage() {
   const [radio, setRadio] = useState<RadioPerfil>(RADIO_PERFIL_VAZIO);
+  const [tiposRadio, setTiposRadio] = useState<TipoRadio[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
 
   useEffect(() => {
-    apiFetch<RadioPerfil>("/config/radio")
-      .then(setRadio)
+    Promise.all([apiFetch<RadioPerfil>("/config/radio"), apiFetch<TipoRadio[]>("/config/tipos-radio")])
+      .then(([radioCarregado, tipos]) => {
+        setRadio(radioCarregado);
+        setTiposRadio(tipos);
+      })
       .catch((err) => setErro(err instanceof ApiError ? err.message : "Erro ao carregar dados da rádio"))
       .finally(() => setCarregando(false));
   }, []);
@@ -120,6 +124,24 @@ export default function ConfiguracoesPage() {
               className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
             />
             <p className="text-xs text-fg/65 mt-1">Usada pro locutor comentar o clima real no ar.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-fg/80 mb-1.5">Tipo de rádio</label>
+            <select
+              value={radio.tipo_radio}
+              onChange={(e) => setRadio({ ...radio, tipo_radio: e.target.value })}
+              className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+            >
+              <option value="">Não definido</option>
+              {tiposRadio.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-fg/65 mt-1">
+              Usado como perfil padrão nas gerações com IA de radialistas e programas.
+            </p>
           </div>
         </div>
 

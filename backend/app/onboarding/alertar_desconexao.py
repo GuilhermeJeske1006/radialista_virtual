@@ -14,6 +14,7 @@ import httpx
 from app.auth.email import enviar_email_alerta_desconexao
 from app.db.database import SessionLocal
 from app.models.account import Account
+from app.notificacoes.service import criar_notificacao
 from app.whatsapp.session_manager import obter_status_sessao
 
 logger = logging.getLogger("radialista.onboarding.alertar_desconexao")
@@ -54,6 +55,14 @@ def verificar_desconexoes() -> int:
             if enviar_email_alerta_desconexao(admin.email, admin.nome):
                 account.wuzapi_desconectado_alerta_enviado = True
                 db.commit()
+                criar_notificacao(
+                    db,
+                    admin.id,
+                    "whatsapp",
+                    "WhatsApp desconectado",
+                    "O WhatsApp da sua radio caiu. Reconecte escaneando o QR Code novamente.",
+                    link="/onboarding",
+                )
                 alertas_enviados += 1
                 logger.info("Alerta de desconexao enviado: account_id=%s", account.id)
 

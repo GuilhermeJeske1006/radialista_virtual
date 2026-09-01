@@ -2,7 +2,12 @@ import json
 
 import pytest
 
-from app.llm.config_generator import gerar_configuracao_ia, gerar_programa_ia
+from app.llm.config_generator import (
+    _montar_system_prompt_completo,
+    _montar_system_prompt_programa,
+    gerar_configuracao_ia,
+    gerar_programa_ia,
+)
 from app.tts.voices import VOZES_DISPONIVEIS
 
 
@@ -105,3 +110,34 @@ def test_gerar_programa_ia_sem_resposta_levanta_value_error(monkeypatch):
     monkeypatch.setattr("app.llm.config_generator.gerar_configuracao", lambda system, user: "")
     with pytest.raises(ValueError):
         gerar_programa_ia("qualquer coisa", "Ze", "")
+
+
+def test_config_generator_injeta_contexto_do_tipo_no_prompt():
+    prompt_sem_tipo = _montar_system_prompt_completo(None)
+    prompt_com_tipo = _montar_system_prompt_completo("sertaneja")
+    assert "sertanejo raiz" not in prompt_sem_tipo
+    assert "sertanejo raiz" in prompt_com_tipo
+    assert "Perfil da radio" in prompt_com_tipo
+
+
+def test_config_generator_ignora_tipo_radio_invalido():
+    prompt = _montar_system_prompt_completo("tipo-que-nao-existe")
+    assert "Perfil da radio" not in prompt
+
+
+def test_config_generator_programa_injeta_contexto_do_tipo_no_prompt():
+    prompt = _montar_system_prompt_programa("Ze", "animado", "gospel")
+    assert "gospel" in prompt.lower()
+    assert "Perfil da radio" in prompt
+
+
+def test_gerar_configuracao_ia_sem_descricao_usa_placeholder(monkeypatch):
+    capturado = {}
+
+    def _fake(system, user):
+        capturado["user"] = user
+        return _resposta_completa_valida()
+
+    monkeypatch.setattr("app.llm.config_generator.gerar_configuracao", _fake)
+    gerar_configuracao_ia("", tipo_radio="sertaneja")
+    assert "tipo de radio" in capturado["user"].lower()

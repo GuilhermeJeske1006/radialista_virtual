@@ -65,6 +65,19 @@ export function estimarDuracaoBloco(
   return { segundos: duracaoPorContagemDePalavras(bloco), estimada: true };
 }
 
+export function horarioParaSegundos(horario: string): number {
+  const [h, m, s] = horario.split(":").map(Number);
+  return h * 3600 + m * 60 + (s || 0);
+}
+
+// Duracao da janela do programa em segundos, considerando que ela pode cruzar a
+// meia-noite (ex.: 22:00 -> 02:00).
+export function janelaSegundos(horarioInicio: string, horarioFim: string): number {
+  const inicio = horarioParaSegundos(horarioInicio);
+  const fim = horarioParaSegundos(horarioFim);
+  return fim >= inicio ? fim - inicio : 24 * 3600 - inicio + fim;
+}
+
 export function formatarDuracaoBloco(segundos: number): string {
   if (segundos < 60) return `${segundos}s`;
   const h = Math.floor(segundos / 3600);

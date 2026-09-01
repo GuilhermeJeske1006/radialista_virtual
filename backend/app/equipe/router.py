@@ -12,8 +12,10 @@ from app.auth.email import enviar_email_convite
 from app.auth.security import criar_token, definir_cookie_sessao, hash_senha
 from app.db.database import get_db
 from app.guardrails.http_rate_limit import limitar_por_ip
+from app.models.account import Account
 from app.models.convite_usuario import ConviteUsuario
 from app.models.usuario import Usuario
+from app.notificacoes.service import notificar_admins
 
 logger = logging.getLogger("radialista.equipe")
 
@@ -218,6 +220,18 @@ def aceitar_convite(dados: AceitarConviteRequest, response: Response, db: Sessio
     db.refresh(usuario)
 
     logger.info("Convite aceito: convite_id=%s usuario_id=%s", convite.id, usuario.id)
+
+    account = db.get(Account, convite.account_id)
+    if account is not None:
+        notificar_admins(
+            db,
+            account,
+            "equipe",
+            "Novo membro na equipe",
+            f"{usuario.nome or usuario.email} entrou na equipe da radio.",
+            link="/equipe",
+        )
+
     token = criar_token(usuario.id)
     definir_cookie_sessao(response, token)
     return TokenResponse(access_token=token)

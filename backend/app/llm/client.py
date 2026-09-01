@@ -33,6 +33,30 @@ def gerar_resposta(system_prompt: str, mensagem_usuario: str) -> str:
     return "Desculpa, nao consegui gerar uma resposta agora. Tenta de novo em instantes."
 
 
+def gerar_resposta_chat(system_prompt: str, historico: list[dict[str, str]]) -> str:
+    """Como gerar_resposta, mas com historico multi-turn (usado no chat de suporte do painel --
+    ver app.suporte.router) em vez de uma unica mensagem de usuario.
+    """
+    response = _client.messages.create(
+        model=MODEL,
+        max_tokens=768,
+        thinking={"type": "disabled"},
+        output_config={"effort": "low"},
+        system=system_prompt,
+        messages=historico,
+    )
+
+    if response.stop_reason == "refusal":
+        logger.warning("LLM recusou responder no chat de suporte")
+        return "Desculpa, não posso responder isso por aqui. Escreve pra contato@locufy.com que a equipe te ajuda."
+
+    for block in response.content:
+        if block.type == "text":
+            return block.text
+
+    return "Desculpa, não consegui gerar uma resposta agora. Tenta de novo em instantes."
+
+
 def gerar_classificacao(system_prompt: str, mensagem_usuario: str) -> str:
     """Chamada enxuta ao LLM pra classificacao de intencao (nao gera resposta pro usuario)."""
     response = _client.messages.create(

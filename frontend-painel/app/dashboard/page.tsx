@@ -59,6 +59,17 @@ export default function DashboardPage() {
   const [noAr, setNoAr] = useState<NoArResponse | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
+  const [onboardingIncompleto, setOnboardingIncompleto] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("onboarding") === "incompleto") {
+      setOnboardingIncompleto(true);
+      params.delete("onboarding");
+      const resto = params.toString();
+      window.history.replaceState(null, "", resto ? `/dashboard?${resto}` : "/dashboard");
+    }
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -100,9 +111,13 @@ export default function DashboardPage() {
 
   const whatsappConectado = Boolean(radioConta?.wuzapi_token);
   const perfilPreenchido = Boolean(radioConta?.nome_radio && radioConta?.frequencia);
-  const temRadialistaPronto = radialistas.some((r) => r.ativo && r.voz_id);
+  const radialistasProntos = radialistas.filter((r) => r.ativo && r.voz_id).length;
+  const temRadialistaPronto = radialistasProntos > 0;
   const temProgramaAtivo = programas.some((p) => p.ativo);
   const temPatrocinador = patrocinadores.some((p) => p.ativo);
+  // "no ar" pela janela de horario do programa nao basta -- sem WhatsApp conectado nao tem
+  // ouvinte de verdade podendo falar com o radialista, entao nao e' "ao vivo" de fato ainda.
+  const realmenteNoAr = Boolean(noAr?.no_ar) && whatsappConectado;
 
   const TAREFAS_AO_VIVO = [
     {
@@ -143,6 +158,37 @@ export default function DashboardPage() {
     <AppShell title="Dashboard" maxWidthClassName="max-w-4xl">
       {erro && <p className="text-sm text-rust-text mb-4">{erro}</p>}
 
+      {onboardingIncompleto && (
+        <div className="flex items-start justify-between gap-4 rounded-2xl border border-amber/40 bg-amber/10 px-5 py-4 mb-6">
+          <div>
+            <p className="text-sm font-medium text-fg">Sua conta foi criada, mas a assinatura ainda não foi confirmada.</p>
+            <p className="text-sm text-fg/65 mt-0.5">
+              Alguns dados podem não ter sido salvos.{" "}
+              <Link href="/billing" className="text-amber-text hover:text-amber-dim font-medium">
+                Finalizar assinatura
+              </Link>
+              {" "}· revise também{" "}
+              <Link href="/configuracoes" className="text-amber-text hover:text-amber-dim font-medium">
+                Configurações
+              </Link>
+              {" "}e{" "}
+              <Link href="/radialista" className="text-amber-text hover:text-amber-dim font-medium">
+                Radialistas
+              </Link>
+              .
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setOnboardingIncompleto(false)}
+            aria-label="Dispensar aviso"
+            className="shrink-0 text-fg/50 hover:text-fg"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {carregando ? (
         <p className="flex items-center gap-2 text-sm text-fg/65">
           <LocufySpin size={16} /> Carregando...
@@ -153,6 +199,9 @@ export default function DashboardPage() {
             <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">
               <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">Radialistas</p>
               <p className="font-display text-2xl font-bold text-fg">{radialistas.length}</p>
+              <p className="text-xs text-fg/65 mt-0.5">
+                {radialistasProntos} pronto{radialistasProntos === 1 ? "" : "s"} com voz definida
+              </p>
             </div>
             <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">
               <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">WhatsApp da rádio</p>
@@ -163,12 +212,12 @@ export default function DashboardPage() {
             </div>
             <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">
               <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">No ar agora</p>
-              {noAr?.no_ar ? (
+              {realmenteNoAr ? (
                 <>
                   <p className="flex items-center gap-2 font-display text-2xl font-bold text-fg truncate">
-                    <LocufyLed color="rust" pulse /> {noAr.radialista_nome}
+                    <LocufyLed color="rust" pulse /> {noAr!.radialista_nome}
                   </p>
-                  <p className="text-xs text-fg/65 mt-0.5 truncate">{noAr.programa_nome}</p>
+                  <p className="text-xs text-fg/65 mt-0.5 truncate">{noAr!.programa_nome}</p>
                 </>
               ) : (
                 <p className="flex items-center gap-2 font-display text-2xl font-bold text-fg/65">
@@ -219,21 +268,25 @@ export default function DashboardPage() {
             </ul>
           </div>
 
-          <p className="text-sm font-medium text-fg/65 mb-3">Acesso rápido</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {ATALHOS.map((a) => (
-              <Link
-                key={a.href}
-                href={a.href}
-                className="flex items-center justify-between gap-3 bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5 hover:border-amber/40 transition-colors"
-              >
-                <div>
-                  <p className="font-display text-sm font-bold text-fg">{a.label}</p>
-                  <p className="text-sm text-fg/65 mt-0.5">{a.descricao}</p>
-                </div>
-                <span className="text-amber-text shrink-0">→</span>
-              </Link>
-            ))}
+          {/* So' em telas pequenas: no desktop a sidebar (sempre visivel) ja' cobre os
+              mesmos destinos, sem precisar rolar a pagina pra achar um atalho redundante. */}
+          <div className="md:hidden">
+            <p className="text-sm font-medium text-fg/65 mb-3">Acesso rápido</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {ATALHOS.map((a) => (
+                <Link
+                  key={a.href}
+                  href={a.href}
+                  className="flex items-center justify-between gap-3 bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5 hover:border-amber/40 transition-colors"
+                >
+                  <div>
+                    <p className="font-display text-sm font-bold text-fg">{a.label}</p>
+                    <p className="text-sm text-fg/65 mt-0.5">{a.descricao}</p>
+                  </div>
+                  <span className="text-amber-text shrink-0">→</span>
+                </Link>
+              ))}
+            </div>
           </div>
         </>
       )}

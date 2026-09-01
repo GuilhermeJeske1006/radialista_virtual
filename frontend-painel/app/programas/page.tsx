@@ -78,13 +78,13 @@ export default function ProgramasPage() {
 
   return (
     <AppShell title="Programas" maxWidthClassName="max-w-4xl">
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5">
         <p className="text-sm text-fg/65">Todos os programas cadastrados, de todos os radialistas.</p>
         <button
           type="button"
           onClick={aoClicarNovoPrograma}
           disabled={radialistas.length === 0}
-          className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="shrink-0 self-start rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
         >
           + Novo programa
         </button>

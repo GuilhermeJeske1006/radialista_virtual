@@ -5,6 +5,7 @@ import AppShell from "../../components/AppShell";
 import { apiFetch, ApiError } from "../../lib/api";
 import { LocufyLed, LocufySpin } from "../../components/LocufyLogo";
 import { PLANOS, PRECO_AGENTE_ADICIONAL, PRECO_EXCEDENTE_1000_MSG, formatarReais } from "../../lib/planos";
+import { Radialista } from "../../lib/types";
 
 type StatusPlano = {
   plano_status: string;
@@ -28,6 +29,10 @@ export default function BillingPage() {
   const [blocosExcedente, setBlocosExcedente] = useState(1);
   const [comprandoExcedente, setComprandoExcedente] = useState(false);
   const [erroExcedente, setErroExcedente] = useState("");
+  const [assinaturaConfirmada, setAssinaturaConfirmada] = useState(false);
+  const [planoTrocado, setPlanoTrocado] = useState(false);
+  const [abrindoPortal, setAbrindoPortal] = useState(false);
+  const [erroPortal, setErroPortal] = useState("");
 
   useEffect(() => {
     apiFetch<StatusPlano>("/billing/status")
@@ -36,15 +41,61 @@ export default function BillingPage() {
       .finally(() => setCarregando(false));
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("success") !== "true") return;
+    window.history.replaceState(null, "", "/billing");
+    // primeira assinatura confirmada e ainda sem locutor pronto -- manda pro wizard guiado
+    // em vez de deixar o usuario "cair" direto no painel sem saber o proximo passo.
+    apiFetch<Radialista[]>("/config/radialistas")
+      .then((radialistas) => {
+        const jaTemLocutorPronto = radialistas.some((r) => r.ativo && r.voz_id);
+        if (jaTemLocutorPronto) {
+          setAssinaturaConfirmada(true);
+        } else {
+          window.location.href = "/onboarding/locutor";
+        }
+      })
+      .catch(() => setAssinaturaConfirmada(true));
+  }, []);
+
   async function assinar(planoId: string) {
     setErro("");
+    setPlanoTrocado(false);
     setCarregandoId(planoId);
     try {
-      const { url } = await apiFetch<{ url: string }>("/billing/checkout", { method: "POST" });
+      if (ativo) {
+        // ja assinante: troca o price da assinatura existente na hora (com proration),
+        // sem passar pelo checkout de novo -- ver POST /billing/trocar-plano.
+        const atualizado = await apiFetch<StatusPlano>("/billing/trocar-plano", {
+          method: "POST",
+          body: JSON.stringify({ plano_id: planoId }),
+        });
+        setStatusPlano(atualizado);
+        setPlanoTrocado(true);
+        setCarregandoId(null);
+      } else {
+        const { url } = await apiFetch<{ url: string }>("/billing/checkout", {
+          method: "POST",
+          body: JSON.stringify({ plano_id: planoId }),
+        });
+        window.location.href = url;
+      }
+    } catch (err) {
+      setErro(err instanceof ApiError ? err.message : "Erro ao trocar de plano");
+      setCarregandoId(null);
+    }
+  }
+
+  async function abrirPortal() {
+    setErroPortal("");
+    setAbrindoPortal(true);
+    try {
+      const { url } = await apiFetch<{ url: string }>("/billing/portal", { method: "POST" });
       window.location.href = url;
     } catch (err) {
-      setErro(err instanceof ApiError ? err.message : "Erro ao iniciar assinatura");
-      setCarregandoId(null);
+      setErroPortal(err instanceof ApiError ? err.message : "Erro ao abrir portal de pagamento");
+      setAbrindoPortal(false);
     }
   }
 
@@ -80,6 +131,33 @@ export default function BillingPage() {
 
   return (
     <AppShell title="Assinatura" maxWidthClassName="max-w-6xl">
+      {assinaturaConfirmada && (
+        <div className="flex items-center justify-between gap-4 rounded-2xl border border-teal/40 bg-teal/10 px-5 py-3 mb-6 max-w-2xl">
+          <p className="text-sm font-medium text-fg">Assinatura confirmada.</p>
+          <button
+            type="button"
+            onClick={() => setAssinaturaConfirmada(false)}
+            aria-label="Dispensar aviso"
+            className="shrink-0 text-fg/50 hover:text-fg"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {planoTrocado && (
+        <div className="flex items-center justify-between gap-4 rounded-2xl border border-teal/40 bg-teal/10 px-5 py-3 mb-6 max-w-2xl">
+          <p className="text-sm font-medium text-fg">Plano trocado com sucesso.</p>
+          <button
+            type="button"
+            onClick={() => setPlanoTrocado(false)}
+            aria-label="Dispensar aviso"
+            className="shrink-0 text-fg/50 hover:text-fg"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6 mb-8 max-w-lg">
         <h2 className="font-display text-base font-bold text-fg mb-4">Plano atual</h2>
         {carregando ? (
@@ -114,6 +192,26 @@ export default function BillingPage() {
               limite={statusPlano.mensagens_limite}
               className="mt-4"
             />
+
+            {ativo && (
+              <>
+                <button
+                  type="button"
+                  onClick={abrirPortal}
+                  disabled={abrindoPortal}
+                  className="mt-5 flex items-center gap-2 rounded-lg bg-paper/10 px-4 py-2.5 text-sm font-medium text-fg hover:bg-paper/15 disabled:opacity-60"
+                >
+                  {abrindoPortal ? (
+                    <>
+                      <LocufySpin size={14} /> Abrindo...
+                    </>
+                  ) : (
+                    "Gerenciar pagamento"
+                  )}
+                </button>
+                {erroPortal && <p className="text-sm text-rust-text mt-2">{erroPortal}</p>}
+              </>
+            )}
           </>
         ) : null}
       </div>
@@ -191,8 +289,10 @@ export default function BillingPage() {
               >
                 {carregandoId === plano.id ? (
                   <>
-                    <LocufySpin size={14} /> Redirecionando...
+                    <LocufySpin size={14} /> {ativo ? "Trocando..." : "Redirecionando..."}
                   </>
+                ) : ativo ? (
+                  "Trocar pra esse plano"
                 ) : (
                   "Assinar"
                 )}

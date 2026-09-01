@@ -170,6 +170,30 @@ def enviar_email_alerta_desconexao(email: str, nome: str) -> bool:
         return False
 
 
+def enviar_email_notificacao(email: str, nome: str, titulo: str, mensagem: str) -> bool:
+    if not settings.smtp_host:
+        # Sem SMTP configurado (dev local) -- loga em vez de falhar o fluxo que disparou a notificacao.
+        logger.info("SMTP nao configurado. Notificacao '%s' para %s: %s", titulo, email, mensagem)
+        return True
+
+    email_msg = EmailMessage()
+    email_msg["Subject"] = f"{titulo} - Radialista Virtual"
+    email_msg["From"] = settings.smtp_from
+    email_msg["To"] = email
+    email_msg.set_content(f"Ola, {nome}!\n\n{mensagem}\n\nAcesse o painel para mais detalhes:\n{settings.frontend_url}")
+
+    try:
+        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10) as smtp:
+            smtp.starttls()
+            if settings.smtp_user:
+                smtp.login(settings.smtp_user, settings.smtp_password)
+            smtp.send_message(email_msg)
+        return True
+    except (smtplib.SMTPException, OSError):
+        logger.exception("Falha ao enviar e-mail de notificacao '%s' para %s", titulo, email)
+        return False
+
+
 def enviar_email_convite(email: str, token: str, nome_radio: str) -> bool:
     link = f"{settings.frontend_url}/convite?token={token}"
 

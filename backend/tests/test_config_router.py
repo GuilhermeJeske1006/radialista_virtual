@@ -37,6 +37,30 @@ def test_obter_e_atualizar_dados_da_radio(client, account, auth_headers):
     assert obtido.json()["nome_radio"] == "Radio Top"
 
 
+def test_tipos_radio_endpoint_retorna_catalogo(client):
+    resposta = client.get("/config/tipos-radio")
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert len(corpo) > 0
+    assert {"value", "label"} <= corpo[0].keys()
+    assert any(t["value"] == "sertaneja" for t in corpo)
+
+
+def test_atualizar_radio_salva_tipo_radio(client, account, auth_headers):
+    resposta = client.put(
+        "/config/radio", json={"tipo_radio": "gospel"}, headers=auth_headers(account.id)
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["tipo_radio"] == "gospel"
+
+
+def test_atualizar_radio_com_tipo_invalido_falha_400(client, account, auth_headers):
+    resposta = client.put(
+        "/config/radio", json={"tipo_radio": "nao-existe"}, headers=auth_headers(account.id)
+    )
+    assert resposta.status_code == 400
+
+
 def test_criar_radialista(client, account, auth_headers):
     resposta = _criar_radialista(client, auth_headers, account.id)
     assert resposta.status_code == 201
@@ -200,7 +224,7 @@ def test_excluir_programa(client, account, auth_headers):
 def test_gerar_radialista_ia(client, account, auth_headers, monkeypatch):
     monkeypatch.setattr(
         "app.config.router.gerar_configuracao_ia",
-        lambda descricao: (
+        lambda descricao, tipo_radio=None: (
             {
                 "nome_locutor": "IA Radialista",
                 "personalidade": "animado",
@@ -224,8 +248,42 @@ def test_gerar_radialista_ia(client, account, auth_headers, monkeypatch):
     assert corpo["programa"]["nome"] == "Programa IA"
 
 
+def test_gerar_radialista_ia_sem_descricao_usa_tipo_radio(client, account, auth_headers, monkeypatch, db_session):
+    account.tipo_radio = "sertaneja"
+    db_session.commit()
+
+    chamadas = []
+
+    def _gerar(descricao, tipo_radio=None):
+        chamadas.append((descricao, tipo_radio))
+        return (
+            {
+                "nome_locutor": "IA Radialista",
+                "personalidade": "animado",
+                "voz_id": VOZES_DISPONIVEIS[0]["voz_id"],
+                "timezone": "America/Sao_Paulo",
+            },
+            {"nome": "Programa IA", "tom": "animado", "horario_inicio": "08:00:00", "horario_fim": "10:00:00"},
+        )
+
+    monkeypatch.setattr("app.config.router.gerar_configuracao_ia", _gerar)
+    resposta = client.post(
+        "/config/radialistas/gerar-ia", json={}, headers=auth_headers(account.id)
+    )
+    assert resposta.status_code == 201
+    assert chamadas == [("", "sertaneja")]
+
+
+def test_gerar_radialista_ia_falha_sem_tipo_e_sem_descricao(client, account, auth_headers):
+    assert account.tipo_radio == ""
+    resposta = client.post(
+        "/config/radialistas/gerar-ia", json={"descricao": "  "}, headers=auth_headers(account.id)
+    )
+    assert resposta.status_code == 400
+
+
 def test_gerar_radialista_ia_falha_do_llm_devolve_502(client, account, auth_headers, monkeypatch):
-    def _falha(descricao):
+    def _falha(descricao, tipo_radio=None):
         raise ValueError("LLM nao respondeu")
 
     monkeypatch.setattr("app.config.router.gerar_configuracao_ia", _falha)
@@ -240,7 +298,7 @@ def test_gerar_radialista_ia_respeita_rate_limit(client, account_factory, auth_h
     # Sem limite de agentes nem conflito de horario no meio do caminho -- isola o rate limit em si.
     monkeypatch.setattr("app.config.router.limite_agentes_efetivo", lambda acc: 999)
 
-    def _gerar(descricao):
+    def _gerar(descricao, tipo_radio=None):
         i = int(descricao)
         return (
             {
@@ -264,6 +322,85 @@ def test_gerar_radialista_ia_respeita_rate_limit(client, account_factory, auth_h
         "/config/radialistas/gerar-ia", json={"descricao": "5"}, headers=auth_headers(account.id)
     )
     assert bloqueado.status_code == 429
+
+
+def test_gerar_radialista_ia_reaproveita_placeholder_do_cadastro(client, account, auth_headers, db_session, monkeypatch):
+    """Conta nova (plano starter, limite=1 agente) ja' vem com o radialista+programa padrao
+    criados no /auth/register (ver app/auth/router.py::registrar) -- sem voz definida ainda.
+    Gerar com IA nesse momento nao pode bater o limite de agentes tentando criar um SEGUNDO
+    radialista; tem que preencher o placeholder existente."""
+    placeholder = _criar_radialista(client, auth_headers, account.id, nome="Programa Principal").json()
+    programa_padrao = client.post(
+        f"/config/radialistas/{placeholder['id']}/programas",
+        json=_programa_payload(nome="Programa Principal", dias_semana=[], horario_inicio="00:00:00", horario_fim="23:59:00"),
+        headers=auth_headers(account.id),
+    ).json()
+    assert placeholder["voz_id"] is None
+
+    monkeypatch.setattr(
+        "app.config.router.gerar_configuracao_ia",
+        lambda descricao, tipo_radio=None: (
+            {
+                "nome_locutor": "Ze Gerado",
+                "personalidade": "animado",
+                "voz_id": VOZES_DISPONIVEIS[0]["voz_id"],
+                "timezone": "America/Sao_Paulo",
+            },
+            {"nome": "Programa Gerado", "tom": "animado", "horario_inicio": "08:00:00", "horario_fim": "10:00:00"},
+        ),
+    )
+
+    resposta = client.post(
+        "/config/radialistas/gerar-ia", json={"descricao": "radio sertaneja"}, headers=auth_headers(account.id)
+    )
+    assert resposta.status_code == 201
+    corpo = resposta.json()
+
+    # reaproveitou o MESMO radialista e o MESMO programa (nao criou um segundo agente)
+    assert corpo["radialista"]["id"] == placeholder["id"]
+    assert corpo["programa"]["id"] == programa_padrao["id"]
+    assert corpo["radialista"]["nome_locutor"] == "Ze Gerado"
+    assert corpo["programa"]["nome"] == "Programa Gerado"
+
+    todos_radialistas = client.get("/config/radialistas", headers=auth_headers(account.id)).json()
+    assert len(todos_radialistas) == 1
+    todos_programas = client.get(
+        f"/config/radialistas/{placeholder['id']}/programas", headers=auth_headers(account.id)
+    ).json()
+    assert len(todos_programas) == 1
+
+
+def test_gerar_radialista_ia_com_radialista_ja_configurado_respeita_limite(client, account, auth_headers, monkeypatch):
+    """Se o (unico) radialista da conta JA tem voz definida, ele nao e' um placeholder --
+    gerar de novo tenta criar um segundo agente e deve respeitar o limite do plano normalmente."""
+    configurado = _criar_radialista(client, auth_headers, account.id).json()
+    client.put(
+        f"/config/radialistas/{configurado['id']}",
+        json={
+            "nome_locutor": configurado["nome_locutor"],
+            "personalidade": "",
+            "voz_id": VOZES_DISPONIVEIS[0]["voz_id"],
+            "timezone": "America/Sao_Paulo",
+        },
+        headers=auth_headers(account.id),
+    )
+
+    monkeypatch.setattr(
+        "app.config.router.gerar_configuracao_ia",
+        lambda descricao, tipo_radio=None: (
+            {
+                "nome_locutor": "IA Radialista",
+                "personalidade": "animado",
+                "voz_id": VOZES_DISPONIVEIS[0]["voz_id"],
+                "timezone": "America/Sao_Paulo",
+            },
+            {"nome": "Programa IA", "tom": "animado", "horario_inicio": "08:00:00", "horario_fim": "10:00:00"},
+        ),
+    )
+    resposta = client.post(
+        "/config/radialistas/gerar-ia", json={"descricao": "radio animada"}, headers=auth_headers(account.id)
+    )
+    assert resposta.status_code == 402
 
 
 def test_radialistas_do_programa_inclui_dono(client, account, auth_headers):

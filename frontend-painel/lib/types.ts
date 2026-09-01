@@ -21,6 +21,7 @@ export type RadioPerfil = {
   telefone: string;
   endereco: string;
   cidade: string;
+  tipo_radio: string;
 };
 
 export type RadioConta = RadioPerfil & {
@@ -34,7 +35,12 @@ export const RADIO_PERFIL_VAZIO: RadioPerfil = {
   telefone: "",
   endereco: "",
   cidade: "",
+  tipo_radio: "",
 };
+
+// Catalogo fechado de tipos de radio -- ver backend/app/llm/tipos_radio.py (fonte da
+// verdade), buscado via GET /config/tipos-radio pra nao duplicar a lista aqui.
+export type TipoRadio = { value: string; label: string };
 
 export type ConfiguracaoIA = {
   radialista: Radialista;
@@ -241,4 +247,14 @@ export type ConviteEquipe = {
   expira_em: string;
   criado_em: string;
   email_enviado: boolean;
+};
+
+export type Notificacao = {
+  id: number;
+  tipo: string;
+  titulo: string;
+  mensagem: string;
+  link: string | null;
+  lida: boolean;
+  criado_em: string;
 };

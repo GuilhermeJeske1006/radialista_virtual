@@ -10,18 +10,42 @@ logger = logging.getLogger("radialista.stripe")
 
 stripe.api_key = settings.stripe_secret_key
 
+# Um price recorrente por plano -- mantido aqui (nao em app/planos.py) porque e' o unico
+# lugar que fala com o Stripe; o resto do app so conhece o id do plano ("starter" etc).
+PRICE_ID_POR_PLANO = {
+    "starter": settings.stripe_price_id_starter,
+    "growth": settings.stripe_price_id_growth,
+    "professional": settings.stripe_price_id_professional,
+}
+PLANO_POR_PRICE_ID = {v: k for k, v in PRICE_ID_POR_PLANO.items() if v}
 
-def criar_sessao_checkout(account: Account) -> "stripe.checkout.Session":
-    logger.info("Criando sessao de checkout (assinatura): account_id=%s", account.id)
+
+def plano_por_price_id(price_id: str | None) -> str | None:
+    return PLANO_POR_PRICE_ID.get(price_id) if price_id else None
+
+
+def criar_sessao_checkout(account: Account, plano_id: str) -> "stripe.checkout.Session":
+    logger.info("Criando sessao de checkout (assinatura): account_id=%s plano=%s", account.id, plano_id)
     return stripe.checkout.Session.create(
         mode="subscription",
-        line_items=[{"price": settings.stripe_price_id, "quantity": 1}],
+        line_items=[{"price": PRICE_ID_POR_PLANO[plano_id], "quantity": 1}],
         client_reference_id=str(account.id),
         customer_email=account.email if not account.stripe_customer_id else None,
         customer=account.stripe_customer_id or None,
         success_url=f"{settings.frontend_url}/billing?success=true",
         cancel_url=f"{settings.frontend_url}/billing?canceled=true",
-        metadata={"tipo": "assinatura"},
+        metadata={"tipo": "assinatura", "plano": plano_id},
+    )
+
+
+def trocar_plano_assinatura(account: Account, plano_id: str) -> None:
+    logger.info("Trocando plano da assinatura: account_id=%s plano_novo=%s", account.id, plano_id)
+    assinatura = stripe.Subscription.retrieve(account.stripe_subscription_id)
+    item_id = assinatura["items"]["data"][0]["id"]
+    stripe.Subscription.modify(
+        account.stripe_subscription_id,
+        items=[{"id": item_id, "price": PRICE_ID_POR_PLANO[plano_id]}],
+        proration_behavior="create_prorations",
     )
 
 

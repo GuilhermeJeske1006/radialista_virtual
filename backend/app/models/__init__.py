@@ -6,6 +6,7 @@ from app.models.convite_usuario import ConviteUsuario
 from app.models.fila_ao_vivo import FilaAoVivo
 from app.models.interaction_log import InteractionLog
 from app.models.musica_historico import MusicaHistorico
+from app.models.notificacao import Notificacao
 from app.models.password_reset_token import PasswordResetToken
 from app.models.patrocinador import Patrocinador
 from app.models.programa import Programa
@@ -21,6 +22,7 @@ __all__ = [
     "RadioConfig",
     "InteractionLog",
     "MusicaHistorico",
+    "Notificacao",
     "FilaAoVivo",
     "Programa",
     "ProgramaRadialista",

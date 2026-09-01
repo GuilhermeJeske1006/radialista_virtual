@@ -4,6 +4,7 @@ from sqlalchemy.orm import sessionmaker
 
 import app.onboarding.alertar_desconexao as alertar_desconexao_module
 from app.models.account import Account
+from app.models.notificacao import Notificacao
 from app.models.usuario import Usuario
 
 
@@ -69,6 +70,10 @@ def test_sessao_desconectada_envia_alerta_e_marca_flag(db_session, monkeypatch):
     db_session.expire_all()
     atualizada = db_session.get(Account, account_id)
     assert atualizada.wuzapi_desconectado_alerta_enviado is True
+
+    notificacao = db_session.query(Notificacao).filter_by(tipo="whatsapp").first()
+    assert notificacao is not None
+    assert notificacao.titulo == "WhatsApp desconectado"
 
 
 def test_nao_reenvia_alerta_enquanto_continua_desconectada(db_session, monkeypatch):

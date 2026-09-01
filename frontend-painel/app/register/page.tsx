@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiFetch, ApiError } from "../../lib/api";
-import { RADIALISTA_VAZIO, Radialista } from "../../lib/types";
+import { RADIALISTA_VAZIO, Radialista, TipoRadio } from "../../lib/types";
 import { PLANOS, formatarReais } from "../../lib/planos";
 import { LocufyLogo, LocufySpin } from "../../components/LocufyLogo";
 import ThemeToggle from "../../components/ThemeToggle";
@@ -46,11 +46,8 @@ export default function RegisterPage() {
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [nomeRadio, setNomeRadio] = useState("");
-  const [slogan, setSlogan] = useState("");
-  const [frequencia, setFrequencia] = useState("");
-  const [telefoneRadio, setTelefoneRadio] = useState("");
-  const [enderecoRadio, setEnderecoRadio] = useState("");
-  const [cidadeRadio, setCidadeRadio] = useState("");
+  const [tipoRadio, setTipoRadio] = useState("");
+  const [tiposRadio, setTiposRadio] = useState<TipoRadio[]>([]);
   const [nomeLocutor, setNomeLocutor] = useState("");
   const [planoId, setPlanoId] = useState("growth");
   const [erro, setErro] = useState("");
@@ -65,6 +62,12 @@ export default function RegisterPage() {
     nomeRadio: false,
     nomeLocutor: false,
   });
+
+  useEffect(() => {
+    apiFetch<TipoRadio[]>("/config/tipos-radio")
+      .then(setTiposRadio)
+      .catch(() => {});
+  }, []);
 
   function marcarTocado(campo: keyof CampoErros) {
     setTocado((t) => ({ ...t, [campo]: true }));
@@ -173,22 +176,20 @@ export default function RegisterPage() {
     if (passo !== 3) return;
     if (!validar()) return;
     setCarregando(true);
+    let contaCriada = false;
     try {
       // sessao ja vem via cookie httpOnly no Set-Cookie da resposta -- nada pra guardar aqui.
       await apiFetch("/auth/register", {
         method: "POST",
         body: JSON.stringify({ nome: nome.trim(), email, senha }),
       });
+      contaCriada = true;
 
       await apiFetch("/config/radio", {
         method: "PUT",
         body: JSON.stringify({
           nome_radio: nomeRadio.trim(),
-          slogan: slogan.trim(),
-          frequencia: frequencia.trim(),
-          telefone: telefoneRadio.trim(),
-          endereco: enderecoRadio.trim(),
-          cidade: cidadeRadio.trim(),
+          tipo_radio: tipoRadio,
         }),
       });
 
@@ -201,9 +202,19 @@ export default function RegisterPage() {
         });
       }
 
-      const { url } = await apiFetch<{ url: string }>("/billing/checkout", { method: "POST" });
+      const { url } = await apiFetch<{ url: string }>("/billing/checkout", {
+        method: "POST",
+        body: JSON.stringify({ plano_id: planoId }),
+      });
       window.location.href = url;
     } catch (err) {
+      if (contaCriada) {
+        // conta ja existe (registro deu certo) -- mostrar "erro ao criar conta" aqui seria
+        // enganoso e levaria a um retry que falha por e-mail duplicado. Manda pro dashboard,
+        // que sinaliza a assinatura pendente.
+        window.location.href = "/dashboard?onboarding=incompleto";
+        return;
+      }
       setErro(err instanceof ApiError ? err.message : "Erro ao criar conta");
       setCarregando(false);
     }
@@ -393,68 +404,42 @@ export default function RegisterPage() {
                   <p className="mt-1 text-xs text-rust-text">{campoErros.nomeLocutor}</p>
                 )}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">
-                  Slogan <span className="text-fg/65 font-normal">(opcional)</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex.: A rádio que toca pra você"
-                  value={slogan}
-                  onChange={(e) => setSlogan(e.target.value)}
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">
-                  Frequência <span className="text-fg/65 font-normal">(opcional)</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex.: 98.5 FM"
-                  value={frequencia}
-                  onChange={(e) => setFrequencia(e.target.value)}
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">
-                  Telefone da rádio <span className="text-fg/65 font-normal">(opcional)</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex.: (11) 4000-0000"
-                  value={telefoneRadio}
-                  onChange={(e) => setTelefoneRadio(e.target.value)}
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">
-                  Endereço <span className="text-fg/65 font-normal">(opcional)</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex.: Av. Principal, 123 - Centro"
-                  value={enderecoRadio}
-                  onChange={(e) => setEnderecoRadio(e.target.value)}
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">
-                  Cidade <span className="text-fg/65 font-normal">(opcional)</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex.: Porto Alegre"
-                  value={cidadeRadio}
-                  onChange={(e) => setCidadeRadio(e.target.value)}
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
-                />
-                <p className="text-xs text-fg/65 mt-1">Usada pro locutor comentar o clima real no ar.</p>
-              </div>
             </div>
+
+            {tiposRadio.length > 0 && (
+              <div className="mt-5">
+                <label className="block text-sm font-medium text-fg/80 mb-1.5">
+                  Que tipo de rádio é a sua? <span className="text-fg/65 font-normal">(opcional, mas ajuda a IA)</span>
+                </label>
+                <p className="text-xs text-fg/65 mb-2.5">
+                  Usado como ponto de partida quando você gerar o locutor e os programas com IA. Dá pra trocar depois.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {tiposRadio.map((t) => {
+                    const selecionado = tipoRadio === t.value;
+                    return (
+                      <button
+                        type="button"
+                        key={t.value}
+                        onClick={() => setTipoRadio(selecionado ? "" : t.value)}
+                        className={`flex items-center justify-between gap-1.5 rounded-lg border px-3 py-2.5 text-left text-xs font-medium transition-colors ${
+                          selecionado
+                            ? "bg-amber/10 border-amber text-amber-text"
+                            : "border-border-strong text-fg/70 hover:border-amber/40"
+                        }`}
+                      >
+                        {t.label}
+                        {selecionado && (
+                          <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
           )}
 
@@ -560,6 +545,18 @@ export default function RegisterPage() {
           <Link href="/login" className="text-amber-text hover:text-amber-dim font-medium">
             Entrar
           </Link>
+        </p>
+
+        <p className="mt-2 text-xs text-fg/50 text-center">
+          Ao criar conta, você concorda com os{" "}
+          <Link href="/termos" className="text-amber-text hover:text-amber-dim">
+            Termos de Uso
+          </Link>{" "}
+          e a{" "}
+          <Link href="/privacidade" className="text-amber-text hover:text-amber-dim">
+            Política de Privacidade
+          </Link>
+          .
         </p>
       </div>
     </div>

@@ -9,6 +9,7 @@ from app.auth.dependencies import get_current_account
 from app.db.database import get_db
 from app.guardrails.http_rate_limit import limite_excedido
 from app.llm.config_generator import gerar_configuracao_ia, gerar_programa_ia
+from app.llm.tipos_radio import TIPOS_RADIO, tipo_radio_valido
 from app.models.account import Account
 from app.models.fila_ao_vivo import FilaAoVivo
 from app.models.interaction_log import InteractionLog
@@ -44,12 +45,18 @@ class RadioContaRequest(BaseModel):
     telefone: str = ""
     endereco: str = ""
     cidade: str = ""
+    tipo_radio: str = ""
 
 
 class RadioContaResponse(RadioContaRequest):
     wuzapi_token: str | None
 
     model_config = {"from_attributes": True}
+
+
+class TipoRadioResponse(BaseModel):
+    value: str
+    label: str
 
 
 class ProgramaRequest(BaseModel):
@@ -107,7 +114,7 @@ class RadialistaProgramaResponse(BaseModel):
 
 
 class GerarConfiguracaoIARequest(BaseModel):
-    descricao: str
+    descricao: str = ""
 
 
 class ConfiguracaoIAResponse(BaseModel):
@@ -246,6 +253,11 @@ def _validar_limite_geracao_ia(account: Account) -> None:
         )
 
 
+@router.get("/tipos-radio", response_model=list[TipoRadioResponse])
+def listar_tipos_radio():
+    return TIPOS_RADIO
+
+
 @router.get("/radio", response_model=RadioContaResponse)
 def obter_radio(account: Account = Depends(get_current_account)):
     return account
@@ -257,6 +269,8 @@ def atualizar_radio(
     account: Account = Depends(get_current_account),
     db: Session = Depends(get_db),
 ):
+    if dados.tipo_radio and not tipo_radio_valido(dados.tipo_radio):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tipo de radio invalido")
     for campo, valor in dados.model_dump().items():
         setattr(account, campo, valor)
     db.commit()
@@ -295,12 +309,33 @@ def gerar_radialista_ia(
     account: Account = Depends(get_current_account),
     db: Session = Depends(get_db),
 ):
-    """Gera e cria um radialista + programa completos a partir de uma descricao livre, via LLM."""
-    _validar_limite_agentes(db, account)
+    """Gera e cria um radialista + programa completos a partir do tipo de radio da conta
+    e/ou de uma descricao livre, via LLM.
+
+    Excecao: se a conta tem exatamente um radialista e ele ainda nao foi configurado (sem
+    voz definida -- e' o placeholder criado automaticamente no cadastro), a geracao PREENCHE
+    esse radialista e seu programa em vez de criar um novo. Sem isso, toda conta nova no plano
+    de entrada (1 agente) bateria o limite de agentes na primeira geracao, ja' que o placeholder
+    do cadastro conta como o unico agente disponivel."""
+    if not account.tipo_radio and not dados.descricao.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Escolha um tipo de radio ou descreva o programa",
+        )
+
+    radialistas_da_conta = db.query(RadioConfig).filter_by(account_id=account.id).all()
+    radialista_placeholder = (
+        radialistas_da_conta[0]
+        if len(radialistas_da_conta) == 1 and radialistas_da_conta[0].voz_id is None
+        else None
+    )
+
+    if radialista_placeholder is None:
+        _validar_limite_agentes(db, account)
     _validar_limite_geracao_ia(account)
 
     try:
-        dados_radialista, dados_programa = gerar_configuracao_ia(dados.descricao)
+        dados_radialista, dados_programa = gerar_configuracao_ia(dados.descricao, account.tipo_radio)
         radialista_dados = RadialistaRequest(**dados_radialista)
         programa_dados = ProgramaRequest(**dados_programa)
     except (ValueError, ValidationError):
@@ -312,22 +347,44 @@ def gerar_radialista_ia(
 
     _validar_voz(db, account, radialista_dados.voz_id)
 
-    radialista = RadioConfig(account_id=account.id, **radialista_dados.model_dump())
-    db.add(radialista)
-    db.flush()
+    if radialista_placeholder is not None:
+        radialista = radialista_placeholder
+        for campo, valor in radialista_dados.model_dump().items():
+            setattr(radialista, campo, valor)
+        db.flush()
 
-    _validar_conflito_horario(db, account.id, programa_dados)
-    programa = Programa(radio_config_id=radialista.id, **programa_dados.model_dump())
-    db.add(programa)
+        programa_existente = (
+            db.query(Programa).filter_by(radio_config_id=radialista.id).order_by(Programa.id).first()
+        )
+        _validar_conflito_horario(
+            db, account.id, programa_dados, programa_id=programa_existente.id if programa_existente else None
+        )
+        if programa_existente is not None:
+            for campo, valor in programa_dados.model_dump().items():
+                setattr(programa_existente, campo, valor)
+            programa = programa_existente
+        else:
+            programa = Programa(radio_config_id=radialista.id, **programa_dados.model_dump())
+            db.add(programa)
+    else:
+        radialista = RadioConfig(account_id=account.id, **radialista_dados.model_dump())
+        db.add(radialista)
+        db.flush()
+
+        _validar_conflito_horario(db, account.id, programa_dados)
+        programa = Programa(radio_config_id=radialista.id, **programa_dados.model_dump())
+        db.add(programa)
+
     db.commit()
     db.refresh(radialista)
     db.refresh(programa)
 
     logger.info(
-        "Radialista+programa gerados via IA: radialista_id=%s programa_id=%s account_id=%s",
+        "Radialista+programa gerados via IA: radialista_id=%s programa_id=%s account_id=%s reaproveitado=%s",
         radialista.id,
         programa.id,
         account.id,
+        radialista_placeholder is not None,
     )
     return ConfiguracaoIAResponse(radialista=radialista, programa=programa)
 
@@ -427,12 +484,20 @@ def gerar_programa_ia_endpoint(
     account: Account = Depends(get_current_account),
     db: Session = Depends(get_db),
 ):
-    """Gera e cria um programa completo pra um radialista ja existente, a partir de uma descricao livre, via LLM."""
+    """Gera e cria um programa completo pra um radialista ja existente, a partir do tipo de
+    radio da conta e/ou de uma descricao livre, via LLM."""
+    if not account.tipo_radio and not dados.descricao.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Escolha um tipo de radio ou descreva o programa",
+        )
     radialista = _buscar_radialista(db, account, radialista_id)
     _validar_limite_geracao_ia(account)
 
     try:
-        dados_programa = gerar_programa_ia(dados.descricao, radialista.nome_locutor, radialista.personalidade)
+        dados_programa = gerar_programa_ia(
+            dados.descricao, radialista.nome_locutor, radialista.personalidade, account.tipo_radio
+        )
         programa_dados = ProgramaRequest(**dados_programa)
     except (ValueError, ValidationError):
         logger.exception("Falha ao gerar programa via IA: radialista_id=%s", radialista_id)

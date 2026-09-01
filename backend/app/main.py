@@ -26,6 +26,7 @@ from app.models import (  # noqa: F401 -- garante que as tabelas sejam registrad
     FilaAoVivo,
     InteractionLog,
     MusicaHistorico,
+    Notificacao,
     PasswordResetToken,
     Patrocinador,
     Programa,
@@ -34,8 +35,10 @@ from app.models import (  # noqa: F401 -- garante que as tabelas sejam registrad
     Usuario,
     VozClonada,
 )
+from app.notificacoes.router import router as notificacoes_router
 from app.onboarding.router import router as onboarding_router
 from app.patrocinadores.router import router as patrocinadores_router
+from app.suporte.router import router as suporte_router
 from app.tts.router import router as tts_router
 from app.whatsapp.webhook import router as whatsapp_router
 
@@ -99,6 +102,8 @@ app.include_router(tts_router)
 app.include_router(patrocinadores_router)
 app.include_router(biblioteca_audio_router)
 app.include_router(categorias_vinheta_router)
+app.include_router(suporte_router)
+app.include_router(notificacoes_router)
 
 
 @app.on_event("startup")

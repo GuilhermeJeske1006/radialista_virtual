@@ -21,7 +21,9 @@ class Settings(BaseSettings):
 
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
-    stripe_price_id: str = ""
+    stripe_price_id_starter: str = ""
+    stripe_price_id_growth: str = ""
+    stripe_price_id_professional: str = ""
 
     youtube_api_key: str = ""
 

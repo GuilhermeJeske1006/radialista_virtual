@@ -77,6 +77,16 @@ export default function ProgramacaoPage() {
     setModal({ radialistaId: programa.radialista.id, programaId: programa.id });
   }
 
+  // "Programa Principal" e' criado automaticamente no cadastro (24h, todos os dias) pra rádio
+  // já sair funcionando -- mas se ninguem tocou nele ainda, avisa que e' so' um ponto de
+  // partida, senao parece uma grade real de proposito.
+  const programaPadraoNaoEditado =
+    programas.length === 1 &&
+    programas[0].dias_semana.length === 0 &&
+    !programas[0].data_especifica &&
+    programas[0].horario_inicio === "00:00:00" &&
+    programas[0].horario_fim === "23:59:00";
+
   return (
     <AppShell title="Grade de Programação" maxWidthClassName="max-w-[1100px]">
       <div className="flex items-start justify-between gap-4 mb-5">
@@ -87,6 +97,22 @@ export default function ProgramacaoPage() {
       </div>
 
       {erro && <p className="text-sm text-rust-text mb-4">{erro}</p>}
+
+      {programaPadraoNaoEditado && (
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-amber/30 bg-amber/10 px-4 py-3 mb-4">
+          <p className="text-sm text-fg/80">
+            "{programas[0].nome}" ainda está no ar 24h, todos os dias -- é só o ponto de partida criado no
+            cadastro. Divida em horários reais quando tiver outros programas pra colocar na grade.
+          </p>
+          <button
+            type="button"
+            onClick={() => aoClicarPrograma(programas[0])}
+            className="shrink-0 text-sm font-medium text-amber-text hover:text-amber-dim"
+          >
+            Editar horários →
+          </button>
+        </div>
+      )}
 
       {radialistasOrdenados.length > 0 && (
         <div className="flex flex-wrap gap-3 mb-4">

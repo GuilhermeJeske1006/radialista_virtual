@@ -1,5 +1,6 @@
 from app.auth.security import COOKIE_TOKEN
 from app.models.convite_usuario import ConviteUsuario
+from app.models.notificacao import Notificacao
 
 
 def _convidar(client, headers, email="novo@example.com", role="membro"):
@@ -64,6 +65,10 @@ def test_aceitar_convite_cria_usuario_e_loga(client, account, auth_headers, db_s
     me = client.get("/auth/me", headers={"Authorization": f"Bearer {resposta.json()['access_token']}"})
     assert me.json()["role"] == "membro"
     assert me.json()["email"] == "novo@example.com"
+
+    notificacao = db_session.query(Notificacao).filter_by(tipo="equipe").first()
+    assert notificacao is not None
+    assert notificacao.titulo == "Novo membro na equipe"
 
 
 def test_aceitar_convite_token_invalido_falha(client):

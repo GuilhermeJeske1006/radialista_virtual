@@ -151,8 +151,9 @@ export default function ProgramaSelector({
               className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                 programaSelecionadoNoAr ? "bg-teal/10 text-teal-text" : "bg-amber/10 text-amber-text"
               }`}
+              title="Horario programado deste programa, independente de a transmissao estar ligada"
             >
-              {programaSelecionadoNoAr ? "No ar agora" : "Fora do horario"}
+              {programaSelecionadoNoAr ? "Dentro do horario" : "Fora do horario"}
             </span>
           )}
         </div>
