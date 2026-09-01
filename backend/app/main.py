@@ -8,6 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sqlalchemy import inspect, text
 
+from app.admin_sistema.auth_router import router as admin_sistema_auth_router
+from app.admin_sistema.router import router as admin_sistema_router
 from app.auth.router import router as auth_router
 from app.biblioteca_audio.router import router as biblioteca_audio_router
 from app.billing.router import router as billing_router
@@ -33,6 +35,7 @@ from app.models import (  # noqa: F401 -- garante que as tabelas sejam registrad
     Programa,
     ProgramaRadialista,
     RadioConfig,
+    SuperAdmin,
     Usuario,
     VozClonada,
 )
@@ -110,6 +113,8 @@ app.include_router(biblioteca_audio_router)
 app.include_router(categorias_vinheta_router)
 app.include_router(suporte_router)
 app.include_router(notificacoes_router)
+app.include_router(admin_sistema_router)
+app.include_router(admin_sistema_auth_router)
 
 
 @app.on_event("startup")
@@ -128,6 +133,7 @@ async def criar_tabelas():
     migrar_whatsapp_para_account()
     migrar_usuarios_de_account()
     garantir_colunas_password_reset_token()
+    limpar_coluna_is_staff_legado()
 
 
 def garantir_colunas_radio_config():
@@ -510,6 +516,21 @@ def garantir_colunas_password_reset_token():
         conn.execute(
             text("CREATE INDEX IF NOT EXISTS ix_password_reset_tokens_usuario_id ON password_reset_tokens (usuario_id)")
         )
+
+
+def limpar_coluna_is_staff_legado():
+    """is_staff em usuarios foi substituido por um super-admin isolado (tabela super_admins,
+    sem relacao com Usuario/Account -- ver app/admin_sistema/). So roda enquanto a coluna
+    antiga ainda existir.
+    """
+    inspector = inspect(engine)
+    if "usuarios" not in inspector.get_table_names():
+        return
+
+    colunas = {coluna["name"] for coluna in inspector.get_columns("usuarios")}
+    if "is_staff" in colunas:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE usuarios DROP COLUMN is_staff"))
 
 
 @app.get("/health")

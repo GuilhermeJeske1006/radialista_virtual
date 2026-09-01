@@ -33,3 +33,8 @@ def limites_do_plano(plano: str) -> LimitesPlano:
 # Checkout (ver app/billing/stripe_client.py) e pra exibir o texto na pagina /billing.
 PRECO_AGENTE_ADICIONAL = 100
 PRECO_EXCEDENTE_1000_MSG = 50
+
+# Espelha Plano.preco em frontend-painel/lib/planos.ts -- so usado pro calculo de MRR no
+# painel admin do sistema (app/admin_sistema/router.py). O Stripe (via price id, ver
+# stripe_client.py) continua sendo a fonte de verdade pro valor cobrado de verdade.
+PRECO_POR_PLANO: dict[str, int] = {"starter": 399, "growth": 599, "professional": 999}

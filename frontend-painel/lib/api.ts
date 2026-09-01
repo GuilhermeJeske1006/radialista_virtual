@@ -30,7 +30,11 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   // browser manda sozinho, sem o JS precisar ler/guardar token nenhum.
   const response = await fetch(`${API_URL}${path}`, { ...options, headers, credentials: "include" });
 
-  if (response.status === 401) {
+  // 401 aqui normalmente e' sessao expirada/ausente -- exceto no proprio /auth/login, onde
+  // 401 so' significa "credenciais erradas" (login unico pra tenant e super-admin, ver
+  // app/auth/router.py::login). Redirecionar nesse caso recarregava a pagina de login antes
+  // do catch do form rodar, apagando a mensagem de erro sem o usuario nunca ver o motivo.
+  if (response.status === 401 && path !== "/auth/login") {
     if (typeof window !== "undefined") {
       window.location.href = "/login";
     }

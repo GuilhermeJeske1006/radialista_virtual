@@ -30,7 +30,9 @@ export default function LoginPage() {
     setCarregando(true);
     try {
       // sessao ja vem via cookie httpOnly no Set-Cookie da resposta -- nada pra guardar aqui.
-      await apiFetch("/auth/login", {
+      // Login e' unico pra conta de radio e super-admin (backend tenta os dois, ver
+      // app/auth/router.py::login); "papel" na resposta diz pra onde mandar cada um.
+      const resposta = await apiFetch<{ papel: string }>("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, senha }),
       });
@@ -39,7 +41,7 @@ export default function LoginPage() {
       } else {
         limparEmailLembrado();
       }
-      router.push("/dashboard");
+      router.push(resposta.papel === "super_admin" ? "/admin" : "/dashboard");
     } catch (err) {
       setErro(err instanceof ApiError ? err.message : "Erro ao entrar");
     } finally {

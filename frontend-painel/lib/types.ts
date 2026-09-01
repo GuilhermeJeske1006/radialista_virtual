@@ -249,6 +249,61 @@ export type ConviteEquipe = {
   email_enviado: boolean;
 };
 
+// Painel admin do sistema -- perfil isolado (SuperAdmin), sem relacao com Usuario/Account,
+// ver backend/app/admin_sistema/.
+export type SuperAdminConta = {
+  id: number;
+  nome: string;
+  email: string;
+};
+
+export type AdminOverview = {
+  total_empresas: number;
+  por_status: Record<string, number>;
+  por_plano: Record<string, number>;
+  novas_empresas_30_dias: number;
+  total_usuarios_ativos: number;
+  mensagens_30_dias: number;
+  mrr_planos: number;
+  mrr_agentes_extras: number;
+};
+
+export type AdminEmpresa = {
+  id: number;
+  nome_radio: string;
+  email_admin: string | null;
+  plano: string;
+  plano_status: string;
+  criado_em: string;
+  usuarios_ativos: number;
+  agentes: number;
+};
+
+export type AdminEmpresasPaginadas = {
+  empresas: AdminEmpresa[];
+  pagina: number;
+  tamanho_pagina: number;
+  total: number;
+  total_paginas: number;
+};
+
+export type AdminUsuarioDaEmpresa = {
+  id: number;
+  nome: string;
+  email: string;
+  role: "admin" | "membro";
+  ativo: boolean;
+};
+
+export type AdminEmpresaDetalhe = AdminEmpresa & {
+  slogan: string;
+  frequencia: string;
+  cidade: string;
+  tipo_radio: string;
+  mensagens_mes: number;
+  usuarios: AdminUsuarioDaEmpresa[];
+};
+
 export type Notificacao = {
   id: number;
   tipo: string;

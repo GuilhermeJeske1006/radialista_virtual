@@ -49,3 +49,7 @@ Thumbs.db
 *.log
 *.log.*
 backend/logs/
+
+# --- graphify (knowledge graph tool) ---
+/graphify/
+graphify-out/

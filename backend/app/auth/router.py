@@ -9,7 +9,14 @@ from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_usuario
 from app.auth.email import enviar_email_redefinicao_senha
-from app.auth.security import criar_token, definir_cookie_sessao, hash_senha, limpar_cookie_sessao, verificar_senha
+from app.auth.security import (
+    COOKIE_ADMIN_TOKEN,
+    criar_token,
+    definir_cookie_sessao,
+    hash_senha,
+    limpar_cookie_sessao,
+    verificar_senha,
+)
 from app.categorias_vinheta.defaults import criar_categorias_padrao
 from app.db.database import get_db
 from app.guardrails.http_rate_limit import limitar_por_ip
@@ -17,6 +24,7 @@ from app.models.account import Account
 from app.models.password_reset_token import PasswordResetToken
 from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
+from app.models.super_admin import SuperAdmin
 from app.models.usuario import Usuario
 
 logger = logging.getLogger("radialista.auth")
@@ -40,6 +48,10 @@ class LoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    # "usuario" | "super_admin" -- login e' unico (mesmo form pra tenant e super-admin, ver
+    # app/models/super_admin.py), o frontend usa esse campo pra saber pra qual tela mandar
+    # depois do login (/dashboard ou /admin).
+    papel: str
 
 
 class ContaResponse(BaseModel):
@@ -115,7 +127,7 @@ def registrar(dados: RegistroRequest, response: Response, db: Session = Depends(
     logger.info("Conta registrada: account_id=%s usuario_id=%s email=%s", account.id, usuario.id, usuario.email)
     token = criar_token(usuario.id)
     definir_cookie_sessao(response, token)
-    return TokenResponse(access_token=token)
+    return TokenResponse(access_token=token, papel="usuario")
 
 
 @router.post(
@@ -129,17 +141,22 @@ def login(dados: LoginRequest, response: Response, db: Session = Depends(get_db)
     )
 
     usuario = db.query(Usuario).filter_by(email=dados.email).first()
-    if (
-        usuario is None
-        or not usuario.ativo
-        or not verificar_senha(dados.senha, usuario.senha_hash)
-    ):
-        logger.warning("Login falhou para e-mail: %s", dados.email)
-        raise credenciais_invalidas
+    if usuario is not None and usuario.ativo and verificar_senha(dados.senha, usuario.senha_hash):
+        token = criar_token(usuario.id)
+        definir_cookie_sessao(response, token)
+        return TokenResponse(access_token=token, papel="usuario")
 
-    token = criar_token(usuario.id)
-    definir_cookie_sessao(response, token)
-    return TokenResponse(access_token=token)
+    # E-mail nao bateu com nenhum Usuario (ou senha errada) -- tenta como super-admin antes
+    # de desistir. Perfil isolado (app/models/super_admin.py), sem relacao com Usuario/Account,
+    # mas divide o mesmo formulario de login (so' muda pra onde o frontend redireciona depois).
+    admin = db.query(SuperAdmin).filter_by(email=dados.email).first()
+    if admin is not None and admin.ativo and verificar_senha(dados.senha, admin.senha_hash):
+        token = criar_token(admin.id, tipo="super_admin")
+        definir_cookie_sessao(response, token, cookie_name=COOKIE_ADMIN_TOKEN)
+        return TokenResponse(access_token=token, papel="super_admin")
+
+    logger.warning("Login falhou para e-mail: %s", dados.email)
+    raise credenciais_invalidas
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
