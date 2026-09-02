@@ -13,6 +13,7 @@ from app.models.programa import Programa
 from app.models.programa_radialista import ProgramaRadialista
 from app.models.radio_config import RadioConfig
 from app.models.super_admin import SuperAdmin
+from app.models.tema_historico import TemaHistorico
 from app.models.usuario import Usuario
 from app.models.voz_clonada import VozClonada
 
@@ -34,4 +35,5 @@ __all__ = [
     "BibliotecaAudioItem",
     "CategoriaVinheta",
     "SuperAdmin",
+    "TemaHistorico",
 ]

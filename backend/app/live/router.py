@@ -16,7 +16,7 @@ from app.auth.dependencies import get_current_account
 from app.config.redis_client import redis_client
 from app.db.database import get_db
 from app.guardrails.schedule import encontrar_programa_atual, minutos_restantes
-from app.live.music import MusicaEncontrada, buscar_musica, buscar_musica_fundo
+from app.live.music import MusicaEncontrada, _titulo_normalizado, buscar_musica, buscar_musica_fundo
 from app.llm.client import (
     classificar_categoria_bloco,
     classificar_tema_fala,
@@ -36,6 +36,7 @@ from app.models.patrocinador import Patrocinador
 from app.models.programa import Programa
 from app.models.programa_radialista import ProgramaRadialista
 from app.models.radio_config import RadioConfig
+from app.models.tema_historico import TemaHistorico
 from app.postprod.client import processar_audio
 from app.tts.client import sintetizar_audio, tts_habilitado
 from app.tts.voices import voz_valida, voz_valida_para_conta
@@ -237,12 +238,28 @@ _PROSODIA_BLOCO = {
 }
 
 
-def _tipo_proximo_bloco(programa: Programa, total_falas: int) -> str:
+def _ultima_categoria_bloco(historico: list[str]) -> str | None:
+    """Categoria (ver _categoria_bloco) do ultimo bloco falado, a partir de dados.historico
+    (formato "tipo: fala..." -- ver useLiveEngine.ts no frontend). None quando o programa ainda
+    nao tem historico (inicio da transmissao ou dado ausente) -- usado por _tipo_proximo_bloco
+    pra nunca deixar "abertura" cair logo depois de um bloco que nao seja musica."""
+    if not historico:
+        return None
+    tipo_bruto = historico[-1].split(":", 1)[0].strip()
+    return _categoria_bloco(tipo_bruto)
+
+
+def _tipo_proximo_bloco(programa: Programa, total_falas: int, ultima_categoria: str | None = None) -> str:
     """Decide o tipo do proximo bloco.
 
     Sem estrutura customizada: mantem o comportamento padrao (abertura so pode vir logo depois de
     um bloco de musica, excecao pra abertura de largada do programa). Com estrutura customizada
-    (programa.estrutura_blocos), segue exatamente a sequencia definida pelo usuario, em loop.
+    (programa.estrutura_blocos), segue a sequencia definida pelo usuario, em loop -- exceto
+    "abertura" fora de lugar (usuario colocou fora de uma posicao logo apos musica, ou a injecao
+    aleatoria de comentario abaixo "comeu" o bloco de musica que viria antes dela), que vira
+    "comentario" em vez de quebrar a regra de que abertura so faz sentido logo apos musica ou na
+    largada do programa (ultima_categoria None so' quando nao ha' historico ainda, o que so
+    acontece na largada -- ver _ultima_categoria_bloco).
 
     "encerramento" nunca sai daqui: so e' liberado quando o programa esta' de fato terminando
     (ver perto_do_fim em gerar_proxima_fala). Se o usuario incluiu "encerramento" no meio da
@@ -259,6 +276,12 @@ def _tipo_proximo_bloco(programa: Programa, total_falas: int) -> str:
     tipo = roteiro_customizado[total_falas % len(roteiro_customizado)]
     if programa.ia_pode_adicionar_blocos and total_falas > 0 and random.random() < 0.15:
         # IA fica livre pra emendar um comentario extra fora da sequencia pre-definida de vez em quando.
+        return "comentario"
+    if (
+        total_falas > 0
+        and _categoria_bloco(tipo) == "abertura"
+        and ultima_categoria not in (None, "musica")
+    ):
         return "comentario"
     return tipo
 
@@ -315,19 +338,25 @@ def _hora_certa_por_extenso(agora: datetime.datetime) -> str:
 _TTL_SESSAO_AO_VIVO = 6 * 60 * 60
 
 
-def _historico_musicas(programa_id: int) -> tuple[set[str], dict[str, int]]:
+def _historico_musicas(programa_id: int) -> tuple[set[str], set[str], dict[str, int]]:
     """Musicas tocadas no programa (por sessao ao vivo), pra buscar_musica evitar repetir a
-    mesma faixa ou saturar de um so' artista (ver limite_por_canal em app.live.music)."""
+    mesma faixa (por video_id OU por titulo normalizado -- ver titulos_tocados em
+    app.live.music, cobre reupload/versao diferente da mesma musica) ou saturar de um so'
+    artista (ver limite_por_canal em app.live.music)."""
     ids = redis_client.smembers(f"musicas_tocadas:ids:{programa_id}")
+    titulos = redis_client.smembers(f"musicas_tocadas:titulos:{programa_id}")
     canais_raw = redis_client.hgetall(f"musicas_tocadas:canais:{programa_id}")
-    return set(ids), {canal: int(contagem) for canal, contagem in canais_raw.items()}
+    return set(ids), set(titulos), {canal: int(contagem) for canal, contagem in canais_raw.items()}
 
 
 def _registrar_musica_tocada(programa_id: int, musica: MusicaEncontrada) -> None:
     chave_ids = f"musicas_tocadas:ids:{programa_id}"
+    chave_titulos = f"musicas_tocadas:titulos:{programa_id}"
     chave_canais = f"musicas_tocadas:canais:{programa_id}"
     redis_client.sadd(chave_ids, musica.video_id)
     redis_client.expire(chave_ids, _TTL_SESSAO_AO_VIVO)
+    redis_client.sadd(chave_titulos, _titulo_normalizado(musica.titulo))
+    redis_client.expire(chave_titulos, _TTL_SESSAO_AO_VIVO)
     redis_client.hincrby(chave_canais, musica.canal.lower(), 1)
     redis_client.expire(chave_canais, _TTL_SESSAO_AO_VIVO)
 
@@ -630,6 +659,62 @@ def _registrar_historico_persistente(
     db.commit()
 
 
+# Janela de historico de musica tocada considerada entre TODOS os programas de uma mesma radio
+# (nao so' o programa atual -- ver _musicas_recentes_da_radio), pra radio com "Manha", "Tarde"
+# etc como programas separados nao repetir a mesma faixa de um pro outro no mesmo dia. Curta de
+# proposito (diferente da retencao inteira de MusicaHistorico): so' evita repeticao recente
+# entre programas, nao bane a musica da radio pra sempre (catalogo pequeno de genero de nicho
+# ficaria sem musica nenhuma pra tocar).
+_HORAS_JANELA_MUSICAS_RADIO = 48
+
+
+def _musicas_recentes_da_radio(db: Session, radio_config_id: int) -> tuple[set[str], set[str]]:
+    """video_id e titulo normalizado (ver _titulo_normalizado) de toda musica tocada em
+    QUALQUER programa desta radio nas ultimas _HORAS_JANELA_MUSICAS_RADIO horas -- mesclado com
+    o historico de sessao do programa atual (ver _historico_musicas) antes de chamar
+    buscar_musica, pra dois programas da mesma radio nao tocarem a mesma faixa (mesma versao ou
+    nao) o dia inteiro."""
+    limiar = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=_HORAS_JANELA_MUSICAS_RADIO)
+    linhas = (
+        db.query(MusicaHistorico.video_id, MusicaHistorico.titulo)
+        .join(Programa, Programa.id == MusicaHistorico.programa_id)
+        .filter(Programa.radio_config_id == radio_config_id, MusicaHistorico.criado_em >= limiar)
+        .all()
+    )
+    video_ids = {video_id for video_id, _ in linhas}
+    titulos = {_titulo_normalizado(titulo) for _, titulo in linhas}
+    return video_ids, titulos
+
+
+# Janela bem mais larga que a de musica (acima): assunto de comentario/noticia tem giro natural
+# mais lento (nao ha' "catalogo" que esgote), entao vale segurar mais tempo pra transmissao de
+# amanha ainda lembrar do que foi falado hoje em outro programa da mesma radio.
+_DIAS_JANELA_TEMAS_RADIO = 7
+_MAX_TEMAS_RADIO_NO_PROMPT = 20
+
+
+def _temas_recentes_da_radio(db: Session, radio_config_id: int) -> list[str]:
+    """Temas de comentario/noticia abordados em QUALQUER programa desta radio nos ultimos
+    _DIAS_JANELA_TEMAS_RADIO dias, do mais recente pro mais antigo -- mesclado com o historico
+    de sessao do programa atual (ver _historico_temas) na instrucao de "nao repita assunto" do
+    prompt, pra um programa nao repetir o que outro programa da mesma radio ja comentou."""
+    limiar = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=_DIAS_JANELA_TEMAS_RADIO)
+    linhas = (
+        db.query(TemaHistorico.tema)
+        .join(Programa, Programa.id == TemaHistorico.programa_id)
+        .filter(Programa.radio_config_id == radio_config_id, TemaHistorico.criado_em >= limiar)
+        .order_by(TemaHistorico.criado_em.desc())
+        .limit(_MAX_TEMAS_RADIO_NO_PROMPT)
+        .all()
+    )
+    return [tema for tema, in linhas]
+
+
+def _registrar_tema_persistente(db: Session, programa_id: int, tema: str) -> None:
+    db.add(TemaHistorico(programa_id=programa_id, tema=tema))
+    db.commit()
+
+
 # Contexto real de uma musica (tema/curiosidade, ver resumir_contexto_musica) nao muda depois
 # de gerado -- cache bem mais longo que o de sessao, mesma logica do cache de duracao/metadados
 # em app.live.music.
@@ -686,12 +771,16 @@ def _buscar_musica_para_bloco(
     else:
         query, genero_filtro = _escolher_query_musica(db, programa)
 
-    ids_tocadas, canais_tocados = _historico_musicas(programa.id)
+    ids_tocadas, titulos_tocados, canais_tocados = _historico_musicas(programa.id)
+    ids_radio, titulos_radio = _musicas_recentes_da_radio(db, programa.radio_config_id)
+    ids_tocadas |= ids_radio
+    titulos_tocados |= titulos_radio
     musica = buscar_musica(
         query,
         genero=genero_filtro,
         bloqueados=programa.musicas_bloqueadas,
         evitar_video_ids=ids_tocadas,
+        titulos_tocados=titulos_tocados,
         canais_recentes=canais_tocados,
         preferir_cantada=True,
     )
@@ -706,6 +795,7 @@ def _buscar_musica_para_bloco(
             query_fallback,
             bloqueados=programa.musicas_bloqueadas,
             evitar_video_ids=ids_tocadas,
+            titulos_tocados=titulos_tocados,
             canais_recentes=canais_tocados,
         )
         if musica is not None:
@@ -751,7 +841,7 @@ def gerar_proxima_fala(
         # daqui em diante, para o loop e gera a fala de encerramento.
         tipo = "encerramento"
     else:
-        tipo = _tipo_proximo_bloco(programa, total_falas)
+        tipo = _tipo_proximo_bloco(programa, total_falas, _ultima_categoria_bloco(dados.historico))
 
     if _PATROCINADOR_RE.match(tipo):
         patrocinador = _buscar_patrocinador_ativo(db, account, tipo)
@@ -798,11 +888,12 @@ def gerar_proxima_fala(
     pedido_sem_resultado = False
     if pedido_musica is not None:
         query = pedido_musica.musica_query or pedido_musica.mensagem_usuario
-        ids_tocadas, canais_tocados = _historico_musicas(programa.id)
+        ids_tocadas, titulos_tocados, canais_tocados = _historico_musicas(programa.id)
         musica = buscar_musica(
             query,
             bloqueados=programa.musicas_bloqueadas,
             evitar_video_ids=ids_tocadas,
+            titulos_tocados=titulos_tocados,
             canais_recentes=canais_tocados,
             preferir_cantada=True,
         )
@@ -831,7 +922,18 @@ def gerar_proxima_fala(
 
     pedido_abraco = _proximo_pedido_fila(db, radialista, "abraco") if categoria == "chamada_ouvinte" else None
 
-    temas_usados = _historico_temas(programa.id) if categoria in ("comentario", "noticia") else []
+    temas_usados = []
+    if categoria in ("comentario", "noticia"):
+        # Historico de sessao do proprio programa primeiro (mais recente/relevante), depois o
+        # que outros programas da mesma radio ja comentaram (ver _temas_recentes_da_radio) --
+        # ordem importa pro dedup abaixo preferir manter a entrada da sessao atual quando o
+        # mesmo tema aparece nos dois.
+        vistos: set[str] = set()
+        for tema in _historico_temas(programa.id) + _temas_recentes_da_radio(db, programa.radio_config_id):
+            if tema not in vistos:
+                vistos.add(tema)
+                temas_usados.append(tema)
+        temas_usados = temas_usados[:_MAX_TEMAS_RADIO_NO_PROMPT]
     variacao_verbo_identificacao = _proxima_variacao(
         programa.id, "verbo_identificacao", _VARIACOES_VERBO_IDENTIFICACAO
     )
@@ -917,7 +1019,11 @@ def gerar_proxima_fala(
         "Se pesquisa externa estiver desabilitada, não invente fatos recentes: faça chamadas gerais e atemporais.",
         "Nunca soe como se o programa estivesse terminando ou se despedindo (frases tipo 'por hoje é só', "
         "'foi um prazer ficar com vocês', 'até a próxima', 'foi isso por agora') a não ser que o bloco atual "
-        "seja o de encerramento -- despedida só é permitida na fala do bloco 'encerramento', em nenhum outro.",
+        "seja o de encerramento -- despedida só é permitida na fala do bloco 'encerramento', em nenhum outro. "
+        "Isso vale também pra palavras soltas de finalidade fora desse bloco: nunca chame um bloco de música, "
+        "comentário ou qualquer outro momento de 'final', 'último', 'última música da noite' ou parecido -- "
+        "mesmo emendando várias músicas seguidas, chame apenas de 'sequência', 'sequência de hits', 'trio' ou "
+        "algo assim, nunca de 'bloco final'.",
     ]
 
     if temas_usados:
@@ -1075,6 +1181,7 @@ def gerar_proxima_fala(
         tema = classificar_tema_fala(fala)
         if tema:
             _registrar_tema(programa.id, tema)
+            _registrar_tema_persistente(db, programa.id, tema)
 
     return LiveProgramResponse(
         tipo=tipo,

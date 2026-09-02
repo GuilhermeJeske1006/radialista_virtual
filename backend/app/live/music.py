@@ -135,7 +135,7 @@ TERMOS_COLETANEA = [
 TERMOS_CONTEUDO_SOBRE = [
     "how to", "how music", "tutorial", "explained", "breakdown", "masterclass",
     "content for social media", "vlog", "podcast", "interview", "entrevista",
-    "behind the scenes",
+    "behind the scenes", "backstage", "episódio", "episodio", "episode",
 ]
 
 # Shorts/Reels sao recorte vertical de poucos segundos, nunca a faixa completa --
@@ -144,6 +144,36 @@ TERMOS_CONTEUDO_SOBRE = [
 # ate 3min). "reel"/"reels" solto fica de fora pra nao confundir com o genero/danca
 # irlandes do mesmo nome (ex.: "Irish Reel", "fiddle reel").
 PADRAO_SHORTS_REELS = re.compile(r"#shorts?\b|#reels?\b|\bshorts?\b|\(reels?\)|\[reels?\]")
+
+# Trecho entre parenteses/colchetes costuma ser so' o "sotaque" do titulo (Official Video,
+# Ao Vivo, Lyrics...), nunca parte do nome da musica -- removido antes de comparar com o
+# historico da sessao (ver _titulo_normalizado).
+PADRAO_PARENTESES = re.compile(r"[\(\[][^)\]]*[\)\]]")
+
+# Palavras de "versao" que ainda descrevem a MESMA musica (estudio/ao vivo/remix/lyrics...) --
+# removidas na normalizacao pra "Artista - Musica (Ao Vivo)" e "Artista - Musica (Official
+# Video)" caírem no mesmo titulo normalizado e o historico da sessao barrar a repeticao mesmo
+# quando o video_id (e o video em si) e' diferente.
+_PADRAO_TERMOS_VERSAO = re.compile(
+    r"\b("
+    r"official video|official audio|official music video|official lyric video|"
+    r"clipe oficial|audio oficial|video oficial|"
+    r"lyric video|lyrics|letra|legendado|ao vivo|live|"
+    r"remix|remaster|remastered|hd|hq|4k|visualizer|video|audio|clipe"
+    r")\b"
+)
+
+
+def _titulo_normalizado(titulo: str) -> str:
+    """Chave de comparacao pra detectar a MESMA musica em titulos com "sotaque" diferente
+    (ver _PADRAO_TERMOS_VERSAO) -- usada pra nunca repetir uma faixa no mesmo programa, mesmo
+    quando o locutor (ou o proprio YouTube) devolve uma versao/video_id diferente dela."""
+    texto = _sem_acento(titulo.lower())
+    texto = PADRAO_PARENTESES.sub(" ", texto)
+    texto = _PADRAO_TERMOS_VERSAO.sub(" ", texto)
+    texto = re.sub(r"[^a-z0-9]+", " ", texto)
+    return texto.strip()
+
 
 # Canal auto-gerado pelo YouTube pra faixa oficial (sufixo "- Topic") ou canal
 # oficial de gravadora (VEVO) -- so' publica audio/clipe oficial da musica, nunca
@@ -304,6 +334,7 @@ def buscar_musica(
     genero: str | None = None,
     bloqueados: list[str] | None = None,
     evitar_video_ids: set[str] | None = None,
+    titulos_tocados: set[str] | None = None,
     canais_recentes: dict[str, int] | None = None,
     limite_por_canal: int = _LIMITE_PADRAO_POR_CANAL,
     duracao_max_segundos: int = _DURACAO_MAX_SEGUNDOS,
@@ -315,7 +346,14 @@ def buscar_musica(
     artista num programa (ver _registrar_musica_tocada em app.live.router) -- passados
     pelo caller, que e' quem sabe o que ja tocou nessa sessao. Se o limite por canal
     deixar zero resultado (genero com pouca variedade), a 2a rodada ignora esse limite
-    em vez de travar a busca -- so' o video_id exato e os bloqueados continuam valendo.
+    em vez de travar a busca -- so' o video_id exato, o titulo (ver titulos_tocados) e os
+    bloqueados continuam valendo.
+
+    titulos_tocados e' o pareceido de evitar_video_ids mas por MUSICA em vez de por video: guarda
+    o titulo normalizado (ver _titulo_normalizado) de cada faixa ja tocada no programa, pra um
+    reupload/versao diferente da mesma musica (estudio tocado antes, YouTube devolve a versao
+    "Ao Vivo" ou "Remix" com video_id novo) nao passar como faixa inedita. Nunca relaxado, mesma
+    logica de "nunca repetir" de evitar_video_ids.
 
     genero (opcional) exige que ao menos uma palavra-chave dele apareca no titulo/canal do
     resultado -- sem isso, a busca do YouTube as vezes deriva pra um genero vizinho (pedir
@@ -334,6 +372,7 @@ def buscar_musica(
 
     bloqueados_lower = [b.lower() for b in (bloqueados or [])]
     evitar_video_ids = evitar_video_ids or set()
+    titulos_tocados = titulos_tocados or set()
     canais_recentes = canais_recentes or {}
     palavras_genero = _palavras_chave_genero(genero) if genero else []
 
@@ -348,6 +387,9 @@ def buscar_musica(
     ) -> MusicaEncontrada | None:
         def repetido(canal: str) -> bool:
             return respeitar_limite_canal and canais_recentes.get(canal.lower(), 0) >= limite_por_canal
+
+        def musica_repetida(titulo: str) -> bool:
+            return _titulo_normalizado(titulo) in titulos_tocados
 
         def vocal_invalido(texto: str) -> bool:
             if not respeitar_vocal or not preferir_cantada:
@@ -382,11 +424,15 @@ def buscar_musica(
             texto = f"{titulo.lower()} {canal.lower()}"
             if video_id in evitar_video_ids or repetido(canal) or duracao_invalida(video_id):
                 continue
+            if musica_repetida(titulo):
+                continue
             if genero_invalido(_sem_acento(texto)):
                 continue
             if vocal_invalido(texto):
                 continue
             if PADRAO_SHORTS_REELS.search(texto):
+                continue
+            if any(termo in texto for termo in TERMOS_QUALIDADE_DUVIDOSA):
                 continue
             if any(termo in texto for termo in TERMOS_COLETANEA) or PADRAO_TOP_N.search(texto):
                 continue
@@ -399,6 +445,8 @@ def buscar_musica(
             video_id = item["id"]["videoId"]
             texto = f"{titulo.lower()} {canal.lower()}"
             if video_id in evitar_video_ids or repetido(canal) or duracao_invalida(video_id):
+                continue
+            if musica_repetida(titulo):
                 continue
             if genero_invalido(_sem_acento(texto)):
                 continue

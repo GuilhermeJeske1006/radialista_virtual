@@ -36,6 +36,7 @@ from app.models import (  # noqa: F401 -- garante que as tabelas sejam registrad
     ProgramaRadialista,
     RadioConfig,
     SuperAdmin,
+    TemaHistorico,
     Usuario,
     VozClonada,
 )
@@ -144,6 +145,7 @@ def garantir_colunas_radio_config():
     colunas = {coluna["name"] for coluna in inspector.get_columns("radio_configs")}
     novas_colunas = {
         "voz_id": "VARCHAR NULL",
+        "resposta_automatica_whatsapp": "BOOLEAN NOT NULL DEFAULT false",
     }
 
     # account_id era unique (1 radialista por conta); agora uma conta pode ter varios radialistas.

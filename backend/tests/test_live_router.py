@@ -13,6 +13,7 @@ from app.models.patrocinador import Patrocinador
 from app.models.programa import Programa
 from app.models.programa_radialista import ProgramaRadialista
 from app.models.radio_config import RadioConfig
+from app.models.tema_historico import TemaHistorico
 
 AGORA_UTC = "2026-08-10 15:00:00"  # 12:00 local, dentro de um programa 10:00-14:00
 
@@ -887,3 +888,175 @@ def test_historico_fila_pagina(client, account, auth_headers, db_session, radial
 def test_historico_fila_radialista_inexistente_404(client, account, auth_headers):
     resposta = client.get("/live/999999/fila/historico", headers=auth_headers(account.id))
     assert resposta.status_code == 404
+
+
+def _outro_programa_mesma_radio(db_session, radio_config):
+    outro = Programa(
+        radio_config_id=radio_config.id,
+        nome="Programa Da Tarde",
+        horario_inicio=datetime.time(14, 0),
+        horario_fim=datetime.time(18, 0),
+        estrutura_blocos=[],
+    )
+    db_session.add(outro)
+    db_session.commit()
+    db_session.refresh(outro)
+    return outro
+
+
+@freeze_time(AGORA_UTC)
+def test_musica_de_outro_programa_da_mesma_radio_e_evitada(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    """Anti-repeticao cross-programa: musica tocada ha' pouco em OUTRO programa da mesma radio
+    (mesmo video_id ou so' titulo em versao diferente) precisa entrar no evitar_video_ids/
+    titulos_tocados passado pra buscar_musica no bloco automatico -- ver
+    _musicas_recentes_da_radio em app.live.router."""
+    radio_config, programa = radialista_e_programa
+    outro_programa = _outro_programa_mesma_radio(db_session, radio_config)
+    agora = datetime.datetime.now(datetime.timezone.utc)
+    db_session.add(
+        MusicaHistorico(
+            programa_id=outro_programa.id,
+            video_id="tocou-na-tarde",
+            titulo="Artista X - Cancao Boa (Ao Vivo)",
+            canal="Canal Y",
+            query="cancao boa",
+            query_normalizada="cancao boa",
+            origem="auto",
+            criado_em=agora - datetime.timedelta(hours=1),
+        )
+    )
+    db_session.commit()
+
+    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: "Vamos ouvir essa!")
+    chamadas_busca = []
+
+    def _fake_buscar_musica(query, **kwargs):
+        chamadas_busca.append(kwargs)
+        return MusicaEncontrada(video_id="nova-musica", titulo="Outra Faixa", canal="Canal Z")
+
+    monkeypatch.setattr("app.live.router.buscar_musica", _fake_buscar_musica)
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": ["abertura: oi"], "total_falas": 1},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["tipo"] == "musica"
+
+    assert "tocou-na-tarde" in chamadas_busca[0]["evitar_video_ids"]
+    assert "artista x cancao boa" in chamadas_busca[0]["titulos_tocados"]
+
+
+@freeze_time(AGORA_UTC)
+def test_musica_antiga_de_outro_programa_fora_da_janela_nao_e_evitada(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    """Janela de 48h (_HORAS_JANELA_MUSICAS_RADIO): musica tocada em outro programa ha' mais
+    tempo que isso nao deve mais travar a busca -- senao um catalogo pequeno de genero de nicho
+    ficaria sem musica nenhuma pra tocar depois de alguns dias de transmissao."""
+    radio_config, programa = radialista_e_programa
+    outro_programa = _outro_programa_mesma_radio(db_session, radio_config)
+    agora = datetime.datetime.now(datetime.timezone.utc)
+    db_session.add(
+        MusicaHistorico(
+            programa_id=outro_programa.id,
+            video_id="tocou-faz-tempo",
+            titulo="Artista Antigo - Cancao Velha",
+            canal="Canal Y",
+            query="cancao velha",
+            query_normalizada="cancao velha",
+            origem="auto",
+            criado_em=agora - datetime.timedelta(hours=49),
+        )
+    )
+    db_session.commit()
+
+    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: "Vamos ouvir essa!")
+    chamadas_busca = []
+
+    def _fake_buscar_musica(query, **kwargs):
+        chamadas_busca.append(kwargs)
+        return MusicaEncontrada(video_id="nova-musica", titulo="Outra Faixa", canal="Canal Z")
+
+    monkeypatch.setattr("app.live.router.buscar_musica", _fake_buscar_musica)
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": ["abertura: oi"], "total_falas": 1},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+
+    assert "tocou-faz-tempo" not in chamadas_busca[0]["evitar_video_ids"]
+    assert "artista antigo cancao velha" not in chamadas_busca[0]["titulos_tocados"]
+
+
+@freeze_time(AGORA_UTC)
+def test_tema_de_outro_programa_e_injetado_no_prompt(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    """Anti-repeticao cross-programa pro lado de assunto: tema comentado recentemente em OUTRO
+    programa da mesma radio entra na instrucao 'nao repita assunto' do prompt, mesmo o
+    historico de sessao (Redis) do programa atual estando vazio -- ver
+    _temas_recentes_da_radio em app.live.router."""
+    radio_config, programa = radialista_e_programa
+    outro_programa = _outro_programa_mesma_radio(db_session, radio_config)
+    agora = datetime.datetime.now(datetime.timezone.utc)
+    db_session.add(
+        TemaHistorico(programa_id=outro_programa.id, tema="eleicoes municipais", criado_em=agora - datetime.timedelta(hours=2))
+    )
+    db_session.commit()
+
+    monkeypatch.setattr("app.live.router.classificar_tema_fala", lambda texto: "")
+    prompts = []
+
+    def _fake_gerar_resposta(system, msg):
+        prompts.append(system)
+        return "comentario qualquer"
+
+    monkeypatch.setattr("app.live.router.gerar_resposta", _fake_gerar_resposta)
+
+    # total_falas=3 cai no bloco "comentario" do roteiro padrao.
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 3},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["tipo"] == "comentario"
+    assert "eleicoes municipais" in prompts[0]
+
+
+@freeze_time(AGORA_UTC)
+def test_tema_antigo_de_outro_programa_fora_da_janela_nao_e_injetado(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    """Janela de 7 dias (_DIAS_JANELA_TEMAS_RADIO): tema comentado ha' mais tempo que isso em
+    outro programa nao deve mais aparecer na instrucao 'nao repita assunto'."""
+    radio_config, programa = radialista_e_programa
+    outro_programa = _outro_programa_mesma_radio(db_session, radio_config)
+    agora = datetime.datetime.now(datetime.timezone.utc)
+    db_session.add(
+        TemaHistorico(programa_id=outro_programa.id, tema="assunto de semana passada", criado_em=agora - datetime.timedelta(days=8))
+    )
+    db_session.commit()
+
+    monkeypatch.setattr("app.live.router.classificar_tema_fala", lambda texto: "")
+    prompts = []
+
+    def _fake_gerar_resposta(system, msg):
+        prompts.append(system)
+        return "comentario qualquer"
+
+    monkeypatch.setattr("app.live.router.gerar_resposta", _fake_gerar_resposta)
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 3},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert "assunto de semana passada" not in prompts[0]
