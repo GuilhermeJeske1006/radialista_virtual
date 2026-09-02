@@ -68,6 +68,15 @@ _TAG_POR_TOM = {
 # similarity_boost/use_speaker_boost nao sao suportados pelo eleven_v3.
 _CHAVES_INDISPONIVEIS_V3 = {"similarity_boost", "use_speaker_boost"}
 
+# Voz clonada (Instant Voice Cloning, ver clonar_voz) precisa de similarity_boost alto pra soar
+# parecida com quem gravou a amostra -- eleven_v3 nao suporta esse parametro (ver
+# _CHAVES_INDISPONIVEIS_V3 acima), entao pra voz clonada a sintese cai pro multilingual_v2 (que
+# suporta), mesmo com elevenlabs_model=eleven_v3 configurado pro catalogo. Sem isso a voz clonada
+# sai com o similarity_boost padrao da ElevenLabs em vez do trinado pra fidelidade, ficando
+# perceptivelmente diferente da voz original.
+_MODEL_FALLBACK_CLONE = "eleven_multilingual_v2"
+_SIMILARITY_BOOST_CLONE = 0.95
+
 
 def tts_habilitado(voice_id: str | None = None) -> bool:
     return bool(settings.elevenlabs_api_key and (voice_id or settings.elevenlabs_voice_id))
@@ -89,7 +98,7 @@ def _categoria_tipo_bloco(tipo_bloco: str) -> str:
     return normalizado
 
 
-def _construir_voice_settings(tipo_bloco: str | None, tom: str | None) -> dict:
+def _construir_voice_settings(tipo_bloco: str | None, tom: str | None, modelo: str, eh_clonada: bool) -> dict:
     categoria = _categoria_tipo_bloco(tipo_bloco) if tipo_bloco else ""
     voice_settings = {**_VOICE_SETTINGS_PADRAO, **_VOICE_SETTINGS_POR_TIPO.get(categoria, {})}
     for chave, delta in _AJUSTE_TOM.get(tom or "", {}).items():
@@ -99,7 +108,11 @@ def _construir_voice_settings(tipo_bloco: str | None, tom: str | None) -> dict:
     voice_settings["style"] = max(0.0, min(1.0, voice_settings["style"]))
     voice_settings["speed"] = max(0.7, min(1.2, voice_settings["speed"]))
 
-    if settings.elevenlabs_model != "eleven_v3":
+    if eh_clonada:
+        voice_settings["similarity_boost"] = _SIMILARITY_BOOST_CLONE
+        voice_settings["use_speaker_boost"] = True
+
+    if modelo != "eleven_v3":
         return voice_settings
     return {k: v for k, v in voice_settings.items() if k not in _CHAVES_INDISPONIVEIS_V3}
 
@@ -109,24 +122,33 @@ def sintetizar_audio(
     voice_id: str | None = None,
     tipo_bloco: str | None = None,
     tom: str | None = None,
+    eh_clonada: bool = False,
 ) -> bytes:
-    """Gera audio (mp3) a partir de texto via ElevenLabs. Lanca httpx.HTTPStatusError em falha."""
+    """Gera audio (mp3) a partir de texto via ElevenLabs. Lanca httpx.HTTPStatusError em falha.
+
+    eh_clonada indica se voice_id e' uma voz clonada da conta (app.models.voz_clonada.VozClonada,
+    ver app.tts.voices.voz_valida_para_conta) em vez de uma voz do catalogo fixo -- afeta o modelo
+    e o similarity_boost usados (ver _MODEL_FALLBACK_CLONE acima).
+    """
     url = _ELEVENLABS_URL.format(voice_id=voice_id or settings.elevenlabs_voice_id)
     headers = {
         "xi-api-key": settings.elevenlabs_api_key,
         "Content-Type": "application/json",
     }
-    voice_settings = _construir_voice_settings(tipo_bloco, tom)
+    modelo = settings.elevenlabs_model
+    if eh_clonada and modelo == "eleven_v3":
+        modelo = _MODEL_FALLBACK_CLONE
+    voice_settings = _construir_voice_settings(tipo_bloco, tom, modelo, eh_clonada)
 
     texto_tts = texto
-    if settings.elevenlabs_model == "eleven_v3":
+    if modelo == "eleven_v3":
         tag = _TAG_POR_TOM.get(tom or "")
         if tag:
             texto_tts = f"{tag} {texto}"
 
     payload = {
         "text": texto_tts,
-        "model_id": settings.elevenlabs_model,
+        "model_id": modelo,
         "voice_settings": voice_settings,
         "language_code": _LANGUAGE_CODE,
     }
@@ -180,6 +202,17 @@ def obter_preview_url(voice_id: str) -> str | None:
     except httpx.HTTPError:
         logger.warning("Falha ao buscar preview_url da voz %s", voice_id)
         return None
+
+
+def renomear_voz(voice_id: str, nome: str) -> None:
+    """Atualiza o nome de uma voz clonada na ElevenLabs. Lanca httpx.HTTPStatusError em falha."""
+    url = f"{_ELEVENLABS_VOICE_URL.format(voice_id=voice_id)}/edit"
+    headers = {"xi-api-key": settings.elevenlabs_api_key}
+    data = {"name": nome}
+
+    with httpx.Client(timeout=30.0) as client:
+        response = client.post(url, headers=headers, data=data)
+        response.raise_for_status()
 
 
 def excluir_voz_clonada(voice_id: str) -> None:

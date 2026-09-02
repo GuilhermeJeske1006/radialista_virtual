@@ -60,22 +60,46 @@ def test_tts_habilitado_com_voice_id_explicito(monkeypatch):
 
 
 def test_construir_voice_settings_aplica_preset_do_tipo_bloco():
-    settings_musica = tts_client._construir_voice_settings("musica", None)
-    settings_comentario = tts_client._construir_voice_settings("comentario", None)
+    settings_musica = tts_client._construir_voice_settings("musica", None, "eleven_multilingual_v2", False)
+    settings_comentario = tts_client._construir_voice_settings("comentario", None, "eleven_multilingual_v2", False)
     assert settings_musica["speed"] > settings_comentario["speed"]
 
 
 def test_construir_voice_settings_bloco_customizado_reconhece_prefixo():
-    a = tts_client._construir_voice_settings("Musica Vaneira", None)
-    b = tts_client._construir_voice_settings("musica", None)
+    a = tts_client._construir_voice_settings("Musica Vaneira", None, "eleven_multilingual_v2", False)
+    b = tts_client._construir_voice_settings("musica", None, "eleven_multilingual_v2", False)
     assert a == b
 
 
 def test_construir_voice_settings_clampa_valores(monkeypatch):
-    resultado = tts_client._construir_voice_settings("noticia", "calmo")
+    resultado = tts_client._construir_voice_settings("noticia", "calmo", "eleven_multilingual_v2", False)
     assert 0.0 <= resultado["stability"] <= 1.0
     assert 0.0 <= resultado["style"] <= 1.0
     assert 0.7 <= resultado["speed"] <= 1.2
+
+
+def test_construir_voice_settings_clonada_forca_similarity_alto():
+    resultado = tts_client._construir_voice_settings("comentario", None, "eleven_multilingual_v2", True)
+    assert resultado["similarity_boost"] == tts_client._SIMILARITY_BOOST_CLONE
+    assert resultado["use_speaker_boost"] is True
+
+
+def test_construir_voice_settings_v3_remove_similarity_mesmo_clonada():
+    resultado = tts_client._construir_voice_settings("comentario", None, "eleven_v3", True)
+    assert "similarity_boost" not in resultado
+    assert "use_speaker_boost" not in resultado
+
+
+def test_sintetizar_audio_clonada_com_v3_cai_pro_multilingual_v2(monkeypatch):
+    _habilitar_elevenlabs(monkeypatch)
+    monkeypatch.setattr(tts_client.settings, "elevenlabs_model", "eleven_v3")
+    fake = _FakeClient([_FakeResponse(status_code=200, content=b"mp3-data")])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+
+    tts_client.sintetizar_audio("ola", eh_clonada=True)
+    payload = fake.chamadas[0][2]["json"]
+    assert payload["model_id"] == tts_client._MODEL_FALLBACK_CLONE
+    assert payload["voice_settings"]["similarity_boost"] == tts_client._SIMILARITY_BOOST_CLONE
 
 
 def test_sintetizar_audio_devolve_bytes(monkeypatch):

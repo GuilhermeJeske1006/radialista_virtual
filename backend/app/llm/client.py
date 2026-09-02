@@ -187,6 +187,33 @@ def classificar_tom_fala(texto: str, tipo_bloco: str | None) -> str:
     return "neutro"
 
 
+_SUGESTAO_MUSICA_SYSTEM_PROMPT = (
+    "Voce recebe um genero ou estilo musical, as vezes regional/informal (ex.: 'sertanejo raiz', "
+    "'vaneira', 'pop nacional'). Responda com o nome de UMA musica real e amplamente conhecida "
+    "desse genero, no formato exato 'Artista - Nome da Musica', sem aspas, sem numeracao, sem "
+    "explicacao. Escolha sempre uma faixa avulsa (nunca um disco, playlist, coletanea ou 'os "
+    "melhores de'), de preferencia bem popular, pra maximizar a chance dela existir com faixa "
+    "propria (nao so' em compilacao) numa busca de video."
+)
+
+
+def sugerir_musica_do_genero(genero: str) -> str:
+    """Sugere uma musica avulsa (artista + titulo) real dentro de um genero, pra virar query de
+    busca no YouTube (ver _escolher_query_musica em app.live.router). Sem isso, a query generica
+    '{genero} musica' quase sempre so' encontra playlist/coletanea/top-n no YouTube -- que o
+    filtro anti-coletanea rejeita sem fallback (ver TERMOS_COLETANEA em app.live.music) -- e o
+    bloco de musica do programa fica sem nada pra tocar. Nunca deve derrubar o ao vivo: qualquer
+    falha ou resposta vazia cai em string vazia, e o caller usa a query generica de genero como
+    ultimo recurso.
+    """
+    try:
+        resposta = gerar_classificacao(_SUGESTAO_MUSICA_SYSTEM_PROMPT, genero)
+    except Exception:
+        logger.warning("Falha ao sugerir musica do genero: genero=%r", genero, exc_info=True)
+        return ""
+    return resposta.strip().strip('"')
+
+
 _CONTEXTO_MUSICA_SYSTEM_PROMPT = (
     "Voce recebe metadados de um video do YouTube que e uma musica (titulo, canal/artista, ano "
     "de publicacao, tags e descricao, quando existirem). Resuma em ate duas frases curtas um "

@@ -24,6 +24,7 @@ from app.llm.client import (
     gerar_configuracao,
     gerar_resposta,
     resumir_contexto_musica,
+    sugerir_musica_do_genero,
 )
 from app.llm.json_utils import extrair_json
 from app.llm.prompt_builder import ParticipantePrograma, montar_system_prompt
@@ -37,7 +38,7 @@ from app.models.programa_radialista import ProgramaRadialista
 from app.models.radio_config import RadioConfig
 from app.postprod.client import processar_audio
 from app.tts.client import sintetizar_audio, tts_habilitado
-from app.tts.voices import voz_valida_para_conta
+from app.tts.voices import voz_valida, voz_valida_para_conta
 
 logger = logging.getLogger("radialista.live")
 
@@ -596,6 +597,13 @@ def _escolher_query_musica(db: Session, programa: Programa) -> tuple[str, str | 
 
     if programa.generos_musicais:
         genero = random.choice(programa.generos_musicais)
+        # query generica "{genero} musica" quase so' acha playlist/coletanea no YouTube pra genero
+        # (nao artista/faixa) -- pede pro LLM sugerir uma faixa avulsa real primeiro, muito mais
+        # provavel de achar video da musica em si em vez de compilacao (ver sugerir_musica_do_genero).
+        # Sem genero_filtro aqui: sugestao ja e' especifica o suficiente, igual musica_permitida.
+        sugestao = sugerir_musica_do_genero(genero)
+        if sugestao:
+            return sugestao, None
         return f"{genero} musica", genero
 
     return "musica instrumental", None
@@ -685,6 +693,7 @@ def _buscar_musica_para_bloco(
         bloqueados=programa.musicas_bloqueadas,
         evitar_video_ids=ids_tocadas,
         canais_recentes=canais_tocados,
+        preferir_cantada=True,
     )
     if musica is None and query.strip().lower() != "musica instrumental":
         # query especifica (curadoria do admin, pedido do publico ou genero/rotulo do bloco) nao
@@ -795,6 +804,7 @@ def gerar_proxima_fala(
             bloqueados=programa.musicas_bloqueadas,
             evitar_video_ids=ids_tocadas,
             canais_recentes=canais_tocados,
+            preferir_cantada=True,
         )
         if musica is not None:
             _registrar_musica_tocada(programa.id, musica)
@@ -1134,7 +1144,8 @@ def gerar_audio_fala(
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="TTS nao configurado")
 
     tom = classificar_tom_fala(dados.texto, dados.tipo)
-    audio = sintetizar_audio(dados.texto, voz_id, tipo_bloco=dados.tipo, tom=tom)
+    eh_clonada = bool(voz_id) and not voz_valida(voz_id)
+    audio = sintetizar_audio(dados.texto, voz_id, tipo_bloco=dados.tipo, tom=tom, eh_clonada=eh_clonada)
 
     if dados.perfil_pos_producao:
         try:

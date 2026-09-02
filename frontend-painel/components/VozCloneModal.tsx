@@ -10,12 +10,17 @@ type Props = {
   onFechar: () => void;
 };
 
+// Espelha _DURACAO_MINIMA_SEGUNDOS em backend/app/tts/router.py -- so' pra dar feedback
+// imediato antes do upload; quem barra de verdade e' o backend.
+const DURACAO_MINIMA_SEGUNDOS = 20;
+
 export default function VozCloneModal({ onCriada, onFechar }: Props) {
   const [nome, setNome] = useState("");
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [gravando, setGravando] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [duracaoSegundos, setDuracaoSegundos] = useState<number | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
 
@@ -30,6 +35,22 @@ export default function VozCloneModal({ onCriada, onFechar }: Props) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!audioUrl) {
+      setDuracaoSegundos(null);
+      return;
+    }
+    const audio = new Audio();
+    const aoCarregar = () => {
+      // metadata de webm gravado ao vivo as vezes vem Infinity ate' o audio tocar de verdade;
+      // nesse caso deixa passar sem bloquear no cliente (o backend ainda valida via pydub).
+      setDuracaoSegundos(Number.isFinite(audio.duration) ? audio.duration : null);
+    };
+    audio.addEventListener("loadedmetadata", aoCarregar);
+    audio.src = audioUrl;
+    return () => audio.removeEventListener("loadedmetadata", aoCarregar);
+  }, [audioUrl]);
 
   async function iniciarGravacao() {
     setErro("");
@@ -75,6 +96,10 @@ export default function VozCloneModal({ onCriada, onFechar }: Props) {
 
   async function enviar() {
     if (!nome.trim() || (!arquivo && !audioBlob)) return;
+    if (duracaoSegundos !== null && duracaoSegundos < DURACAO_MINIMA_SEGUNDOS) {
+      setErro(`Audio muito curto (${Math.round(duracaoSegundos)}s). Grava pelo menos ${DURACAO_MINIMA_SEGUNDOS}s.`);
+      return;
+    }
     setEnviando(true);
     setErro("");
     try {
@@ -152,6 +177,12 @@ export default function VozCloneModal({ onCriada, onFechar }: Props) {
               Seu navegador nao suporta audio.
             </audio>
           )}
+          {duracaoSegundos !== null && (
+            <p className={`text-xs ${duracaoSegundos < DURACAO_MINIMA_SEGUNDOS ? "text-rust-text" : "text-fg/65"}`}>
+              Duracao: {Math.round(duracaoSegundos)}s
+              {duracaoSegundos < DURACAO_MINIMA_SEGUNDOS && ` (minimo ${DURACAO_MINIMA_SEGUNDOS}s)`}
+            </p>
+          )}
         </div>
 
         {erro && <p className="text-sm text-rust-text mb-3">{erro}</p>}
@@ -168,7 +199,12 @@ export default function VozCloneModal({ onCriada, onFechar }: Props) {
           <button
             type="button"
             onClick={enviar}
-            disabled={enviando || !nome.trim() || (!arquivo && !audioBlob)}
+            disabled={
+              enviando ||
+              !nome.trim() ||
+              (!arquivo && !audioBlob) ||
+              (duracaoSegundos !== null && duracaoSegundos < DURACAO_MINIMA_SEGUNDOS)
+            }
             className="rounded-lg bg-amber px-4 py-2.5 text-sm font-medium text-ink hover:bg-amber/90 disabled:opacity-60"
           >
             {enviando ? "Clonando..." : "Clonar voz"}

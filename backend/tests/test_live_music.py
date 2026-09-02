@@ -126,6 +126,84 @@ def test_buscar_musica_pula_conteudo_sobre_a_musica(monkeypatch):
     assert resultado.video_id == "id2"
 
 
+def test_buscar_musica_pula_cover_caseiro_e_karaoke(monkeypatch):
+    """Cover/karaoke amador (audio duvidoso) nunca deve substituir a faixa oficial, mesmo
+    passando nos outros filtros -- ver TERMOS_QUALIDADE_DUVIDOSA em app.live.music."""
+    monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
+    itens = [
+        _item("id1", "Minha Musica (cover caseiro voz e violão)", "Canal Amador"),
+        _item("id2", "Minha Musica - Karaokê", "Canal Karaoke"),
+        _item("id3", "Minha Musica de verdade", "Canal Normal"),
+    ]
+    monkeypatch.setattr("app.live.music._buscar_itens", lambda query: itens)
+    monkeypatch.setattr("app.live.music._buscar_duracoes", lambda ids: {})
+
+    resultado = buscar_musica("minha musica")
+    assert resultado.video_id == "id3"
+
+
+def test_buscar_musica_preferir_cantada_pula_instrumental(monkeypatch):
+    """preferir_cantada=True evita versao instrumental quando a musica vai tocar pros ouvintes
+    -- ver docstring de buscar_musica em app.live.music."""
+    monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
+    itens = [
+        _item("id1", "Minha Musica (Instrumental)", "Canal Instrumental"),
+        _item("id2", "Minha Musica", "Canal Normal"),
+    ]
+    monkeypatch.setattr("app.live.music._buscar_itens", lambda query: itens)
+    monkeypatch.setattr("app.live.music._buscar_duracoes", lambda ids: {})
+
+    resultado = buscar_musica("minha musica", preferir_cantada=True)
+    assert resultado.video_id == "id2"
+
+
+def test_buscar_musica_preferir_cantada_relaxa_como_ultimo_recurso(monkeypatch):
+    """So' instrumental disponivel: relaxa em vez de travar a busca -- preferencia,
+    nunca bloqueio duro, mesma logica ja usada pra genero/duracao/limite de canal."""
+    monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
+    itens = [_item("id1", "Minha Musica (Instrumental)", "Canal Instrumental")]
+    monkeypatch.setattr("app.live.music._buscar_itens", lambda query: itens)
+    monkeypatch.setattr("app.live.music._buscar_duracoes", lambda ids: {})
+
+    resultado = buscar_musica("minha musica", preferir_cantada=True)
+    assert resultado.video_id == "id1"
+
+
+def test_buscar_musica_sem_preferir_cantada_aceita_instrumental(monkeypatch):
+    """Default (preferir_cantada=False, ex: buscar_musica_fundo) nao filtra instrumental --
+    musica de fundo QUER instrumental."""
+    monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
+    itens = [_item("id1", "Minha Musica (Instrumental)", "Canal Instrumental")]
+    monkeypatch.setattr("app.live.music._buscar_itens", lambda query: itens)
+    monkeypatch.setattr("app.live.music._buscar_duracoes", lambda ids: {})
+
+    resultado = buscar_musica("minha musica")
+    assert resultado.video_id == "id1"
+
+
+def test_buscar_musica_ao_vivo_de_canal_qualquer_e_rejeitado(monkeypatch):
+    """Ao vivo so' e' aceitavel de canal oficial/grande produtora -- gravacao de show por
+    canal qualquer nao pode substituir a faixa de estudio nem como ultimo recurso."""
+    monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
+    itens = [_item("id1", "Minha Musica Ao Vivo", "Canal De Fã")]
+    monkeypatch.setattr("app.live.music._buscar_itens", lambda query: itens)
+    monkeypatch.setattr("app.live.music._buscar_duracoes", lambda ids: {})
+
+    assert buscar_musica("minha musica") is None
+
+
+def test_buscar_musica_ao_vivo_de_canal_oficial_e_aceito(monkeypatch):
+    """Ao vivo publicado por canal oficial (selo/VEVO/"- Topic") e' aceitavel -- grande
+    produtora do mercado, sinal de qualidade mesmo sem ser a faixa de estudio."""
+    monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
+    itens = [_item("id1", "Minha Musica Ao Vivo", "Artista - Topic")]
+    monkeypatch.setattr("app.live.music._buscar_itens", lambda query: itens)
+    monkeypatch.setattr("app.live.music._buscar_duracoes", lambda ids: {})
+
+    resultado = buscar_musica("minha musica")
+    assert resultado.video_id == "id1"
+
+
 def test_buscar_musica_rejeita_duracao_conhecida_fora_da_faixa_mesmo_relaxando(monkeypatch):
     """Bug corrigido: o passo relaxado (ultimo recurso, quando nenhuma combinacao estrita deu
     resultado) so' deveria perdoar duracao DESCONHECIDA (falha/cota da API) -- ele tambem

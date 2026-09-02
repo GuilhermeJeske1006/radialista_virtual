@@ -123,4 +123,105 @@ describe("VoiceSelect", () => {
       expect(screen.getByText("Minha Voz")).toBeInTheDocument();
     });
   });
+
+  it("mostra player de amostra pra voz clonada com preview_url", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        if (url.includes("/tts/voices")) return respostaJson([]);
+        if (url.includes("/auth/me")) return respostaJson({ plano: "growth" });
+        if (url.includes("/tts/vozes-clonadas")) {
+          return respostaJson([
+            { id: 1, nome: "Minha Voz", voz_id: "voz-clonada-1", preview_url: "https://example.com/minha-voz.mp3" },
+          ]);
+        }
+        return respostaJson({});
+      })
+    );
+    const { container } = render(<VoiceSelect value={null} onChange={() => {}} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Minha Voz")).toBeInTheDocument();
+    });
+    expect(container.querySelector('audio[src="https://example.com/minha-voz.mp3"]')).toBeInTheDocument();
+  });
+
+  it("renomeia uma voz clonada", async () => {
+    const fetchMock = vi.fn((url: string, options?: RequestInit) => {
+      if (url.includes("/tts/voices")) return respostaJson([]);
+      if (url.includes("/auth/me")) return respostaJson({ plano: "growth" });
+      if (url.includes("/tts/vozes-clonadas/1") && options?.method === "PATCH") {
+        return respostaJson({ id: 1, nome: "Novo Nome", voz_id: "voz-clonada-1", preview_url: null });
+      }
+      if (url.includes("/tts/vozes-clonadas")) {
+        return respostaJson([{ id: 1, nome: "Minha Voz", voz_id: "voz-clonada-1", preview_url: null }]);
+      }
+      return respostaJson({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<VoiceSelect value={null} onChange={() => {}} />);
+
+    await waitFor(() => screen.getByText("Minha Voz"));
+    await userEvent.click(screen.getByTitle("Renomear"));
+    const input = screen.getByRole("textbox");
+    await userEvent.clear(input);
+    await userEvent.type(input, "Novo Nome");
+    await userEvent.click(screen.getByText("Salvar"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Novo Nome")).toBeInTheDocument();
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/tts/vozes-clonadas/1"),
+      expect.objectContaining({ method: "PATCH", body: JSON.stringify({ nome: "Novo Nome" }) })
+    );
+  });
+
+  it("exclui uma voz clonada apos confirmacao", async () => {
+    vi.stubGlobal("confirm", vi.fn(() => true));
+    const fetchMock = vi.fn((url: string, options?: RequestInit) => {
+      if (url.includes("/tts/voices")) return respostaJson([]);
+      if (url.includes("/auth/me")) return respostaJson({ plano: "growth" });
+      if (url.includes("/tts/vozes-clonadas/1") && options?.method === "DELETE") {
+        return Promise.resolve(new Response(null, { status: 204 }));
+      }
+      if (url.includes("/tts/vozes-clonadas")) {
+        return respostaJson([{ id: 1, nome: "Minha Voz", voz_id: "voz-clonada-1", preview_url: null }]);
+      }
+      return respostaJson({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<VoiceSelect value={null} onChange={() => {}} />);
+
+    await waitFor(() => screen.getByText("Minha Voz"));
+    await userEvent.click(screen.getByTitle("Excluir"));
+
+    await waitFor(() => {
+      expect(screen.queryByText("Minha Voz")).not.toBeInTheDocument();
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/tts/vozes-clonadas/1"),
+      expect.objectContaining({ method: "DELETE" })
+    );
+  });
+
+  it("nao exclui voz clonada se o usuario cancelar a confirmacao", async () => {
+    vi.stubGlobal("confirm", vi.fn(() => false));
+    const fetchMock = vi.fn((url: string) => {
+      if (url.includes("/tts/voices")) return respostaJson([]);
+      if (url.includes("/auth/me")) return respostaJson({ plano: "growth" });
+      if (url.includes("/tts/vozes-clonadas")) {
+        return respostaJson([{ id: 1, nome: "Minha Voz", voz_id: "voz-clonada-1", preview_url: null }]);
+      }
+      return respostaJson({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<VoiceSelect value={null} onChange={() => {}} />);
+
+    await waitFor(() => screen.getByText("Minha Voz"));
+    await userEvent.click(screen.getByTitle("Excluir"));
+
+    expect(screen.getByText("Minha Voz")).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("/tts/vozes-clonadas/1"), expect.anything());
+  });
 });

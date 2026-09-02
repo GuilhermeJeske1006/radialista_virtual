@@ -59,6 +59,7 @@ export type VozClonada = {
   id: number;
   nome: string;
   voz_id: string;
+  preview_url?: string | null;
 };
 
 export type Programa = {

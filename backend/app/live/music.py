@@ -35,6 +35,13 @@ _CACHE_TTL_DURACAO_SEGUNDOS = 30 * 24 * 60 * 60
 _DURACAO_MIN_SEGUNDOS = 61
 _DURACAO_MAX_SEGUNDOS = 8 * 60
 
+# Musica de fundo toca em loop e corta num ponto seguro (ver obter_fim_seguro/fim_segundos),
+# entao nao precisa ser faixa unica curta -- ao contrario da busca normal (_DURACAO_MAX_SEGUNDOS),
+# aqui um mix ambiente longo e' o resultado ESPERADO: busca por "instrumental radio fundo" no
+# YouTube devolve quase so' mix de 1-3h+ (compilacao "radio" e' literalmente isso), entao um
+# teto de 8min zera 100% dos candidatos nessa busca especifica.
+_DURACAO_MAX_FUNDO_SEGUNDOS = 4 * 60 * 60
+
 
 def _sem_acento(texto: str) -> str:
     return "".join(c for c in unicodedata.normalize("NFD", texto) if unicodedata.category(c) != "Mn")
@@ -92,6 +99,15 @@ TERMOS_BAIXA_RESOLUCAO = ["240p", "360p", "480p"]
 # Videos que falam SOBRE a musica em vez de toca-la -- documentario/curiosidade,
 # nao e' a cancao em si, nunca deve ser escolhido em nenhuma camada da busca.
 TERMOS_HISTORIA = ["a história de", "a historia de", "por trás da música", "por tras da musica", "curiosidades sobre", "making of", "documentário", "documentario"]
+
+# Cover/karaoke amador feito em casa -- audio ruim/duvidoso mesmo quando a duracao e titulo
+# passam nos outros filtros. Nunca relaxado (nem no ultimo recurso): radio profissional nao
+# pode tocar isso no lugar da faixa oficial.
+TERMOS_QUALIDADE_DUVIDOSA = [
+    "cover", "covers", "karaoke", "karaokê", "playback", "caseiro", "amador",
+    "gravado em casa", "gravado no quarto", "voz e violão", "voz e violao",
+    "só violão", "so violao", "instrumental cover",
+]
 
 # Reaction/talent-show: cobre de programa tipo AGT/The Voice comentado por reagente
 # ("Grammy Member Reacts", "SMASHES IT!") -- e' a performance embrulhada em comentario/
@@ -290,6 +306,8 @@ def buscar_musica(
     evitar_video_ids: set[str] | None = None,
     canais_recentes: dict[str, int] | None = None,
     limite_por_canal: int = _LIMITE_PADRAO_POR_CANAL,
+    duracao_max_segundos: int = _DURACAO_MAX_SEGUNDOS,
+    preferir_cantada: bool = False,
 ) -> MusicaEncontrada | None:
     """Busca a musica priorizando versao de estudio; se nao achar, cai pra versao ao vivo.
 
@@ -304,6 +322,12 @@ def buscar_musica(
     "xote" e devolver "chamame", por exemplo, porque o algoritmo de relacionados do YouTube
     mistura generos regionais proximos). So relaxa (aceita qualquer genero) como ultimo
     recurso, mesma logica de "preferencia, nunca bloqueio duro" do limite por canal/duracao.
+
+    preferir_cantada evita versao instrumental quando a musica vai tocar pros ouvintes (o
+    locutor anuncia a faixa por nome/artista, instrumental sem voz quebra a expectativa) --
+    False por padrao porque buscar_musica_fundo QUER instrumental (musica de fundo enquanto
+    o locutor fala). Mesma logica de preferencia, nunca bloqueio duro: relaxa antes do
+    genero (instrumental do genero certo ainda bate mais que vocal fora do genero).
     """
     if not settings.youtube_api_key:
         return None
@@ -320,9 +344,15 @@ def buscar_musica(
         duracoes: dict[str, int],
         respeitar_duracao: bool = True,
         respeitar_genero: bool = True,
+        respeitar_vocal: bool = True,
     ) -> MusicaEncontrada | None:
         def repetido(canal: str) -> bool:
             return respeitar_limite_canal and canais_recentes.get(canal.lower(), 0) >= limite_por_canal
+
+        def vocal_invalido(texto: str) -> bool:
+            if not respeitar_vocal or not preferir_cantada:
+                return False
+            return "instrumental" in texto
 
         def genero_invalido(texto_sem_acento: str) -> bool:
             if not respeitar_genero or not palavras_genero:
@@ -338,7 +368,7 @@ def buscar_musica(
             # duracao DESCONHECIDA (falha/cota da API de videos.list).
             if duracao is None:
                 return respeitar_duracao
-            return not (_DURACAO_MIN_SEGUNDOS <= duracao <= _DURACAO_MAX_SEGUNDOS)
+            return not (_DURACAO_MIN_SEGUNDOS <= duracao <= duracao_max_segundos)
 
         # 1a passada: canal oficial (auto-gerado "- Topic" ou VEVO) so' publica
         # faixa em si na maioria dos casos -- pula blocklist de reacao/historia/
@@ -353,6 +383,8 @@ def buscar_musica(
             if video_id in evitar_video_ids or repetido(canal) or duracao_invalida(video_id):
                 continue
             if genero_invalido(_sem_acento(texto)):
+                continue
+            if vocal_invalido(texto):
                 continue
             if PADRAO_SHORTS_REELS.search(texto):
                 continue
@@ -370,6 +402,8 @@ def buscar_musica(
                 continue
             if genero_invalido(_sem_acento(texto)):
                 continue
+            if vocal_invalido(texto):
+                continue
             if any(termo in texto for termo in bloqueados_lower):
                 continue
             if PADRAO_SHORTS_REELS.search(texto):
@@ -378,6 +412,8 @@ def buscar_musica(
                 continue
             if any(termo in texto for termo in TERMOS_REACAO):
                 continue
+            if any(termo in texto for termo in TERMOS_QUALIDADE_DUVIDOSA):
+                continue
             if any(termo in texto for termo in TERMOS_COLETANEA) or PADRAO_TOP_N.search(texto):
                 continue
             if any(termo in texto for termo in TERMOS_CONTEUDO_SOBRE):
@@ -385,7 +421,11 @@ def buscar_musica(
             if any(termo in texto for termo in TERMOS_BAIXA_RESOLUCAO):
                 continue
             eh_ao_vivo = any(termo in texto for termo in TERMOS_AO_VIVO) or PADRAO_ANO_SOLTO.search(texto)
-            if not permitir_ao_vivo and eh_ao_vivo:
+            if eh_ao_vivo and (not permitir_ao_vivo or not _eh_canal_oficial(canal)):
+                # ao vivo so' e' aceitavel de canal oficial/grande produtora (selo/VEVO/"- Topic")
+                # -- gravacao de show por canal qualquer e' exatamente o audio duvidoso que
+                # preferir_cantada/TERMOS_QUALIDADE_DUVIDOSA ja tentam barrar, so' que pelo
+                # lado "ao vivo" em vez de "caseiro".
                 continue
             inicio = SEGUNDOS_PULAR_AO_VIVO if eh_ao_vivo else 0
             return MusicaEncontrada(video_id=video_id, titulo=titulo, canal=canal, inicio_segundos=inicio)
@@ -407,40 +447,46 @@ def buscar_musica(
     for respeitar_genero in (True, False):
         if not palavras_genero and not respeitar_genero:
             break  # sem genero pedido, relaxar de novo e' repetir a mesma busca a toa.
-        for respeitar_duracao in (True, False):
-            for respeitar_limite_canal in (True, False):
-                resultado = escolher(
-                    itens_estudio,
-                    permitir_ao_vivo=False,
-                    respeitar_limite_canal=respeitar_limite_canal,
-                    duracoes=duracoes,
-                    respeitar_duracao=respeitar_duracao,
-                    respeitar_genero=respeitar_genero,
-                )
-                if resultado:
-                    return _preencher_extras(resultado, duracoes)
+        for respeitar_vocal in (True, False):
+            if not preferir_cantada and not respeitar_vocal:
+                break  # nao foi pedido vocal, relaxar de novo e' repetir a mesma busca a toa.
+            for respeitar_duracao in (True, False):
+                for respeitar_limite_canal in (True, False):
+                    resultado = escolher(
+                        itens_estudio,
+                        permitir_ao_vivo=False,
+                        respeitar_limite_canal=respeitar_limite_canal,
+                        duracoes=duracoes,
+                        respeitar_duracao=respeitar_duracao,
+                        respeitar_genero=respeitar_genero,
+                        respeitar_vocal=respeitar_vocal,
+                    )
+                    if resultado:
+                        return _preencher_extras(resultado, duracoes)
 
-                resultado = escolher(
-                    itens_geral,
-                    permitir_ao_vivo=False,
-                    respeitar_limite_canal=respeitar_limite_canal,
-                    duracoes=duracoes,
-                    respeitar_duracao=respeitar_duracao,
-                    respeitar_genero=respeitar_genero,
-                )
-                if resultado:
-                    return _preencher_extras(resultado, duracoes)
+                    resultado = escolher(
+                        itens_geral,
+                        permitir_ao_vivo=False,
+                        respeitar_limite_canal=respeitar_limite_canal,
+                        duracoes=duracoes,
+                        respeitar_duracao=respeitar_duracao,
+                        respeitar_genero=respeitar_genero,
+                        respeitar_vocal=respeitar_vocal,
+                    )
+                    if resultado:
+                        return _preencher_extras(resultado, duracoes)
 
-                resultado = escolher(
-                    itens_geral,
-                    permitir_ao_vivo=True,
-                    respeitar_limite_canal=respeitar_limite_canal,
-                    duracoes=duracoes,
-                    respeitar_duracao=respeitar_duracao,
-                    respeitar_genero=respeitar_genero,
-                )
-                if resultado:
-                    return _preencher_extras(resultado, duracoes)
+                    resultado = escolher(
+                        itens_geral,
+                        permitir_ao_vivo=True,
+                        respeitar_limite_canal=respeitar_limite_canal,
+                        duracoes=duracoes,
+                        respeitar_duracao=respeitar_duracao,
+                        respeitar_genero=respeitar_genero,
+                        respeitar_vocal=respeitar_vocal,
+                    )
+                    if resultado:
+                        return _preencher_extras(resultado, duracoes)
 
     logger.warning("Nenhuma musica encontrada: query=%r genero=%r", query, genero)
     return None
@@ -453,4 +499,4 @@ def buscar_musica_fundo(generos_musicais: list[str], bloqueados: list[str] | Non
     else:
         query = "musica instrumental radio fundo"
 
-    return buscar_musica(query, bloqueados=bloqueados)
+    return buscar_musica(query, bloqueados=bloqueados, duracao_max_segundos=_DURACAO_MAX_FUNDO_SEGUNDOS)

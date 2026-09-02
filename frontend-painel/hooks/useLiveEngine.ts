@@ -516,7 +516,13 @@ export function useLiveEngine() {
             onStateChange: (evento: any) => {
               if (evento.data === window.YT.PlayerState.ENDED) finalizar();
             },
-            onError: () => finalizar(),
+            // codigos do player: 2 parametro invalido, 5 erro de HTML5, 100 video removido/privado,
+            // 101/150 dono do video bloqueou embed -- sem log aqui a musica so' "nao tocava", sem
+            // pista nenhuma de qual desses era (ver post-mortem que motivou isso)
+            onError: (evento: any) => {
+              console.error("Erro ao tocar musica no player do YouTube:", videoId, titulo, evento?.data);
+              finalizar();
+            },
           },
         });
       }
@@ -718,8 +724,10 @@ export function useLiveEngine() {
             musica.fim_segundos ?? null
           );
         }
-      } catch {
-        // segue o programa mesmo se a musica falhar ao tocar
+      } catch (err) {
+        // segue o programa mesmo se a musica falhar ao tocar -- loga pra dar pra
+        // diagnosticar depois (sem isso o bloco so' pulava direto, sem pista nenhuma)
+        console.error("Falha ao tocar bloco de musica:", err);
       }
     } else if (preparado.audiosFalas && preparado.audiosFalas.length > 0) {
       // dialogo multi-voz: toca uma linha de cada vez, na voz de quem falou

@@ -1,9 +1,12 @@
 import logging
+from io import BytesIO
 from pathlib import Path
 
 import httpx
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel
+from pydub import AudioSegment
+from pydub.exceptions import CouldntDecodeError
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_account
@@ -13,7 +16,7 @@ from app.guardrails.http_rate_limit import limitar_por_ip, limite_excedido
 from app.models.account import Account
 from app.models.voz_clonada import VozClonada
 from app.planos import limites_do_plano
-from app.tts.client import clonar_voz, excluir_voz_clonada
+from app.tts.client import clonar_voz, excluir_voz_clonada, obter_preview_url, renomear_voz
 from app.tts.voices import listar_vozes_com_preview
 
 logger = logging.getLogger("radialista.tts")
@@ -21,6 +24,10 @@ logger = logging.getLogger("radialista.tts")
 router = APIRouter(prefix="/tts", tags=["tts"])
 
 _TAMANHO_MAXIMO_BYTES = 15 * 1024 * 1024
+# Instant Voice Cloning fica bem menos fiel a voz original com amostra curta demais -- 20s e' um
+# piso pra barrar upload quase vazio/errado; a UI ainda pede 60s como recomendacao pra melhor
+# qualidade (ver VozCloneModal.tsx).
+_DURACAO_MINIMA_SEGUNDOS = 20
 _EXTENSOES_PERMITIDAS = {
     ".mp3": "audio/mpeg",
     ".m4a": "audio/mp4",
@@ -34,8 +41,25 @@ class VozClonadaResponse(BaseModel):
     id: int
     nome: str
     voz_id: str
+    # Amostra curta hospedada pela ElevenLabs pra "ouvir como ficou" -- mesmo dado de
+    # app/tts/voices.py::listar_vozes_com_preview, so que sem cache (poucas vozes por conta,
+    # nao justifica o _preview_cache em memoria daquele modulo, que e' pro catalogo global).
+    preview_url: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class VozClonadaRenomearRequest(BaseModel):
+    nome: str
+
+
+def _resposta_voz_clonada(voz_clonada: VozClonada) -> VozClonadaResponse:
+    return VozClonadaResponse(
+        id=voz_clonada.id,
+        nome=voz_clonada.nome,
+        voz_id=voz_clonada.voz_id,
+        preview_url=obter_preview_url(voz_clonada.voz_id),
+    )
 
 
 @router.get("/voices", dependencies=[Depends(limitar_por_ip("tts_voices", limite=30, janela_segundos=60))])
@@ -45,7 +69,8 @@ def vozes():
 
 @router.get("/vozes-clonadas", response_model=list[VozClonadaResponse])
 def listar_vozes_clonadas(account: Account = Depends(get_current_account), db: Session = Depends(get_db)):
-    return db.query(VozClonada).filter_by(account_id=account.id).order_by(VozClonada.id.asc()).all()
+    vozes_clonadas = db.query(VozClonada).filter_by(account_id=account.id).order_by(VozClonada.id.asc()).all()
+    return [_resposta_voz_clonada(v) for v in vozes_clonadas]
 
 
 @router.post("/vozes-clonadas", response_model=VozClonadaResponse, status_code=status.HTTP_201_CREATED)
@@ -85,6 +110,21 @@ async def criar_voz_clonada(
         raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="Arquivo de audio maior que 15MB")
 
     try:
+        duracao_segundos = len(AudioSegment.from_file(BytesIO(conteudo))) / 1000
+    except CouldntDecodeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Nao foi possivel ler o audio enviado. Tenta outro arquivo."
+        ) from exc
+    if duracao_segundos < _DURACAO_MINIMA_SEGUNDOS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Audio muito curto ({duracao_segundos:.0f}s). Grava pelo menos "
+                f"{_DURACAO_MINIMA_SEGUNDOS}s de fala limpa (o ideal e uns 60s) pra um clone fiel."
+            ),
+        )
+
+    try:
         voice_id = clonar_voz(
             nome.strip(),
             conteudo,
@@ -102,7 +142,33 @@ async def criar_voz_clonada(
     db.add(voz_clonada)
     db.commit()
     db.refresh(voz_clonada)
-    return voz_clonada
+    return _resposta_voz_clonada(voz_clonada)
+
+
+@router.patch("/vozes-clonadas/{voz_clonada_id}", response_model=VozClonadaResponse)
+def renomear_voz_clonada(
+    voz_clonada_id: int,
+    dados: VozClonadaRenomearRequest,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    if not dados.nome.strip():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nome obrigatorio")
+
+    voz_clonada = db.query(VozClonada).filter_by(id=voz_clonada_id, account_id=account.id).first()
+    if voz_clonada is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Voz clonada nao encontrada")
+
+    voz_clonada.nome = dados.nome.strip()
+    db.commit()
+    db.refresh(voz_clonada)
+
+    try:
+        renomear_voz(voz_clonada.voz_id, voz_clonada.nome)
+    except httpx.HTTPStatusError as exc:
+        logger.warning("Falha ao renomear voz na ElevenLabs (%s): %s", voz_clonada.voz_id, exc.response.text)
+
+    return _resposta_voz_clonada(voz_clonada)
 
 
 @router.delete("/vozes-clonadas/{voz_clonada_id}", status_code=status.HTTP_204_NO_CONTENT)
