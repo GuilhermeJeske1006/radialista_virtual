@@ -224,7 +224,7 @@ def test_excluir_programa(client, account, auth_headers):
 def test_gerar_radialista_ia(client, account, auth_headers, monkeypatch):
     monkeypatch.setattr(
         "app.config.router.gerar_configuracao_ia",
-        lambda descricao, tipo_radio=None: (
+        lambda descricao, tipo_radio=None, account=None, roster_existente=None: (
             {
                 "nome_locutor": "IA Radialista",
                 "personalidade": "animado",
@@ -254,7 +254,7 @@ def test_gerar_radialista_ia_sem_descricao_usa_tipo_radio(client, account, auth_
 
     chamadas = []
 
-    def _gerar(descricao, tipo_radio=None):
+    def _gerar(descricao, tipo_radio=None, account=None, roster_existente=None):
         chamadas.append((descricao, tipo_radio))
         return (
             {
@@ -283,7 +283,7 @@ def test_gerar_radialista_ia_falha_sem_tipo_e_sem_descricao(client, account, aut
 
 
 def test_gerar_radialista_ia_falha_do_llm_devolve_502(client, account, auth_headers, monkeypatch):
-    def _falha(descricao, tipo_radio=None):
+    def _falha(descricao, tipo_radio=None, account=None, roster_existente=None):
         raise ValueError("LLM nao respondeu")
 
     monkeypatch.setattr("app.config.router.gerar_configuracao_ia", _falha)
@@ -298,7 +298,7 @@ def test_gerar_radialista_ia_respeita_rate_limit(client, account_factory, auth_h
     # Sem limite de agentes nem conflito de horario no meio do caminho -- isola o rate limit em si.
     monkeypatch.setattr("app.config.router.limite_agentes_efetivo", lambda acc: 999)
 
-    def _gerar(descricao, tipo_radio=None):
+    def _gerar(descricao, tipo_radio=None, account=None, roster_existente=None):
         i = int(descricao)
         return (
             {
@@ -339,7 +339,7 @@ def test_gerar_radialista_ia_reaproveita_placeholder_do_cadastro(client, account
 
     monkeypatch.setattr(
         "app.config.router.gerar_configuracao_ia",
-        lambda descricao, tipo_radio=None: (
+        lambda descricao, tipo_radio=None, account=None, roster_existente=None: (
             {
                 "nome_locutor": "Ze Gerado",
                 "personalidade": "animado",
@@ -387,7 +387,7 @@ def test_gerar_radialista_ia_com_radialista_ja_configurado_respeita_limite(clien
 
     monkeypatch.setattr(
         "app.config.router.gerar_configuracao_ia",
-        lambda descricao, tipo_radio=None: (
+        lambda descricao, tipo_radio=None, account=None, roster_existente=None: (
             {
                 "nome_locutor": "IA Radialista",
                 "personalidade": "animado",

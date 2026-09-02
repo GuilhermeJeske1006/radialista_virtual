@@ -5,6 +5,7 @@ import json
 import logging
 import uuid
 
+import httpx
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
@@ -14,7 +15,9 @@ from app.guardrails.content_filter import contem_topico_proibido
 from app.guardrails.http_rate_limit import limitar_por_ip
 from app.guardrails.rate_limiter import dentro_do_limite
 from app.guardrails.schedule import encontrar_programa_atual
+from app.llm.client import gerar_resposta
 from app.llm.intent import classificar_intencao
+from app.llm.prompt_builder import montar_system_prompt
 from app.models.account import Account
 from app.models.fila_ao_vivo import FilaAoVivo
 from app.models.interaction_log import InteractionLog
@@ -22,6 +25,7 @@ from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
 from app.billing.limites import limite_mensagens_efetivo, mensagens_respondidas_no_mes
 from app.stt.client import stt_habilitado, transcrever_audio
+from app.whatsapp.sender import enviar_mensagem
 
 logger = logging.getLogger("radialista.webhook")
 router = APIRouter()
@@ -61,6 +65,7 @@ def _registrar_log(
     status: str,
     origem: str = "ouvinte",
     wuzapi_message_id: str | None = None,
+    resposta: str | None = None,
 ) -> None:
     db.add(
         InteractionLog(
@@ -69,12 +74,33 @@ def _registrar_log(
             telefone=telefone,
             nome=nome or None,
             mensagem_usuario=mensagem,
-            resposta=None,
+            resposta=resposta,
             status=status,
             origem=origem,
         )
     )
     db.commit()
+
+
+def _gerar_e_enviar_resposta(
+    account: Account, config: RadioConfig, programa: Programa, telefone: str, texto_usuario: str
+) -> str | None:
+    """Gera a resposta com a persona do radialista (mesmo prompt base usado no ao vivo,
+    ja' orientado a soar como mensagem de WhatsApp -- ver prompt_builder.py) e manda pro
+    ouvinte via WuzAPI. Falha em qualquer etapa so' loga e devolve None -- quem chama cai
+    de volta pro comportamento sem resposta automatica, sem derrubar o webhook.
+    """
+    try:
+        resposta = gerar_resposta(montar_system_prompt(account, config, programa), texto_usuario)
+    except Exception:
+        logger.exception("Falha ao gerar resposta automatica de WhatsApp: config_id=%s", config.id)
+        return None
+    try:
+        enviar_mensagem(telefone, resposta, account.wuzapi_token)
+    except httpx.HTTPError:
+        logger.warning("Falha ao enviar resposta automatica de WhatsApp: telefone=%s", telefone, exc_info=True)
+        return None
+    return resposta
 
 
 def _radialista_no_ar(db: Session, account_id: int) -> tuple[RadioConfig | None, Programa | None]:
@@ -313,6 +339,10 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
     acao, musica_query = classificar_intencao(config, programa_atual, texto_usuario)
     logger.info("Mensagem classificada: acao=%s config_id=%s telefone=%s", acao, config.id, telefone)
 
+    resposta_enviada = None
+    if config.resposta_automatica_whatsapp and account.wuzapi_token:
+        resposta_enviada = _gerar_e_enviar_resposta(account, config, programa_atual, telefone, texto_usuario)
+
     if acao in ("abraco", "musica"):
         db.add(
             FilaAoVivo(
@@ -332,8 +362,18 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
             texto_usuario,
             "fila_musica" if acao == "musica" else "fila_abraco",
             wuzapi_message_id=wuzapi_message_id,
+            resposta=resposta_enviada,
         )
         return {"status": "ok", "acao": acao}
 
-    _registrar_log(db, config, telefone, nome, texto_usuario, "guardado", wuzapi_message_id=wuzapi_message_id)
-    return {"status": "ok", "acao": "guardar"}
+    _registrar_log(
+        db,
+        config,
+        telefone,
+        nome,
+        texto_usuario,
+        "respondido_whatsapp" if resposta_enviada else "guardado",
+        wuzapi_message_id=wuzapi_message_id,
+        resposta=resposta_enviada,
+    )
+    return {"status": "ok", "acao": "respondido" if resposta_enviada else "guardar"}

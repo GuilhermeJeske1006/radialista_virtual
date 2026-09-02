@@ -196,7 +196,7 @@ export default function BillingPage() {
               limite={statusPlano.agentes_limite}
             />
             <BarraUso
-              rotulo="Mensagens este mês"
+              rotulo="Tokens do WhatsApp este mês"
               usado={statusPlano.mensagens_usadas}
               limite={statusPlano.mensagens_limite}
               className="mt-4"

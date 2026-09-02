@@ -10,9 +10,10 @@ from app.models.radio_config import RadioConfig
 from app.planos import limites_do_plano
 
 # Mensagem do ouvinte so consome cota do plano quando de fato vira resposta (entra na
-# fila do ao vivo pra virar abraco/pedido de musica). Mensagem bloqueada (horario, rate
-# limit, conteudo, plano) ou so registrada sem resposta ("guardado") nao conta.
-_STATUS_RESPONDIDA = ("fila_musica", "fila_abraco")
+# fila do ao vivo pra virar abraco/pedido de musica, ou recebe resposta automatica no
+# proprio WhatsApp). Mensagem bloqueada (horario, rate limit, conteudo, plano) ou so
+# registrada sem resposta ("guardado") nao conta.
+_STATUS_RESPONDIDA = ("fila_musica", "fila_abraco", "respondido_whatsapp")
 
 
 def mes_referencia_atual() -> str:

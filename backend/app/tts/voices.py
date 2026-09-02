@@ -47,6 +47,15 @@ def voz_valida(voz_id: str) -> bool:
     return voz_id in _VOZES_POR_ID
 
 
+def descricao_voz(voz_id: str | None) -> str | None:
+    """Descricao curta (genero + timbre) da voz do catalogo fixo, pra dar contexto ao LLM na
+    hora de gerar personalidade/programa coerente com a voz ja escolhida. Voz clonada (fora do
+    catalogo fixo) nao tem descricao aqui -- retorna None.
+    """
+    voz = _VOZES_POR_ID.get(voz_id or "")
+    return f"{voz['nome']}, voz {voz['genero']}, {voz['descricao']}" if voz else None
+
+
 def voz_valida_para_conta(db: Session, account_id: int, voz_id: str) -> bool:
     """Valida um voz_id do catalogo fixo OU uma voz clonada (app/models/voz_clonada.py)
     pertencente a essa conta -- clonagem de voz nao entra no catalogo global porque cada

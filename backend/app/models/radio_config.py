@@ -36,6 +36,8 @@ class RadioConfig(Base):
 
     ativo: Mapped[bool] = mapped_column(Boolean, default=True)
 
+    resposta_automatica_whatsapp: Mapped[bool] = mapped_column(Boolean, default=False)
+
     criado_em: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.datetime.now(datetime.timezone.utc)
     )

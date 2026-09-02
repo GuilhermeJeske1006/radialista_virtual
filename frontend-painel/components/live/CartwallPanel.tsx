@@ -8,11 +8,9 @@ import { LocufySpin } from "../LocufyLogo";
 type Props = {
   itens: BibliotecaAudioItem[];
   duckMusicaFundo: (baixo: boolean) => void;
-  programaAtivo: boolean;
-  onInserirNaTransmissao: (item: BibliotecaAudioItem) => void;
 };
 
-export default function CartwallPanel({ itens, duckMusicaFundo, programaAtivo, onInserirNaTransmissao }: Props) {
+export default function CartwallPanel({ itens, duckMusicaFundo }: Props) {
   const [tocandoId, setTocandoId] = useState<number | null>(null);
   const [carregandoId, setCarregandoId] = useState<number | null>(null);
   const [erro, setErro] = useState("");
@@ -28,18 +26,14 @@ export default function CartwallPanel({ itens, duckMusicaFundo, programaAtivo, o
   }
 
   async function tocar(item: BibliotecaAudioItem) {
-    // com a transmissao no ar, o clique vai direto pro ao vivo -- corta a fala/musica
-    // atual e poe esse audio no ar, em vez de so tocar por cima como no preview abaixo.
-    if (programaAtivo) {
-      onInserirNaTransmissao(item);
-      return;
-    }
-
     if (tocandoId === item.id) {
       pararTudo();
       return;
     }
-    // sem transmissao ativa: preview isolado, toca "por cima" sem afetar nada.
+    // Cartwall e' efeito solto (aplausos, buzina, vinheta curta) -- soma em cima do que
+    // ja esta no ar (fala ou musica), nunca substitui. Com transmissao ativa isso toca
+    // por cima da fala/musica em andamento (duckMusicaFundo baixa so a musica de fundo,
+    // a fala segue intacta); sem transmissao e' so o preview isolado do painel.
     if (audioAtualRef.current) audioAtualRef.current.pause();
 
     setErro("");

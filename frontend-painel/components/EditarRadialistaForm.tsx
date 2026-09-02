@@ -228,6 +228,15 @@ export default function EditarRadialistaForm({
               onChange={(e) => setConfig({ ...config, personalidade: e.target.value })}
             />
           </div>
+          <label className="inline-flex items-center gap-2 text-sm font-medium text-fg/80">
+            <input
+              type="checkbox"
+              checked={config.resposta_automatica_whatsapp}
+              onChange={(e) => setConfig({ ...config, resposta_automatica_whatsapp: e.target.checked })}
+              className="h-4 w-4 rounded border-border-strong bg-bg text-amber-text focus:ring-amber/40"
+            />
+            Responder automaticamente no WhatsApp
+          </label>
           <div className="pt-2">
             <button
               type="submit"

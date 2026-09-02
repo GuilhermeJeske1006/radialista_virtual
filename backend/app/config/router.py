@@ -29,6 +29,7 @@ class RadialistaRequest(BaseModel):
     personalidade: str = ""
     voz_id: str | None = None
     timezone: str = "America/Sao_Paulo"
+    resposta_automatica_whatsapp: bool = False
 
 
 class RadialistaResponse(RadialistaRequest):
@@ -120,6 +121,62 @@ class GerarConfiguracaoIARequest(BaseModel):
 class ConfiguracaoIAResponse(BaseModel):
     radialista: RadialistaResponse
     programa: ProgramaResponse
+
+
+def _resumo_horario(programa: Programa) -> dict:
+    """Horario + dias de um programa, resumidos pro contexto de geracao via IA -- sem isso a
+    IA nao tem como propor um horario que nao colida com o que ja existe (ver
+    _validar_conflito_horario), e a geracao acaba caindo em 409 na primeira tentativa quando o
+    horario "obvio" pro pedido do usuario ja esta ocupado."""
+    return {
+        "horario_inicio": programa.horario_inicio.strftime("%H:%M"),
+        "horario_fim": programa.horario_fim.strftime("%H:%M"),
+        "dias_semana": programa.dias_semana or [],
+    }
+
+
+def _montar_roster_existente(db: Session, account: Account) -> list[dict]:
+    """Radialistas + programas ja cadastrados na conta, resumidos pra dar contexto ao gerador
+    de IA e evitar que ele crie algo quase identico ao que ja existe (ver app.llm.config_generator)."""
+    linhas = (
+        db.query(RadioConfig, Programa)
+        .outerjoin(Programa, Programa.radio_config_id == RadioConfig.id)
+        .filter(RadioConfig.account_id == account.id)
+        .all()
+    )
+    roster: dict[int, dict] = {}
+    for radialista, programa in linhas:
+        entrada = roster.setdefault(
+            radialista.id,
+            {"nome_locutor": radialista.nome_locutor, "personalidade": radialista.personalidade, "programas": []},
+        )
+        if programa is not None:
+            entrada["programas"].append({"nome": programa.nome, "tom": programa.tom, **_resumo_horario(programa)})
+    return list(roster.values())
+
+
+def _montar_programas_existentes(db: Session, account: Account, radialista: RadioConfig) -> list[dict]:
+    """Todos os programas da CONTA (desse radialista e dos outros), resumidos pra dar contexto
+    ao gerador de programa avulso via IA. Nome/genero repetido so importa pros programas do
+    MESMO radialista, mas conflito de horario vale pra conta inteira -- so um programa toca por
+    vez na frequencia, entao _validar_conflito_horario rejeita sobreposicao mesmo entre
+    radialistas diferentes (ver app.llm.config_generator)."""
+    linhas = (
+        db.query(Programa, RadioConfig)
+        .join(RadioConfig, Programa.radio_config_id == RadioConfig.id)
+        .filter(RadioConfig.account_id == account.id)
+        .all()
+    )
+    return [
+        {
+            "nome": p.nome,
+            "tom": p.tom,
+            "generos_musicais": p.generos_musicais,
+            "mesmo_radialista": rc.id == radialista.id,
+            **_resumo_horario(p),
+        }
+        for p, rc in linhas
+    ]
 
 
 def _buscar_radialista(db: Session, account: Account, radialista_id: int) -> RadioConfig:
@@ -334,8 +391,15 @@ def gerar_radialista_ia(
         _validar_limite_agentes(db, account)
     _validar_limite_geracao_ia(account)
 
+    # roster inclui o proprio placeholder quando ele existe, mas _linha_roster_existente (no
+    # gerador) ja descarta entradas sem personalidade e sem programas, entao ele nao polui o
+    # contexto -- so os radialistas/programas ja configurados de verdade entram no prompt.
+    roster_existente = _montar_roster_existente(db, account)
+
     try:
-        dados_radialista, dados_programa = gerar_configuracao_ia(dados.descricao, account.tipo_radio)
+        dados_radialista, dados_programa = gerar_configuracao_ia(
+            dados.descricao, account.tipo_radio, account, roster_existente
+        )
         radialista_dados = RadialistaRequest(**dados_radialista)
         programa_dados = ProgramaRequest(**dados_programa)
     except (ValueError, ValidationError):
@@ -494,9 +558,17 @@ def gerar_programa_ia_endpoint(
     radialista = _buscar_radialista(db, account, radialista_id)
     _validar_limite_geracao_ia(account)
 
+    programas_existentes = _montar_programas_existentes(db, account, radialista)
+
     try:
         dados_programa = gerar_programa_ia(
-            dados.descricao, radialista.nome_locutor, radialista.personalidade, account.tipo_radio
+            dados.descricao,
+            radialista.nome_locutor,
+            radialista.personalidade,
+            account.tipo_radio,
+            account,
+            radialista.voz_id,
+            programas_existentes,
         )
         programa_dados = ProgramaRequest(**dados_programa)
     except (ValueError, ValidationError):

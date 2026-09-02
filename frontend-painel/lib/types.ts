@@ -5,6 +5,7 @@ export type Radialista = {
   personalidade: string;
   voz_id: string | null;
   timezone: string;
+  resposta_automatica_whatsapp: boolean;
 };
 
 export const RADIALISTA_VAZIO: Omit<Radialista, "id" | "ativo"> = {
@@ -12,6 +13,7 @@ export const RADIALISTA_VAZIO: Omit<Radialista, "id" | "ativo"> = {
   personalidade: "",
   voz_id: null,
   timezone: "America/Sao_Paulo",
+  resposta_automatica_whatsapp: false,
 };
 
 export type RadioPerfil = {

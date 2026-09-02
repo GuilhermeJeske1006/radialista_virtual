@@ -113,7 +113,7 @@ export default function AdminEmpresaDetalhePage() {
             <Campo rotulo="Cidade" valor={empresa.cidade || "—"} />
             <Campo rotulo="Tipo de rádio" valor={empresa.tipo_radio || "—"} />
             <Campo rotulo="Criada em" valor={formatarData(empresa.criado_em)} />
-            <Campo rotulo="Mensagens no mês" valor={String(empresa.mensagens_mes)} />
+            <Campo rotulo="Tokens do WhatsApp no mês" valor={String(empresa.mensagens_mes)} />
             <Campo rotulo="Agentes" valor={String(empresa.agentes)} />
             <Campo rotulo="Usuários ativos" valor={String(empresa.usuarios_ativos)} />
           </dl>

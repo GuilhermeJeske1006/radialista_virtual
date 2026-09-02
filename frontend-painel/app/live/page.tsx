@@ -129,8 +129,6 @@ export default function LivePage() {
             <CartwallPanel
               itens={bibliotecaItens.filter((i) => i.ativo)}
               duckMusicaFundo={engine.duckMusicaFundo}
-              programaAtivo={engine.programaAtivo}
-              onInserirNaTransmissao={engine.inserirNaTransmissao}
             />
             <InteracoesPanel
               radialistaId={engine.radialistaId}
