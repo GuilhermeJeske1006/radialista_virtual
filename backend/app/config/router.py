@@ -85,6 +85,7 @@ class ProgramaRequest(BaseModel):
     musicas_permitidas: list[str] = Field(default_factory=list)
     musicas_bloqueadas: list[str] = Field(default_factory=list)
     criterios_busca_musicas: str = ""
+    musica_fundo_escolhida: str = ""
 
     assuntos_ao_vivo: list[str] = Field(default_factory=list)
     tipos_noticias: list[str] = Field(default_factory=list)

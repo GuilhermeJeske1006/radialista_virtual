@@ -59,6 +59,10 @@ class Programa(Base):
         String,
         default="Priorizar musicas alinhadas ao perfil da radio, evitar letras explicitas e variar artistas.",
     )
+    # Titulo+artista (ex.: "Lofi Chill Beats - Instrumental") que o usuario escolheu como musica de
+    # fundo fixa, tocada em loop enquanto o locutor fala em vez do genero sorteado aleatoriamente
+    # (ver buscar_musica_fundo em app.live.music). Vazio = mantem o comportamento atual (sorteio).
+    musica_fundo_escolhida: Mapped[str] = mapped_column(String, default="")
 
     assuntos_ao_vivo: Mapped[list[str]] = mapped_column(JSON, default=list)
     tipos_noticias: Mapped[list[str]] = mapped_column(JSON, default=list)

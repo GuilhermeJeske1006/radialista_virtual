@@ -547,9 +547,17 @@ def buscar_musica(
     return None
 
 
-def buscar_musica_fundo(generos_musicais: list[str], bloqueados: list[str] | None = None) -> MusicaEncontrada | None:
-    """Musica instrumental pra tocar em loop, baixinho, enquanto o locutor fala (sem vazio entre falas)."""
-    if generos_musicais:
+def buscar_musica_fundo(
+    generos_musicais: list[str], bloqueados: list[str] | None = None, musica_escolhida: str | None = None
+) -> MusicaEncontrada | None:
+    """Musica instrumental pra tocar em loop, baixinho, enquanto o locutor fala (sem vazio entre falas).
+
+    musica_escolhida (opcional) e' a faixa especifica que o usuario escolheu pra fundo (ver
+    Programa.musica_fundo_escolhida) -- usada como query exata em vez do sorteio por genero.
+    """
+    if musica_escolhida:
+        query = musica_escolhida
+    elif generos_musicais:
         query = f"{random.choice(generos_musicais)} instrumental radio fundo"
     else:
         query = "musica instrumental radio fundo"

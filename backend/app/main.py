@@ -228,6 +228,7 @@ _COLUNAS_CONTEUDO_PROGRAMA = {
     "musicas_permitidas": "JSON DEFAULT '[]' NOT NULL",
     "musicas_bloqueadas": "JSON DEFAULT '[]' NOT NULL",
     "criterios_busca_musicas": "VARCHAR DEFAULT '' NOT NULL",
+    "musica_fundo_escolhida": "VARCHAR DEFAULT '' NOT NULL",
     "assuntos_ao_vivo": "JSON DEFAULT '[]' NOT NULL",
     "tipos_noticias": "JSON DEFAULT '[]' NOT NULL",
     "fontes_noticias": "JSON DEFAULT '[]' NOT NULL",

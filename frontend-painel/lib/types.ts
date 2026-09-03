@@ -89,6 +89,7 @@ export type Programa = {
   musicas_permitidas: string[];
   musicas_bloqueadas: string[];
   criterios_busca_musicas: string;
+  musica_fundo_escolhida: string;
 
   assuntos_ao_vivo: string[];
   tipos_noticias: string[];
@@ -123,6 +124,7 @@ export const PROGRAMA_VAZIO: Omit<Programa, "id" | "radio_config_id"> = {
   musicas_bloqueadas: [],
   criterios_busca_musicas:
     "Priorizar musicas alinhadas ao perfil da radio, evitar letras explicitas e variar artistas.",
+  musica_fundo_escolhida: "",
 
   assuntos_ao_vivo: [],
   tipos_noticias: [],

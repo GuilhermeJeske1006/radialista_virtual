@@ -1260,7 +1260,11 @@ def buscar_musica_de_fundo(
     radialista = _buscar_radialista(db, account, radialista_id)
     programa = _buscar_programa(db, radialista, programa_id)
 
-    musica = buscar_musica_fundo(programa.generos_musicais, bloqueados=programa.musicas_bloqueadas)
+    musica = buscar_musica_fundo(
+        programa.generos_musicais,
+        bloqueados=programa.musicas_bloqueadas,
+        musica_escolhida=programa.musica_fundo_escolhida or None,
+    )
     if musica is None:
         logger.warning("Nenhuma musica de fundo encontrada: programa_id=%s", programa.id)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nenhuma musica de fundo encontrada")

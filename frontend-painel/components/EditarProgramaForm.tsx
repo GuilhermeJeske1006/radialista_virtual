@@ -550,6 +550,16 @@ export default function EditarProgramaForm({
                 onChange={(e) => setPrograma({ ...programa, criterios_busca_musicas: e.target.value })}
               />
             </div>
+            <div>
+              <label className={labelClass}>Música de fundo (enquanto o locutor fala)</label>
+              <input
+                type="text"
+                className={inputClass}
+                placeholder="Ex.: Lofi Chill Beats - Instrumental. Vazio = sorteia pelo gênero"
+                value={programa.musica_fundo_escolhida}
+                onChange={(e) => setPrograma({ ...programa, musica_fundo_escolhida: e.target.value })}
+              />
+            </div>
           </div>
         </details>
 
