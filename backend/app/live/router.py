@@ -17,6 +17,7 @@ from app.config.redis_client import redis_client
 from app.db.database import get_db
 from app.guardrails.schedule import encontrar_programa_atual, minutos_restantes
 from app.live.music import MusicaEncontrada, _titulo_normalizado, buscar_musica, buscar_musica_fundo
+from app.live.song_service import dividir_artista_titulo, resolver_musica_catalogada
 from app.llm.client import (
     classificar_categoria_bloco,
     classificar_tema_fala,
@@ -61,6 +62,11 @@ class LiveTtsRequest(BaseModel):
     # Nome de um perfil em app/postprod/perfis/*.json (ex.: "alfa_fm"). Nulo = devolve o
     # mp3 cru da ElevenLabs, sem pos-producao (comportamento atual, preservado por default).
     perfil_pos_producao: str | None = None
+    # Texto da fala anterior (mesmo locutor, bloco ou linha de dialogo imediatamente antes desta),
+    # repassado pra ElevenLabs como previous_text (ver app.tts.client.sintetizar_audio) -- sem isso
+    # cada fala e' sintetizada isolada, sem contexto do que veio antes, e a entonacao de
+    # inicio/fim de frase sai cortada/artificial em vez de continuar o fluxo da conversa.
+    texto_anterior: str | None = None
 
 
 class MusicaBlocoItem(BaseModel):
@@ -598,17 +604,46 @@ def _pedidos_publico_mais_frequentes(db: Session, programa_id: int) -> list[tupl
     return list(linhas)
 
 
-def _escolher_query_musica(db: Session, programa: Programa) -> tuple[str, str | None]:
+def _escolher_query_musica(
+    db: Session,
+    programa: Programa,
+    ids_tocadas: set[str] | None = None,
+    titulos_tocados: set[str] | None = None,
+    canais_tocados: dict[str, int] | None = None,
+) -> tuple[str, str | None, MusicaEncontrada | None]:
     """Escolhe a query de busca pra um bloco de musica sem rotulo de genero proprio.
 
     Combina curadoria do admin (musicas_permitidas, pesada pela posicao -- primeiro item da
     lista conta mais) com o que o publico mais pediu de verdade pelo WhatsApp (ver
     _pedidos_publico_mais_frequentes), numa escolha ponderada. So cai pro genero generico da
     radio quando nenhum dos dois tem dado nenhum; e so cai pra instrumental generico quando a
-    radio nao configurou genero nenhum. Devolve (query, genero_pra_filtrar) -- genero so vem
-    preenchido na queda pro genero generico, porque musica_permitida/pedido do publico ja e'
-    uma query especifica o suficiente (nome de musica/artista), nao precisa de filtro extra.
+    radio nao configurou genero nenhum. Devolve (query, genero_pra_filtrar, musica_catalogada)
+    -- genero so vem preenchido na queda pro genero generico, porque musica_permitida/pedido do
+    publico ja e' uma query especifica o suficiente (nome de musica/artista), nao precisa de
+    filtro extra. musica_catalogada vem preenchida quando a sugestao da LLM ja bate com uma
+    Musica catalogada (ver app.live.song_service) com youtube_video_id resolvido -- caller usa
+    ela direto em vez de repetir a busca no YouTube pra query que so' muda de texto.
     """
+    def _via_catalogo(texto: str) -> MusicaEncontrada | None:
+        """Se `texto` vier no formato 'Artista - Titulo', tenta reaproveitar/registrar no
+        catalogo persistente (ver app.live.song_service) -- vale tanto pra sugestao da LLM
+        quanto pra entrada de musicas_permitidas ja escrita nesse formato pelo admin. Texto que
+        nao bate o formato (nome solto, pedido de ouvinte em linguagem livre) devolve None sem
+        custo extra, e o caller usa `texto` como query livre, igual antes."""
+        parsed = dividir_artista_titulo(texto)
+        if parsed is None:
+            return None
+        artista, titulo = parsed
+        return resolver_musica_catalogada(
+            db,
+            titulo,
+            artista,
+            bloqueados=programa.musicas_bloqueadas,
+            evitar_video_ids=ids_tocadas,
+            titulos_tocados=titulos_tocados,
+            canais_recentes=canais_tocados,
+        )
+
     candidatos: list[str] = []
     pesos: list[float] = []
 
@@ -622,7 +657,8 @@ def _escolher_query_musica(db: Session, programa: Programa) -> tuple[str, str | 
         pesos.append(contagem * _PESO_PEDIDO_PUBLICO)
 
     if candidatos:
-        return random.choices(candidatos, weights=pesos, k=1)[0], None
+        escolhido = random.choices(candidatos, weights=pesos, k=1)[0]
+        return escolhido, None, _via_catalogo(escolhido)
 
     if programa.generos_musicais:
         genero = random.choice(programa.generos_musicais)
@@ -632,10 +668,10 @@ def _escolher_query_musica(db: Session, programa: Programa) -> tuple[str, str | 
         # Sem genero_filtro aqui: sugestao ja e' especifica o suficiente, igual musica_permitida.
         sugestao = sugerir_musica_do_genero(genero)
         if sugestao:
-            return sugestao, None
-        return f"{genero} musica", genero
+            return sugestao, None, _via_catalogo(sugestao)
+        return f"{genero} musica", genero, None
 
-    return "musica instrumental", None
+    return "musica instrumental", None, None
 
 
 def _normalizar_query_musica(texto: str) -> str:
@@ -648,6 +684,7 @@ def _registrar_historico_persistente(
     db.add(
         MusicaHistorico(
             programa_id=programa_id,
+            song_id=musica.musica_catalogada_id,
             video_id=musica.video_id,
             titulo=musica.titulo,
             canal=musica.canal,
@@ -762,28 +799,33 @@ def _buscar_musica_para_bloco(
     db: Session, programa: Programa, rotulo_bloco: str | None = None
 ) -> MusicaEncontrada | None:
     genero_bloco = _genero_do_rotulo(rotulo_bloco) if rotulo_bloco else ""
-    if genero_bloco and _sem_acento(genero_bloco.lower()) != "musica":
-        # rotulo do bloco customizado carrega o proprio genero/estilo (ex.: "Vaneira", "Xote")
-        # -- tem prioridade sobre a curadoria generica da radio (e' o sinal mais especifico pra
-        # este bloco), e o proprio genero vira filtro de busca (ver genero= em buscar_musica)
-        # pra nao deixar o YouTube derivar pra um genero vizinho (xote virando chamame).
-        query, genero_filtro = f"{genero_bloco} musica", genero_bloco
-    else:
-        query, genero_filtro = _escolher_query_musica(db, programa)
 
     ids_tocadas, titulos_tocados, canais_tocados = _historico_musicas(programa.id)
     ids_radio, titulos_radio = _musicas_recentes_da_radio(db, programa.radio_config_id)
     ids_tocadas |= ids_radio
     titulos_tocados |= titulos_radio
-    musica = buscar_musica(
-        query,
-        genero=genero_filtro,
-        bloqueados=programa.musicas_bloqueadas,
-        evitar_video_ids=ids_tocadas,
-        titulos_tocados=titulos_tocados,
-        canais_recentes=canais_tocados,
-        preferir_cantada=True,
-    )
+
+    if genero_bloco and _sem_acento(genero_bloco.lower()) != "musica":
+        # rotulo do bloco customizado carrega o proprio genero/estilo (ex.: "Vaneira", "Xote")
+        # -- tem prioridade sobre a curadoria generica da radio (e' o sinal mais especifico pra
+        # este bloco), e o proprio genero vira filtro de busca (ver genero= em buscar_musica)
+        # pra nao deixar o YouTube derivar pra um genero vizinho (xote virando chamame).
+        query, genero_filtro, musica = f"{genero_bloco} musica", genero_bloco, None
+    else:
+        query, genero_filtro, musica = _escolher_query_musica(db, programa, ids_tocadas, titulos_tocados, canais_tocados)
+
+    if musica is None:
+        # musica so' vem preenchida aqui quando _escolher_query_musica ja resolveu via catalogo
+        # (ver app.live.song_service) -- do contrario, busca no YouTube como sempre.
+        musica = buscar_musica(
+            query,
+            genero=genero_filtro,
+            bloqueados=programa.musicas_bloqueadas,
+            evitar_video_ids=ids_tocadas,
+            titulos_tocados=titulos_tocados,
+            canais_recentes=canais_tocados,
+            preferir_cantada=True,
+        )
     if musica is None and query.strip().lower() != "musica instrumental":
         # query especifica (curadoria do admin, pedido do publico ou genero/rotulo do bloco) nao
         # achou nada -- sem isso, o locutor recebia instrucao pra anunciar um genero/artista
@@ -1252,7 +1294,14 @@ def gerar_audio_fala(
 
     tom = classificar_tom_fala(dados.texto, dados.tipo)
     eh_clonada = bool(voz_id) and not voz_valida(voz_id)
-    audio = sintetizar_audio(dados.texto, voz_id, tipo_bloco=dados.tipo, tom=tom, eh_clonada=eh_clonada)
+    audio = sintetizar_audio(
+        dados.texto,
+        voz_id,
+        tipo_bloco=dados.tipo,
+        tom=tom,
+        eh_clonada=eh_clonada,
+        texto_anterior=dados.texto_anterior,
+    )
 
     if dados.perfil_pos_producao:
         try:

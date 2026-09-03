@@ -12,6 +12,19 @@ MODEL = "claude-opus-5"
 CLASSIFICATION_MODEL = "claude-haiku-4-5"
 
 
+def _cortar_ate_ultima_frase(texto: str) -> str:
+    """Apara um texto truncado (stop_reason=max_tokens) ate' o ultimo '.'/'!'/'?' completo.
+
+    Sem isso, uma fala cortada no meio da frase vai pro TTS sem pontuacao final -- o
+    sintetizador nao sabe que aquilo devia ser o fim de um enunciado e a entonacao sai
+    errada/cortada bem no ponto que devia soar mais natural.
+    """
+    idx = max(texto.rfind("."), texto.rfind("!"), texto.rfind("?"))
+    if idx == -1:
+        return texto.strip()
+    return texto[: idx + 1].strip()
+
+
 def gerar_resposta(system_prompt: str, mensagem_usuario: str) -> str:
     response = _client.messages.create(
         model=MODEL,
@@ -28,7 +41,11 @@ def gerar_resposta(system_prompt: str, mensagem_usuario: str) -> str:
 
     for block in response.content:
         if block.type == "text":
-            return block.text
+            texto = block.text
+            if response.stop_reason == "max_tokens":
+                logger.warning("LLM truncou resposta por max_tokens, aparando ate ultima frase completa")
+                texto = _cortar_ate_ultima_frase(texto)
+            return texto
 
     return "Desculpa, nao consegui gerar uma resposta agora. Tenta de novo em instantes."
 

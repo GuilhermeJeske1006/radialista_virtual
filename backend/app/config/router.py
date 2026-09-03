@@ -13,9 +13,11 @@ from app.llm.tipos_radio import TIPOS_RADIO, tipo_radio_valido
 from app.models.account import Account
 from app.models.fila_ao_vivo import FilaAoVivo
 from app.models.interaction_log import InteractionLog
+from app.models.musica_historico import MusicaHistorico
 from app.models.programa import Programa
 from app.models.programa_radialista import ProgramaRadialista
 from app.models.radio_config import RadioConfig
+from app.models.tema_historico import TemaHistorico
 from app.billing.limites import limite_agentes_efetivo, limite_radialistas_por_programa
 from app.tts.voices import voz_valida_para_conta
 
@@ -620,6 +622,8 @@ def excluir_programa(
 ):
     programa = _buscar_programa(db, account, programa_id)
     db.query(ProgramaRadialista).filter_by(programa_id=programa.id).delete()
+    db.query(MusicaHistorico).filter_by(programa_id=programa.id).delete()
+    db.query(TemaHistorico).filter_by(programa_id=programa.id).delete()
     db.delete(programa)
     db.commit()
     logger.info("Programa excluido: id=%s account_id=%s", programa_id, account.id)

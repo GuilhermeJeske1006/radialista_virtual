@@ -65,17 +65,23 @@ _TAG_POR_TOM = {
     "calmo": "[calm]",
 }
 
-# similarity_boost/use_speaker_boost nao sao suportados pelo eleven_v3.
+# similarity_boost/use_speaker_boost nao sao suportados pelo eleven_v3 -- _construir_voice_settings
+# remove essas chaves do payload quando o modelo e' v3, pra voz do catalogo e pra voz clonada.
 _CHAVES_INDISPONIVEIS_V3 = {"similarity_boost", "use_speaker_boost"}
 
-# Voz clonada (Instant Voice Cloning, ver clonar_voz) precisa de similarity_boost alto pra soar
-# parecida com quem gravou a amostra -- eleven_v3 nao suporta esse parametro (ver
-# _CHAVES_INDISPONIVEIS_V3 acima), entao pra voz clonada a sintese cai pro multilingual_v2 (que
-# suporta), mesmo com elevenlabs_model=eleven_v3 configurado pro catalogo. Sem isso a voz clonada
-# sai com o similarity_boost padrao da ElevenLabs em vez do trinado pra fidelidade, ficando
-# perceptivelmente diferente da voz original.
-_MODEL_FALLBACK_CLONE = "eleven_multilingual_v2"
-_SIMILARITY_BOOST_CLONE = 0.95
+# Voz clonada (Instant Voice Cloning, ver clonar_voz) usava similarity_boost alto + fallback forcado
+# pro multilingual_v2 (que suporta esse parametro) pra soar mais parecida com a amostra -- mas o v2 e'
+# mais literal/robotico que o v3, sobretudo na entonacao de pontuacao e terminacao de frase, o que
+# virou reclamacao maior que a perda de fidelidade. Voz clonada roda no mesmo modelo configurado pro
+# catalogo (ver settings.elevenlabs_model) desde entao; sem similarity_boost/use_speaker_boost quando
+# esse modelo for v3 (removidos como qualquer outra voz, ver _CHAVES_INDISPONIVEIS_V3 acima).
+_SIMILARITY_BOOST_CLONE = 0.8
+
+# Empiricamente a voz clonada ainda sai um pouco mais rapida/menos estavel que uma voz de catalogo
+# com os mesmos multiplicadores de tipo de bloco/tom -- ajuste fino pra compensar, aplicado antes do
+# clamp em _construir_voice_settings. Reavaliar por audicao se o modelo do catalogo mudar.
+_AJUSTE_SPEED_CLONADA = -0.08
+_AJUSTE_CLONADA = {"stability": 0.1, "style": -0.15}
 
 
 def tts_habilitado(voice_id: str | None = None) -> bool:
@@ -104,6 +110,11 @@ def _construir_voice_settings(tipo_bloco: str | None, tom: str | None, modelo: s
     for chave, delta in _AJUSTE_TOM.get(tom or "", {}).items():
         voice_settings[chave] = voice_settings[chave] + delta
 
+    if eh_clonada:
+        voice_settings["speed"] = voice_settings["speed"] + _AJUSTE_SPEED_CLONADA
+        for chave, delta in _AJUSTE_CLONADA.items():
+            voice_settings[chave] = voice_settings[chave] + delta
+
     voice_settings["stability"] = max(0.0, min(1.0, voice_settings["stability"]))
     voice_settings["style"] = max(0.0, min(1.0, voice_settings["style"]))
     voice_settings["speed"] = max(0.7, min(1.2, voice_settings["speed"]))
@@ -123,12 +134,19 @@ def sintetizar_audio(
     tipo_bloco: str | None = None,
     tom: str | None = None,
     eh_clonada: bool = False,
+    texto_anterior: str | None = None,
 ) -> bytes:
     """Gera audio (mp3) a partir de texto via ElevenLabs. Lanca httpx.HTTPStatusError em falha.
 
     eh_clonada indica se voice_id e' uma voz clonada da conta (app.models.voz_clonada.VozClonada,
-    ver app.tts.voices.voz_valida_para_conta) em vez de uma voz do catalogo fixo -- afeta o modelo
-    e o similarity_boost usados (ver _MODEL_FALLBACK_CLONE acima).
+    ver app.tts.voices.voz_valida_para_conta) em vez de uma voz do catalogo fixo -- afeta o
+    similarity_boost e os ajustes finos de prosodia usados (ver _SIMILARITY_BOOST_CLONE acima).
+
+    texto_anterior e' o texto da fala imediatamente anterior (mesmo locutor), repassado como
+    previous_text pra ElevenLabs manter a prosodia contigua entre chamadas -- cada bloco/linha do
+    programa ao vivo e' uma chamada de API isolada, sem isso o modelo trata toda fala como um
+    enunciado novo e solto, sem saber que continua uma conversa, o que sai como entonacao de
+    inicio/fim de frase mais artificial/cortada.
     """
     url = _ELEVENLABS_URL.format(voice_id=voice_id or settings.elevenlabs_voice_id)
     headers = {
@@ -136,8 +154,6 @@ def sintetizar_audio(
         "Content-Type": "application/json",
     }
     modelo = settings.elevenlabs_model
-    if eh_clonada and modelo == "eleven_v3":
-        modelo = _MODEL_FALLBACK_CLONE
     voice_settings = _construir_voice_settings(tipo_bloco, tom, modelo, eh_clonada)
 
     texto_tts = texto
@@ -152,6 +168,8 @@ def sintetizar_audio(
         "voice_settings": voice_settings,
         "language_code": _LANGUAGE_CODE,
     }
+    if texto_anterior:
+        payload["previous_text"] = texto_anterior
 
     with httpx.Client(timeout=30.0) as client:
         for tentativa in range(1, _TTS_MAX_TENTATIVAS + 1):

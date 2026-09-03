@@ -8,6 +8,7 @@ from app.live.music import MusicaEncontrada
 from app.live.router import _escolher_query_musica, _registrar_historico_persistente
 from app.models.biblioteca_audio import BibliotecaAudioItem
 from app.models.fila_ao_vivo import FilaAoVivo
+from app.models.musica import Musica
 from app.models.musica_historico import MusicaHistorico
 from app.models.patrocinador import Patrocinador
 from app.models.programa import Programa
@@ -309,7 +310,7 @@ def test_tts_endpoint_com_sucesso(client, account, auth_headers, radialista_e_pr
     monkeypatch.setattr("app.live.router.tts_habilitado", lambda voz_id=None: True)
     monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "neutro")
     monkeypatch.setattr(
-        "app.live.router.sintetizar_audio", lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False: b"audio-bytes"
+        "app.live.router.sintetizar_audio", lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: b"audio-bytes"
     )
 
     resposta = client.post(
@@ -334,7 +335,7 @@ def test_tts_endpoint_com_perfil_pos_producao(client, account, auth_headers, rad
     monkeypatch.setattr("app.live.router.tts_habilitado", lambda voz_id=None: True)
     monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "neutro")
     monkeypatch.setattr(
-        "app.live.router.sintetizar_audio", lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False: b"audio-cru"
+        "app.live.router.sintetizar_audio", lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: b"audio-cru"
     )
     monkeypatch.setattr(
         "app.live.router.processar_audio",
@@ -357,7 +358,7 @@ def test_tts_endpoint_com_perfil_pos_producao_invalido_400(
     monkeypatch.setattr("app.live.router.tts_habilitado", lambda voz_id=None: True)
     monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "neutro")
     monkeypatch.setattr(
-        "app.live.router.sintetizar_audio", lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False: b"audio-cru"
+        "app.live.router.sintetizar_audio", lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: b"audio-cru"
     )
 
     resposta = client.post(
@@ -679,9 +680,10 @@ def test_escolher_query_musica_pondera_posicao_admin_e_pedidos_publico(
 
     monkeypatch.setattr("app.live.router.random.choices", _fake_choices)
 
-    query, genero = _escolher_query_musica(db_session, programa)
+    query, genero, musica_catalogada = _escolher_query_musica(db_session, programa)
 
     assert genero is None
+    assert musica_catalogada is None
     assert "Musica A" in capturado["population"]
     assert "Musica B" in capturado["population"]
     assert "sofrencia pedida" in capturado["population"]
@@ -697,9 +699,102 @@ def test_escolher_query_musica_sem_curadoria_cai_pro_genero_da_radio(db_session,
     programa.generos_musicais = ["Sertanejo"]
     db_session.commit()
 
-    query, genero = _escolher_query_musica(db_session, programa)
+    query, genero, musica_catalogada = _escolher_query_musica(db_session, programa)
     assert genero == "Sertanejo"
     assert query == "Sertanejo musica"
+    assert musica_catalogada is None
+
+
+def test_escolher_query_musica_sugestao_llm_cataloga_e_reutiliza_youtube(
+    db_session, radialista_e_programa, monkeypatch
+):
+    """Sugestao da LLM no formato 'Artista - Musica' (ver dividir_artista_titulo em
+    app.live.song_service) e' catalogada na 1a chamada e persiste o youtube_video_id
+    resolvido; numa 2a chamada, o catalogo evita repetir a busca no YouTube."""
+    _, programa = radialista_e_programa
+    programa.musicas_permitidas = []
+    programa.generos_musicais = ["Sertanejo"]
+    db_session.commit()
+
+    monkeypatch.setattr("app.live.router.sugerir_musica_do_genero", lambda genero: "Jorge & Mateus - Propaganda")
+    monkeypatch.setattr("app.live.song_service.obter_fim_seguro", lambda video_id, duracao: None)
+
+    chamadas = []
+
+    def _fake_buscar_musica(query, **kwargs):
+        chamadas.append(query)
+        return MusicaEncontrada(video_id="abc123", titulo="Propaganda", canal="Jorge e Mateus Oficial", duracao_segundos=200)
+
+    monkeypatch.setattr("app.live.song_service.buscar_musica", _fake_buscar_musica)
+
+    query1, genero1, musica1 = _escolher_query_musica(db_session, programa, set(), set(), {})
+    assert genero1 is None
+    assert musica1 is not None
+    assert musica1.video_id == "abc123"
+    assert musica1.musica_catalogada_id is not None
+    assert len(chamadas) == 1
+    assert db_session.query(Musica).count() == 1
+
+    _registrar_historico_persistente(db_session, programa.id, musica1, query1, origem="auto")
+    historico = db_session.query(MusicaHistorico).filter_by(programa_id=programa.id).one()
+    assert historico.song_id == musica1.musica_catalogada_id
+
+    query2, genero2, musica2 = _escolher_query_musica(db_session, programa, set(), set(), {})
+    assert musica2 is not None
+    assert musica2.video_id == "abc123"
+    assert len(chamadas) == 1  # nao repetiu a busca no YouTube
+    assert db_session.query(Musica).count() == 1  # nao duplicou a Musica catalogada
+
+    # ja tocada nesta sessao -- catalogo devolve None em vez de reaproveitar de novo.
+    query3, genero3, musica3 = _escolher_query_musica(db_session, programa, {"abc123"}, set(), {})
+    assert musica3 is None
+    assert len(chamadas) == 1
+
+
+def test_escolher_query_musica_curadoria_no_formato_artista_titulo_usa_catalogo(
+    db_session, radialista_e_programa, monkeypatch
+):
+    """musicas_permitidas e' texto livre digitado pelo admin -- quando o admin ja escreveu no
+    formato 'Artista - Titulo', a entrada tambem passa pelo catalogo persistente (mesma logica
+    da sugestao da LLM), sem exigir mudanca na tela de configuracao nem no formato salvo."""
+    _, programa = radialista_e_programa
+    programa.musicas_permitidas = ["Jorge & Mateus - Propaganda"]
+    db_session.commit()
+
+    monkeypatch.setattr("app.live.song_service.obter_fim_seguro", lambda video_id, duracao: None)
+
+    chamadas = []
+    monkeypatch.setattr(
+        "app.live.song_service.buscar_musica",
+        lambda query, **kwargs: chamadas.append(query)
+        or MusicaEncontrada(video_id="xyz789", titulo="Propaganda", canal="Jorge e Mateus Oficial"),
+    )
+
+    query1, genero1, musica1 = _escolher_query_musica(db_session, programa, set(), set(), {})
+    assert genero1 is None
+    assert musica1 is not None
+    assert musica1.video_id == "xyz789"
+    assert len(chamadas) == 1
+
+    query2, genero2, musica2 = _escolher_query_musica(db_session, programa, set(), set(), {})
+    assert musica2 is not None
+    assert musica2.video_id == "xyz789"
+    assert len(chamadas) == 1  # nao repetiu a busca no YouTube
+
+
+def test_escolher_query_musica_curadoria_texto_livre_ignora_catalogo(
+    db_session, radialista_e_programa
+):
+    """Entrada de musicas_permitidas sem o formato 'Artista - Titulo' (texto livre comum)
+    continua caindo direto pra busca por query, sem tentar catalogar."""
+    _, programa = radialista_e_programa
+    programa.musicas_permitidas = ["Alguma Musica Generica Da Radio"]
+    db_session.commit()
+
+    query, genero, musica_catalogada = _escolher_query_musica(db_session, programa, set(), set(), {})
+    assert query == "Alguma Musica Generica Da Radio"
+    assert musica_catalogada is None
+    assert db_session.query(Musica).count() == 0
 
 
 @freeze_time(AGORA_UTC)

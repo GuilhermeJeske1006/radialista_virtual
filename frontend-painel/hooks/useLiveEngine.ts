@@ -595,12 +595,21 @@ export function useLiveEngine() {
     // dialogo multi-voz (mais de um radialista no programa): busca um audio por linha,
     // cada uma com a voz do radialista que falou -- em vez de um audio unico pro bloco.
     if (segmento.falas && segmento.falas.length > 0 && radialistaIdRef.current) {
+      // previous_text pra ElevenLabs (ver texto_anterior em LiveTtsRequest): dentro de um dialogo
+      // multi-voz, cada linha continua a linha anterior do mesmo bloco; a primeira linha continua
+      // a ultima fala do bloco anterior (falasProgramaRef, mais recente primeiro).
       const audiosFalas = await Promise.all(
-        segmento.falas.map(async (linha): Promise<AudioFala> => {
+        segmento.falas.map(async (linha, indice): Promise<AudioFala> => {
+          const textoAnterior = indice > 0 ? segmento.falas![indice - 1].texto : falasProgramaRef.current[0]?.fala ?? null;
           try {
             const blob = await apiFetchBlob(`/live/${radialistaIdRef.current}/tts`, {
               method: "POST",
-              body: JSON.stringify({ texto: linha.texto, tipo: segmento.tipo, voz_id: linha.voz_id }),
+              body: JSON.stringify({
+                texto: linha.texto,
+                tipo: segmento.tipo,
+                voz_id: linha.voz_id,
+                texto_anterior: textoAnterior,
+              }),
             });
             return { url: URL.createObjectURL(blob), blob };
           } catch {
@@ -627,6 +636,7 @@ export function useLiveEngine() {
                   texto: segmento.fala,
                   tipo: segmento.tipo,
                   voz_id: segmento.patrocinador_voz_id ?? null,
+                  texto_anterior: falasProgramaRef.current[0]?.fala ?? null,
                 }),
               });
       audioUrl = URL.createObjectURL(audioBlob);

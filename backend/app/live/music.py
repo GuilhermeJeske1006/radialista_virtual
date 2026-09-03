@@ -79,6 +79,13 @@ class MusicaEncontrada:
     # descartada; guardada aqui pra caller (ver MusicaBlocoItem em app.live.router) saber
     # quanto tempo a musica realmente dura, em vez de nao ter dado nenhum.
     duracao_segundos: int | None = None
+    # Id da Musica catalogada (ver app.live.song_service) que originou este resultado -- so'
+    # preenchido quando a musica veio do catalogo persistente (sugestao da LLM), nao quando
+    # buscar_musica e' chamado direto (musica_permitida texto livre, pedido_ouvinte, genero de
+    # bloco customizado). Usado so' pra registrar song_id em MusicaHistorico (ver
+    # _registrar_historico_persistente em app.live.router); nunca influencia a busca/filtro
+    # em si.
+    musica_catalogada_id: int | None = None
 
 
 TERMOS_AO_VIVO = [

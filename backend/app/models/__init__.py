@@ -5,6 +5,7 @@ from app.models.compra_excedente import CompraExcedente
 from app.models.convite_usuario import ConviteUsuario
 from app.models.fila_ao_vivo import FilaAoVivo
 from app.models.interaction_log import InteractionLog
+from app.models.musica import Musica
 from app.models.musica_historico import MusicaHistorico
 from app.models.notificacao import Notificacao
 from app.models.password_reset_token import PasswordResetToken
@@ -23,6 +24,7 @@ __all__ = [
     "ConviteUsuario",
     "RadioConfig",
     "InteractionLog",
+    "Musica",
     "MusicaHistorico",
     "Notificacao",
     "FilaAoVivo",

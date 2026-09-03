@@ -28,6 +28,7 @@ from app.models import (  # noqa: F401 -- garante que as tabelas sejam registrad
     ConviteUsuario,
     FilaAoVivo,
     InteractionLog,
+    Musica,
     MusicaHistorico,
     Notificacao,
     PasswordResetToken,
@@ -125,6 +126,7 @@ async def criar_tabelas():
     garantir_colunas_account()
     garantir_colunas_programa()
     garantir_colunas_interaction_log()
+    garantir_colunas_musica_historico()
     garantir_colunas_patrocinador()
     garantir_colunas_categoria_vinheta()
     corrigir_tipo_categoria_vinheta_legado()
@@ -249,6 +251,18 @@ def garantir_colunas_interaction_log():
         for nome, definicao in novas_colunas.items():
             if nome not in colunas:
                 conn.execute(text(f"ALTER TABLE interaction_logs ADD COLUMN {nome} {definicao}"))
+
+
+def garantir_colunas_musica_historico():
+    inspector = inspect(engine)
+    if "musica_historico" not in inspector.get_table_names():
+        return
+
+    colunas = {coluna["name"] for coluna in inspector.get_columns("musica_historico")}
+    with engine.begin() as conn:
+        if "song_id" not in colunas:
+            conn.execute(text("ALTER TABLE musica_historico ADD COLUMN song_id INTEGER NULL"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_musica_historico_song_id ON musica_historico (song_id)"))
 
 
 def garantir_colunas_patrocinador():

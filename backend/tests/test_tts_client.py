@@ -90,7 +90,7 @@ def test_construir_voice_settings_v3_remove_similarity_mesmo_clonada():
     assert "use_speaker_boost" not in resultado
 
 
-def test_sintetizar_audio_clonada_com_v3_cai_pro_multilingual_v2(monkeypatch):
+def test_sintetizar_audio_clonada_usa_mesmo_modelo_do_catalogo(monkeypatch):
     _habilitar_elevenlabs(monkeypatch)
     monkeypatch.setattr(tts_client.settings, "elevenlabs_model", "eleven_v3")
     fake = _FakeClient([_FakeResponse(status_code=200, content=b"mp3-data")])
@@ -98,8 +98,8 @@ def test_sintetizar_audio_clonada_com_v3_cai_pro_multilingual_v2(monkeypatch):
 
     tts_client.sintetizar_audio("ola", eh_clonada=True)
     payload = fake.chamadas[0][2]["json"]
-    assert payload["model_id"] == tts_client._MODEL_FALLBACK_CLONE
-    assert payload["voice_settings"]["similarity_boost"] == tts_client._SIMILARITY_BOOST_CLONE
+    assert payload["model_id"] == "eleven_v3"
+    assert "similarity_boost" not in payload["voice_settings"]
 
 
 def test_sintetizar_audio_devolve_bytes(monkeypatch):
