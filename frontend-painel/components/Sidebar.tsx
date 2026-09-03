@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactElement } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { apiFetch } from "../lib/api";
@@ -212,6 +213,109 @@ function NavLink({
   );
 }
 
+function ContaMenu({
+  nome,
+  email,
+  colapsada,
+  pathname,
+  onSair,
+}: {
+  nome: string | undefined;
+  email: string | undefined;
+  colapsada: boolean;
+  pathname: string;
+  onSair: () => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function aoClicarFora(evento: MouseEvent) {
+      if (ref.current && !ref.current.contains(evento.target as Node)) {
+        setAberto(false);
+      }
+    }
+    document.addEventListener("mousedown", aoClicarFora);
+    return () => document.removeEventListener("mousedown", aoClicarFora);
+  }, []);
+
+  useEffect(() => {
+    setAberto(false);
+  }, [pathname]);
+
+  const inicial = (nome || email || "?").charAt(0).toUpperCase();
+
+  return (
+    <div ref={ref} className="relative">
+      {aberto && (
+        <div
+          className={`absolute bottom-full mb-2 rounded-lg border border-border bg-surface shadow-lg py-1 ${
+            colapsada ? "left-0 w-48" : "left-0 right-0"
+          }`}
+        >
+          {!colapsada && (nome || email) && (
+            <div className="px-3 py-2 border-b border-border">
+              {nome && <div className="text-sm font-medium text-fg truncate">{nome}</div>}
+              {email && <div className="text-xs text-fg/65 truncate">{email}</div>}
+            </div>
+          )}
+          <Link
+            href="/ajuda"
+            className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-fg/65 hover:bg-paper/5 hover:text-fg transition-colors"
+          >
+            <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zM12 17.25h.008v.008H12v-.008z"
+              />
+            </svg>
+            Ajuda
+          </Link>
+          <Link
+            href="/perfil"
+            className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-fg/65 hover:bg-paper/5 hover:text-fg transition-colors"
+          >
+            <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+              />
+            </svg>
+            Perfil
+          </Link>
+          <button
+            onClick={onSair}
+            className="flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-fg/65 hover:bg-paper/5 hover:text-fg transition-colors"
+          >
+            <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"
+              />
+            </svg>
+            Sair
+          </button>
+        </div>
+      )}
+      <button
+        onClick={() => setAberto((valor) => !valor)}
+        title={colapsada ? nome || "Conta" : undefined}
+        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-fg/65 hover:bg-paper/5 hover:text-fg transition-colors ${
+          colapsada ? "justify-center" : ""
+        }`}
+      >
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber/10 text-amber-text text-xs font-semibold">
+          {inicial}
+        </span>
+        {!colapsada && <span className="truncate">{nome || email || "Conta"}</span>}
+      </button>
+    </div>
+  );
+}
+
 // tela Ao Vivo precisa do maximo de largura pra grade de 3 colunas -- sidebar
 // vira uma trilha so' de icones nessa rota (sem toggle manual, so' auto por rota).
 export default function Sidebar() {
@@ -278,49 +382,14 @@ export default function Sidebar() {
             </div>
           ))}
         </nav>
-        <div className={`pb-6 space-y-1 border-t border-border pt-4 ${colapsada ? "px-3" : "px-4"}`}>
-          <NavLink
-            href="/ajuda"
-            label="Ajuda"
-            active={pathname === "/ajuda"}
+        <div className={`pb-6 border-t border-border pt-4 ${colapsada ? "px-3" : "px-4"}`}>
+          <ContaMenu
+            nome={conta?.nome}
+            email={conta?.email}
             colapsada={colapsada}
-            icon={
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zM12 17.25h.008v.008H12v-.008z"
-              />
-            }
+            pathname={pathname}
+            onSair={sair}
           />
-          <NavLink
-            href="/perfil"
-            label="Perfil"
-            active={pathname === "/perfil"}
-            colapsada={colapsada}
-            icon={
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
-              />
-            }
-          />
-          <button
-            onClick={sair}
-            title={colapsada ? "Sair" : undefined}
-            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-fg/65 hover:bg-paper/5 hover:text-fg transition-colors ${
-              colapsada ? "justify-center" : ""
-            }`}
-          >
-            <svg className="h-5 w-5 shrink-0 text-fg/65" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"
-              />
-            </svg>
-            {!colapsada && "Sair"}
-          </button>
         </div>
       </div>
     </aside>
