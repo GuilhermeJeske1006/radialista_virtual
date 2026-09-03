@@ -1,4 +1,5 @@
 import logging
+import re
 import time
 import unicodedata
 
@@ -27,7 +28,7 @@ _VOICE_SETTINGS_PADRAO = {
     "similarity_boost": 0.8,
     "style": 0.4,
     "use_speaker_boost": True,
-    "speed": 1.0,
+    "speed": 0.97,
 }
 
 # ajustes de prosodia por tipo de bloco do programa ao vivo (ver _PROSODIA_BLOCO em app.live.router):
@@ -37,13 +38,17 @@ _VOICE_SETTINGS_PADRAO = {
 # stability abaixo de ~0.3 deixa o v3 instavel demais e sai artefato nas terminacoes de frase/palavra
 # (a propria ElevenLabs recomenda nao descer disso) -- piso levantado pra 0.34/0.37 depois de reclamacao
 # de locucao "com cara de IA" nas terminacoes, mais evidente nos blocos energicos que usavam 0.28/0.32.
+#
+# speed reduzido ~0.03 em todos os tipos (reclamacao recorrente de locucao rapida demais mesmo depois
+# dos ajustes anteriores) -- mantem a diferenca relativa entre bloco energico/calmo, so' desloca o
+# piso geral pra baixo.
 _VOICE_SETTINGS_POR_TIPO = {
-    "abertura": {"stability": 0.34, "style": 0.55, "speed": 1.05},
-    "musica": {"stability": 0.34, "style": 0.55, "speed": 1.05},
-    "chamada_ouvinte": {"stability": 0.37, "style": 0.5, "speed": 1.03},
-    "comentario": {"stability": 0.45, "style": 0.3, "speed": 0.95},
-    "noticia": {"stability": 0.5, "style": 0.25, "speed": 0.93},
-    "patrocinador": {"stability": 0.4, "style": 0.35, "speed": 1.0},
+    "abertura": {"stability": 0.34, "style": 0.55, "speed": 1.02},
+    "musica": {"stability": 0.34, "style": 0.55, "speed": 1.02},
+    "chamada_ouvinte": {"stability": 0.37, "style": 0.5, "speed": 1.0},
+    "comentario": {"stability": 0.45, "style": 0.3, "speed": 0.92},
+    "noticia": {"stability": 0.5, "style": 0.25, "speed": 0.9},
+    "patrocinador": {"stability": 0.4, "style": 0.35, "speed": 0.97},
 }
 
 # ajuste fino por cima do tipo de bloco, a partir do tom real da fala gerada (ver
@@ -64,6 +69,15 @@ _AJUSTE_TOM = {
 _TAG_POR_TOM = {
     "calmo": "[calm]",
 }
+
+# reticencias duplas ("......") sao a instrucao do prompt (ver app.live.router) pro locutor dar um
+# respiro maior antes de trocar de assunto. Medido direto na API (par de chamadas identicas, uma so
+# com "..." em vez de tag) que o eleven_v3 trata "..." exatamente como "." -- zero pausa extra, saida
+# em bytes identica. A tag de audio [pause] e' o que realmente funciona (~1.5s medido, reproduzivel),
+# entao a reticencia dupla e' convertida pra ela antes de mandar pro v3; reticencia simples (pausa de
+# respiracao dentro da frase) fica como esta -- vira "." de qualquer forma, e trocar toda ocorrencia
+# por [pause] (~1.5s cada) encheria a fala de silencio, pior que o problema original.
+_PAUSA_TROCA_ASSUNTO = re.compile(r"\.{4,}")
 
 # similarity_boost/use_speaker_boost nao sao suportados pelo eleven_v3 -- _construir_voice_settings
 # remove essas chaves do payload quando o modelo e' v3, pra voz do catalogo e pra voz clonada.
@@ -158,9 +172,11 @@ def sintetizar_audio(
 
     texto_tts = texto
     if modelo == "eleven_v3":
+        texto_tts = _PAUSA_TROCA_ASSUNTO.sub(" [pause] ", texto_tts)
+        texto_tts = re.sub(r" {2,}", " ", texto_tts).strip()
         tag = _TAG_POR_TOM.get(tom or "")
         if tag:
-            texto_tts = f"{tag} {texto}"
+            texto_tts = f"{tag} {texto_tts}"
 
     payload = {
         "text": texto_tts,
@@ -168,7 +184,9 @@ def sintetizar_audio(
         "voice_settings": voice_settings,
         "language_code": _LANGUAGE_CODE,
     }
-    if texto_anterior:
+    # previous_text da 400 (unsupported_model) no eleven_v3 -- ElevenLabs ainda nao suporta esse
+    # campo nesse modelo. So manda quando o modelo realmente aceita.
+    if texto_anterior and modelo != "eleven_v3":
         payload["previous_text"] = texto_anterior
 
     with httpx.Client(timeout=30.0) as client:

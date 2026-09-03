@@ -278,7 +278,9 @@ def test_musica_de_fundo_endpoint(client, account, auth_headers, radialista_e_pr
     radio_config, programa = radialista_e_programa
     monkeypatch.setattr(
         "app.live.router.buscar_musica_fundo",
-        lambda generos, bloqueados=None: MusicaEncontrada(video_id="bg1", titulo="Fundo", canal="Canal"),
+        lambda generos, bloqueados=None, musica_escolhida=None: MusicaEncontrada(
+            video_id="bg1", titulo="Fundo", canal="Canal"
+        ),
     )
     resposta = client.get(
         f"/live/{radio_config.id}/programas/{programa.id}/musica-fundo", headers=auth_headers(account.id)
@@ -290,11 +292,37 @@ def test_musica_de_fundo_endpoint(client, account, auth_headers, radialista_e_pr
 @freeze_time(AGORA_UTC)
 def test_musica_de_fundo_sem_resultado_404(client, account, auth_headers, radialista_e_programa, monkeypatch):
     radio_config, programa = radialista_e_programa
-    monkeypatch.setattr("app.live.router.buscar_musica_fundo", lambda generos, bloqueados=None: None)
+    monkeypatch.setattr(
+        "app.live.router.buscar_musica_fundo", lambda generos, bloqueados=None, musica_escolhida=None: None
+    )
     resposta = client.get(
         f"/live/{radio_config.id}/programas/{programa.id}/musica-fundo", headers=auth_headers(account.id)
     )
     assert resposta.status_code == 404
+
+
+@freeze_time(AGORA_UTC)
+def test_musica_de_fundo_usa_escolha_do_programa(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    radio_config, programa = radialista_e_programa
+    programa.musica_fundo_escolhida = "Lofi Chill Beats - Instrumental"
+    db_session.add(programa)
+    db_session.commit()
+
+    chamadas = []
+
+    def fake_buscar_musica_fundo(generos, bloqueados=None, musica_escolhida=None):
+        chamadas.append(musica_escolhida)
+        return MusicaEncontrada(video_id="bg2", titulo="Fundo escolhido", canal="Canal")
+
+    monkeypatch.setattr("app.live.router.buscar_musica_fundo", fake_buscar_musica_fundo)
+    resposta = client.get(
+        f"/live/{radio_config.id}/programas/{programa.id}/musica-fundo", headers=auth_headers(account.id)
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["video_id"] == "bg2"
+    assert chamadas == ["Lofi Chill Beats - Instrumental"]
 
 
 def test_tts_endpoint_nao_habilitado_503(client, account, auth_headers, radialista_e_programa):

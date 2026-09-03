@@ -102,6 +102,69 @@ def test_sintetizar_audio_clonada_usa_mesmo_modelo_do_catalogo(monkeypatch):
     assert "similarity_boost" not in payload["voice_settings"]
 
 
+def test_sintetizar_audio_v3_nao_manda_previous_text(monkeypatch):
+    """eleven_v3 devolve 400 (unsupported_model) se previous_text for mandado -- ver
+    comentario em sintetizar_audio. texto_anterior deve ser descartado nesse modelo."""
+    _habilitar_elevenlabs(monkeypatch)
+    monkeypatch.setattr(tts_client.settings, "elevenlabs_model", "eleven_v3")
+    fake = _FakeClient([_FakeResponse(status_code=200, content=b"mp3-data")])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+
+    tts_client.sintetizar_audio("ola", texto_anterior="fala anterior")
+    payload = fake.chamadas[0][2]["json"]
+    assert "previous_text" not in payload
+
+
+def test_sintetizar_audio_v2_manda_previous_text(monkeypatch):
+    _habilitar_elevenlabs(monkeypatch)
+    monkeypatch.setattr(tts_client.settings, "elevenlabs_model", "eleven_multilingual_v2")
+    fake = _FakeClient([_FakeResponse(status_code=200, content=b"mp3-data")])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+
+    tts_client.sintetizar_audio("ola", texto_anterior="fala anterior")
+    payload = fake.chamadas[0][2]["json"]
+    assert payload["previous_text"] == "fala anterior"
+
+
+def test_sintetizar_audio_v3_converte_reticencias_duplas_em_pause(monkeypatch):
+    """"......" (troca de assunto, ver prompt em app.live.router) nao gera pausa nenhuma no
+    eleven_v3 -- medido na API real, mesma duracao que um ".". A tag [pause] e' o que
+    realmente funciona, entao a reticencia dupla e' convertida antes de mandar pro v3."""
+    _habilitar_elevenlabs(monkeypatch)
+    monkeypatch.setattr(tts_client.settings, "elevenlabs_model", "eleven_v3")
+    fake = _FakeClient([_FakeResponse(status_code=200, content=b"mp3-data")])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+
+    tts_client.sintetizar_audio("Bom dia ouvintes...... Vamos falar de futebol.")
+    payload = fake.chamadas[0][2]["json"]
+    assert "[pause]" in payload["text"]
+    assert "......" not in payload["text"]
+
+
+def test_sintetizar_audio_v3_preserva_reticencia_simples(monkeypatch):
+    _habilitar_elevenlabs(monkeypatch)
+    monkeypatch.setattr(tts_client.settings, "elevenlabs_model", "eleven_v3")
+    fake = _FakeClient([_FakeResponse(status_code=200, content=b"mp3-data")])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+
+    tts_client.sintetizar_audio("Bom dia ouvintes... vamos comecar.")
+    payload = fake.chamadas[0][2]["json"]
+    assert "[pause]" not in payload["text"]
+    assert "..." in payload["text"]
+
+
+def test_sintetizar_audio_v2_nao_converte_reticencias(monkeypatch):
+    _habilitar_elevenlabs(monkeypatch)
+    monkeypatch.setattr(tts_client.settings, "elevenlabs_model", "eleven_multilingual_v2")
+    fake = _FakeClient([_FakeResponse(status_code=200, content=b"mp3-data")])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+
+    tts_client.sintetizar_audio("Bom dia ouvintes...... Vamos falar de futebol.")
+    payload = fake.chamadas[0][2]["json"]
+    assert "[pause]" not in payload["text"]
+    assert "......" in payload["text"]
+
+
 def test_sintetizar_audio_devolve_bytes(monkeypatch):
     _habilitar_elevenlabs(monkeypatch)
     fake = _FakeClient([_FakeResponse(status_code=200, content=b"mp3-data")])

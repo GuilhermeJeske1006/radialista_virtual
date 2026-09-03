@@ -146,6 +146,14 @@ export function useLiveEngine() {
   const bgPlayerRef = useRef<any>(null);
   const bgProntoRef = useRef(false);
   const bgIntervaloFimRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const bgFadeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const musicFadeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // true depois que o player de fundo/musica desmuta pela 1a vez (ver onStateChange PLAYING
+  // em iniciarMusicaFundo/tocarMusica) -- sem essa guarda, cada PLAYING subsequente (ex.: apos
+  // o seekTo de loop) chamaria unMute()/fade de novo, sobrescrevendo o volume que o ducking
+  // ja tiver ajustado nesse meio tempo.
+  const bgDesmutadoRef = useRef(false);
+  const musicDesmutadoRef = useRef(false);
   const proximoPreparoRef = useRef<Promise<SegmentoPreparado> | null>(null);
   const gravacaoBlobsRef = useRef<Blob[]>([]);
   // incrementado a cada chamada de gerarProximaFala -- pularFala usa isso pra
@@ -344,14 +352,70 @@ export function useLiveEngine() {
 
   const VOLUME_FUNDO_NORMAL = 18;
   const VOLUME_FUNDO_BAIXO = 6;
+  const FADE_DUCK_MS = 500;
+  const FADE_MUSICA_MS = 1500;
+  const FADE_MUSICA_SAIDA_S = FADE_MUSICA_MS / 1000;
+
+  // Rampa o volume de um player do YouTube ate' `alvo` em vez do salto instantaneo de setVolume --
+  // sem isso toda transicao (fala->fundo, fundo->musica, musica->fim) soa cortada, tipo audio colado
+  // em vez de uma mixagem de estudio de verdade (reclamacao do usuario sobre abertura/fechamento de
+  // bloco de musica soando estranho). `intervalRef` guarda o timer em andamento pra essa rampa
+  // especifica ser cancelada se uma nova comecar antes de terminar (troca de bloco rapida, por ex.).
+  function fadeVolumeYoutube(
+    player: any,
+    intervalRef: { current: ReturnType<typeof setInterval> | null },
+    alvo: number,
+    duracaoMs: number,
+    passos = 12,
+    inicioForcado?: number
+  ) {
+    if (!player) return;
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    let inicio = alvo;
+    // getVolume() logo depois de um setVolume() nosso (ex.: reset pra 0 antes do fade-in) devolve
+    // valor requente (medido: volta 100 mesmo com setVolume(0) acabado de chamar -- o setVolume e'
+    // assincrono/postMessage pro iframe, getVolume nao reflete na hora) -- quando o chamador ja sabe
+    // o volume de partida (porque acabou de defini-lo), inicioForcado evita essa leitura ruim, que
+    // antes zerava o delta e colapsava o fade inteiro num salto instantaneo.
+    if (typeof inicioForcado === "number") {
+      inicio = inicioForcado;
+    } else {
+      try {
+        if (typeof player.getVolume === "function") inicio = player.getVolume();
+      } catch {
+        // player pode nao estar pronto ainda -- fica com inicio = alvo (sem rampa, so' aplica direto)
+      }
+    }
+    const delta = alvo - inicio;
+    if (Math.abs(delta) < 1) {
+      try {
+        player.setVolume(alvo);
+      } catch {
+        // ignora falha ao ajustar volume
+      }
+      return;
+    }
+    let passo = 0;
+    intervalRef.current = setInterval(() => {
+      passo += 1;
+      try {
+        player.setVolume(Math.max(0, Math.min(100, Math.round(inicio + delta * (passo / passos)))));
+      } catch {
+        // player pode ja ter sido destruido no meio da rampa
+      }
+      if (passo >= passos && intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    }, duracaoMs / passos);
+  }
 
   function duckMusicaFundo(baixo: boolean) {
     if (!bgProntoRef.current || !bgPlayerRef.current) return;
-    try {
-      bgPlayerRef.current.setVolume(baixo ? VOLUME_FUNDO_BAIXO : VOLUME_FUNDO_NORMAL);
-    } catch {
-      // ignora falha ao ajustar volume da musica de fundo
-    }
+    fadeVolumeYoutube(bgPlayerRef.current, bgFadeIntervalRef, baixo ? VOLUME_FUNDO_BAIXO : VOLUME_FUNDO_NORMAL, FADE_DUCK_MS);
   }
 
   function pararMusicaFundo() {
@@ -402,12 +466,16 @@ export function useLiveEngine() {
       height: "0",
       width: "0",
       videoId,
-      playerVars: { autoplay: 1, controls: 0, loop: 1, playlist: videoId, start: inicioSegundos },
+      // mute:1 e' o que deixa o autoplay passar: o iframe tenta tocar assim que carrega, e
+      // sem isso a tentativa e' com som sem gesto do usuario (ver auto-inicio por horario
+      // agendado em verificarHorarioAgendado, que dispara via setInterval, sem clique nenhum)
+      // -- Chrome bloqueia na hora. Mudo e' sempre permitido.
+      playerVars: { autoplay: 1, controls: 0, loop: 1, playlist: videoId, start: inicioSegundos, mute: 1 },
       events: {
         onReady: (evento: any) => {
           bgProntoRef.current = true;
-          evento.target.setVolume(VOLUME_FUNDO_NORMAL);
           evento.target.playVideo();
+          bgDesmutadoRef.current = false;
           // fundo toca em loop -- sem ENDED natural (playlist/loop), entao o corte antes
           // de silencio/fala no final precisa voltar pro inicio na marca, nao esperar o fim.
           if (fimSegundos != null) {
@@ -421,6 +489,17 @@ export function useLiveEngine() {
         },
         onStateChange: (evento: any) => {
           if (evento.data === window.YT.PlayerState.ENDED) evento.target.playVideo();
+          // so' desmuta quando a reproducao muda de verdade pra PLAYING (nao logo apos
+          // playVideo(), que so' inicia o buffer) -- chamar unMute() cedo demais, antes do
+          // autoplay mudo ter realmente "pegado", faz o Chrome tratar como troca pra audio
+          // com som sem gesto do usuario e cancela a reproducao de volta pra UNSTARTED (-1),
+          // travando o player mudo pra sempre (bug relatado: ducking "nao sobe/desce na
+          // pratica" -- na real nem tinha audio nenhum rodando pra ouvir a mudanca).
+          if (evento.data === window.YT.PlayerState.PLAYING && !bgDesmutadoRef.current) {
+            bgDesmutadoRef.current = true;
+            evento.target.unMute();
+            evento.target.setVolume(VOLUME_FUNDO_NORMAL);
+          }
         },
       },
     });
@@ -461,7 +540,6 @@ export function useLiveEngine() {
         setMusicaAtual(titulo || "Musica ao vivo");
         setMusicaFimSegundos(fimSegundos);
         setEstagioAtual("musica");
-        if (bgProntoRef.current) bgPlayerRef.current?.setVolume(0); // pedido do ouvinte toca sozinho, sem o fundo
 
         let finalizado = false;
         let timeoutId: ReturnType<typeof setTimeout>;
@@ -477,7 +555,10 @@ export function useLiveEngine() {
           } catch {
             // ignora falha ao parar o player
           }
-          if (bgProntoRef.current) bgPlayerRef.current?.setVolume(VOLUME_FUNDO_NORMAL);
+          // rampa de volta ao normal mesmo quando chega aqui sem passar pelo fade antecipado do
+          // poll abaixo (ENDED natural, erro, timeout de seguranca) -- melhor uma rampa curta que
+          // um salto instantaneo de volume nesses casos tambem.
+          if (bgProntoRef.current) fadeVolumeYoutube(bgPlayerRef.current, bgFadeIntervalRef, VOLUME_FUNDO_NORMAL, FADE_DUCK_MS);
           setMusicaAtual(null);
           setMusicaFimSegundos(null);
           setEstagioAtual("idle");
@@ -499,22 +580,48 @@ export function useLiveEngine() {
           height: "0",
           width: "0",
           videoId,
-          playerVars: { autoplay: 1, controls: 0, start: inicioSegundos },
+          // mute:1 e' o que deixa o autoplay passar (ver bg player acima) -- tentativa de tocar
+          // com som sem gesto do usuario e' bloqueada na hora pelo Chrome.
+          playerVars: { autoplay: 1, controls: 0, start: inicioSegundos, mute: 1 },
           events: {
             onReady: (evento: any) => {
+              musicDesmutadoRef.current = false;
               evento.target.playVideo();
-              // corta antes de silencio longo/fala no final da faixa (analisado no
-              // backend, ver app/live/audio_analysis.py) -- sem isso tocaria ate o
-              // fim real do video, que pode ter trecho falado ou vazio.
+
+              // corta antes de silencio longo/fala no final da faixa (analisado no backend, ver
+              // app/live/audio_analysis.py) -- sem isso tocaria ate o fim real do video, que pode
+              // ter trecho falado ou vazio. O fade de saida comeca um pouco antes do corte (em vez
+              // de cortar em volume cheio e so' depois subir o fundo) pra soar como um segue de
+              // estudio, nao um corte seco.
               if (fimSegundos != null) {
+                let fadeIniciado = fimSegundos - FADE_MUSICA_SAIDA_S <= inicioSegundos;
                 intervaloFimId = setInterval(() => {
                   const atual = musicPlayerRef.current?.getCurrentTime?.();
-                  if (typeof atual === "number" && atual >= fimSegundos) finalizar();
+                  if (typeof atual !== "number") return;
+                  if (!fadeIniciado && atual >= fimSegundos - FADE_MUSICA_SAIDA_S) {
+                    fadeIniciado = true;
+                    fadeVolumeYoutube(musicPlayerRef.current, musicFadeIntervalRef, 0, FADE_MUSICA_MS);
+                    if (bgProntoRef.current) fadeVolumeYoutube(bgPlayerRef.current, bgFadeIntervalRef, VOLUME_FUNDO_NORMAL, FADE_MUSICA_MS);
+                  }
+                  if (atual >= fimSegundos) finalizar();
                 }, POLL_FIM_MS);
               }
             },
             onStateChange: (evento: any) => {
               if (evento.data === window.YT.PlayerState.ENDED) finalizar();
+              // so' desmuta/inicia o fade cruzado quando a musica realmente comecar a tocar --
+              // ver o mesmo cuidado no player de fundo (iniciarMusicaFundo) sobre por que
+              // desmutar cedo demais cancela o autoplay de volta pra UNSTARTED.
+              if (evento.data === window.YT.PlayerState.PLAYING && !musicDesmutadoRef.current) {
+                musicDesmutadoRef.current = true;
+                evento.target.unMute();
+                // fade cruzado: musica sobe de silencio enquanto o fundo desce pro lugar dela, em
+                // vez do salto instantaneo de antes (fundo mudo + musica em volume cheio na mesma
+                // batida) -- e' o que soava "colado"/artificial na abertura do bloco.
+                evento.target.setVolume(0);
+                fadeVolumeYoutube(evento.target, musicFadeIntervalRef, 100, FADE_MUSICA_MS, 12, 0);
+                if (bgProntoRef.current) fadeVolumeYoutube(bgPlayerRef.current, bgFadeIntervalRef, 0, FADE_MUSICA_MS);
+              }
             },
             // codigos do player: 2 parametro invalido, 5 erro de HTML5, 100 video removido/privado,
             // 101/150 dono do video bloqueou embed -- sem log aqui a musica so' "nao tocava", sem
@@ -612,7 +719,11 @@ export function useLiveEngine() {
               }),
             });
             return { url: URL.createObjectURL(blob), blob };
-          } catch {
+          } catch (err) {
+            // engolir aqui sem log/aviso fazia a fala cair calada pra voz robotica do navegador
+            // (ver falarComVozNavegador) sem nenhum indicio de que o TTS da ElevenLabs falhou.
+            console.error("Falha ao gerar audio TTS (dialogo multi-voz), caindo pra voz do navegador", err);
+            setErro(err instanceof ApiError ? `${err.message}. Usando voz do navegador.` : "Voz IA indisponivel. Usando voz do navegador.");
             return { url: null, blob: null };
           }
         })
@@ -640,7 +751,11 @@ export function useLiveEngine() {
                 }),
               });
       audioUrl = URL.createObjectURL(audioBlob);
-    } catch {
+    } catch (err) {
+      // engolir aqui sem log/aviso fazia a fala cair calada pra voz robotica do navegador (ver
+      // falarComVozNavegador) sem nenhum indicio de que o TTS/audio do backend falhou.
+      console.error("Falha ao gerar audio (TTS/patrocinador/vinheta), caindo pra voz do navegador", err);
+      setErro(err instanceof ApiError ? `${err.message}. Usando voz do navegador.` : "Voz IA indisponivel. Usando voz do navegador.");
       audioUrl = null; // backend TTS/audio indisponivel -- cai pra voz do navegador na hora de tocar
       audioBlob = null;
     }

@@ -7,6 +7,7 @@ import re
 import unicodedata
 from zoneinfo import ZoneInfo
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func
@@ -1298,14 +1299,26 @@ def gerar_audio_fala(
 
     tom = classificar_tom_fala(dados.texto, dados.tipo)
     eh_clonada = bool(voz_id) and not voz_valida(voz_id)
-    audio = sintetizar_audio(
-        dados.texto,
-        voz_id,
-        tipo_bloco=dados.tipo,
-        tom=tom,
-        eh_clonada=eh_clonada,
-        texto_anterior=dados.texto_anterior,
-    )
+    try:
+        audio = sintetizar_audio(
+            dados.texto,
+            voz_id,
+            tipo_bloco=dados.tipo,
+            tom=tom,
+            eh_clonada=eh_clonada,
+            texto_anterior=dados.texto_anterior,
+        )
+    except httpx.HTTPError:
+        # sem isso a excecao (ElevenLabs fora do ar, timeout, voice_id invalido, etc.) sobe crua
+        # como 500 sem contexto nenhum -- e o front, ao receber qualquer erro em /tts, cai calado
+        # pra voz robotica do navegador (ver useLiveEngine.ts) sem log nenhum indicando o motivo.
+        logger.exception(
+            "Falha ao sintetizar audio: radialista_id=%s voz_id=%s eh_clonada=%s",
+            radialista_id,
+            voz_id,
+            eh_clonada,
+        )
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Falha ao gerar audio da fala") from None
 
     if dados.perfil_pos_producao:
         try:
