@@ -74,6 +74,18 @@ class Account(Base):
     # do job. Volta pra False assim que a sessao reconecta, pra proxima queda avisar de novo.
     wuzapi_desconectado_alerta_enviado: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # Ultimo tipo de gatilho de upsell avisado pro admin -- "agentes_cheio" |
+    # "mensagens_quase_estourando" | "mensagens_estourou" | None (ver app/billing/upsell.py e
+    # app/billing/alertar_upsell.py). Junto com upsell_alerta_mes evita reenviar o mesmo aviso
+    # a cada execucao do job; volta pra None assim que o sinal some (comprou agente extra, por
+    # exemplo), pra proxima situacao de novo avisar.
+    upsell_alerta_tipo: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    # Mes (YYYY-MM) do ultimo aviso de upsell -- cota de mensagens reseta todo mes, entao o
+    # mesmo tipo de sinal reaparecendo no mes seguinte deve avisar de novo mesmo sem o admin
+    # ter "destravado" nada.
+    upsell_alerta_mes: Mapped[str | None] = mapped_column(String, nullable=True)
+
     criado_em: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.datetime.now(datetime.timezone.utc)
     )
