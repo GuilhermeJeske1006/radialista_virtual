@@ -7,6 +7,7 @@ import { apiFetch, apiFetchDownload, ApiError } from "../../lib/api";
 import { STATUS_HEX, STATUS_LABEL } from "../../lib/statusInteracao";
 import { Radialista } from "../../lib/types";
 import { LocufySpin } from "../../components/LocufyLogo";
+import { GraficoBarras } from "../../components/GraficoBarras";
 
 type MensagemPorDia = { data: string; total: number };
 
@@ -18,109 +19,11 @@ type Resumo = {
   mensagens_por_dia: MensagemPorDia[];
 };
 
-const COR_SERIE = "#33c2a8"; // teal -- mesma cor usada pra "ativo/em dia" no resto do painel
-const COR_SERIE_HOVER = "#279d88";
-
-function formatarDataCurta(iso: string): string {
-  const [, mes, dia] = iso.split("-");
-  return `${dia}/${mes}`;
-}
-
-function formatarDataLonga(iso: string): string {
-  return new Date(`${iso}T12:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
-}
-
 function StatCard({ label, valor }: { label: string; valor: number }) {
   return (
     <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">
       <p className="text-xs font-medium text-fg/65 uppercase tracking-wide">{label}</p>
       <p className="mt-2 font-display text-3xl font-bold text-fg">{valor.toLocaleString("pt-BR")}</p>
-    </div>
-  );
-}
-
-function GraficoMensagensPorDia({ serie }: { serie: MensagemPorDia[] }) {
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
-
-  const maximo = Math.max(1, ...serie.map((ponto) => ponto.total));
-  const altura = 140;
-  const larguraBarra = 8;
-  const espaco = 4;
-  const largura = serie.length * (larguraBarra + espaco);
-
-  const indicesRotulados = new Set([0, Math.floor((serie.length - 1) / 2), serie.length - 1]);
-  const hover = hoverIndex !== null ? serie[hoverIndex] : null;
-
-  return (
-    <div className="relative">
-      {hover && (
-        <div className="absolute -top-1 left-1/2 -translate-x-1/2 -translate-y-full rounded-lg bg-ink px-2.5 py-1.5 text-xs text-paper shadow-theme-sm whitespace-nowrap pointer-events-none z-10">
-          <span className="font-semibold">{hover.total.toLocaleString("pt-BR")}</span>{" "}
-          {hover.total === 1 ? "mensagem" : "mensagens"} · {formatarDataLonga(hover.data)}
-        </div>
-      )}
-      <svg
-        viewBox={`0 0 ${largura} ${altura + 20}`}
-        width="100%"
-        height={altura + 20}
-        preserveAspectRatio="none"
-        role="img"
-        aria-label="Mensagens recebidas por dia nos últimos 30 dias"
-      >
-        {/* linha de base -- unica gridline, recessiva */}
-        <line
-          x1={0}
-          y1={altura}
-          x2={largura}
-          y2={altura}
-          stroke="var(--color-border-strong)"
-          strokeWidth={1}
-        />
-        {serie.map((ponto, indice) => {
-          const alturaBarra = Math.max(2, (ponto.total / maximo) * (altura - 8));
-          const x = indice * (larguraBarra + espaco);
-          const y = altura - alturaBarra;
-          const emHover = hoverIndex === indice;
-          return (
-            <g key={ponto.data}>
-              <rect
-                x={x}
-                y={y}
-                width={larguraBarra}
-                height={alturaBarra}
-                rx={2}
-                fill={emHover ? COR_SERIE_HOVER : COR_SERIE}
-              >
-                <title>
-                  {formatarDataLonga(ponto.data)}: {ponto.total} {ponto.total === 1 ? "mensagem" : "mensagens"}
-                </title>
-              </rect>
-              {/* hit target maior que a barra, cobre o espaco entre barras tambem */}
-              <rect
-                x={x - espaco / 2}
-                y={0}
-                width={larguraBarra + espaco}
-                height={altura}
-                fill="transparent"
-                onMouseEnter={() => setHoverIndex(indice)}
-                onMouseLeave={() => setHoverIndex(null)}
-              />
-              {indicesRotulados.has(indice) && (
-                <text
-                  x={x + larguraBarra / 2}
-                  y={altura + 14}
-                  textAnchor="middle"
-                  fontSize={9}
-                  fill="var(--color-fg)"
-                  opacity={0.45}
-                >
-                  {formatarDataCurta(ponto.data)}
-                </text>
-              )}
-            </g>
-          );
-        })}
-      </svg>
     </div>
   );
 }
@@ -297,7 +200,7 @@ export default function MetricsPage() {
             {resumo.mensagens_por_dia.every((ponto) => ponto.total === 0) ? (
               <p className="text-sm text-fg/65">Nenhuma mensagem nos últimos 30 dias.</p>
             ) : (
-              <GraficoMensagensPorDia serie={resumo.mensagens_por_dia} />
+              <GraficoBarras serie={resumo.mensagens_por_dia} />
             )}
           </div>
 

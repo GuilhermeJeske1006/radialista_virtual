@@ -5,6 +5,7 @@ import Link from "next/link";
 import AppShell from "../../../components/AppShell";
 import { apiFetch, ApiError } from "../../../lib/api";
 import { setRadialistaAtualId } from "../../../lib/radialistas";
+import { invalidarConfiguracaoInicial } from "../../../lib/useConfiguracaoInicial";
 import { ConfiguracaoIA, DIAS_SEMANA_LABEL, Radialista, RadioPerfil, TipoRadio, Voz } from "../../../lib/types";
 import { LocufySpin } from "../../../components/LocufyLogo";
 
@@ -61,6 +62,7 @@ export default function LocutorOnboardingPage() {
       });
       setRadialistaAtualId(resultado.radialista.id);
       setCriado(resultado);
+      invalidarConfiguracaoInicial();
     } catch (err) {
       if (err instanceof ApiError && err.status === 402) {
         setPrecisaUpgrade(true);

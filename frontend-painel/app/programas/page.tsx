@@ -7,6 +7,7 @@ import Modal from "../../components/Modal";
 import EditarProgramaForm from "../../components/EditarProgramaForm";
 import { apiFetch, ApiError } from "../../lib/api";
 import { DIAS_SEMANA_LABEL, Programa, Radialista } from "../../lib/types";
+import { invalidarConfiguracaoInicial } from "../../lib/useConfiguracaoInicial";
 import { LocufySpin } from "../../components/LocufyLogo";
 
 type ProgramaComRadialista = Programa & { radialista: Radialista };
@@ -68,6 +69,7 @@ export default function ProgramasPage() {
   async function excluirPrograma(programa: ProgramaComRadialista) {
     try {
       await apiFetch(`/config/programas/${programa.id}`, { method: "DELETE" });
+      invalidarConfiguracaoInicial();
       carregar();
     } catch (err) {
       setErro(err instanceof ApiError ? err.message : "Erro ao excluir programa");
@@ -202,8 +204,12 @@ export default function ProgramasPage() {
           <EditarProgramaForm
             programaId={modal.programaId}
             radioConfigId={modal.radialistaId}
-            onSalvo={() => carregar()}
+            onSalvo={() => {
+              invalidarConfiguracaoInicial();
+              carregar();
+            }}
             onExcluido={() => {
+              invalidarConfiguracaoInicial();
               setModal(null);
               carregar();
             }}

@@ -139,7 +139,7 @@ def enviar_email_boas_vindas(email: str, nome: str) -> bool:
 
 
 def enviar_email_alerta_desconexao(email: str, nome: str) -> bool:
-    link = f"{settings.frontend_url}/onboarding"
+    link = f"{settings.frontend_url}/conversas"
 
     if not settings.smtp_host:
         # Sem SMTP configurado (dev local) -- loga em vez de falhar o job.

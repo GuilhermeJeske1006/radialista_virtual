@@ -6,6 +6,8 @@ import AppShell from "../../components/AppShell";
 import { apiFetch, ApiError } from "../../lib/api";
 import { Conta, Patrocinador, Programa, Radialista, RadioConta } from "../../lib/types";
 import { LocufyLed, LocufySpin } from "../../components/LocufyLogo";
+import { GraficoBarras, PontoSerie } from "../../components/GraficoBarras";
+import { UpsellBanner } from "../../components/UpsellBanner";
 
 const ATALHOS = [
   {
@@ -57,6 +59,8 @@ export default function DashboardPage() {
   const [programas, setProgramas] = useState<Programa[]>([]);
   const [patrocinadores, setPatrocinadores] = useState<Patrocinador[]>([]);
   const [noAr, setNoAr] = useState<NoArResponse | null>(null);
+  const [mensagens7Dias, setMensagens7Dias] = useState<number | null>(null);
+  const [mensagensPorDia, setMensagensPorDia] = useState<PontoSerie[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const [onboardingIncompleto, setOnboardingIncompleto] = useState(false);
@@ -90,6 +94,27 @@ export default function DashboardPage() {
           )
         );
         setProgramas(listasDeProgramas.flat());
+
+        const resumos = await Promise.all(
+          r.map((rad) =>
+            apiFetch<{ ultimos_7_dias: number; mensagens_por_dia: PontoSerie[] }>(
+              `/metrics/summary?radialista_id=${rad.id}`
+            ).catch(() => null)
+          )
+        );
+        setMensagens7Dias(resumos.reduce((soma, res) => soma + (res?.ultimos_7_dias ?? 0), 0));
+
+        const totaisPorData = new Map<string, number>();
+        resumos.forEach((res) => {
+          res?.mensagens_por_dia.forEach((ponto) => {
+            totaisPorData.set(ponto.data, (totaisPorData.get(ponto.data) ?? 0) + ponto.total);
+          });
+        });
+        setMensagensPorDia(
+          [...totaisPorData.entries()]
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([data, total]) => ({ data, total }))
+        );
       })
       .catch((err) => setErro(err instanceof ApiError ? err.message : "Erro ao carregar painel"))
       .finally(() => setCarregando(false));
@@ -113,8 +138,10 @@ export default function DashboardPage() {
   const perfilPreenchido = Boolean(radioConta?.nome_radio && radioConta?.frequencia);
   const radialistasProntos = radialistas.filter((r) => r.ativo && r.voz_id).length;
   const temRadialistaPronto = radialistasProntos > 0;
-  const temProgramaAtivo = programas.some((p) => p.ativo);
-  const temPatrocinador = patrocinadores.some((p) => p.ativo);
+  const programasAtivos = programas.filter((p) => p.ativo).length;
+  const temProgramaAtivo = programasAtivos > 0;
+  const patrocinadoresAtivos = patrocinadores.filter((p) => p.ativo).length;
+  const temPatrocinador = patrocinadoresAtivos > 0;
   // "no ar" pela janela de horario do programa nao basta -- sem WhatsApp conectado nao tem
   // ouvinte de verdade podendo falar com o radialista, entao nao e' "ao vivo" de fato ainda.
   const realmenteNoAr = Boolean(noAr?.no_ar) && whatsappConectado;
@@ -142,11 +169,11 @@ export default function DashboardPage() {
       feita: whatsappConectado,
       label: "Conectar WhatsApp",
       descricao: "Número da rádio conectado para receber pedidos",
-      href: "/onboarding",
+      href: "/conversas",
     },
     {
       feita: temPatrocinador,
-      label: "Cadastrar patrocinador",
+      label: "Cadastrar Vinhetagem",
       descricao: "Opcional — para inserir chamadas comerciais no ar",
       href: "/vinhetagem",
       opcional: true,
@@ -157,6 +184,8 @@ export default function DashboardPage() {
   return (
     <AppShell title="Dashboard" maxWidthClassName="max-w-4xl">
       {erro && <p className="text-sm text-rust-text mb-4">{erro}</p>}
+
+      <UpsellBanner />
 
       {onboardingIncompleto && (
         <div className="flex items-start justify-between gap-4 rounded-2xl border border-amber/40 bg-amber/10 px-5 py-4 mb-6">
@@ -230,7 +259,41 @@ export default function DashboardPage() {
               <p className="font-display text-2xl font-bold text-fg capitalize">{conta?.plano ?? "-"}</p>
               <p className="text-xs text-fg/65 mt-0.5 capitalize">{conta?.plano_status ?? ""}</p>
             </div>
+            <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">
+              <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">Programas</p>
+              <p className="font-display text-2xl font-bold text-fg">{programas.length}</p>
+              <p className="text-xs text-fg/65 mt-0.5">
+                {programasAtivos} ativo{programasAtivos === 1 ? "" : "s"} na grade
+              </p>
+            </div>
+            <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">
+              <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">Vinhetagem</p>
+              <p className="font-display text-2xl font-bold text-fg">{patrocinadores.length}</p>
+              <p className="text-xs text-fg/65 mt-0.5">
+                {patrocinadoresAtivos} patrocinador{patrocinadoresAtivos === 1 ? "" : "es"} ativo{patrocinadoresAtivos === 1 ? "" : "s"}
+              </p>
+            </div>
+            <Link
+              href="/metrics"
+              className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5 hover:border-amber/40 transition-colors"
+            >
+              <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">Mensagens (7 dias)</p>
+              <p className="font-display text-2xl font-bold text-fg">{mensagens7Dias ?? "-"}</p>
+              <p className="text-xs text-fg/65 mt-0.5">Interações com ouvintes</p>
+            </Link>
           </div>
+
+          {mensagensPorDia.some((ponto) => ponto.total > 0) && (
+            <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5 mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-display text-sm font-bold text-fg">Mensagens por dia (últimos 30 dias)</p>
+                <Link href="/metrics" className="text-xs font-medium text-amber-text hover:text-amber-dim">
+                  Ver detalhes
+                </Link>
+              </div>
+              <GraficoBarras serie={mensagensPorDia} />
+            </div>
+          )}
 
           <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5 mb-6">
             <div className="flex items-center justify-between mb-3">

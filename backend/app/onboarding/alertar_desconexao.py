@@ -61,7 +61,7 @@ def verificar_desconexoes() -> int:
                     "whatsapp",
                     "WhatsApp desconectado",
                     "O WhatsApp da sua radio caiu. Reconecte escaneando o QR Code novamente.",
-                    link="/onboarding",
+                    link="/conversas",
                 )
                 alertas_enviados += 1
                 logger.info("Alerta de desconexao enviado: account_id=%s", account.id)

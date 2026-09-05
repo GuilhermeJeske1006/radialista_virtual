@@ -34,7 +34,7 @@ export const PASSOS_TOUR: PassoTour[] = [
     texto:
       "Escaneie o QR Code com o número que vai atender os ouvintes. Só depois disso o radialista responde de verdade.",
     cta: "Conectar WhatsApp",
-    href: "/onboarding",
+    href: "/conversas",
     feito: (e) => e.whatsappConectado,
   },
 ];

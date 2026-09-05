@@ -6,6 +6,7 @@ import ConfirmDialog from "./ConfirmDialog";
 import VoiceSelect from "./VoiceSelect";
 import { apiFetch, ApiError } from "../lib/api";
 import { setRadialistaAtualId } from "../lib/radialistas";
+import { invalidarConfiguracaoInicial } from "../lib/useConfiguracaoInicial";
 import { DIAS_SEMANA_LABEL, RADIALISTA_VAZIO, Programa, Radialista } from "../lib/types";
 import { LocufySpin } from "./LocufyLogo";
 import { PRECO_AGENTE_ADICIONAL, formatarReais } from "../lib/planos";
@@ -106,6 +107,7 @@ export default function EditarRadialistaForm({
       }
       setConfig(atualizado);
       setMensagem(criando ? "Radialista criado." : "Configuração salva.");
+      invalidarConfiguracaoInicial();
       onSalvo?.(atualizado);
     } catch (err) {
       if (criando && err instanceof ApiError && err.status === 402) {
@@ -134,6 +136,7 @@ export default function EditarRadialistaForm({
     if (!config || idEfetivo === null) return;
     try {
       await apiFetch(`/config/radialistas/${idEfetivo}`, { method: "DELETE" });
+      invalidarConfiguracaoInicial();
       onExcluido?.();
     } catch (err) {
       setErro(err instanceof ApiError ? err.message : "Erro ao excluir radialista");
@@ -154,6 +157,7 @@ export default function EditarRadialistaForm({
   async function excluirPrograma(programa: Programa) {
     try {
       await apiFetch(`/config/programas/${programa.id}`, { method: "DELETE" });
+      invalidarConfiguracaoInicial();
       carregarProgramas();
     } catch (err) {
       setErro(err instanceof ApiError ? err.message : "Erro ao excluir programa");
@@ -187,7 +191,7 @@ export default function EditarRadialistaForm({
             </h2>
             <p className="text-sm text-fg/65">
               Atende pelo WhatsApp da rádio.{" "}
-              <Link href="/onboarding" className="text-amber-text hover:underline">
+              <Link href="/conversas" className="text-amber-text hover:underline">
                 Gerenciar conexão
               </Link>
             </p>

@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import AppShell from "../../components/AppShell";
+import ConfirmDialog from "../../components/ConfirmDialog";
 import { apiFetch, apiFetchDownload, ApiError } from "../../lib/api";
 import { STATUS_COR, STATUS_LABEL } from "../../lib/statusInteracao";
-import { LocufySpin } from "../../components/LocufyLogo";
+import { invalidarConfiguracaoInicial } from "../../lib/useConfiguracaoInicial";
+import { LocufyLed, LocufySpin } from "../../components/LocufyLogo";
+
+type QrResponse = { data?: { QRCode?: string } };
+type StatusResponse = { data?: { loggedIn?: boolean; connected?: boolean } };
 
 type Interacao = {
   id: number;
@@ -106,6 +111,15 @@ const OPCOES_PERIODO = [
 ];
 
 export default function ConversasPage() {
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [conectado, setConectado] = useState(false);
+  const [conectando, setConectando] = useState(false);
+  const [verificandoConexao, setVerificandoConexao] = useState(true);
+  const [erroConexao, setErroConexao] = useState("");
+  const [desconectando, setDesconectando] = useState(false);
+  const [confirmandoDesconexao, setConfirmandoDesconexao] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [conversas, setConversas] = useState<Conversa[]>([]);
   const [carregandoConversas, setCarregandoConversas] = useState(true);
   const [paginaConversas, setPaginaConversas] = useState(1);
@@ -120,6 +134,77 @@ export default function ConversasPage() {
   const [periodoExport, setPeriodoExport] = useState("30");
   const [exportando, setExportando] = useState(false);
   const [erroExport, setErroExport] = useState("");
+
+  function pararPoll() {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }
+
+  async function verificarConexao() {
+    try {
+      const status = await apiFetch<StatusResponse>("/onboarding/status");
+      const ok = status.data?.loggedIn ?? false;
+      if (ok) {
+        setConectado(true);
+        setQrCode(null);
+        pararPoll();
+        invalidarConfiguracaoInicial();
+      } else {
+        setConectado(false);
+      }
+    } catch {
+      // ignora falha de poll isolada, tenta de novo no proximo tick
+    } finally {
+      setVerificandoConexao(false);
+    }
+  }
+
+  useEffect(() => {
+    verificarConexao();
+    return pararPoll;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function conectarWhatsapp() {
+    setConectando(true);
+    setErroConexao("");
+    try {
+      await apiFetch("/onboarding/wuzapi-user", { method: "POST" });
+      await apiFetch("/onboarding/connect", { method: "POST" });
+
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const qr = await apiFetch<QrResponse>("/onboarding/qrcode");
+      const imagem = qr.data?.QRCode;
+      if (imagem) {
+        setQrCode(imagem);
+      }
+
+      pararPoll();
+      pollRef.current = setInterval(verificarConexao, 3000);
+    } catch (err) {
+      setErroConexao(err instanceof ApiError ? err.message : "Erro ao conectar com o WhatsApp");
+    } finally {
+      setConectando(false);
+    }
+  }
+
+  async function desconectarWhatsapp() {
+    setDesconectando(true);
+    setErroConexao("");
+    try {
+      await apiFetch("/onboarding/logout", { method: "POST" });
+      setConectado(false);
+      setQrCode(null);
+      invalidarConfiguracaoInicial();
+    } catch (err) {
+      setErroConexao(err instanceof ApiError ? err.message : "Erro ao desconectar o WhatsApp");
+    } finally {
+      setDesconectando(false);
+      setConfirmandoDesconexao(false);
+    }
+  }
 
   async function exportarCsv() {
     setExportando(true);
@@ -183,6 +268,62 @@ export default function ConversasPage() {
 
   return (
     <AppShell title="Conversas" maxWidthClassName="max-w-4xl">
+      <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-4 mb-4">
+        {verificandoConexao ? (
+          <p className="flex items-center gap-2 text-sm text-fg/65">
+            <LocufySpin size={16} /> Verificando conexão do WhatsApp...
+          </p>
+        ) : conectado ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-teal/10 text-teal-text border border-teal/25 px-2.5 py-0.5 text-xs font-medium">
+              <LocufyLed color="teal" pulse={false} /> WhatsApp conectado
+            </span>
+            <button
+              type="button"
+              onClick={() => setConfirmandoDesconexao(true)}
+              className="text-xs font-medium text-rust-text hover:text-rust/80"
+            >
+              Desconectar WhatsApp
+            </button>
+          </div>
+        ) : (
+          <div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm text-fg/80">
+                <span className="font-medium text-rust-text">WhatsApp desconectado</span> — os ouvintes não
+                estão sendo atendidos.
+              </p>
+              <button
+                onClick={conectarWhatsapp}
+                disabled={conectando}
+                className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {conectando ? "Gerando..." : "Conectar WhatsApp"}
+              </button>
+            </div>
+            {qrCode && (
+              <div className="flex justify-center mt-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={qrCode}
+                  alt="QR Code do WhatsApp"
+                  className="max-w-64 rounded-lg bg-paper p-2 border border-border-strong"
+                />
+              </div>
+            )}
+          </div>
+        )}
+        {erroConexao && <p className="text-sm text-rust-text mt-3">{erroConexao}</p>}
+      </div>
+
+      <ConfirmDialog
+        open={confirmandoDesconexao}
+        title="Desconectar WhatsApp"
+        mensagem="Isso desliga o número do WhatsApp da rádio. Os radialistas param de atender os ouvintes até você conectar de novo escaneando um novo QR Code."
+        onConfirmar={desconectarWhatsapp}
+        onCancelar={() => !desconectando && setConfirmandoDesconexao(false)}
+      />
+
       <div className="flex flex-wrap items-end justify-between gap-4 mb-4">
         <p className="text-sm text-fg/65">
           Conversas dos ouvintes, separadas por número, e o que o sistema fez com cada mensagem. Pra ver
@@ -250,11 +391,11 @@ export default function ConversasPage() {
                       </div>
                       <p className="text-xs text-fg/65 truncate mt-0.5">{conversa.ultima_mensagem}</p>
                       <div className="flex items-center justify-between mt-1">
-                        <span className="text-[11px] text-fg/65 truncate">
+                        <span className="text-[11px] text-fg/65 truncate min-w-0">
                           {conversa.nome ? `${conversa.telefone} · ` : ""}
                           {conversa.radialista_nome}
                         </span>
-                        <span className="text-[11px] rounded-full bg-paper px-1.5 py-0.5 text-fg/65 shrink-0">
+                        <span className="text-[11px] rounded-full bg-surface-2 px-1.5 py-0.5 text-fg/65 shrink-0">
                           {conversa.total_mensagens}
                         </span>
                       </div>

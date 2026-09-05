@@ -57,6 +57,16 @@ function buscar(): Promise<ConfiguracaoInicialEstado> {
   return buscaEmVoo;
 }
 
+/** Forca um novo fetch e avisa quem ja' esta' montado (OnboardingTour, Sidebar, AppShell
+ * sobrevivem a navegacao entre paginas) -- chamar depois de criar/editar radialista,
+ * programa ou conectar o WhatsApp, senao o card do tour e o checklist do dashboard ficam
+ * presos no estado antigo ate um reload completo da pagina. */
+export function invalidarConfiguracaoInicial(): void {
+  cache = null;
+  buscaEmVoo = null;
+  buscar().catch(() => {});
+}
+
 /** Estado granular dos 3 passos da configuração inicial (radialista, programa, WhatsApp) --
  * usado pelo checklist do dashboard e pelo tour guiado de onboarding. */
 export function useConfiguracaoInicial(): ConfiguracaoInicialEstado {

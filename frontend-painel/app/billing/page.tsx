@@ -5,8 +5,15 @@ import AppShell from "../../components/AppShell";
 import CheckoutModal from "../../components/CheckoutModal";
 import { apiFetch, ApiError } from "../../lib/api";
 import { LocufyLed, LocufySpin } from "../../components/LocufyLogo";
-import { PLANOS, PRECO_AGENTE_ADICIONAL, PRECO_EXCEDENTE_1000_MSG, formatarReais } from "../../lib/planos";
+import {
+  PLANOS,
+  PRECO_AGENTE_ADICIONAL,
+  PRECO_EXCEDENTE_1000_MSG,
+  formatarReais,
+  permiteClonagemVoz,
+} from "../../lib/planos";
 import { Radialista } from "../../lib/types";
+import { UpsellBanner } from "../../components/UpsellBanner";
 
 type StatusPlano = {
   plano_status: string;
@@ -126,6 +133,8 @@ export default function BillingPage() {
 
   return (
     <AppShell title="Assinatura" maxWidthClassName="max-w-6xl">
+      <UpsellBanner />
+
       {assinaturaConfirmada && (
         <div className="flex items-center justify-between gap-4 rounded-2xl border border-teal/40 bg-teal/10 px-5 py-3 mb-6 max-w-2xl">
           <p className="text-sm font-medium text-fg">Assinatura confirmada.</p>
@@ -276,10 +285,17 @@ export default function BillingPage() {
             </div>
 
             <ul className="space-y-2.5 mb-6 flex-1">
-              <Feature texto={`${plano.agentes} ${plano.agentes === 1 ? "agente" : "agentes"} de IA inclusos`} />
-              <Feature texto={`${plano.mensagens.toLocaleString("pt-BR")} mensagens/mês`} />
+              <Feature
+                texto={`${plano.agentes} ${plano.agentes === 1 ? "locutor de IA incluso" : "locutores de IA inclusos"}`}
+              />
+              <Feature texto={`${plano.mensagens.toLocaleString("pt-BR")} mensagens/mês no WhatsApp`} />
               <Feature texto="Respostas automáticas com IA" />
-              <Feature texto="Encaminhamento pra atendimento humano" />
+              {permiteClonagemVoz(plano.id) && (
+                <Feature texto={plano.id === "professional" ? "Clonagem de voz inclusa" : "Opção de clonagem de voz"} />
+              )}
+              {plano.radialistasPorPrograma > 1 && (
+                <Feature texto={`Até ${plano.radialistasPorPrograma} locutores por programa (diálogo)`} />
+              )}
             </ul>
 
             {ehPlanoAtual ? (
