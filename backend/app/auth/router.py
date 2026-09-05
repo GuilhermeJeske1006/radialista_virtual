@@ -17,6 +17,7 @@ from app.auth.security import (
     limpar_cookie_sessao,
     verificar_senha,
 )
+from app.biblioteca_audio.sons_padrao import criar_sons_padrao
 from app.categorias_vinheta.defaults import criar_categorias_padrao
 from app.db.database import get_db
 from app.guardrails.http_rate_limit import limitar_por_ip
@@ -121,6 +122,11 @@ def registrar(dados: RegistroRequest, response: Response, db: Session = Depends(
     db.add(programa)
 
     criar_categorias_padrao(db, account.id)
+
+    try:
+        criar_sons_padrao(db, account.id)
+    except Exception:
+        logger.warning("Falha ao seedar sons padrao pra account_id=%s", account.id, exc_info=True)
 
     db.commit()
 

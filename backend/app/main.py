@@ -12,12 +12,13 @@ from app.admin_sistema.auth_router import router as admin_sistema_auth_router
 from app.admin_sistema.router import router as admin_sistema_router
 from app.auth.router import router as auth_router
 from app.biblioteca_audio.router import router as biblioteca_audio_router
+from app.biblioteca_audio.sons_padrao import criar_sons_padrao
 from app.billing.router import router as billing_router
 from app.categorias_vinheta.defaults import CATEGORIAS_PADRAO
 from app.categorias_vinheta.router import router as categorias_vinheta_router
 from app.config.router import router as config_router
 from app.config.settings import settings
-from app.db.database import Base, engine
+from app.db.database import Base, SessionLocal, engine
 from app.equipe.router import router as equipe_router
 from app.live.router import router as live_router
 from app.metrics.router import router as metrics_router
@@ -61,6 +62,8 @@ _arquivo_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(nam
 
 logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(), _arquivo_handler])
 
+logger = logging.getLogger("radialista.main")
+
 # DSN vazio (dev local sem Sentry configurado) desativa o SDK inteiro -- init() com
 # dsn=None e' um no-op documentado, sem custo nem chamada de rede.
 sentry_sdk.init(
@@ -81,6 +84,9 @@ if "localhost" in settings.frontend_url:
     _frontend_origins.add(settings.frontend_url.replace("localhost", "127.0.0.1"))
 elif "127.0.0.1" in settings.frontend_url:
     _frontend_origins.add(settings.frontend_url.replace("127.0.0.1", "localhost"))
+_frontend_origins.update(
+    origin.strip() for origin in settings.cors_extra_origins.split(",") if origin.strip()
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -128,10 +134,12 @@ async def criar_tabelas():
     garantir_colunas_interaction_log()
     garantir_colunas_musica_historico()
     garantir_colunas_patrocinador()
+    garantir_colunas_voz_clonada()
     garantir_colunas_categoria_vinheta()
     corrigir_tipo_categoria_vinheta_legado()
     migrar_categoria_biblioteca_audio()
     semear_categorias_padrao_em_contas_existentes()
+    semear_sons_padrao_em_contas_existentes()
     migrar_conteudo_para_programas()
     migrar_whatsapp_para_account()
     migrar_usuarios_de_account()
@@ -181,6 +189,8 @@ def garantir_colunas_account():
         "cidade": "VARCHAR DEFAULT '' NOT NULL",
         "onboarding_email_enviado": "BOOLEAN DEFAULT FALSE NOT NULL",
         "wuzapi_desconectado_alerta_enviado": "BOOLEAN DEFAULT FALSE NOT NULL",
+        "upsell_alerta_tipo": "VARCHAR NULL",
+        "upsell_alerta_mes": "VARCHAR NULL",
     }
 
     with engine.begin() as conn:
@@ -295,6 +305,20 @@ def garantir_colunas_categoria_vinheta():
             conn.execute(text("ALTER TABLE categorias_vinheta ADD COLUMN tipo VARCHAR DEFAULT 'biblioteca' NOT NULL"))
 
 
+def garantir_colunas_voz_clonada():
+    inspector = inspect(engine)
+    if "vozes_clonadas" not in inspector.get_table_names():
+        return
+
+    colunas = {coluna["name"] for coluna in inspector.get_columns("vozes_clonadas")}
+    if "compartilhada" not in colunas:
+        with engine.begin() as conn:
+            # DEFAULT true so' pra backfill das vozes clonadas ja existentes (passam a valer
+            # pra qualquer conta); dai em diante o app sempre manda o valor explicito (False
+            # pra clone novo) no INSERT, entao o default da coluna nao importa mais.
+            conn.execute(text("ALTER TABLE vozes_clonadas ADD COLUMN compartilhada BOOLEAN DEFAULT true NOT NULL"))
+
+
 def corrigir_tipo_categoria_vinheta_legado():
     """tipo da categoria de vinhetagem se chamava "vinheta" e foi renomeado pra "biblioteca"
     (bate com o nome real do model/rota -- BibliotecaAudioItem / /biblioteca-audio). Corrige
@@ -384,6 +408,29 @@ def semear_categorias_padrao_em_contas_existentes():
                     ),
                     {"account_id": account_id, "nome": nome, "tipo": tipo},
                 )
+
+
+def semear_sons_padrao_em_contas_existentes():
+    """Roda app/biblioteca_audio/sons_padrao.py::criar_sons_padrao pra toda conta que ja
+    existia antes desse recurso -- idempotente por nome (ver criar_sons_padrao), entao
+    rodar de novo so' completa o que falta, sem duplicar. Precisa de sessao ORM (nao SQL
+    puro) porque cada som envolve ler o arquivo do disco e gravar no storage (S3/local).
+    """
+    inspector = inspect(engine)
+    if "biblioteca_audio_itens" not in inspector.get_table_names() or "accounts" not in inspector.get_table_names():
+        return
+
+    db = SessionLocal()
+    try:
+        for (account_id,) in db.query(Account.id).all():
+            try:
+                criar_sons_padrao(db, account_id)
+                db.commit()
+            except Exception:
+                db.rollback()
+                logger.warning("Falha ao seedar sons padrao (backfill) pra account_id=%s", account_id, exc_info=True)
+    finally:
+        db.close()
 
 
 def migrar_conteudo_para_programas():

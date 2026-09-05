@@ -1,7 +1,9 @@
 import hashlib
 
 from app.auth.security import COOKIE_TOKEN
+from app.biblioteca_audio.sons_padrao import SONS_PADRAO
 from app.categorias_vinheta.defaults import CATEGORIAS_PADRAO
+from app.config.settings import settings
 from app.models.password_reset_token import PasswordResetToken
 
 
@@ -22,6 +24,31 @@ def test_registro_cria_conta_radio_config_e_programa_padrao(client, db_session):
 
     categorias = client.get("/categorias-vinheta", headers={"Authorization": f"Bearer {token}"}).json()
     assert sorted((c["nome"], c["tipo"]) for c in categorias) == sorted(CATEGORIAS_PADRAO)
+
+
+def test_registro_seeda_sons_padrao_no_cartwall(client, monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "storage_backend", "local")
+    monkeypatch.setattr(settings, "upload_dir", str(tmp_path))
+
+    resposta = _registrar(client)
+    assert resposta.status_code == 200
+    token = resposta.json()["access_token"]
+
+    itens = client.get("/biblioteca-audio", headers={"Authorization": f"Bearer {token}"}).json()
+    assert {i["nome"] for i in itens} == {s["nome"] for s in SONS_PADRAO}
+
+
+def test_registro_nao_falha_se_storage_dos_sons_padrao_estiver_indisponivel(client, monkeypatch):
+    """Seed de sons padrao e' best-effort (ver criar_sons_padrao) -- storage fora do ar nao
+    pode impedir o cadastro da conta em si."""
+
+    def _quebrado(*args, **kwargs):
+        raise RuntimeError("storage indisponivel")
+
+    monkeypatch.setattr("app.auth.router.criar_sons_padrao", _quebrado)
+
+    resposta = _registrar(client)
+    assert resposta.status_code == 200
 
 
 def test_registro_com_email_duplicado_falha(client):
