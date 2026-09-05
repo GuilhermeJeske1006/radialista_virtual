@@ -205,6 +205,28 @@ describe("VoiceSelect", () => {
     );
   });
 
+  it("lista vozes clonadas compartilhadas por outras contas, sem botao de editar/excluir", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        if (url.includes("/tts/voices")) return respostaJson([]);
+        if (url.includes("/auth/me")) return respostaJson({ plano: "starter" });
+        if (url.includes("/tts/vozes-compartilhadas")) {
+          return respostaJson([{ id: 9, nome: "Voz da Comunidade", voz_id: "voz-compartilhada-1", preview_url: null }]);
+        }
+        if (url.includes("/tts/vozes-clonadas")) return respostaJson([]);
+        return respostaJson({});
+      })
+    );
+    render(<VoiceSelect value={null} onChange={() => {}} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Voz da Comunidade")).toBeInTheDocument();
+    });
+    expect(screen.queryByTitle("Renomear")).not.toBeInTheDocument();
+    expect(screen.queryByTitle("Excluir")).not.toBeInTheDocument();
+  });
+
   it("nao exclui voz clonada se o usuario cancelar a confirmacao", async () => {
     vi.stubGlobal("confirm", vi.fn(() => false));
     const fetchMock = vi.fn((url: string) => {
