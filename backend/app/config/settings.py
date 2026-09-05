@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 60 * 24 * 7
 
     frontend_url: str = "http://localhost:3000"
+    # Origens extras liberadas no CORS alem de frontend_url (ex.: tunel ngrok em dev),
+    # separadas por virgula. Vazio = so' frontend_url (e variante localhost/127.0.0.1).
+    cors_extra_origins: str = ""
 
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
@@ -26,6 +29,12 @@ class Settings(BaseSettings):
     stripe_price_id_professional: str = ""
 
     youtube_api_key: str = ""
+
+    # Client Credentials Flow (developer.spotify.com/dashboard) -- usado so' pra descobrir
+    # faixas oficiais por genero (app/live/spotify.py), nunca pra tocar audio. Vazio desativa
+    # a integracao e o fluxo cai pro comportamento anterior (sugestao via LLM).
+    spotify_client_id: str = ""
+    spotify_client_secret: str = ""
 
     elevenlabs_api_key: str = ""
     elevenlabs_voice_id: str = ""

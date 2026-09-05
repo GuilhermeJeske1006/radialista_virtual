@@ -18,4 +18,4 @@ docker compose \
 echo "==> Tudo no ar (dev):"
 echo "    wuzapi:   http://localhost:8080"
 echo "    backend:  http://localhost:8000  (uvicorn --reload)"
-echo "    frontend: http://localhost:3000  (next dev)"
+echo "    frontend: http://localhost:3001  (next dev)"
