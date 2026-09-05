@@ -57,13 +57,21 @@ def descricao_voz(voz_id: str | None) -> str | None:
 
 
 def voz_valida_para_conta(db: Session, account_id: int, voz_id: str) -> bool:
-    """Valida um voz_id do catalogo fixo OU uma voz clonada (app/models/voz_clonada.py)
-    pertencente a essa conta -- clonagem de voz nao entra no catalogo global porque cada
-    voz clonada e' privada de quem a criou.
+    """Valida um voz_id do catalogo fixo, uma voz clonada (app/models/voz_clonada.py)
+    pertencente a essa conta, ou uma voz clonada marcada como compartilhada (disponivel
+    pra qualquer conta escolher, embora so a conta que criou possa renomear/excluir).
     """
     if voz_valida(voz_id):
         return True
 
+    from sqlalchemy import or_
+
     from app.models.voz_clonada import VozClonada
 
-    return db.query(VozClonada).filter_by(account_id=account_id, voz_id=voz_id).first() is not None
+    return (
+        db.query(VozClonada)
+        .filter(VozClonada.voz_id == voz_id)
+        .filter(or_(VozClonada.account_id == account_id, VozClonada.compartilhada.is_(True)))
+        .first()
+        is not None
+    )

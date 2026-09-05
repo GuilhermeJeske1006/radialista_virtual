@@ -33,6 +33,17 @@ def test_voz_valida_para_conta_rejeita_voz_clonada_de_outra_conta(db_session, ac
     assert voz_valida_para_conta(db_session, outro.id, "voz-clonada-1") is False
 
 
+def test_voz_valida_para_conta_aceita_voz_clonada_compartilhada_de_outra_conta(db_session, account_factory):
+    dono = account_factory(email="dono2@a.com")
+    outro = account_factory(email="outro2@a.com")
+    db_session.add(
+        VozClonada(account_id=dono.id, nome="Voz aberta", voz_id="voz-clonada-2", compartilhada=True)
+    )
+    db_session.commit()
+
+    assert voz_valida_para_conta(db_session, outro.id, "voz-clonada-2") is True
+
+
 def test_voz_valida_para_conta_rejeita_voz_desconhecida(db_session, account_factory):
     account = account_factory(email="a@a.com")
     assert voz_valida_para_conta(db_session, account.id, "voz-inexistente") is False

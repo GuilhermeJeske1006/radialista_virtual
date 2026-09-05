@@ -73,6 +73,21 @@ def listar_vozes_clonadas(account: Account = Depends(get_current_account), db: S
     return [_resposta_voz_clonada(v) for v in vozes_clonadas]
 
 
+@router.get("/vozes-compartilhadas", response_model=list[VozClonadaResponse])
+def listar_vozes_compartilhadas(account: Account = Depends(get_current_account), db: Session = Depends(get_db)):
+    """Vozes clonadas por outras contas e marcadas como compartilhadas -- selecionaveis por
+    qualquer conta (ver app/tts/voices.py::voz_valida_para_conta), mas so a conta que criou
+    pode renomear/excluir (por isso ficam fora da lista de /vozes-clonadas dessa conta).
+    """
+    vozes_clonadas = (
+        db.query(VozClonada)
+        .filter(VozClonada.compartilhada.is_(True), VozClonada.account_id != account.id)
+        .order_by(VozClonada.id.asc())
+        .all()
+    )
+    return [_resposta_voz_clonada(v) for v in vozes_clonadas]
+
+
 @router.post("/vozes-clonadas", response_model=VozClonadaResponse, status_code=status.HTTP_201_CREATED)
 async def criar_voz_clonada(
     nome: str = Form(...),

@@ -22,6 +22,32 @@ def test_listar_vozes_clonadas_vazio(client, account, auth_headers):
     assert resposta.json() == []
 
 
+def test_listar_vozes_compartilhadas_inclui_apenas_de_outras_contas(
+    client, account_factory, auth_headers, db_session, monkeypatch
+):
+    from app.models.voz_clonada import VozClonada
+
+    monkeypatch.setattr("app.tts.router.obter_preview_url", lambda voz_id: None)
+
+    dono = account_factory(email="dono-compartilhada@a.com")
+    outro = account_factory(email="outro-compartilhada@a.com")
+    db_session.add_all(
+        [
+            VozClonada(account_id=dono.id, nome="Voz aberta", voz_id="voz-compartilhada-1", compartilhada=True),
+            VozClonada(account_id=dono.id, nome="Voz privada", voz_id="voz-privada-1", compartilhada=False),
+        ]
+    )
+    db_session.commit()
+
+    resposta = client.get("/tts/vozes-compartilhadas", headers=auth_headers(outro.id))
+    assert resposta.status_code == 200
+    nomes = [v["nome"] for v in resposta.json()]
+    assert nomes == ["Voz aberta"]
+
+    resposta_dono = client.get("/tts/vozes-compartilhadas", headers=auth_headers(dono.id))
+    assert resposta_dono.json() == []
+
+
 def test_criar_voz_clonada_exige_plano_com_clonagem(client, account, auth_headers):
     assert account.plano == "starter"
     arquivo = io.BytesIO(b"fake-audio-bytes")

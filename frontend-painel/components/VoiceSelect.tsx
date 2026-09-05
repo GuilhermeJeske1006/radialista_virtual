@@ -15,6 +15,7 @@ type Props = {
 export default function VoiceSelect({ value, onChange }: Props) {
   const [vozes, setVozes] = useState<Voz[]>([]);
   const [vozesClonadas, setVozesClonadas] = useState<VozClonada[]>([]);
+  const [vozesCompartilhadas, setVozesCompartilhadas] = useState<VozClonada[]>([]);
   const [plano, setPlano] = useState<string | null>(null);
   const [modalAberto, setModalAberto] = useState(false);
   const [editandoId, setEditandoId] = useState<number | null>(null);
@@ -34,6 +35,9 @@ export default function VoiceSelect({ value, onChange }: Props) {
     apiFetch<Conta>("/auth/me")
       .then((conta) => setPlano(conta.plano))
       .catch(() => setPlano(null));
+    apiFetch<VozClonada[]>("/tts/vozes-compartilhadas")
+      .then(setVozesCompartilhadas)
+      .catch(() => setVozesCompartilhadas([]));
     carregarVozesClonadas();
   }, []);
 
@@ -141,6 +145,23 @@ export default function VoiceSelect({ value, onChange }: Props) {
                 </div>
               )
             )}
+          </>
+        )}
+
+        {vozesCompartilhadas.length > 0 && (
+          <>
+            <p className="px-3 pt-2 text-xs font-medium text-fg/65">Vozes clonadas compartilhadas</p>
+            {vozesCompartilhadas.map((v) => (
+              <div key={v.voz_id} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-fg/5">
+                <label className="flex flex-1 cursor-pointer items-center gap-2">
+                  <input type="radio" name="voz" checked={value === v.voz_id} onChange={() => onChange(v.voz_id)} />
+                  {v.nome}
+                </label>
+                {v.preview_url && (
+                  <audio controls preload="none" src={v.preview_url} className="h-8 w-40 shrink-0" />
+                )}
+              </div>
+            ))}
           </>
         )}
 
