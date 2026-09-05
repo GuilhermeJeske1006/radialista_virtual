@@ -18,6 +18,8 @@ os.environ["STRIPE_SECRET_KEY"] = "sk_test_fake"
 os.environ["STRIPE_WEBHOOK_SECRET"] = "whsec_test_fake"
 os.environ["ELEVENLABS_API_KEY"] = ""
 os.environ["YOUTUBE_API_KEY"] = ""
+os.environ["SPOTIFY_CLIENT_ID"] = ""
+os.environ["SPOTIFY_CLIENT_SECRET"] = ""
 
 import fakeredis
 import redis as redis_module

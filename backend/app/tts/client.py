@@ -70,13 +70,15 @@ _TAG_POR_TOM = {
     "calmo": "[calm]",
 }
 
-# reticencias duplas ("......") sao a instrucao do prompt (ver app.live.router) pro locutor dar um
-# respiro maior antes de trocar de assunto. Medido direto na API (par de chamadas identicas, uma so
+# reticencias duplas ("......") sao a instrucao do prompt (ver app.live.router) pro locutor marcar uma
+# pausa forte e real -- na troca de assunto/bloco, ou no meio da fala antes de um ponto de peso (noticia
+# forte, nome do sorteado, climax de piada). Medido direto na API (par de chamadas identicas, uma so
 # com "..." em vez de tag) que o eleven_v3 trata "..." exatamente como "." -- zero pausa extra, saida
 # em bytes identica. A tag de audio [pause] e' o que realmente funciona (~1.5s medido, reproduzivel),
 # entao a reticencia dupla e' convertida pra ela antes de mandar pro v3; reticencia simples (pausa de
 # respiracao dentro da frase) fica como esta -- vira "." de qualquer forma, e trocar toda ocorrencia
-# por [pause] (~1.5s cada) encheria a fala de silencio, pior que o problema original.
+# por [pause] (~1.5s cada) encheria a fala de silencio, pior que o problema original. O prompt pede uso
+# raro (no maximo 1x por fala) -- em todo ponto final tambem destruiria o efeito.
 _PAUSA_TROCA_ASSUNTO = re.compile(r"\.{4,}")
 
 # similarity_boost/use_speaker_boost nao sao suportados pelo eleven_v3 -- _construir_voice_settings

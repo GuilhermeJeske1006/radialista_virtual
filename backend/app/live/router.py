@@ -19,6 +19,7 @@ from app.db.database import get_db
 from app.guardrails.schedule import encontrar_programa_atual, minutos_restantes
 from app.live.music import MusicaEncontrada, _titulo_normalizado, buscar_musica, buscar_musica_fundo
 from app.live.song_service import dividir_artista_titulo, resolver_musica_catalogada
+from app.live.spotify import buscar_faixas_por_categoria
 from app.llm.client import (
     classificar_categoria_bloco,
     classificar_tema_fala,
@@ -625,12 +626,15 @@ def _escolher_query_musica(
     Musica catalogada (ver app.live.song_service) com youtube_video_id resolvido -- caller usa
     ela direto em vez de repetir a busca no YouTube pra query que so' muda de texto.
     """
-    def _via_catalogo(texto: str) -> MusicaEncontrada | None:
+    def _via_catalogo(texto: str, origem: str) -> MusicaEncontrada | None:
         """Se `texto` vier no formato 'Artista - Titulo', tenta reaproveitar/registrar no
         catalogo persistente (ver app.live.song_service) -- vale tanto pra sugestao da LLM
         quanto pra entrada de musicas_permitidas ja escrita nesse formato pelo admin. Texto que
         nao bate o formato (nome solto, pedido de ouvinte em linguagem livre) devolve None sem
-        custo extra, e o caller usa `texto` como query livre, igual antes."""
+        custo extra, e o caller usa `texto` como query livre, igual antes.
+
+        origem so' e' usada pra' gravar o campo confianca da Musica (ver
+        resolver_musica_catalogada em app.live.song_service), nao influencia a busca."""
         parsed = dividir_artista_titulo(texto)
         if parsed is None:
             return None
@@ -643,33 +647,49 @@ def _escolher_query_musica(
             evitar_video_ids=ids_tocadas,
             titulos_tocados=titulos_tocados,
             canais_recentes=canais_tocados,
+            origem=origem,
         )
 
     candidatos: list[str] = []
     pesos: list[float] = []
+    origens: list[str] = []
 
     total_permitidas = len(programa.musicas_permitidas)
     for indice, item in enumerate(programa.musicas_permitidas):
         candidatos.append(item)
         pesos.append((total_permitidas - indice) * _PESO_POSICAO_ADMIN)
+        origens.append("admin")
 
     for query_normalizada, contagem in _pedidos_publico_mais_frequentes(db, programa.id):
         candidatos.append(query_normalizada)
         pesos.append(contagem * _PESO_PEDIDO_PUBLICO)
+        origens.append("pedido_publico")
 
     if candidatos:
         escolhido = random.choices(candidatos, weights=pesos, k=1)[0]
-        return escolhido, None, _via_catalogo(escolhido)
+        origem = origens[candidatos.index(escolhido)]
+        return escolhido, None, _via_catalogo(escolhido, origem)
 
     if programa.generos_musicais:
         genero = random.choice(programa.generos_musicais)
         # query generica "{genero} musica" quase so' acha playlist/coletanea no YouTube pra genero
-        # (nao artista/faixa) -- pede pro LLM sugerir uma faixa avulsa real primeiro, muito mais
-        # provavel de achar video da musica em si em vez de compilacao (ver sugerir_musica_do_genero).
-        # Sem genero_filtro aqui: sugestao ja e' especifica o suficiente, igual musica_permitida.
+        # (nao artista/faixa) -- precisa de uma faixa avulsa real primeiro, muito mais provavel de
+        # achar video da musica em si em vez de compilacao. Sem genero_filtro aqui: sugestao ja e'
+        # especifica o suficiente, igual musica_permitida.
+        #
+        # Spotify primeiro: lista de faixas oficiais do genero (cacheada, ver
+        # buscar_faixas_por_categoria em app.live.spotify) e' mais confiavel que texto livre da
+        # LLM, que as vezes "inventa" combinacao artista+musica que nao existe. So' cai pro LLM
+        # quando a integracao esta' desativada (sem credenciais) ou o genero nao tem match la'.
+        faixas_spotify = buscar_faixas_por_categoria(genero, excluir_titulos=titulos_tocados)
+        if faixas_spotify:
+            artista, titulo = random.choice(faixas_spotify)
+            sugestao = f"{artista} - {titulo}"
+            return sugestao, None, _via_catalogo(sugestao, "spotify")
+
         sugestao = sugerir_musica_do_genero(genero)
         if sugestao:
-            return sugestao, None, _via_catalogo(sugestao)
+            return sugestao, None, _via_catalogo(sugestao, "llm_texto_livre")
         return f"{genero} musica", genero, None
 
     return "musica instrumental", None, None
@@ -843,10 +863,62 @@ def _buscar_musica_para_bloco(
         )
         if musica is not None:
             query = query_fallback
+    if musica is None:
+        # Nada achou nada, nem a query especifica nem o retry generico -- ultimo recurso antes
+        # de desistir do bloco de verdade (ver _fallback_curado_genero): tenta faixas da lista
+        # Spotify cacheada por genero, curadoria pronta muito mais provavel de existir no
+        # YouTube do que "musica instrumental" sem genero nenhum.
+        fallback = _fallback_curado_genero(db, programa, ids_tocadas, titulos_tocados, canais_tocados)
+        if fallback is not None:
+            musica, query = fallback
     if musica is not None:
         _registrar_musica_tocada(programa.id, musica)
         _registrar_historico_persistente(db, programa.id, musica, query, origem="auto")
     return musica
+
+
+# Tentativas de resolucao YouTube (via resolver_musica_catalogada, cada uma podendo custar
+# alguns segundos de rede) que o fallback curado gasta antes de desistir -- teto pra' nao
+# empacar o bloco de musica numa sequencia longa de tentativas sincronas quando o genero
+# configurado tem YouTube ruim pra' quase tudo.
+_MAX_TENTATIVAS_FALLBACK_CURADO = 6
+
+
+def _fallback_curado_genero(
+    db: Session,
+    programa: Programa,
+    ids_tocadas: set[str],
+    titulos_tocados: set[str],
+    canais_tocados: dict[str, int],
+) -> tuple[MusicaEncontrada, str] | None:
+    """Ultimo recurso antes do bloco de musica ficar vazio (ver _buscar_musica_para_bloco):
+    tenta, uma a uma, faixas da lista Spotify cacheada por genero configurado na radio (ver
+    buscar_faixas_por_categoria em app.live.spotify) -- mesma fonte usada na escolha normal
+    (ver _escolher_query_musica), so' que aqui percorre VARIAS faixas da lista em vez de uma
+    unica escolhida ao acaso, porque o ponto de ter uma lista curada e' justamente servir de
+    pool de alternativas quando a 1a tentativa falha no YouTube. So' roda quando o resto do
+    pipeline (query especifica + retry generico) ja' desistiu; radio sem genero configurado
+    (programa.generos_musicais vazio) nao tem lista nenhuma pra' tentar, devolve None direto.
+    """
+    candidatos: list[tuple[str, str]] = []
+    for genero in programa.generos_musicais or []:
+        candidatos.extend(buscar_faixas_por_categoria(genero, excluir_titulos=titulos_tocados))
+    random.shuffle(candidatos)
+
+    for artista, titulo in candidatos[:_MAX_TENTATIVAS_FALLBACK_CURADO]:
+        musica = resolver_musica_catalogada(
+            db,
+            titulo,
+            artista,
+            bloqueados=programa.musicas_bloqueadas,
+            evitar_video_ids=ids_tocadas,
+            titulos_tocados=titulos_tocados,
+            canais_recentes=canais_tocados,
+            origem="spotify",
+        )
+        if musica is not None:
+            return musica, f"{artista} - {titulo}"
+    return None
 
 
 def _proximo_pedido_fila(db: Session, radialista: RadioConfig, tipo: str) -> FilaAoVivo | None:
@@ -1038,13 +1110,22 @@ def gerar_proxima_fala(
         "Ao mudar de tópico dentro da fala ou encerrar o bloco pra entrar no próximo, marque uma pausa mais "
         "longa que o normal: use reticências duplas (\"......\") ou um respiro curto antes de virar o assunto, "
         "em vez de emendar direto.",
+        "A pausa longa (\"......\") não é só pra troca de assunto: use ela também no meio de uma fala, bem antes "
+        "de um ponto que precise de peso real -- uma notícia forte, o nome do ouvinte sorteado, o clímax de uma "
+        "piada, um dado surpreendente. Nem toda fala precisa desse tipo de pausa; ela só funciona se for rara "
+        "e vier no momento certo (no máximo uma vez por fala, quando fizer sentido) -- espalhar em todo ponto "
+        "final destrói o efeito e some com o ritmo real de rádio.",
         _PROSODIA_BLOCO.get(
             categoria,
             f"Este bloco é '{tipo}': ajuste tom e ritmo conforme o conteúdo, mantendo a identidade do programa.",
         ),
-        "Além do tipo do bloco, varie intensidade dentro da própria fala conforme o conteúdo: acelere e encurte "
-        "frases em partes animadas ou de efeito, desacelere com vírgulas e reticências em partes que pedem mais "
-        "reflexão ou peso -- não mantenha o mesmo ritmo do início ao fim da fala.",
+        "Além do tipo do bloco, varie intensidade dentro da própria fala conforme o conteúdo -- ela não pode "
+        "soar no mesmo ritmo do início ao fim. Cuidado: o ponto final sozinho não segura o locutor, ele emenda "
+        "na frase seguinte quase sem respiro -- por isso NUNCA encadeie várias frases curtas seguidas (isso sai "
+        "como leitura apressada de lista, não fala natural). Pra um trecho de efeito, use no máximo UMA frase "
+        "curta isolada, cercada de frases de tamanho normal antes e depois. Pra desacelerar em partes de "
+        "reflexão ou peso, prefira uma frase mais longa, encadeada por vírgulas -- a vírgula dentro da própria "
+        "frase é o que realmente controla o ritmo de leitura, não a quantidade de pontos finais.",
         "Use a pontuação como interpretação, não só como gramática: coloque exclamação (!) exatamente nos "
         "pontos de real empolgação ou efeito, no máximo uma ou duas por fala -- nunca em toda frase. Nas "
         "partes que pedem tom mais ameno, use vírgulas e reticências (...) pra marcar pausa e respiração, "

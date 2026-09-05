@@ -825,6 +825,149 @@ def test_escolher_query_musica_curadoria_texto_livre_ignora_catalogo(
     assert db_session.query(Musica).count() == 0
 
 
+def test_escolher_query_musica_curadoria_admin_grava_confianca_alta(
+    db_session, radialista_e_programa, monkeypatch
+):
+    """Entrada de musicas_permitidas no formato 'Artista - Titulo' e' curadoria humana do admin
+    -- catalogada com confianca alta (ver _confianca_da_origem em app.live.song_service)."""
+    _, programa = radialista_e_programa
+    programa.musicas_permitidas = ["Jorge & Mateus - Propaganda"]
+    db_session.commit()
+
+    monkeypatch.setattr("app.live.song_service.obter_fim_seguro", lambda video_id, duracao: None)
+    monkeypatch.setattr(
+        "app.live.song_service.buscar_musica",
+        lambda query, **kwargs: MusicaEncontrada(video_id="xyz789", titulo="Propaganda", canal="Jorge e Mateus Oficial"),
+    )
+
+    _escolher_query_musica(db_session, programa, set(), set(), {})
+
+    musica_db = db_session.query(Musica).filter_by(youtube_video_id="xyz789").one()
+    assert musica_db.confianca == "alta"
+    assert musica_db.status == "resolvida"
+
+
+def test_escolher_query_musica_sugestao_llm_grava_confianca_baixa(
+    db_session, radialista_e_programa, monkeypatch
+):
+    """Sugestao de texto livre da LLM (sem lista Spotify disponivel pro genero) e' catalogada
+    com confianca baixa -- pode ter 'inventado' uma combinacao artista+musica inexistente."""
+    _, programa = radialista_e_programa
+    programa.musicas_permitidas = []
+    programa.generos_musicais = ["Sertanejo"]
+    db_session.commit()
+
+    monkeypatch.setattr("app.live.router.sugerir_musica_do_genero", lambda genero: "Jorge & Mateus - Propaganda")
+    monkeypatch.setattr("app.live.song_service.obter_fim_seguro", lambda video_id, duracao: None)
+    monkeypatch.setattr(
+        "app.live.song_service.buscar_musica",
+        lambda query, **kwargs: MusicaEncontrada(video_id="abc123", titulo="Propaganda", canal="Jorge e Mateus Oficial"),
+    )
+
+    _escolher_query_musica(db_session, programa, set(), set(), {})
+
+    musica_db = db_session.query(Musica).filter_by(youtube_video_id="abc123").one()
+    assert musica_db.confianca == "baixa"
+
+
+def test_escolher_query_musica_usa_lista_spotify_quando_disponivel(
+    db_session, radialista_e_programa, monkeypatch
+):
+    """Genero configurado com lista Spotify cacheada disponivel: escolhe uma faixa dela em vez
+    de pedir sugestao de texto livre pra LLM (ver _escolher_query_musica em app.live.router)."""
+    _, programa = radialista_e_programa
+    programa.musicas_permitidas = []
+    programa.generos_musicais = ["Sertanejo"]
+    db_session.commit()
+
+    monkeypatch.setattr(
+        "app.live.router.buscar_faixas_por_categoria",
+        lambda genero, excluir_titulos=None: [("Jorge & Mateus", "Propaganda")],
+    )
+    chamou_llm = {"sim": False}
+    monkeypatch.setattr(
+        "app.live.router.sugerir_musica_do_genero",
+        lambda genero: chamou_llm.__setitem__("sim", True) or "",
+    )
+    monkeypatch.setattr("app.live.song_service.obter_fim_seguro", lambda video_id, duracao: None)
+    monkeypatch.setattr(
+        "app.live.song_service.buscar_musica",
+        lambda query, **kwargs: MusicaEncontrada(video_id="sp1", titulo="Propaganda", canal="Jorge e Mateus Oficial"),
+    )
+
+    query, genero, musica = _escolher_query_musica(db_session, programa, set(), set(), {})
+
+    assert query == "Jorge & Mateus - Propaganda"
+    assert musica is not None
+    assert musica.video_id == "sp1"
+    assert chamou_llm["sim"] is False
+
+    musica_db = db_session.query(Musica).filter_by(youtube_video_id="sp1").one()
+    assert musica_db.confianca == "alta"
+
+
+def test_buscar_musica_para_bloco_usa_fallback_curado_quando_tudo_falha(
+    db_session, radialista_e_programa, monkeypatch
+):
+    """Quando nem a query especifica nem o retry generico ('musica instrumental') acham nada no
+    YouTube, o bloco nao fica vazio de cara -- primeiro tenta, uma a uma, faixas da lista
+    Spotify cacheada por genero (ver _fallback_curado_genero em app.live.router)."""
+    _, programa = radialista_e_programa
+    programa.musicas_permitidas = []
+    programa.generos_musicais = ["Sertanejo"]
+    db_session.commit()
+
+    chamadas_spotify = {"n": 0}
+
+    def _fake_faixas(genero, excluir_titulos=None):
+        chamadas_spotify["n"] += 1
+        if chamadas_spotify["n"] == 1:
+            # 1a chamada vem da escolha normal do bloco -- lista vazia, cai pro generico.
+            return []
+        # 2a chamada em diante vem do fallback curado, depois de tudo o resto falhar.
+        return [("Jorge & Mateus", "Propaganda"), ("Gusttavo Lima", "Balada")]
+
+    monkeypatch.setattr("app.live.router.buscar_faixas_por_categoria", _fake_faixas)
+    monkeypatch.setattr("app.live.router.sugerir_musica_do_genero", lambda genero: "")
+    monkeypatch.setattr("app.live.router.buscar_musica", lambda *args, **kwargs: None)
+    monkeypatch.setattr("app.live.song_service.obter_fim_seguro", lambda video_id, duracao: None)
+    monkeypatch.setattr(
+        "app.live.song_service.buscar_musica",
+        lambda query, **kwargs: MusicaEncontrada(video_id="fb1", titulo="Propaganda", canal="Jorge e Mateus Oficial"),
+    )
+
+    from app.live.router import _buscar_musica_para_bloco
+
+    musica = _buscar_musica_para_bloco(db_session, programa)
+
+    assert musica is not None
+    assert musica.video_id == "fb1"
+
+    musica_db = db_session.query(Musica).filter_by(youtube_video_id="fb1").one()
+    assert musica_db.confianca == "alta"
+    assert musica_db.status == "resolvida"
+
+    historico = db_session.query(MusicaHistorico).filter_by(programa_id=programa.id).one()
+    assert historico.video_id == "fb1"
+
+
+def test_buscar_musica_para_bloco_sem_generos_nao_tem_fallback_curado(
+    db_session, radialista_e_programa, monkeypatch
+):
+    """Radio sem genero configurado nao tem lista Spotify nenhuma pra' tentar -- fallback curado
+    devolve None direto, sem quebrar o bloco (continua vazio, mesmo comportamento de antes)."""
+    _, programa = radialista_e_programa
+    programa.musicas_permitidas = []
+    programa.generos_musicais = []
+    db_session.commit()
+
+    monkeypatch.setattr("app.live.router.buscar_musica", lambda *args, **kwargs: None)
+
+    from app.live.router import _buscar_musica_para_bloco
+
+    assert _buscar_musica_para_bloco(db_session, programa) is None
+
+
 @freeze_time(AGORA_UTC)
 def test_bloco_musica_injeta_contexto_real_no_prompt(
     client, account, auth_headers, radialista_e_programa, monkeypatch
@@ -892,6 +1035,58 @@ def test_bloco_musica_sem_metadados_nao_chama_llm_de_contexto(
     )
     assert resposta.status_code == 200
     assert chamou_contexto == []
+
+
+@freeze_time(AGORA_UTC)
+def test_fluxo_completo_musica_via_spotify_end_to_end(
+    client, account, auth_headers, db_session, radialista_e_programa, monkeypatch
+):
+    """Fluxo inteiro da Fase 0-2 (plano de qualidade na busca de musica), do endpoint HTTP ate
+    o catalogo persistido: radio com genero configurado -> lista Spotify cacheada fornece uma
+    faixa oficial -> YouTube resolve o video -> resposta ao vivo devolve a musica -> Musica
+    catalogada fica com confianca alta e status resolvida -> MusicaHistorico registra o play.
+    Nada aqui bate em rede de verdade (Spotify e YouTube mockados na borda)."""
+    radio_config, programa = radialista_e_programa
+    programa.musicas_permitidas = []
+    programa.generos_musicais = ["Sertanejo"]
+    db_session.commit()
+
+    monkeypatch.setattr(
+        "app.live.router.buscar_faixas_por_categoria",
+        lambda genero, excluir_titulos=None: [("Jorge & Mateus", "Propaganda")],
+    )
+    monkeypatch.setattr("app.live.song_service.obter_fim_seguro", lambda video_id, duracao: None)
+    monkeypatch.setattr(
+        "app.live.song_service.buscar_musica",
+        lambda query, **kwargs: MusicaEncontrada(
+            video_id="sp1", titulo="Propaganda", canal="Jorge e Mateus Oficial", duracao_segundos=180
+        ),
+    )
+    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: "Vamos ouvir essa aqui!")
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": ["abertura: oi"], "total_falas": 1},
+        headers=auth_headers(account.id),
+    )
+
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["tipo"] == "musica"
+    assert corpo["video_id"] == "sp1"
+    assert corpo["titulo_musica"] == "Propaganda"
+    assert corpo["duracao_segundos"] == 180
+
+    musica_db = db_session.query(Musica).filter_by(youtube_video_id="sp1").one()
+    assert musica_db.titulo_normalizado == "propaganda"
+    assert musica_db.artista_normalizado == "jorge e mateus"
+    assert musica_db.confianca == "alta"
+    assert musica_db.status == "resolvida"
+
+    historico = db_session.query(MusicaHistorico).filter_by(programa_id=programa.id).one()
+    assert historico.video_id == "sp1"
+    assert historico.song_id == musica_db.id
+    assert historico.origem == "auto"
 
 
 def _pedido_fila(radio_config_id, tipo="musica", telefone="5511999999999", **kwargs):

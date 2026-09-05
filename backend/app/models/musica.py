@@ -44,6 +44,19 @@ class Musica(Base):
     # em app.live.music. Nulo enquanto youtube_video_id tambem for nulo.
     youtube_metadados: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
+    # "alta" (origem ja' e' catalogo validado -- Spotify ou curadoria do admin) | "baixa"
+    # (pedido de ouvinte digitado a mao, pode ter erro de digitacao, ou sugestao de texto livre
+    # da LLM, que pode "inventar" uma combinacao artista+musica que nao existe de verdade) --
+    # ver _confianca_da_origem em app.live.song_service. Nulo enquanto youtube_video_id tambem
+    # for nulo (ainda sem resolucao pra avaliar).
+    confianca: Mapped[str | None] = mapped_column(String, nullable=True)
+    # "pendente" (ainda sem youtube_video_id) | "resolvida" (video encontrado e persistido) |
+    # "sem_correspondencia" (uma tentativa de resolucao rodou e o YouTube nao devolveu nada
+    # valido) -- ver resolver_musica_catalogada em app.live.song_service. Uma Musica
+    # "sem_correspondencia" continua sendo tentada de novo na proxima sugestao (nao ha' logica
+    # de pular retry ainda), o status aqui e' so' pra visibilidade/curadoria futura.
+    status: Mapped[str] = mapped_column(String, default="pendente")
+
     criado_em: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.datetime.now(datetime.timezone.utc)
     )

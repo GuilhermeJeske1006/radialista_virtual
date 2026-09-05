@@ -107,7 +107,18 @@ def _liberar_lock_resolucao(musica_id: int) -> None:
     redis_client.delete(f"lock:musica_youtube:{musica_id}")
 
 
-def _persistir_resultado_youtube(db: Session, musica: Musica, resultado: MusicaEncontrada) -> None:
+# Origens cujo titulo+artista ja' vem de um catalogo validado (Spotify) ou de curadoria humana
+# (admin) -- risco de a combinacao nao existir de verdade e' baixo. Fora dessas, confianca baixa:
+# pedido de ouvinte digitado a mao (erro de digitacao) ou sugestao de texto livre da LLM (pode
+# "inventar" uma combinacao artista+musica que nao existe).
+_ORIGENS_CONFIANCA_ALTA = {"spotify", "admin"}
+
+
+def _confianca_da_origem(origem: str) -> str:
+    return "alta" if origem in _ORIGENS_CONFIANCA_ALTA else "baixa"
+
+
+def _persistir_resultado_youtube(db: Session, musica: Musica, resultado: MusicaEncontrada, origem: str) -> None:
     musica.youtube_video_id = resultado.video_id
     musica.youtube_titulo = resultado.titulo
     musica.youtube_canal = resultado.canal
@@ -118,6 +129,8 @@ def _persistir_resultado_youtube(db: Session, musica: Musica, resultado: MusicaE
         "tags": resultado.tags,
         "ano": resultado.ano,
     }
+    musica.confianca = _confianca_da_origem(origem)
+    musica.status = "resolvida"
     db.commit()
 
 
@@ -129,6 +142,7 @@ def resolver_musica_catalogada(
     evitar_video_ids: set[str] | None = None,
     titulos_tocados: set[str] | None = None,
     canais_recentes: dict[str, int] | None = None,
+    origem: str = "desconhecida",
 ) -> MusicaEncontrada | None:
     """Resolve uma musica sugerida pela LLM (titulo+artista) sem repetir a busca no YouTube se
     ela ja foi catalogada antes: so' consulta a API quando a Musica ainda nao tem
@@ -137,6 +151,10 @@ def resolver_musica_catalogada(
     titulos_tocados em app.live.music) ou quando a busca no YouTube nao encontra nada; nos
     dois casos o caller (ver _escolher_query_musica em app.live.router) cai pro comportamento
     atual de busca por texto livre.
+
+    origem identifica de onde veio o titulo+artista (ex.: "spotify", "admin", "pedido_publico",
+    "llm_texto_livre") -- so' usado pra' gravar o campo confianca da Musica na 1a resolucao (ver
+    _confianca_da_origem); nao influencia a busca em si.
     """
     musica_db = buscar_ou_criar_musica(db, titulo, artista)
     evitar_video_ids = evitar_video_ids or set()
@@ -161,8 +179,10 @@ def resolver_musica_catalogada(
                 )
                 if resultado is None:
                     logger.info("song_catalog youtube_resolution_miss musica_id=%s", musica_db.id)
+                    musica_db.status = "sem_correspondencia"
+                    db.commit()
                     return None
-                _persistir_resultado_youtube(db, musica_db, resultado)
+                _persistir_resultado_youtube(db, musica_db, resultado, origem)
                 resultado.musica_catalogada_id = musica_db.id
                 logger.info(
                     "song_catalog youtube_resolution_performed musica_id=%s video_id=%s",
