@@ -71,6 +71,10 @@ function escolher(lista: string[], fallback: string) {
   return lista.length > 0 ? lista[Math.floor(Math.random() * lista.length)] : fallback;
 }
 
+function _semAcento(texto: string): string {
+  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 // roteiro de EMERGENCIA (TTS/LLM indisponivel), usado so' quando POST /live/.../proxima falha.
 // Atencao: essa ordem e' DIFERENTE do _ROTEIRO_PADRAO real do motor (backend/app/live/router.py),
 // que comeca por "musica" -- nao usar como referencia pra preview de proximos blocos.
@@ -81,7 +85,14 @@ function gerarFalaLocal(
 ): Omit<ProgramSegment, "id" | "criado_em" | "origem"> {
   const nome = radialista.nome_locutor || "Locutor";
   const roteiroPadrao = ["abertura", "musica", "comentario", "noticia", "chamada_ouvinte"];
-  const roteiroCustom = programa.estrutura_blocos.map((b) => b.trim()).filter(Boolean);
+  // "encerramento" fica de fora do round-robin de propósito -- esse fallback local nao
+  // sabe quanto tempo falta pro horario_fim (isso e' calculado no backend, ver perto_do_fim
+  // em gerar_proxima_fala), entao deixar cair aqui por coincidencia do modulo faz o programa
+  // encerrar cedo demais (tipo "encerramento" para o loop inteiro, ver gerarProximaFala abaixo).
+  // Corte pontual no horario real continua garantido pelo watchdog verificarFimPontual.
+  const roteiroCustom = programa.estrutura_blocos
+    .map((b) => b.trim())
+    .filter((b) => b && _semAcento(b.toLowerCase()) !== "encerramento");
   const roteiro = roteiroCustom.length > 0 ? roteiroCustom : roteiroPadrao;
   const tipo = roteiro[totalFalas % roteiro.length];
   const genero = escolher(programa.generos_musicais, "os sucessos da nossa programacao");
