@@ -219,13 +219,28 @@ def test_buscar_musica_combina_inicio_segundos_com_deteccao_de_fala(monkeypatch)
     assert resultado.inicio_segundos == 25  # deteccao (25) > heuristica ao vivo (15)
 
 
-def test_buscar_musica_aceita_duracao_longa_sem_teto_maximo(monkeypatch):
-    """Sem teto maximo de duracao de proposito: a busca ja parte de titulo+artista resolvido
-    (Spotify/catalogo), entao o YouTube so' precisa achar ESSE audio -- uma faixa legitimamente
-    longa (ex.: 9min) nao deve ser descartada so' por duracao. Medley/coletanea sem palavra
-    reveladora no titulo passa por aqui (ver TERMOS_COLETANEA/PADRAO_TOP_N pro resto dos casos),
-    e o corte por fala/silencio no fim/comeco (obter_fim_seguro/obter_inicio_seguro) cobre a
-    reproducao em si."""
+def test_buscar_musica_prefere_duracao_curta_quando_ha_alternativa(monkeypatch):
+    """Duracao muito longa e' preferencia, nao bloqueio duro -- se existe alternativa dentro do
+    teto (_DURACAO_MAX_SEGUNDOS), ela vence mesmo que a faixa longa aparecesse primeiro na lista."""
+    monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
+    itens = [
+        _item("id_longo", "Minha Musica Estendida - Artista", "Canal Qualquer"),
+        _item("id_curto", "Minha Musica - Artista", "Canal Qualquer"),
+    ]
+    monkeypatch.setattr("app.live.music._buscar_itens", lambda query: itens)
+    monkeypatch.setattr("app.live.music._buscar_duracoes", lambda ids: {"id_longo": 3600, "id_curto": 200})
+
+    resultado = buscar_musica("minha musica")
+    assert resultado.video_id == "id_curto"
+
+
+def test_buscar_musica_aceita_duracao_longa_como_ultimo_recurso(monkeypatch):
+    """Sem alternativa nenhuma dentro do teto, a faixa longa ainda toca -- preferencia relaxa
+    no ultimo recurso em vez de deixar o bloco sem musica nenhuma (busca ja parte de
+    titulo+artista resolvido via Spotify/catalogo, o YouTube so' precisa achar ESSE audio).
+    Medley/coletanea sem palavra reveladora no titulo continua barrado por titulo (ver
+    TERMOS_COLETANEA/PADRAO_TOP_N), e o corte por fala/silencio no fim/comeco
+    (obter_fim_seguro/obter_inicio_seguro) cobre a reproducao em si."""
     monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
     itens = [_item("id1", "Minha Musica - Artista", "Canal Qualquer")]
     monkeypatch.setattr("app.live.music._buscar_itens", lambda query: itens)

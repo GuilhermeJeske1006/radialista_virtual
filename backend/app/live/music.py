@@ -27,13 +27,25 @@ _CACHE_TTL_SEGUNDOS = 24 * 60 * 60
 _CACHE_TTL_DURACAO_SEGUNDOS = 30 * 24 * 60 * 60
 
 # Duracao MINIMA pra um resultado contar como a faixa inteira -- abaixo disso costuma ser
-# trailer/teaser sem a musica completa ou Short/Reel (formato classico de ate 60s). Sem teto
-# maximo de proposito: a busca ja parte de titulo+artista resolvido (Spotify/catalogo, ver
-# app.live.song_service), o YouTube so' precisa achar ESSE audio pra tocar -- uma faixa
-# legitimamente longa (balada, sertanejo raiz etc.) nao deve ser descartada so' por duracao.
-# Medley/coletanea/podcast continuam barrados por titulo (ver TERMOS_COLETANEA/PADRAO_TOP_N
-# abaixo), e o corte por fala/silencio no fim (obter_fim_seguro) cobre o resto.
+# trailer/teaser sem a musica completa ou Short/Reel (formato classico de ate 60s). NUNCA
+# relaxado (ver duracao_invalida): mesmo no ultimo recurso, video curto demais nao vira musica.
 _DURACAO_MIN_SEGUNDOS = 61
+
+# Duracao MAXIMA e' so' PREFERENCIA, nunca bloqueio duro (ver duracao_muito_longa) -- a busca
+# ja parte de titulo+artista resolvido (Spotify/catalogo, ver app.live.song_service), entao uma
+# faixa legitimamente longa (balada, sertanejo raiz etc.) nao deveria ser descartada de cara so'
+# por duracao, so' evitada quando existe alternativa mais curta pro mesmo pedido. Medley/coletanea/
+# podcast continuam barrados por titulo (ver TERMOS_COLETANEA/PADRAO_TOP_N abaixo) independente
+# de duracao, e o corte por fala/silencio no fim/comeco (obter_fim_seguro/obter_inicio_seguro)
+# cobre a reproducao em si.
+_DURACAO_MAX_SEGUNDOS = 8 * 60
+
+# Musica de fundo toca em loop e corta num ponto seguro (ver obter_fim_seguro/fim_segundos),
+# entao nao precisa ser faixa unica curta -- ao contrario da busca normal (_DURACAO_MAX_SEGUNDOS),
+# aqui um mix ambiente longo e' o resultado ESPERADO: busca por "instrumental radio fundo" no
+# YouTube devolve quase so' mix de 1-3h+ (compilacao "radio" e' literalmente isso), entao evitar
+# duracao longa aqui zeraria praticamente todo candidato dessa busca especifica.
+_DURACAO_MAX_FUNDO_SEGUNDOS = 4 * 60 * 60
 
 
 def _sem_acento(texto: str) -> str:
@@ -343,6 +355,7 @@ def buscar_musica(
     titulos_tocados: set[str] | None = None,
     canais_recentes: dict[str, int] | None = None,
     limite_por_canal: int = _LIMITE_PADRAO_POR_CANAL,
+    duracao_max_segundos: int = _DURACAO_MAX_SEGUNDOS,
     preferir_cantada: bool = False,
 ) -> MusicaEncontrada | None:
     """Busca a musica priorizando versao de estudio; se nao achar, cai pra versao ao vivo.
@@ -410,10 +423,20 @@ def buscar_musica(
             duracao = duracoes.get(video_id)
             # Duracao CONHECIDA abaixo do minimo e' sempre invalida, mesmo no passo relaxado --
             # so' duracao DESCONHECIDA (falha/cota da API de videos.list) e' perdoada como
-            # ultimo recurso. Sem teto maximo: ver comentario de _DURACAO_MIN_SEGUNDOS acima.
+            # ultimo recurso.
             if duracao is None:
                 return respeitar_duracao
             return duracao < _DURACAO_MIN_SEGUNDOS
+
+        def duracao_muito_longa(video_id: str) -> bool:
+            # Preferencia, nao bloqueio duro (ver comentario de _DURACAO_MAX_SEGUNDOS acima) --
+            # so' evita quando ha alternativa mais curta; relaxa junto com respeitar_duracao no
+            # ultimo recurso, senao um pedido onde toda gravacao conhecida e' longa (ex.: only
+            # versao estendida disponivel) para de tocar musica nenhuma.
+            if not respeitar_duracao:
+                return False
+            duracao = duracoes.get(video_id)
+            return duracao is not None and duracao > duracao_max_segundos
 
         # 1a passada: canal oficial (auto-gerado "- Topic" ou VEVO) so' publica
         # faixa em si na maioria dos casos -- pula blocklist de reacao/historia/
@@ -425,7 +448,7 @@ def buscar_musica(
             canal = item["snippet"]["channelTitle"]
             video_id = item["id"]["videoId"]
             texto = f"{titulo.lower()} {canal.lower()}"
-            if video_id in evitar_video_ids or repetido(canal) or duracao_invalida(video_id):
+            if video_id in evitar_video_ids or repetido(canal) or duracao_invalida(video_id) or duracao_muito_longa(video_id):
                 continue
             if musica_repetida(titulo):
                 continue
@@ -447,7 +470,7 @@ def buscar_musica(
             canal = item["snippet"]["channelTitle"]
             video_id = item["id"]["videoId"]
             texto = f"{titulo.lower()} {canal.lower()}"
-            if video_id in evitar_video_ids or repetido(canal) or duracao_invalida(video_id):
+            if video_id in evitar_video_ids or repetido(canal) or duracao_invalida(video_id) or duracao_muito_longa(video_id):
                 continue
             if musica_repetida(titulo):
                 continue
@@ -494,7 +517,7 @@ def buscar_musica(
     # respeitar_duracao relaxa por ultimo, so' quando nenhuma combinacao de canal/ao-vivo
     # deu resultado -- mesma logica de "nao trava a busca" do limite_por_canal: preferencia
     # de qualidade, nunca bloqueio duro (senao um genero onde todo resultado conhecido fica
-    # abaixo do minimo, ex. so' tem trailer/teaser, para de tocar musica nenhuma).
+    # abaixo do minimo ou so' tem versao muito longa disponivel para de tocar musica nenhuma).
     for respeitar_genero in (True, False):
         if not palavras_genero and not respeitar_genero:
             break  # sem genero pedido, relaxar de novo e' repetir a mesma busca a toa.
@@ -558,4 +581,4 @@ def buscar_musica_fundo(
     else:
         query = "musica instrumental radio fundo"
 
-    return buscar_musica(query, bloqueados=bloqueados)
+    return buscar_musica(query, bloqueados=bloqueados, duracao_max_segundos=_DURACAO_MAX_FUNDO_SEGUNDOS)
