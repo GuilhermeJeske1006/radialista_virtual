@@ -120,3 +120,128 @@ def test_prompt_estrutura_de_blocos_estrita_quando_ia_nao_pode_adicionar():
     programa = _programa(estrutura_blocos=["abertura", "musica"], ia_pode_adicionar_blocos=False)
     prompt = montar_system_prompt(_account(), _radialista(), programa)
     assert "siga estritamente" in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_prompt_clima_vai_por_extenso(monkeypatch):
+    monkeypatch.setattr("app.llm.prompt_builder.obter_clima_atual", lambda cidade: "23°C, céu limpo")
+    prompt = montar_system_prompt(_account(cidade="Porto Alegre"), _radialista(), _programa())
+    assert "vinte e três graus, céu limpo" in prompt
+    assert "23°C" not in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_prompt_clima_negativo_vai_por_extenso(monkeypatch):
+    monkeypatch.setattr("app.llm.prompt_builder.obter_clima_atual", lambda cidade: "-5°C, neve")
+    prompt = montar_system_prompt(_account(cidade="Bom Jesus"), _radialista(), _programa())
+    assert "menos cinco graus, neve" in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_prompt_frequencia_com_ponto_usa_separador_ponto():
+    prompt = montar_system_prompt(_account(frequencia="87.5"), _radialista(), _programa())
+    assert "diga 'ponto'" in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_prompt_frequencia_com_virgula_usa_separador_virgula():
+    prompt = montar_system_prompt(_account(frequencia="87,5"), _radialista(), _programa())
+    assert "diga 'vírgula'" in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_prompt_frequencia_sem_decimal_nao_menciona_separador():
+    prompt = montar_system_prompt(_account(frequencia="780"), _radialista(), _programa())
+    assert "separador decimal" not in prompt
+
+
+# 2026-08-12 e' quarta-feira -- nao cai em nenhuma das condicoes de dia da semana (B.2), pra
+# testar perfil editorial (B.1) isolado.
+@freeze_time("2026-08-12 10:00:00")  # 07:00 local (America/Sao_Paulo)
+def test_perfil_editorial_inicio_de_manha():
+    prompt = montar_system_prompt(_account(), _radialista(), _programa())
+    assert "leve e energético" in prompt
+
+
+@freeze_time("2026-08-12 15:00:00")  # 12:00 local
+def test_perfil_editorial_almoco():
+    prompt = montar_system_prompt(_account(), _radialista(), _programa())
+    assert "entretenimento leve, horário de almoço" in prompt
+
+
+@freeze_time("2026-08-12 19:00:00")  # 16:00 local
+def test_perfil_editorial_tarde():
+    prompt = montar_system_prompt(_account(), _radialista(), _programa())
+    assert "resumo do dia" in prompt
+
+
+@freeze_time("2026-08-12 05:00:00")  # 02:00 local
+def test_perfil_editorial_madrugada():
+    prompt = montar_system_prompt(_account(), _radialista(), _programa())
+    assert "calmo e reflexivo" in prompt
+
+
+@freeze_time("2026-08-14 15:00:00")  # 2026-08-14 e' sexta-feira, 12:00 local
+def test_dia_da_semana_sexta_sugere_fim_de_semana():
+    prompt = montar_system_prompt(_account(), _radialista(), _programa())
+    assert "Hoje é sexta-feira" in prompt
+    assert "fim de semana" in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")  # 2026-08-10 e' segunda-feira, 12:00 local
+def test_dia_da_semana_segunda_sugere_resumo_do_fim_de_semana():
+    prompt = montar_system_prompt(_account(), _radialista(), _programa())
+    assert "Hoje é segunda-feira" in prompt
+    assert "resumo do fim de semana" in prompt
+
+
+@freeze_time("2026-08-12 15:00:00")  # quarta-feira -- nenhuma das duas condicoes de dia
+def test_dia_da_semana_meio_de_semana_nao_menciona_nada_especial():
+    prompt = montar_system_prompt(_account(), _radialista(), _programa())
+    assert "Hoje é sexta-feira" not in prompt
+    assert "Hoje é segunda-feira" not in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_trilha_local_aparece_quando_cidade_preenchida():
+    prompt = montar_system_prompt(_account(cidade="Porto Alegre"), _radialista(), _programa())
+    assert "assunto local de Porto Alegre" in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_trilha_local_nao_aparece_sem_cidade():
+    prompt = montar_system_prompt(_account(), _radialista(), _programa())
+    assert "assunto local de" not in prompt
+
+
+# 2026-09-07 e' feriado nacional (Independencia do Brasil).
+@freeze_time("2026-09-07 15:00:00")
+def test_feriado_nacional_aparece_no_contexto():
+    prompt = montar_system_prompt(_account(), _radialista(), _programa())
+    assert "Hoje é feriado nacional: Independência do Brasil" in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_feriado_nacional_ausente_em_dia_comum():
+    prompt = montar_system_prompt(_account(), _radialista(), _programa())
+    assert "feriado nacional" not in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")  # 10 de agosto
+def test_feriado_municipal_configurado_aparece_no_contexto():
+    programa = _programa(feriados_municipais=[{"data": "08-10", "nome": "Aniversário da cidade"}])
+    prompt = montar_system_prompt(_account(), _radialista(), programa)
+    assert "Hoje também é feriado municipal aqui: Aniversário da cidade" in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_feriado_municipal_de_outro_dia_nao_aparece():
+    programa = _programa(feriados_municipais=[{"data": "12-08", "nome": "Aniversário da cidade"}])
+    prompt = montar_system_prompt(_account(), _radialista(), programa)
+    assert "feriado municipal" not in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_sem_feriados_municipais_configurados_nao_aparece_nada():
+    prompt = montar_system_prompt(_account(), _radialista(), _programa())
+    assert "feriado municipal" not in prompt

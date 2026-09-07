@@ -216,6 +216,8 @@ def garantir_colunas_programa():
         "estrutura_blocos": "JSON DEFAULT '[]' NOT NULL",
         "ia_pode_adicionar_blocos": "BOOLEAN DEFAULT TRUE NOT NULL",
         "descricao": "VARCHAR DEFAULT '' NOT NULL",
+        "quadros_fixos": "JSON DEFAULT '{}' NOT NULL",
+        "feriados_municipais": "JSON DEFAULT '[]' NOT NULL",
     }
 
     with engine.begin() as conn:

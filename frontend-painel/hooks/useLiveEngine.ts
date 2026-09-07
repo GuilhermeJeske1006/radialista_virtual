@@ -716,6 +716,7 @@ export function useLiveEngine() {
                 tipo: segmento.tipo,
                 voz_id: linha.voz_id,
                 texto_anterior: textoAnterior,
+                programa_id: programaIdRef.current,
               }),
             });
             return { url: URL.createObjectURL(blob), blob };
@@ -748,6 +749,7 @@ export function useLiveEngine() {
                   tipo: segmento.tipo,
                   voz_id: segmento.patrocinador_voz_id ?? null,
                   texto_anterior: falasProgramaRef.current[0]?.fala ?? null,
+                  programa_id: programaIdRef.current,
                 }),
               });
       audioUrl = URL.createObjectURL(audioBlob);

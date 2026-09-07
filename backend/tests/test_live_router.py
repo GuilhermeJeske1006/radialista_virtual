@@ -5,7 +5,14 @@ import pytest
 from freezegun import freeze_time
 
 from app.live.music import MusicaEncontrada
-from app.live.router import _escolher_query_musica, _registrar_historico_persistente
+from app.live.router import (
+    _aberturas_e_fechamentos,
+    _escolher_query_musica,
+    _primeira_frase,
+    _registrar_fala_gerada,
+    _registrar_historico_persistente,
+    _ultima_frase,
+)
 from app.models.biblioteca_audio import BibliotecaAudioItem
 from app.models.fila_ao_vivo import FilaAoVivo
 from app.models.musica import Musica
@@ -346,6 +353,91 @@ def test_tts_endpoint_com_sucesso(client, account, auth_headers, radialista_e_pr
     )
     assert resposta.status_code == 200
     assert resposta.content == b"audio-bytes"
+
+
+def test_tts_endpoint_com_programa_id_registra_ultimo_tom(
+    client, account, auth_headers, radialista_e_programa, monkeypatch
+):
+    """Tom classificado na sintese de audio (ver classificar_tom_fala) precisa ficar disponivel
+    pra proxima chamada de gerar_proxima_fala usar na transicao de humor (ver _ultimo_tom)."""
+    from app.live.router import _ultimo_tom
+
+    radio_config, programa = radialista_e_programa
+    monkeypatch.setattr("app.live.router.tts_habilitado", lambda voz_id=None: True)
+    monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "energico")
+    monkeypatch.setattr(
+        "app.live.router.sintetizar_audio", lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: b"audio-bytes"
+    )
+
+    resposta = client.post(
+        f"/live/{radio_config.id}/tts",
+        json={"texto": "ola ouvintes", "programa_id": programa.id},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert _ultimo_tom(programa.id) == "energico"
+
+
+def test_tts_endpoint_sem_programa_id_nao_registra_tom(
+    client, account, auth_headers, radialista_e_programa, monkeypatch
+):
+    from app.live.router import _ultimo_tom
+
+    radio_config, programa = radialista_e_programa
+    monkeypatch.setattr("app.live.router.tts_habilitado", lambda voz_id=None: True)
+    monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "energico")
+    monkeypatch.setattr(
+        "app.live.router.sintetizar_audio", lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: b"audio-bytes"
+    )
+
+    resposta = client.post(
+        f"/live/{radio_config.id}/tts", json={"texto": "ola ouvintes"}, headers=auth_headers(account.id)
+    )
+    assert resposta.status_code == 200
+    assert _ultimo_tom(programa.id) is None
+
+
+@freeze_time(AGORA_UTC)
+def test_prompt_avisa_transicao_de_humor_com_tom_anterior_registrado(
+    client, account, auth_headers, radialista_e_programa, monkeypatch
+):
+    from app.live.router import _registrar_ultimo_tom
+
+    radio_config, programa = radialista_e_programa
+    _registrar_ultimo_tom(programa.id, "energico")
+
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Vamos seguir com calma."
+    )
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 3},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert "tom energico" in prompts[0]
+
+
+@freeze_time(AGORA_UTC)
+def test_prompt_sem_tom_anterior_nao_menciona_transicao_de_humor(
+    client, account, auth_headers, radialista_e_programa, monkeypatch
+):
+    radio_config, programa = radialista_e_programa
+
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Vamos seguir."
+    )
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 3},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert "transição de humor" not in prompts[0]
 
 
 def test_tts_endpoint_com_voz_invalida_400(client, account, auth_headers, radialista_e_programa):
@@ -969,6 +1061,178 @@ def test_buscar_musica_para_bloco_sem_generos_nao_tem_fallback_curado(
 
 
 @freeze_time(AGORA_UTC)
+def test_prompt_v3_inclui_instrucao_de_tags_em_comentario(
+    client, account, auth_headers, radialista_e_programa, monkeypatch
+):
+    """eleven_v3 aceita tag de direcao vocal inline (ver _TAGS_V3_PERMITIDAS em app.tts.client) --
+    o prompt precisa instruir o LLM a usar essa tag so quando o modelo ativo for o v3."""
+    monkeypatch.setattr("app.live.router.settings.elevenlabs_model", "eleven_v3")
+    radio_config, programa = radialista_e_programa
+
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Que dia otimo!"
+    )
+
+    # total_falas=3 -> roteiro padrao cai em "comentario" (indice 2).
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 3},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["tipo"] == "comentario"
+    assert "[excited]" in prompts[0]
+
+
+@freeze_time(AGORA_UTC)
+def test_prompt_v3_omite_instrucao_de_tags_em_noticia(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    """Notícia pede tom sereno e informativo -- tag de emoção (ver _PROSODIA_BLOCO) não faz
+    sentido nesse bloco, então a instrução nem é oferecida ao LLM."""
+    monkeypatch.setattr("app.live.router.settings.elevenlabs_model", "eleven_v3")
+    radio_config, programa = radialista_e_programa
+    programa.pode_pesquisar = True
+    db_session.commit()
+
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "O tempo segue firme."
+    )
+
+    # total_falas=4 -> roteiro padrao cai em "noticia" (indice 3).
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 4},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["tipo"] == "noticia"
+    assert "[excited]" not in prompts[0]
+
+
+@freeze_time(AGORA_UTC)
+def test_prompt_v2_omite_instrucao_de_tags(client, account, auth_headers, radialista_e_programa, monkeypatch):
+    """Tag inline e' recurso especifico do eleven_v3 -- outro modelo nem recebe a instrucao."""
+    monkeypatch.setattr("app.live.router.settings.elevenlabs_model", "eleven_multilingual_v2")
+    radio_config, programa = radialista_e_programa
+
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Que dia otimo!"
+    )
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 3},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert "[excited]" not in prompts[0]
+
+
+def test_primeira_frase_e_ultima_frase_ignoram_tag_v3():
+    texto = "[excited] Bom dia, ouvintes! Hoje o dia promete. [calm] Vamos com calma no comeco."
+    assert _primeira_frase(texto) == "Bom dia, ouvintes!"
+    assert _ultima_frase(texto) == "Vamos com calma no comeco."
+
+
+def test_primeira_frase_e_ultima_frase_fala_de_uma_frase_so():
+    texto = "Fala unica sem ponto final no meio"
+    assert _primeira_frase(texto) == texto
+    assert _ultima_frase(texto) == texto
+
+
+def test_aberturas_e_fechamentos_extrai_das_falas_recentes():
+    historico = [
+        "Fechou por aqui, ate a proxima! Foi bom demais.",
+        "E ai, galera! Bora de novo com tudo.",
+    ]
+    aberturas, fechamentos = _aberturas_e_fechamentos(historico)
+    assert aberturas == ["Fechou por aqui, ate a proxima!", "E ai, galera!"]
+    assert fechamentos == ["Foi bom demais.", "Bora de novo com tudo."]
+
+
+def test_aberturas_e_fechamentos_fala_de_uma_frase_nao_duplica_no_fechamento():
+    aberturas, fechamentos = _aberturas_e_fechamentos(["Fala curta e unica"])
+    assert aberturas == ["Fala curta e unica"]
+    assert fechamentos == []
+
+
+@freeze_time(AGORA_UTC)
+def test_prompt_avisa_abertura_e_fechamento_ja_usados_no_mesmo_tipo_de_bloco(
+    client, account, auth_headers, radialista_e_programa, monkeypatch
+):
+    radio_config, programa = radialista_e_programa
+    _registrar_fala_gerada(
+        programa.id, "comentario", "Vamos falar de futebol hoje! Foi um jogo daqueles, viu."
+    )
+
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Outro assunto qualquer."
+    )
+
+    # total_falas=3 -> roteiro padrao cai em "comentario" (indice 2).
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 3},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["tipo"] == "comentario"
+    assert "Vamos falar de futebol hoje!" in prompts[0]
+    assert "Foi um jogo daqueles, viu." in prompts[0]
+
+
+@freeze_time(AGORA_UTC)
+def test_prompt_comentario_oferece_marcadores_de_fala_natural(
+    client, account, auth_headers, radialista_e_programa, monkeypatch
+):
+    radio_config, programa = radialista_e_programa
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Que dia bom."
+    )
+
+    # total_falas=3 -> roteiro padrao cai em "comentario" (indice 2).
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 3},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert "autocorreção leve" in prompts[0]
+    assert "hesitação pontual" in prompts[0]
+
+
+@freeze_time(AGORA_UTC)
+def test_prompt_noticia_proibe_marcadores_de_fala_natural(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    radio_config, programa = radialista_e_programa
+    programa.pode_pesquisar = True
+    db_session.commit()
+
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "O tempo segue firme."
+    )
+
+    # total_falas=4 -> roteiro padrao cai em "noticia" (indice 3).
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 4},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["tipo"] == "noticia"
+    assert "autocorreção leve" not in prompts[0]
+    assert "nada de maneirismo" in prompts[0]
+
+
+@freeze_time(AGORA_UTC)
 def test_bloco_musica_injeta_contexto_real_no_prompt(
     client, account, auth_headers, radialista_e_programa, monkeypatch
 ):
@@ -1378,3 +1642,340 @@ def test_tema_antigo_de_outro_programa_fora_da_janela_nao_e_injetado(
     )
     assert resposta.status_code == 200
     assert "assunto de semana passada" not in prompts[0]
+
+
+# ---------------------------------------------------------------------------
+# Camada editorial: diversidade de assunto, timing e "programa legal de acompanhar"
+# ---------------------------------------------------------------------------
+
+
+@freeze_time(AGORA_UTC)
+def test_pool_de_assuntos_roda_em_ordem_antes_de_repetir(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    """A.3: assuntos_ao_vivo configurados viram fila rotativa persistida (mesmo primitivo
+    round-robin de _proxima_variacao) -- cada bloco de comentario/noticia/chamada_ouvinte
+    consome o proximo item da lista, ciclo completo antes de repetir."""
+    radio_config, programa = radialista_e_programa
+    programa.assuntos_ao_vivo = ["futebol de sabado", "aniversario da cidade", "trafego de pipoca"]
+    db_session.commit()
+
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "comentario generico"
+    )
+
+    # total_falas 3, 8, 13 caem todos no bloco "comentario" do roteiro padrao.
+    for total_falas in (3, 8, 13):
+        resposta = client.post(
+            _url_proxima(radio_config.id, programa.id),
+            json={"historico": [], "total_falas": total_falas},
+            headers=auth_headers(account.id),
+        )
+        assert resposta.status_code == 200
+        assert resposta.json()["tipo"] == "comentario"
+
+    assert "Assunto sugerido pra este bloco: futebol de sabado" in prompts[0]
+    assert "Assunto sugerido pra este bloco: aniversario da cidade" in prompts[1]
+    assert "Assunto sugerido pra este bloco: trafego de pipoca" in prompts[2]
+
+
+@freeze_time(AGORA_UTC)
+def test_formato_de_comentario_varia_entre_falas(
+    client, account, auth_headers, radialista_e_programa, monkeypatch
+):
+    """D.1: formato da fala de comentario roda em rotacao (pergunta retorica, mini-lista,
+    opiniao, convite a responder, monologo padrao), nao so o assunto."""
+    radio_config, programa = radialista_e_programa
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "comentario generico"
+    )
+
+    # total_falas 3, 8, 13, 18, 23 caem todos no bloco "comentario" do roteiro padrao.
+    for total_falas in (3, 8, 13, 18, 23):
+        resposta = client.post(
+            _url_proxima(radio_config.id, programa.id),
+            json={"historico": [], "total_falas": total_falas},
+            headers=auth_headers(account.id),
+        )
+        assert resposta.status_code == 200
+        assert resposta.json()["tipo"] == "comentario"
+
+    formatos = [
+        next(linha for linha in prompt.split("\n") if linha.startswith("Para este comentário"))
+        for prompt in prompts
+    ]
+    assert len(set(formatos)) == 5
+
+
+@freeze_time(AGORA_UTC)
+def test_efemeride_instrucao_so_aparece_com_pesquisa_habilitada(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    """A.2: efeméride do dia so' e' oferecida como opcao quando pesquisa externa esta
+    habilitada -- mesma logica de confianca ja usada pra noticia (LLM confia no proprio
+    conhecimento, nunca busca de verdade, ver app.llm.client)."""
+    radio_config, programa = radialista_e_programa
+    programa.pode_pesquisar = True
+    db_session.commit()
+
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "comentario generico"
+    )
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 3},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert "data histórica marcante" in prompts[0]
+    assert "NUNCA invente data" in prompts[0]
+
+
+@freeze_time(AGORA_UTC)
+def test_efemeride_instrucao_ausente_sem_pesquisa(
+    client, account, auth_headers, radialista_e_programa, monkeypatch
+):
+    radio_config, programa = radialista_e_programa
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "comentario generico"
+    )
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 3},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert "data histórica marcante" not in prompts[0]
+
+
+@freeze_time(AGORA_UTC)
+def test_nudge_noticia_leve_em_horario_leve(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    """B.3: no horario de almoco (perfil 'leve', ver _perfil_editorial), bloco de noticia
+    recebe um nudge pra preferir conteudo leve em vez de forcar noticia pesada."""
+    radio_config, programa = radialista_e_programa
+    programa.pode_pesquisar = True
+    db_session.commit()
+
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "O tempo segue firme."
+    )
+
+    # total_falas=4 -> roteiro padrao cai em "noticia" (indice 3); AGORA_UTC = 12:00 local,
+    # dentro do bucket "entretenimento leve" de _perfil_editorial.
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 4},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["tipo"] == "noticia"
+    assert "prefira notícia leve" in prompts[0]
+
+
+@freeze_time(AGORA_UTC)
+def test_quadro_fixo_consome_proprio_pool_em_rotacao(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    """C.1: quadro fixo (label customizado dentro de estrutura_blocos, ex. "Curiosidade das
+    10") tem seu proprio pool de conteudo (programa.quadros_fixos), consumido em rotacao a
+    cada vez que o bloco sai no roteiro."""
+    radio_config, programa = radialista_e_programa
+    programa.estrutura_blocos = ["Curiosidade das 10"]
+    programa.quadros_fixos = {"Curiosidade das 10": ["curiosidade um", "curiosidade dois"]}
+    # desliga a insercao aleatoria de comentario extra fora da estrutura (ver _tipo_proximo_bloco)
+    # pra o teste nao flakar: com ela ligada, ha' 15% de chance do 2o bloco (total_falas=1) cair
+    # em "comentario" avulso em vez do quadro fixo customizado.
+    programa.ia_pode_adicionar_blocos = False
+    db_session.commit()
+
+    monkeypatch.setattr("app.live.router.classificar_categoria_bloco", lambda nome: "comentario")
+    monkeypatch.setattr("app.live.router.classificar_tema_fala", lambda texto: "")
+
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "curiosidade generica"
+    )
+
+    for total_falas in (0, 1):
+        resposta = client.post(
+            _url_proxima(radio_config.id, programa.id),
+            json={"historico": [], "total_falas": total_falas},
+            headers=auth_headers(account.id),
+        )
+        assert resposta.status_code == 200
+
+    assert "quadro fixo 'Curiosidade das 10'" in prompts[0]
+    assert "curiosidade um" in prompts[0]
+    assert "curiosidade dois" in prompts[1]
+    # quadro fixo ja da o conteudo especifico -- nao soma com o pool generico de assuntos.
+    assert "Assunto sugerido pra este bloco" not in prompts[0]
+
+
+def test_fio_condutor_da_abertura_e_retomado_no_encerramento(
+    client, account, auth_headers, radialista_e_programa, monkeypatch
+):
+    """C.2: pergunta/expectativa lancada na abertura (ver classificar_fio_condutor) fica
+    guardada na sessao e e' referenciada de volta no bloco de encerramento -- um arco que
+    atravessa o programa inteiro, nao so' conexao bloco-a-bloco."""
+    radio_config, programa = radialista_e_programa
+    monkeypatch.setattr(
+        "app.live.router.classificar_fio_condutor",
+        lambda texto: "será que hoje bate recorde de calor",
+    )
+
+    with freeze_time(AGORA_UTC):
+        monkeypatch.setattr(
+            "app.live.router.gerar_resposta",
+            lambda system, msg: "Bom dia! Será que hoje bate recorde de calor?",
+        )
+        r1 = client.post(
+            _url_proxima(radio_config.id, programa.id),
+            json={"historico": [], "total_falas": 0},
+            headers=auth_headers(account.id),
+        )
+        assert r1.status_code == 200
+        assert r1.json()["tipo"] == "abertura"
+
+    prompts = []
+    with freeze_time("2026-08-10 16:58:00"):  # 13:58 local -- 2 min antes do fim (14:00)
+        monkeypatch.setattr(
+            "app.live.router.gerar_resposta",
+            lambda system, msg: prompts.append(system) or "Foi um prazer, até mais!",
+        )
+        r2 = client.post(
+            _url_proxima(radio_config.id, programa.id),
+            json={"historico": ["abertura: oi"], "total_falas": 3},
+            headers=auth_headers(account.id),
+        )
+        assert r2.status_code == 200
+        assert r2.json()["tipo"] == "encerramento"
+
+    assert "será que hoje bate recorde de calor" in prompts[0]
+
+
+@freeze_time(AGORA_UTC)
+def test_ouvinte_recorrente_e_citado_quando_reaparece(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    """C.3: ouvinte que ja mandou mensagem antes na mesma transmissao (mesmo nome, pedido ja
+    atendido dentro da janela de sessao) e' citado como recorrente quando manda outra
+    mensagem -- sensacao de programa vivo com gente de verdade interagindo."""
+    radio_config, programa = radialista_e_programa
+    agora = datetime.datetime.now(datetime.timezone.utc)
+    pedido_antigo = FilaAoVivo(
+        radio_config_id=radio_config.id,
+        telefone="5511999999999",
+        nome="Ze",
+        tipo="musica",
+        mensagem_usuario="toca uma sofrencia",
+        atendido=True,
+        atendido_em=agora - datetime.timedelta(minutes=30),
+        criado_em=agora - datetime.timedelta(minutes=30),
+    )
+    pedido_novo = FilaAoVivo(
+        radio_config_id=radio_config.id,
+        telefone="5511999999999",
+        nome="Ze",
+        tipo="abraco",
+        mensagem_usuario="mais um oi",
+        criado_em=agora,
+    )
+    db_session.add_all([pedido_antigo, pedido_novo])
+    db_session.commit()
+
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Fala Ze!"
+    )
+
+    # total_falas=5 -> roteiro padrao cai em "chamada_ouvinte" (indice 4).
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 5},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["tipo"] == "chamada_ouvinte"
+    assert "Ze já apareceu antes nesta transmissão pedindo uma música" in prompts[0]
+
+
+@freeze_time(AGORA_UTC)
+def test_ouvinte_sem_pedido_anterior_nao_e_citado_como_recorrente(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    radio_config, programa = radialista_e_programa
+    pedido = FilaAoVivo(
+        radio_config_id=radio_config.id,
+        telefone="5511999999999",
+        nome="Maria",
+        tipo="abraco",
+        mensagem_usuario="oi pela primeira vez",
+    )
+    db_session.add(pedido)
+    db_session.commit()
+
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Fala Maria!"
+    )
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 5},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert "já apareceu antes nesta transmissão" not in prompts[0]
+
+
+@freeze_time(AGORA_UTC)  # 12:00 local, exatamente na metade de um programa 10:00-14:00
+def test_marco_tempo_metade_do_programa_mencionado(
+    client, account, auth_headers, radialista_e_programa, monkeypatch
+):
+    """B.4: aritmetica pura sobre horario_inicio/horario_fim -- marco de tempo so aparece com
+    o gate probabilistico (aqui forcado a sempre disparar)."""
+    radio_config, programa = radialista_e_programa
+    monkeypatch.setattr("app.live.router.random.random", lambda: 0.0)
+
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Seguimos no ar."
+    )
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 3},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert "na metade do programa de hoje" in prompts[0]
+
+
+@freeze_time("2026-08-10 13:05:00")  # 10:05 local -- 5 min apos o inicio (10:00) do programa
+def test_marco_tempo_inicio_do_programa_mencionado(
+    client, account, auth_headers, radialista_e_programa, monkeypatch
+):
+    radio_config, programa = radialista_e_programa
+    monkeypatch.setattr("app.live.router.random.random", lambda: 0.0)
+
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Bom dia!"
+    )
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 3},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert "acabou de começar agora" in prompts[0]

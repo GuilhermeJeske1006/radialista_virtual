@@ -1,9 +1,12 @@
 import datetime
+import re
 from zoneinfo import ZoneInfo
 
+from app.feriados import feriado_nacional_do_dia
 from app.models.account import Account
 from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
+from app.numeros import numero_por_extenso
 from app.weather.client import obter_clima_atual
 
 _DIAS_SEMANA = [
@@ -27,7 +30,54 @@ class ParticipantePrograma:
         self.comportamento = comportamento
 
 
-def _contexto_atual(radialista: RadioConfig, account: Account) -> str:
+_TEMPERATURA_CLIMA_RE = re.compile(r"^(-?\d+)°C, (.+)$")
+
+
+def _clima_por_extenso(clima: str) -> str:
+    """Troca o '23°C' de obter_clima_atual (ver app.weather.client) por 'vinte e três graus' --
+    o número por extenso vai direto pro prompt, então já chega pro LLM na forma que ele deve
+    repetir na fala, sem depender dele converter o algarismo sozinho. Devolve o texto original
+    (sem quebrar o prompt) se o formato não bater com o esperado.
+    """
+    match = _TEMPERATURA_CLIMA_RE.match(clima)
+    if not match:
+        return clima
+    temperatura, descricao = match.groups()
+    return f"{numero_por_extenso(int(temperatura))} graus, {descricao}"
+
+
+def _perfil_editorial(hora: int) -> str:
+    """Preset fixo (sem configuração por programa) de prioridade editorial por horário do dia --
+    ajuda o LLM a não abrir o programa com notícia pesada de manhã cedo nem soar animado demais
+    de madrugada, sem precisar de nenhum campo novo em Programa (ver Frente B do plano de
+    diversidade editorial)."""
+    if 5 <= hora < 9:
+        return "leve e energético, típico de início de manhã -- evite notícia pesada logo na abertura"
+    if 9 <= hora < 11:
+        return "leve, bom momento pra trânsito e utilidade"
+    if 11 <= hora < 14:
+        return "entretenimento leve, horário de almoço"
+    if 14 <= hora < 18:
+        return "resumo do dia, notícia mais séria já cabe bem"
+    if 18 <= hora < 22:
+        return "tom mais calmo, fim de tarde/noite"
+    return "calmo e reflexivo, noite/madrugada"
+
+
+def _feriado_municipal_do_dia(programa: Programa, data: datetime.date) -> str | None:
+    """Feriado municipal de hoje, a partir da lista cadastrada manualmente no programa
+    (programa.feriados_municipais, cada item {"data": "MM-DD", "nome": "..."}) -- ao contrário
+    do feriado nacional, não dá pra calcular por fórmula nem existe fonte gratuita confiável
+    pras ~5000 cidades brasileiras, então é o usuário quem informa (mesmo padrão de
+    assuntos_ao_vivo/musicas_bloqueadas: lista curada, zero risco de invenção)."""
+    hoje_mmdd = data.strftime("%m-%d")
+    for feriado in programa.feriados_municipais or []:
+        if feriado.get("data") == hoje_mmdd and feriado.get("nome"):
+            return feriado["nome"]
+    return None
+
+
+def _contexto_atual(radialista: RadioConfig, account: Account, programa: Programa) -> str:
     """Data, hora e clima reais no fuso do radialista -- sem isso o modelo chuta
     (ou herda a data de treino) e erra dia da semana, hora do dia e clima quando
     o ouvinte pergunta ou quando o locutor comenta o tempo espontaneamente."""
@@ -38,10 +88,30 @@ def _contexto_atual(radialista: RadioConfig, account: Account) -> str:
         f"agora é {dia_semana}, {agora.strftime('%d/%m/%Y')}, {agora.strftime('%H:%M')} "
         f"(horário de {radialista.timezone})."
     )
+    texto += f" Perfil editorial deste horário: {_perfil_editorial(agora.hour)}."
+
+    if agora.weekday() == 4:
+        texto += " Hoje é sexta-feira: se fizer sentido, puxe comentário sobre fim de semana ou agenda de eventos."
+    elif agora.weekday() == 0:
+        texto += " Hoje é segunda-feira: se fizer sentido, puxe um resumo do fim de semana (jogo, evento, novidade)."
+
+    feriado_nacional = feriado_nacional_do_dia(agora.date())
+    if feriado_nacional:
+        texto += f" Hoje é feriado nacional: {feriado_nacional}. Pode mencionar isso na fala se fizer sentido."
+
+    feriado_municipal = _feriado_municipal_do_dia(programa, agora.date())
+    if feriado_municipal:
+        texto += f" Hoje também é feriado municipal aqui: {feriado_municipal}."
 
     clima = obter_clima_atual(account.cidade)
     if clima:
-        texto += f" Clima atual em {account.cidade}: {clima}."
+        texto += f" Clima atual em {account.cidade}: {_clima_por_extenso(clima)}."
+
+    if account.cidade:
+        texto += (
+            f" Você também pode puxar assunto local de {account.cidade} -- trânsito, evento, time da "
+            "cidade -- se fizer sentido."
+        )
 
     return texto
 
@@ -102,7 +172,7 @@ def montar_system_prompt(
     partes += [
         f"Agora {'vocês apresentam' if multi_voz else 'você apresenta'} o programa '{programa.nome}'.",
     ]
-    partes.append(_contexto_atual(radialista, account))
+    partes.append(_contexto_atual(radialista, account, programa))
     if programa.descricao:
         partes.append(f"Sobre o que é esse programa: {programa.descricao}")
     partes += [

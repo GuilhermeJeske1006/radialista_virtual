@@ -165,6 +165,81 @@ def test_sintetizar_audio_v2_nao_converte_reticencias(monkeypatch):
     assert "......" in payload["text"]
 
 
+def test_sintetizar_audio_v3_preserva_tag_permitida(monkeypatch):
+    _habilitar_elevenlabs(monkeypatch)
+    monkeypatch.setattr(tts_client.settings, "elevenlabs_model", "eleven_v3")
+    fake = _FakeClient([_FakeResponse(status_code=200, content=b"mp3-data")])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+
+    tts_client.sintetizar_audio("[excited] Vamos comecar o programa!")
+    payload = fake.chamadas[0][2]["json"]
+    assert "[excited]" in payload["text"]
+
+
+def test_sintetizar_audio_v3_remove_tag_fora_da_whitelist(monkeypatch):
+    _habilitar_elevenlabs(monkeypatch)
+    monkeypatch.setattr(tts_client.settings, "elevenlabs_model", "eleven_v3")
+    fake = _FakeClient([_FakeResponse(status_code=200, content=b"mp3-data")])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+
+    tts_client.sintetizar_audio("[surpreso] Nao acredito nessa noticia.")
+    payload = fake.chamadas[0][2]["json"]
+    assert "[surpreso]" not in payload["text"]
+    assert "Nao acredito nessa noticia." in payload["text"]
+
+
+def test_sintetizar_audio_v3_tag_inline_suprime_tag_por_tom(monkeypatch):
+    """Fala que ja vem com tag de emocao do LLM nao deve levar tambem o prefixo estatico
+    [calm] do tom classificado -- evita empilhar duas instrucoes de emocao conflitantes."""
+    _habilitar_elevenlabs(monkeypatch)
+    monkeypatch.setattr(tts_client.settings, "elevenlabs_model", "eleven_v3")
+    fake = _FakeClient([_FakeResponse(status_code=200, content=b"mp3-data")])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+
+    tts_client.sintetizar_audio("[excited] Que noticia otima.", tom="calmo")
+    payload = fake.chamadas[0][2]["json"]
+    assert payload["text"].count("[") == 1
+
+
+def test_sintetizar_audio_v3_sem_tag_inline_mantem_tag_por_tom(monkeypatch):
+    _habilitar_elevenlabs(monkeypatch)
+    monkeypatch.setattr(tts_client.settings, "elevenlabs_model", "eleven_v3")
+    fake = _FakeClient([_FakeResponse(status_code=200, content=b"mp3-data")])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+
+    tts_client.sintetizar_audio("Vamos com calma agora.", tom="calmo")
+    payload = fake.chamadas[0][2]["json"]
+    assert payload["text"].startswith("[calm]")
+
+
+def test_sintetizar_audio_v2_nao_sanitiza_tags(monkeypatch):
+    """Sanitizacao de tag e' regra especifica do eleven_v3 (ver prompt condicional em
+    app.live.router) -- fora dele, o texto nem deveria trazer tag, mas nao ha' motivo pra
+    tocar no texto de um modelo que nunca recebeu essa instrucao."""
+    _habilitar_elevenlabs(monkeypatch)
+    monkeypatch.setattr(tts_client.settings, "elevenlabs_model", "eleven_multilingual_v2")
+    fake = _FakeClient([_FakeResponse(status_code=200, content=b"mp3-data")])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+
+    tts_client.sintetizar_audio("[surpreso] Ola ouvintes.")
+    payload = fake.chamadas[0][2]["json"]
+    assert "[surpreso]" in payload["text"]
+
+
+def test_sintetizar_audio_converte_valor_monetario_por_extenso(monkeypatch):
+    """Texto de patrocinador (ver Patrocinador.texto em app.live.router) e' fixo e nunca passa
+    pelo LLM -- a instrucao de prompt "escreva numero por extenso" nao alcanca esse texto, entao
+    o TTS precisa converter "R$" sozinho, em qualquer modelo (nao so' v3)."""
+    _habilitar_elevenlabs(monkeypatch)
+    monkeypatch.setattr(tts_client.settings, "elevenlabs_model", "eleven_multilingual_v2")
+    fake = _FakeClient([_FakeResponse(status_code=200, content=b"mp3-data")])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+
+    tts_client.sintetizar_audio("So hoje por R$ 19,90!")
+    payload = fake.chamadas[0][2]["json"]
+    assert payload["text"] == "So hoje por dezenove reais e noventa centavos!"
+
+
 def test_sintetizar_audio_devolve_bytes(monkeypatch):
     _habilitar_elevenlabs(monkeypatch)
     fake = _FakeClient([_FakeResponse(status_code=200, content=b"mp3-data")])

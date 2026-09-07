@@ -231,6 +231,32 @@ def sugerir_musica_do_genero(genero: str) -> str:
     return resposta.strip().strip('"')
 
 
+_FIO_CONDUTOR_SYSTEM_PROMPT = (
+    "Extraia, em ate uma frase curta, uma pergunta ou expectativa lancada por um locutor de radio na "
+    "abertura do programa (algo que ele prometeu ou insinuou que seria respondido ou resolvido mais "
+    "tarde no programa). Responda so com a frase, sem aspas, sem explicacao. Se a fala nao lancar "
+    "nenhuma pergunta ou expectativa clara pro resto do programa, responda exatamente 'nenhum', sem "
+    "mais nada."
+)
+
+
+def classificar_fio_condutor(texto: str) -> str:
+    """Extrai o fio condutor (pergunta/expectativa) lancado na abertura do programa, pra poder ser
+    retomado no encerramento (ver _fio_condutor/_registrar_fio_condutor em app.live.router). Nunca
+    deve derrubar o ao vivo: qualquer falha ou resposta vazia cai em string vazia, e o chamador
+    simplesmente nao registra fio condutor nenhum.
+    """
+    try:
+        resposta = gerar_classificacao(_FIO_CONDUTOR_SYSTEM_PROMPT, texto)
+    except Exception:
+        logger.warning("Falha ao classificar fio condutor da abertura", exc_info=True)
+        return ""
+    resposta = resposta.strip().strip(".").strip('"')
+    if not resposta or resposta.lower() == "nenhum":
+        return ""
+    return resposta
+
+
 _CONTEXTO_MUSICA_SYSTEM_PROMPT = (
     "Voce recebe metadados de um video do YouTube que e uma musica (titulo, canal/artista, ano "
     "de publicacao, tags e descricao, quando existirem). Resuma em ate duas frases curtas um "

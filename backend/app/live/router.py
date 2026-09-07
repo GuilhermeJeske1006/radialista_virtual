@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_account
 from app.config.redis_client import redis_client
+from app.config.settings import settings
 from app.db.database import get_db
 from app.guardrails.schedule import encontrar_programa_atual, minutos_restantes
 from app.live.music import MusicaEncontrada, _titulo_normalizado, buscar_musica, buscar_musica_fundo
@@ -22,6 +23,7 @@ from app.live.song_service import dividir_artista_titulo, resolver_musica_catalo
 from app.live.spotify import buscar_faixas_por_categoria
 from app.llm.client import (
     classificar_categoria_bloco,
+    classificar_fio_condutor,
     classificar_tema_fala,
     classificar_tom_fala,
     gerar_configuracao,
@@ -30,7 +32,7 @@ from app.llm.client import (
     sugerir_musica_do_genero,
 )
 from app.llm.json_utils import extrair_json
-from app.llm.prompt_builder import ParticipantePrograma, montar_system_prompt
+from app.llm.prompt_builder import ParticipantePrograma, _perfil_editorial, montar_system_prompt
 from app.models.account import Account
 from app.models.biblioteca_audio import BibliotecaAudioItem
 from app.models.fila_ao_vivo import FilaAoVivo
@@ -69,6 +71,12 @@ class LiveTtsRequest(BaseModel):
     # cada fala e' sintetizada isolada, sem contexto do que veio antes, e a entonacao de
     # inicio/fim de frase sai cortada/artificial em vez de continuar o fluxo da conversa.
     texto_anterior: str | None = None
+    # Programa que esta ao vivo agora (ver programaIdRef no frontend) -- usado so pra registrar o
+    # tom classificado desta fala (ver classificar_tom_fala abaixo) e informar a proxima chamada de
+    # gerar_proxima_fala pra manter transicao de humor coerente entre blocos (ver _ultimo_tom).
+    # Nulo em chamada de TTS fora do contexto de um programa ao vivo (nenhuma hoje, mas nao trava
+    # o audio se vier faltando).
+    programa_id: int | None = None
 
 
 class MusicaBlocoItem(BaseModel):
@@ -209,6 +217,41 @@ _LIMIAR_ENCERRAMENTO_MIN = 3
 # Chance de, numa fala qualquer, o locutor mencionar a hora certa.
 _PROB_HORA_CERTA = 0.2
 
+# Chance de, numa fala qualquer (fora do encerramento), o locutor mencionar um marco de tempo do
+# programa (ver _marco_tempo_programa) -- baixa de proposito, pra nao soar robotico contando o
+# tempo toda hora.
+_PROB_MARCO_TEMPO = 0.15
+
+# Quantos minutos, a partir do inicio ou em torno da metade do programa, ainda contam como "acabou
+# de comecar"/"estamos na metade" pra fins de _marco_tempo_programa.
+_JANELA_MARCO_TEMPO_MIN = 10
+
+
+def _duracao_total_minutos(programa: Programa) -> int:
+    inicio = programa.horario_inicio.hour * 60 + programa.horario_inicio.minute
+    fim = programa.horario_fim.hour * 60 + programa.horario_fim.minute
+    if fim <= inicio:
+        fim += 24 * 60
+    return fim - inicio
+
+
+def _marco_tempo_programa(programa: Programa, timezone: str) -> str | None:
+    """Frase natural tipo "acabou de comecar"/"estamos na metade" pra reforcar a sensacao de
+    tempo real acontecendo -- so aritmetica sobre horario_inicio/horario_fim (ja existentes),
+    sem precisar de nenhum dado novo. None quando o programa nao esta' no ar agora ou quando nao
+    da pra dizer nada natural nesse momento (fora das janelas de inicio/metade)."""
+    restantes = minutos_restantes(programa, timezone)
+    duracao_total = _duracao_total_minutos(programa)
+    if restantes < 0 or restantes > duracao_total:
+        return None
+    decorridos = duracao_total - restantes
+    if decorridos <= _JANELA_MARCO_TEMPO_MIN:
+        return "o programa acabou de começar agora"
+    metade = duracao_total / 2
+    if abs(decorridos - metade) <= _JANELA_MARCO_TEMPO_MIN:
+        return f"já estamos há cerca de {decorridos} minutos no ar, mais ou menos na metade do programa de hoje"
+    return None
+
 _DESCRICAO_BLOCO = {
     "abertura": "abertura do bloco: recebe o ouvinte, marca o início de um novo momento do programa",
     "musica": "chamada de música: anuncia a faixa que vai tocar em seguida",
@@ -346,6 +389,18 @@ def _hora_certa_por_extenso(agora: datetime.datetime) -> str:
 _TTL_SESSAO_AO_VIVO = 6 * 60 * 60
 
 
+def _ultimo_tom(programa_id: int) -> str | None:
+    """Tom (energico/calmo/neutro, ver classificar_tom_fala) da ultima fala deste programa que
+    de fato virou audio -- classificado no momento do TTS (ver gerar_audio_fala), nao no momento
+    da geracao de texto, entao so fica disponivel pra fala seguinte depois que o audio da fala
+    anterior for sintetizado."""
+    return redis_client.get(f"ultimo_tom:{programa_id}")
+
+
+def _registrar_ultimo_tom(programa_id: int, tom: str) -> None:
+    redis_client.set(f"ultimo_tom:{programa_id}", tom, ex=_TTL_SESSAO_AO_VIVO)
+
+
 def _historico_musicas(programa_id: int) -> tuple[set[str], set[str], dict[str, int]]:
     """Musicas tocadas no programa (por sessao ao vivo), pra buscar_musica evitar repetir a
     mesma faixa (por video_id OU por titulo normalizado -- ver titulos_tocados em
@@ -386,6 +441,17 @@ def _registrar_tema(programa_id: int, tema: str) -> None:
     redis_client.lpush(chave, tema)
     redis_client.ltrim(chave, 0, _MAX_TEMAS_HISTORICO - 1)
     redis_client.expire(chave, _TTL_SESSAO_AO_VIVO)
+
+
+def _fio_condutor(programa_id: int) -> str | None:
+    """Pergunta/expectativa lancada na abertura do programa (ver classificar_fio_condutor em
+    app.llm.client), pra ser retomada no encerramento -- da a sensacao de um arco narrativo
+    atravessando o programa inteiro, nao so conexao bloco-a-bloco (ver gancho/callback abaixo)."""
+    return redis_client.get(f"fio_condutor:{programa_id}")
+
+
+def _registrar_fio_condutor(programa_id: int, texto: str) -> None:
+    redis_client.set(f"fio_condutor:{programa_id}", texto, ex=_TTL_SESSAO_AO_VIVO)
 
 
 # Quantas falas recentes guardar por categoria de bloco (ver _historico_falas) pra checagem de
@@ -443,6 +509,54 @@ def _fala_semelhante_no_historico(fala: str, historico_falas: list[str]) -> str 
     return None
 
 
+_FRASE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+# tag de direcao vocal do eleven_v3 que o LLM pode inserir inline na fala (ver instrucao
+# condicional em gerar_proxima_fala) -- removida antes de citar a frase de volta no prompt, pra
+# nao confundir o LLM com uma tag que nao faz parte do texto falado de verdade.
+_TAG_V3_DISPLAY_RE = re.compile(r"\[[a-zA-Z_]+\]\s*")
+_MAX_CHARS_FRASE_HISTORICO = 80
+
+
+def _frases(texto: str) -> list[str]:
+    texto_limpo = _TAG_V3_DISPLAY_RE.sub("", texto).strip()
+    return [f.strip() for f in _FRASE_SPLIT_RE.split(texto_limpo) if f.strip()]
+
+
+def _primeira_frase(texto: str) -> str:
+    frases = _frases(texto)
+    return frases[0][:_MAX_CHARS_FRASE_HISTORICO] if frases else ""
+
+
+def _ultima_frase(texto: str) -> str:
+    frases = _frases(texto)
+    return frases[-1][:_MAX_CHARS_FRASE_HISTORICO] if frases else ""
+
+
+# Quantas falas recentes (do mesmo tipo de bloco) considerar pro aviso de nao repetir
+# abertura/fechamento no prompt -- nao precisa cobrir toda a janela de _historico_falas, so as
+# poucas mais recentes bastam pra pegar o padrao mais obvio de repeticao.
+_MAX_ABERTURAS_FECHAMENTOS_NO_PROMPT = 5
+
+
+def _aberturas_e_fechamentos(historico_falas: list[str]) -> tuple[list[str], list[str]]:
+    """Primeira e ultima frase das falas recentes do mesmo tipo de bloco (ver _historico_falas) --
+    usado pro prompt avisar o LLM a nao repetir o mesmo padrao de abertura/fechamento entre voltas
+    do roteiro (ex: sempre comecar com "e ai galera" ou sempre fechar com "fica com a gente"),
+    problema que o aviso generico de "nao repita a mesma abertura" (ver introducao_ao_vivo) sozinho
+    nao resolve sem exemplos concretos do que ja foi usado.
+    """
+    aberturas: list[str] = []
+    fechamentos: list[str] = []
+    for fala_anterior in historico_falas[:_MAX_ABERTURAS_FECHAMENTOS_NO_PROMPT]:
+        primeira = _primeira_frase(fala_anterior)
+        ultima = _ultima_frase(fala_anterior)
+        if primeira:
+            aberturas.append(primeira)
+        if ultima and ultima != primeira:
+            fechamentos.append(ultima)
+    return aberturas, fechamentos
+
+
 def _proxima_variacao(programa_id: int, chave: str, opcoes: list[str]) -> str:
     """Roda por uma lista de variacoes de frase sem repetir a mesma ate esgotar o pool --
     round-robin persistido no Redis por programa. Existe porque so pedir pro LLM 'variar' no
@@ -464,6 +578,19 @@ _VARIACOES_CONVITE_OUVINTE = [
     "responder pelo WhatsApp da rádio.",
     "Quando o bloco for chamada_ouvinte, convide o público a mandar uma dedicatória ou saudação pelo "
     "WhatsApp da rádio.",
+]
+
+_VARIACOES_FORMATO_COMENTARIO = [
+    "Para este comentário, puxe com uma pergunta retórica pro ouvinte -- não precisa de resposta "
+    "real, é só um gancho de fala.",
+    "Para este comentário, estruture como uma pequena lista falada (ex.: 'três coisas que...', "
+    "'duas coisas que eu reparei...').",
+    "Para este comentário, traga uma opinião ou comparação provocativa sobre o assunto -- tome um "
+    "lado, sem ser ofensivo.",
+    "Para este comentário, convide o ouvinte a responder pelo WhatsApp da rádio o que ele acha "
+    "sobre o assunto.",
+    "Para este comentário, siga o formato padrão: um monólogo direto sobre o assunto, sem "
+    "estrutura especial.",
 ]
 
 _VARIACOES_VERBO_IDENTIFICACAO = [
@@ -921,6 +1048,38 @@ def _fallback_curado_genero(
     return None
 
 
+# Janela pra considerar um pedido anterior do mesmo ouvinte como "recorrente nesta transmissao" --
+# mesma ordem de grandeza da sessao ao vivo (ver _TTL_SESSAO_AO_VIVO), pra nao citar um pedido de
+# dias atras como se fosse "há pouco".
+_JANELA_OUVINTE_RECORRENTE_HORAS = 6
+
+_TIPO_PEDIDO_LEGIVEL = {"musica": "uma música", "abraco": "um recado"}
+
+
+def _ouvinte_recorrente_anterior(db: Session, radio_config_id: int, pedido_atual: FilaAoVivo) -> FilaAoVivo | None:
+    """Pedido anterior (ja atendido), do mesmo ouvinte (mesmo nome) do pedido que acabou de sair
+    da fila, dentro da janela de sessao -- da pro locutor citar que "aquele mesmo fulano que pediu
+    tal coisa ha pouco mandou outra mensagem agora", sensacao de programa vivo com gente de
+    verdade interagindo. None quando o pedido atual nao tem nome preenchido ou nao ha pedido
+    anterior comparavel."""
+    if not pedido_atual.nome:
+        return None
+    limite = pedido_atual.criado_em - datetime.timedelta(hours=_JANELA_OUVINTE_RECORRENTE_HORAS)
+    return (
+        db.query(FilaAoVivo)
+        .filter(
+            FilaAoVivo.radio_config_id == radio_config_id,
+            FilaAoVivo.atendido.is_(True),
+            FilaAoVivo.id != pedido_atual.id,
+            FilaAoVivo.nome == pedido_atual.nome,
+            FilaAoVivo.criado_em >= limite,
+            FilaAoVivo.criado_em < pedido_atual.criado_em,
+        )
+        .order_by(FilaAoVivo.criado_em.desc())
+        .first()
+    )
+
+
 def _proximo_pedido_fila(db: Session, radialista: RadioConfig, tipo: str) -> FilaAoVivo | None:
     """Pega (e marca como atendido) o pedido mais antigo da fila vindo do WhatsApp."""
     pedido = (
@@ -994,6 +1153,10 @@ def gerar_proxima_fala(
         categoria = "musica"
     historico = "\n".join(dados.historico[-6:]) or "Programa acabou de entrar no ar."
 
+    # Reaproveitado pelo resto da funcao (efemerides, nudge de noticia leve, hora certa, marco de
+    # tempo) -- um so calculo de "agora" por requisicao, em vez de recalcular em cada ponto.
+    agora_local = datetime.datetime.now(ZoneInfo(radialista.timezone))
+
     # Dialogo multi-voz so pros blocos de fala -- musica e patrocinador (ja retornado acima)
     # continuam single-voice, sempre na voz do dono.
     roster = _buscar_roster(db, account, programa)
@@ -1036,6 +1199,13 @@ def gerar_proxima_fala(
         musica = _buscar_musica_para_bloco(db, programa, tipo) if categoria == "musica" else None
 
     pedido_abraco = _proximo_pedido_fila(db, radialista, "abraco") if categoria == "chamada_ouvinte" else None
+    ouvinte_recorrente = (
+        _ouvinte_recorrente_anterior(db, radialista.id, pedido_abraco) if pedido_abraco is not None else None
+    )
+
+    # buscado aqui (antes do prompt) pra alimentar o aviso de abertura/fechamento repetido abaixo;
+    # reaproveitado depois da geracao pra checagem de fala repetida (ver _fala_semelhante_no_historico).
+    historico_falas_categoria = _historico_falas(programa.id, categoria)
 
     temas_usados = []
     if categoria in ("comentario", "noticia"):
@@ -1052,6 +1222,24 @@ def gerar_proxima_fala(
     variacao_verbo_identificacao = _proxima_variacao(
         programa.id, "verbo_identificacao", _VARIACOES_VERBO_IDENTIFICACAO
     )
+
+    # Quadro fixo (ver C.1): identificado pelo label bruto do bloco (tipo), nao pela categoria --
+    # varios labels diferentes podem cair na mesma categoria (ex: "comentario"), mas cada um tem
+    # seu proprio pool de conteudo em quadros_fixos.
+    quadro_pool = (programa.quadros_fixos or {}).get(tipo)
+    conteudo_quadro_fixo = None
+    if quadro_pool:
+        conteudo_quadro_fixo = _proxima_variacao(programa.id, f"quadro_{tipo}", quadro_pool)
+
+    # Pool rotativo de assuntos configurados (ver A.3) -- so quando o bloco pede assunto livre e
+    # nao ha um quadro fixo ja dando o conteudo especifico do bloco (evita instrucao conflitante).
+    assunto_sugerido = None
+    if (
+        conteudo_quadro_fixo is None
+        and categoria in ("comentario", "noticia", "chamada_ouvinte")
+        and programa.assuntos_ao_vivo
+    ):
+        assunto_sugerido = _proxima_variacao(programa.id, "assunto_ao_vivo", programa.assuntos_ao_vivo)
 
     roteiro_ativo = [t.strip() for t in programa.estrutura_blocos if t.strip()] or _ROTEIRO_PADRAO
 
@@ -1075,16 +1263,17 @@ def gerar_proxima_fala(
         else [
             "Você também apresenta um programa de rádio ao vivo dentro do painel.",
             "Gere somente a fala do locutor, sem aspas, sem markdown e sem narração externa.",
-            "A fala deve ter entre 4 e 6 frases curtas, com ritmo de rádio e transições naturais.",
+            "A fala deve durar o equivalente a umas 4 a 6 frases de rádio, mas varie o tamanho de cada uma "
+            "como alguém fala de verdade -- misture frase curta de impacto com uma frase mais longa emendada "
+            "por vírgula. Não force um número fixo de frases nem um tamanho parecido pra todas.",
         ]
     )
 
     system_prompt_linhas = [
         montar_system_prompt(account, radialista, programa, roster=roster if multi_voz else None),
         *introducao_ao_vivo,
-        "Fale como locutor de verdade, não como texto escrito: use reticências para pausas de respiração, "
-        "vírgulas para dar ritmo, e de vez em quando um maneirismo natural (\"então\", \"olha só\", \"e aí\", "
-        "\"pô\") no começo da frase. Não exagere, no máximo um por fala.",
+        "Use reticências para pausas de respiração e vírgulas pra dar ritmo -- fale como locutor de verdade, "
+        "não como texto escrito.",
         f"O programa segue esta sequência lógica de blocos, em loop: {posicao_roteiro}. "
         "Tenha consciência de qual momento do programa você está vivendo agora e conecte a fala com o que "
         "vem antes e depois dela, mantendo transição natural (não repita a mesma abertura ou o mesmo gancho "
@@ -1119,6 +1308,32 @@ def gerar_proxima_fala(
             categoria,
             f"Este bloco é '{tipo}': ajuste tom e ritmo conforme o conteúdo, mantendo a identidade do programa.",
         ),
+    ]
+
+    if categoria != "noticia":
+        system_prompt_linhas.append(
+            "De vez em quando, pra soar mais espontâneo, use UM (e só um) destes recursos de fala natural -- "
+            "nunca mais de um na mesma fala, senão vira caricatura de locutor: um maneirismo no começo da "
+            "frase (\"então\", \"olha só\", \"e aí\", \"pô\"); uma autocorreção leve (\"quer dizer\", \"ou melhor\", "
+            "\"deixa eu reformular\"); uma ênfase por repetição (\"foi bom, muito bom mesmo\"); ou uma "
+            "hesitação pontual (\"é... deixa eu ver aqui\"). Nem toda fala precisa de um desses -- use só "
+            "quando sair natural, muitas falas seguidas sem nenhum também é normal."
+        )
+    else:
+        system_prompt_linhas.append(
+            "Notícia pede tom sério e direto: nada de maneirismo, autocorreção encenada, repetição de ênfase "
+            "ou hesitação nesse bloco."
+        )
+
+    if settings.elevenlabs_model == "eleven_v3" and categoria != "noticia":
+        system_prompt_linhas.append(
+            "Você pode inserir tags de direção vocal no ponto exato da fala onde fazem sentido, "
+            "escolhendo só entre: [excited], [calm], [laughs], [sighs], [whispers], [sarcastic]. Insira "
+            "cada tag imediatamente antes do trecho que ela deve afetar, no máximo 2 por fala, e só quando "
+            "o momento realmente pedir -- não force uma tag em toda fala. Nunca invente tag fora dessa lista."
+        )
+
+    system_prompt_linhas += [
         "Além do tipo do bloco, varie intensidade dentro da própria fala conforme o conteúdo -- ela não pode "
         "soar no mesmo ritmo do início ao fim. Cuidado: o ponto final sozinho não segura o locutor, ele emenda "
         "na frase seguinte quase sem respiro -- por isso NUNCA encadeie várias frases curtas seguidas (isso sai "
@@ -1150,20 +1365,101 @@ def gerar_proxima_fala(
         "algo assim, nunca de 'bloco final'.",
     ]
 
+    aberturas_usadas, fechamentos_usados = _aberturas_e_fechamentos(historico_falas_categoria)
+    if aberturas_usadas:
+        system_prompt_linhas.append(
+            "Não comece esta fala com um início parecido a estes já usados neste mesmo tipo de bloco: "
+            f"{' | '.join(aberturas_usadas)}."
+        )
+    if fechamentos_usados:
+        system_prompt_linhas.append(
+            "Não termine esta fala com um fechamento parecido a estes já usados neste mesmo tipo de bloco: "
+            f"{' | '.join(fechamentos_usados)}."
+        )
+
+    tom_anterior = _ultimo_tom(programa.id)
+    if tom_anterior:
+        system_prompt_linhas.append(
+            f"A fala anterior saiu em tom {tom_anterior}. Mantenha uma transição de humor coerente, a menos "
+            "que o tipo de bloco atual exija uma mudança."
+        )
+
     if temas_usados:
         system_prompt_linhas.append(
             "Temas de comentário/notícia já abordados nesta transmissão, do mais recente pro mais antigo -- "
             f"não repita nenhum deles agora, escolha um assunto novo: {', '.join(temas_usados)}."
         )
 
+    if conteudo_quadro_fixo is not None:
+        system_prompt_linhas.append(
+            f"Este bloco é o quadro fixo '{tipo}': apresente com este conteúdo de hoje: {conteudo_quadro_fixo}. "
+            "Mantenha a identidade reconhecível do quadro (mesmo tom, mesma forma de abrir), mas o conteúdo "
+            "em si é sempre novo -- não repita o conteúdo de uma vez anterior deste mesmo quadro."
+        )
+    elif assunto_sugerido is not None:
+        system_prompt_linhas.append(
+            f"Assunto sugerido pra este bloco: {assunto_sugerido}. Priorize esse assunto, mas fique livre "
+            "pra adaptar a abordagem -- não precisa citar o rótulo do assunto ao pé da letra."
+        )
+
+    if categoria == "comentario":
+        system_prompt_linhas.append(
+            _proxima_variacao(programa.id, "formato_comentario", _VARIACOES_FORMATO_COMENTARIO)
+        )
+
+    if programa.pode_pesquisar and categoria in ("comentario", "noticia"):
+        system_prompt_linhas.append(
+            f"Se você tiver certeza absoluta de um fato real de hoje ({agora_local.strftime('%d/%m')}) -- "
+            "aniversário de artista conhecido, data histórica marcante, data comemorativa -- pode usar isso "
+            "como mote pro comentário ou notícia. NUNCA invente data, nome ou fato: se não tiver certeza "
+            "absoluta, ignore essa opção e siga com outro assunto."
+        )
+
+    if categoria == "noticia" and "leve" in _perfil_editorial(agora_local.hour):
+        system_prompt_linhas.append(
+            "Este horário pede conteúdo leve: prefira notícia leve/amena agora. Se só houver notícia pesada "
+            "disponível, prefira puxar um assunto do banco de assuntos ou da efeméride do dia em vez de "
+            "forçar a notícia pesada neste momento."
+        )
+
+    if categoria == "abertura" and total_falas == 0:
+        system_prompt_linhas.append(
+            "Se fizer sentido, lance na abertura uma pequena pergunta ou expectativa pro dia de hoje (ex.: "
+            "'será que hoje bate recorde de calor?', 'será que consigo tocar todos os pedidos de sexta?') -- "
+            "não é obrigatório, só se sair natural. Isso pode ser retomado no encerramento do programa."
+        )
+
+    if categoria == "encerramento":
+        fio_condutor_atual = _fio_condutor(programa.id)
+        if fio_condutor_atual:
+            system_prompt_linhas.append(
+                f"No início do programa você mencionou: '{fio_condutor_atual}'. Se fizer sentido, retome ou "
+                "resolva isso no fechamento de hoje."
+            )
+
+    if ouvinte_recorrente is not None:
+        tipo_anterior_legivel = _TIPO_PEDIDO_LEGIVEL.get(ouvinte_recorrente.tipo, "uma mensagem")
+        system_prompt_linhas.append(
+            f"{pedido_abraco.nome} já apareceu antes nesta transmissão pedindo {tipo_anterior_legivel}. Se "
+            "fizer sentido, você pode citar naturalmente que ele voltou a mandar mensagem agora -- não force "
+            "isso se não couber bem na fala."
+        )
+
     if tipo != "encerramento" and random.random() < _PROB_HORA_CERTA:
-        hora_certa = _hora_certa_por_extenso(datetime.datetime.now(ZoneInfo(radialista.timezone)))
+        hora_certa = _hora_certa_por_extenso(agora_local)
         system_prompt_linhas.append(
             f"Nesta fala, marque a hora certa: mencione naturalmente, em algum ponto, que agora são {hora_certa} "
             "-- como um locutor de verdade faz de vez em quando (ex: 'agora são catorze e trinta e cinco aqui "
             "na rádio', 'são onze horas em ponto nesse sábado quente'). Escreva a hora por extenso, exatamente "
             "como veio acima, nunca em algarismo. Encaixe sem soar forçado, não precisa ser a primeira frase."
         )
+
+    if tipo != "encerramento" and random.random() < _PROB_MARCO_TEMPO:
+        marco_tempo = _marco_tempo_programa(programa, radialista.timezone)
+        if marco_tempo:
+            system_prompt_linhas.append(
+                f"Se fizer sentido, mencione naturalmente que {marco_tempo} -- não force se não couber na fala."
+            )
 
     if musica is not None and pedido_musica is not None and pedido_sem_resultado:
         nome_pedido = pedido_musica.nome or "um ouvinte"
@@ -1278,8 +1574,8 @@ def gerar_proxima_fala(
 
     # Rede de seguranca: se a fala saiu parecida com uma fala recente do mesmo tipo de bloco
     # nesta sessao, tenta gerar de novo uma unica vez com a colisao apontada explicitamente --
-    # nao entra em loop pra nao multiplicar custo/latencia por fala.
-    historico_falas_categoria = _historico_falas(programa.id, categoria)
+    # nao entra em loop pra nao multiplicar custo/latencia por fala. historico_falas_categoria ja
+    # foi buscado antes do prompt (ver aviso de abertura/fechamento acima), reaproveitado aqui.
     fala_parecida = _fala_semelhante_no_historico(fala, historico_falas_categoria)
     if fala_parecida:
         logger.info(
@@ -1306,6 +1602,11 @@ def gerar_proxima_fala(
         if tema:
             _registrar_tema(programa.id, tema)
             _registrar_tema_persistente(db, programa.id, tema)
+
+    if categoria == "abertura" and total_falas == 0 and fala.strip():
+        fio_condutor_novo = classificar_fio_condutor(fala)
+        if fio_condutor_novo:
+            _registrar_fio_condutor(programa.id, fio_condutor_novo)
 
     return LiveProgramResponse(
         tipo=tipo,
@@ -1379,6 +1680,8 @@ def gerar_audio_fala(
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="TTS nao configurado")
 
     tom = classificar_tom_fala(dados.texto, dados.tipo)
+    if dados.programa_id is not None:
+        _registrar_ultimo_tom(dados.programa_id, tom)
     eh_clonada = bool(voz_id) and not voz_valida(voz_id)
     try:
         audio = sintetizar_audio(

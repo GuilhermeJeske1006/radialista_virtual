@@ -65,6 +65,18 @@ class Programa(Base):
     musica_fundo_escolhida: Mapped[str] = mapped_column(String, default="")
 
     assuntos_ao_vivo: Mapped[list[str]] = mapped_column(JSON, default=list)
+
+    # Quadros fixos do programa: label (que tambem deve estar em estrutura_blocos, ex.
+    # "Curiosidade das 10") -> pool de conteudos possiveis pra esse quadro. Cada vez que o bloco com
+    # esse label sai no roteiro, um item do pool e' sorteado em rotacao (ver _proxima_variacao em
+    # app.live.router) -- da identidade fixa e reconhecivel ao quadro, com conteudo sempre novo.
+    quadros_fixos: Mapped[dict[str, list[str]]] = mapped_column(JSON, default=dict)
+
+    # Feriados municipais (cadastro manual: [{"data": "MM-DD", "nome": "..."}]) -- ao contrario
+    # do feriado nacional (calculado por formula, ver app.feriados), nao da pra calcular nem
+    # existe fonte gratuita confiavel pras ~5000 cidades brasileiras, entao e' o usuario quem
+    # informa (mesmo padrao de assuntos_ao_vivo/musicas_bloqueadas).
+    feriados_municipais: Mapped[list[dict]] = mapped_column(JSON, default=list)
     tipos_noticias: Mapped[list[str]] = mapped_column(JSON, default=list)
     fontes_noticias: Mapped[list[str]] = mapped_column(JSON, default=list)
 

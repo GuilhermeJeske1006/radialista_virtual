@@ -6,6 +6,7 @@ import unicodedata
 import httpx
 
 from app.config.settings import settings
+from app.numeros import substituir_valores_monetarios
 
 logger = logging.getLogger("radialista.tts")
 
@@ -66,9 +67,39 @@ _AJUSTE_TOM = {
 # audio tag [excited] do eleven_v3 (so mandado no tom "energico") direciona uma entrega ofegante --
 # muita respiracao audivel entre as frases, mais que o [calm] do tom oposto. Tirado ate ter como
 # validar por audicao um tag mais neutro; energia do bloco continua vindo so de stability/style/speed.
+#
+# So aplicado quando a fala nao ja vem com uma tag inline propria (ver _TAGS_V3_PERMITIDAS abaixo) --
+# o prompt em app.live.router agora deixa o proprio LLM inserir tag no ponto exato da fala que faz
+# sentido; prefixar [calm] por cima disso empilharia duas instrucoes de emocao conflitantes.
 _TAG_POR_TOM = {
     "calmo": "[calm]",
 }
+
+# Tags de direcao vocal/emocao do eleven_v3 que o prompt (ver app.live.router) instrui o LLM a
+# inserir inline, no ponto exato da fala -- lista fechada de proposito: o LLM "alucina" tag fora
+# dela com alguma frequencia (testado por audicao), e tag desconhecida pro modelo e' lida como
+# texto literal em vez de virar direcao vocal (ex.: "[surpreso] Nao acredito" sai com a palavra
+# "surpreso" falada).
+_TAGS_V3_EMOCAO = {"excited", "calm", "laughs", "sighs", "whispers", "sarcastic"}
+
+# Whitelist completa aceita no texto antes de mandar pro eleven_v3 -- emocao (acima) mais [pause],
+# que nao e' emocao (nao deve suprimir o _TAG_POR_TOM abaixo) mas e' inserido por este mesmo
+# modulo a partir de "......" (ver _PAUSA_TROCA_ASSUNTO).
+_TAGS_V3_PERMITIDAS = _TAGS_V3_EMOCAO | {"pause"}
+
+_TAG_INLINE_RE = re.compile(r"\[([a-zA-Z_]+)\]")
+
+
+def _sanitizar_tags_v3(texto: str) -> str:
+    """Remove qualquer tag [algo] que nao esteja na whitelist (ver _TAGS_V3_PERMITIDAS) antes de
+    mandar pro eleven_v3 -- rede de seguranca contra o LLM inventar tag fora da lista permitida
+    pelo prompt, ou deixar passar quando o texto nem chega a rodar nesse modelo.
+    """
+    return _TAG_INLINE_RE.sub(lambda m: m.group(0) if m.group(1).lower() in _TAGS_V3_PERMITIDAS else "", texto)
+
+
+def _tem_tag_emocao_v3(texto: str) -> bool:
+    return any(m.group(1).lower() in _TAGS_V3_EMOCAO for m in _TAG_INLINE_RE.finditer(texto))
 
 # reticencias duplas ("......") sao a instrucao do prompt (ver app.live.router) pro locutor marcar uma
 # pausa forte e real -- na troca de assunto/bloco, ou no meio da fala antes de um ponto de peso (noticia
@@ -172,13 +203,19 @@ def sintetizar_audio(
     modelo = settings.elevenlabs_model
     voice_settings = _construir_voice_settings(tipo_bloco, tom, modelo, eh_clonada)
 
-    texto_tts = texto
+    # "R$ 19,90" etc -- so' aparece em texto que nunca passou pelo LLM (ver Patrocinador.texto em
+    # app.live.router, conteudo fixo), entao a instrucao de prompt "escreva numero por extenso"
+    # nao alcanca esse caso. Roda pra qualquer modelo, nao so' v3 -- algarismo em portugues sai
+    # errado em qualquer sintetizador.
+    texto_tts = substituir_valores_monetarios(texto)
     if modelo == "eleven_v3":
         texto_tts = _PAUSA_TROCA_ASSUNTO.sub(" [pause] ", texto_tts)
+        texto_tts = _sanitizar_tags_v3(texto_tts)
         texto_tts = re.sub(r" {2,}", " ", texto_tts).strip()
-        tag = _TAG_POR_TOM.get(tom or "")
-        if tag:
-            texto_tts = f"{tag} {texto_tts}"
+        if not _tem_tag_emocao_v3(texto_tts):
+            tag = _TAG_POR_TOM.get(tom or "")
+            if tag:
+                texto_tts = f"{tag} {texto_tts}"
 
     payload = {
         "text": texto_tts,
