@@ -204,15 +204,45 @@ def test_buscar_musica_ao_vivo_de_canal_oficial_e_aceito(monkeypatch):
     assert resultado.video_id == "id1"
 
 
-def test_buscar_musica_rejeita_duracao_conhecida_fora_da_faixa_mesmo_relaxando(monkeypatch):
-    """Bug corrigido: o passo relaxado (ultimo recurso, quando nenhuma combinacao estrita deu
-    resultado) so' deveria perdoar duracao DESCONHECIDA (falha/cota da API) -- ele tambem
-    perdoava qualquer duracao CONHECIDA fora da faixa, deixando passar coletanea/medley de 1h
-    como se fosse uma musica so'."""
+def test_buscar_musica_combina_inicio_segundos_com_deteccao_de_fala(monkeypatch):
+    """inicio_segundos final e' o MAIOR entre a heuristica da escolha (ex.: SEGUNDOS_PULAR_AO_VIVO
+    pra versao ao vivo) e o que a deteccao de fala/silencio no comeco achar (ver
+    obter_inicio_seguro) -- a deteccao e' mais um sinal de onde cortar, nunca reduz um corte que
+    ja se sabia necessario."""
     monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
-    itens = [_item("id1", "Bloco de 1 hora sem palavra reveladora no titulo", "Canal Qualquer")]
+    itens = [_item("id1", "Minha Musica Ao Vivo", "Artista - Topic")]
+    monkeypatch.setattr("app.live.music._buscar_itens", lambda query: itens)
+    monkeypatch.setattr("app.live.music._buscar_duracoes", lambda ids: {"id1": 200})
+    monkeypatch.setattr("app.live.music.obter_inicio_seguro", lambda video_id, duracao: 25)
+
+    resultado = buscar_musica("minha musica")
+    assert resultado.inicio_segundos == 25  # deteccao (25) > heuristica ao vivo (15)
+
+
+def test_buscar_musica_aceita_duracao_longa_sem_teto_maximo(monkeypatch):
+    """Sem teto maximo de duracao de proposito: a busca ja parte de titulo+artista resolvido
+    (Spotify/catalogo), entao o YouTube so' precisa achar ESSE audio -- uma faixa legitimamente
+    longa (ex.: 9min) nao deve ser descartada so' por duracao. Medley/coletanea sem palavra
+    reveladora no titulo passa por aqui (ver TERMOS_COLETANEA/PADRAO_TOP_N pro resto dos casos),
+    e o corte por fala/silencio no fim/comeco (obter_fim_seguro/obter_inicio_seguro) cobre a
+    reproducao em si."""
+    monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
+    itens = [_item("id1", "Minha Musica - Artista", "Canal Qualquer")]
     monkeypatch.setattr("app.live.music._buscar_itens", lambda query: itens)
     monkeypatch.setattr("app.live.music._buscar_duracoes", lambda ids: {"id1": 3600})
+
+    resultado = buscar_musica("minha musica")
+    assert resultado.video_id == "id1"
+
+
+def test_buscar_musica_rejeita_duracao_conhecida_abaixo_do_minimo_mesmo_relaxando(monkeypatch):
+    """O passo relaxado (ultimo recurso, quando nenhuma combinacao estrita deu resultado) so'
+    deveria perdoar duracao DESCONHECIDA (falha/cota da API) -- duracao CONHECIDA abaixo do
+    minimo (trailer/teaser/Short) continua invalida mesmo nesse ultimo recurso."""
+    monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
+    itens = [_item("id1", "Minha Musica - Artista (Trailer)", "Canal Qualquer")]
+    monkeypatch.setattr("app.live.music._buscar_itens", lambda query: itens)
+    monkeypatch.setattr("app.live.music._buscar_duracoes", lambda ids: {"id1": 30})
 
     assert buscar_musica("minha musica") is None
 

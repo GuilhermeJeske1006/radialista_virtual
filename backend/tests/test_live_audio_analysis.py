@@ -106,3 +106,64 @@ def test_calcular_fim_seguro_devolve_menor_candidato(monkeypatch):
     monkeypatch.setattr(audio_analysis, "_url_audio_direta", lambda video_id: "https://audio/x.m4a")
     monkeypatch.setattr(audio_analysis, "_pontos_de_silencio", lambda url, offset: [180.7, 175.2])
     assert audio_analysis._calcular_fim_seguro("video1", 200) == 175
+
+
+def test_obter_inicio_seguro_sem_duracao_devolve_zero():
+    assert audio_analysis.obter_inicio_seguro("video1", None) == 0
+
+
+def test_obter_inicio_seguro_duracao_curta_demais_devolve_zero():
+    assert audio_analysis.obter_inicio_seguro("video1", 10) == 0
+
+
+def test_obter_inicio_seguro_usa_cache(monkeypatch):
+    chamadas = []
+    monkeypatch.setattr(
+        audio_analysis, "_calcular_inicio_seguro", lambda video_id, duracao: chamadas.append(1) or 8
+    )
+    primeiro = audio_analysis.obter_inicio_seguro("video1", 200)
+    segundo = audio_analysis.obter_inicio_seguro("video1", 200)
+    assert primeiro == segundo == 8
+    assert len(chamadas) == 1
+
+
+def test_pontos_de_fim_de_silencio_inicial_extrai_do_stderr(monkeypatch):
+    stderr = "silence_start: 0.0\nsilence_end: 8.3\nsome other line\n"
+    monkeypatch.setattr(
+        audio_analysis.subprocess,
+        "run",
+        lambda *a, **k: SimpleNamespace(stderr=stderr, stdout=""),
+    )
+    pontos = audio_analysis._pontos_de_fim_de_silencio_inicial("https://audio.direto/x.m4a", duracao_segundos=20.0)
+    assert pontos == [8.3]
+
+
+def test_pontos_de_fim_de_silencio_inicial_timeout_devolve_lista_vazia(monkeypatch):
+    def _levanta(*args, **kwargs):
+        raise subprocess.TimeoutExpired(cmd="ffmpeg", timeout=15)
+
+    monkeypatch.setattr(audio_analysis.subprocess, "run", _levanta)
+    assert audio_analysis._pontos_de_fim_de_silencio_inicial("url", 20.0) == []
+
+
+def test_calcular_inicio_seguro_sem_url_devolve_zero(monkeypatch):
+    monkeypatch.setattr(audio_analysis, "_url_audio_direta", lambda video_id: None)
+    assert audio_analysis._calcular_inicio_seguro("video1", 200) == 0
+
+
+def test_calcular_inicio_seguro_sem_candidatos_devolve_zero(monkeypatch):
+    monkeypatch.setattr(audio_analysis, "_url_audio_direta", lambda video_id: "https://audio/x.m4a")
+    monkeypatch.setattr(audio_analysis, "_pontos_de_fim_de_silencio_inicial", lambda url, duracao: [])
+    assert audio_analysis._calcular_inicio_seguro("video1", 200) == 0
+
+
+def test_calcular_inicio_seguro_devolve_menor_candidato(monkeypatch):
+    monkeypatch.setattr(audio_analysis, "_url_audio_direta", lambda video_id: "https://audio/x.m4a")
+    monkeypatch.setattr(audio_analysis, "_pontos_de_fim_de_silencio_inicial", lambda url, duracao: [12.7, 8.2])
+    assert audio_analysis._calcular_inicio_seguro("video1", 200) == 8
+
+
+def test_calcular_inicio_seguro_ignora_candidato_perto_demais_do_zero(monkeypatch):
+    monkeypatch.setattr(audio_analysis, "_url_audio_direta", lambda video_id: "https://audio/x.m4a")
+    monkeypatch.setattr(audio_analysis, "_pontos_de_fim_de_silencio_inicial", lambda url, duracao: [0.4])
+    assert audio_analysis._calcular_inicio_seguro("video1", 200) == 0

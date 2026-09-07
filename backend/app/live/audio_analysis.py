@@ -23,6 +23,12 @@ _SEM_CORTE = "sem_corte"
 _JANELA_FINAL_SEGUNDOS_MIN = 45
 _JANELA_FINAL_FRACAO = 0.25
 
+# janela onde procurar fala/silencio no COMECO do video (locucao de radio, vinheta
+# do canal, "confira" antes da musica comecar) -- bem mais curta que a do fim,
+# intro falada raramente passa disso.
+_JANELA_INICIAL_SEGUNDOS_MAX = 20
+_JANELA_INICIAL_FRACAO = 0.15
+
 # limiar de "silencio" pro ffmpeg (dB) e duracao minima pra contar (segundos) --
 # curto demais pega respiracao/pausa natural da musica, nao o fim dela.
 _RUIDO_DB = "-35dB"
@@ -31,6 +37,10 @@ _DURACAO_MIN_SILENCIO = "1.2"
 # nao deixa cortar nos primeiros segundos por erro de deteccao.
 _CORTE_MINIMO_SEGUNDOS = 20
 
+# corte de inicio menor que isso nao vale a pena aplicar (silence_end proximo de
+# zero costuma ser so' o ataque natural da faixa/fade-in, nao locucao de verdade).
+_CORTE_INICIO_MINIMO_SEGUNDOS = 2
+
 # limites de tempo pra nunca travar a geracao do proximo bloco ao vivo por
 # causa de uma analise de audio -- falha ou timeout aqui e' sempre "sem
 # corte", nunca bloqueia a musica.
@@ -38,6 +48,7 @@ _TIMEOUT_EXTRACAO_SEGUNDOS = 10
 _TIMEOUT_FFMPEG_SEGUNDOS = 15
 
 _SILENCE_START_RE = re.compile(r"silence_start:\s*([\d.]+)")
+_SILENCE_END_RE = re.compile(r"silence_end:\s*([\d.]+)")
 
 
 def _url_audio_direta(video_id: str) -> str | None:
@@ -80,6 +91,66 @@ def _pontos_de_silencio(url_audio: str, offset_segundos: float) -> list[float]:
         return []
 
     return [offset_segundos + float(m.group(1)) for m in _SILENCE_START_RE.finditer(resultado.stderr)]
+
+
+def _pontos_de_fim_de_silencio_inicial(url_audio: str, duracao_segundos: float) -> list[float]:
+    """So decodifica os primeiros duracao_segundos (a janela inicial da faixa). Ponto onde
+    um trecho de silencio TERMINA nessa janela costuma marcar onde a musica de fato comeca,
+    separando ela de locucao/vinheta falada antes (ao contrario do fim, aqui o que interessa
+    e' o fim do silencio, nao o inicio dele)."""
+    try:
+        resultado = subprocess.run(
+            [
+                "ffmpeg", "-i", url_audio, "-t", str(duracao_segundos),
+                "-af", f"silencedetect=noise={_RUIDO_DB}:d={_DURACAO_MIN_SILENCIO}",
+                "-f", "null", "-",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=_TIMEOUT_FFMPEG_SEGUNDOS,
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        logger.warning("Falha ao rodar ffmpeg pra deteccao de silencio (janela inicial)")
+        return []
+
+    return [float(m.group(1)) for m in _SILENCE_END_RE.finditer(resultado.stderr)]
+
+
+def obter_inicio_seguro(video_id: str, duracao_total: int | None) -> int:
+    """Segundo em que a musica de fato comeca (depois de locucao/vinheta falada no
+    comeco do video), ou 0 se nao ha corte necessario/possivel.
+
+    Mesmo espirito best-effort de obter_fim_seguro: qualquer falha (yt-dlp, ffmpeg,
+    timeout) devolve 0 e a musica toca desde o inicio do video, como sempre tocou.
+    """
+    if not duracao_total or duracao_total <= _CORTE_MINIMO_SEGUNDOS:
+        return 0
+
+    chave_cache = f"cache:musica_inicio_seguro:{video_id}"
+    em_cache = redis_client.get(chave_cache)
+    if em_cache is not None:
+        return int(em_cache)
+
+    inicio_seguro = _calcular_inicio_seguro(video_id, duracao_total)
+    redis_client.set(chave_cache, str(inicio_seguro), ex=_CACHE_TTL_SEGUNDOS)
+    return inicio_seguro
+
+
+def _calcular_inicio_seguro(video_id: str, duracao_total: int) -> int:
+    url_audio = _url_audio_direta(video_id)
+    if url_audio is None:
+        return 0
+
+    janela_inicial = min(_JANELA_INICIAL_SEGUNDOS_MAX, duracao_total * _JANELA_INICIAL_FRACAO)
+
+    candidatos = [
+        t for t in _pontos_de_fim_de_silencio_inicial(url_audio, janela_inicial)
+        if t >= _CORTE_INICIO_MINIMO_SEGUNDOS
+    ]
+    if not candidatos:
+        return 0
+
+    return round(min(candidatos))
 
 
 def obter_fim_seguro(video_id: str, duracao_total: int | None) -> int | None:

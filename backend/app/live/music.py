@@ -9,7 +9,7 @@ import httpx
 
 from app.config.redis_client import redis_client
 from app.config.settings import settings
-from app.live.audio_analysis import obter_fim_seguro
+from app.live.audio_analysis import obter_fim_seguro, obter_inicio_seguro
 
 logger = logging.getLogger("radialista.music")
 
@@ -26,21 +26,14 @@ _CACHE_TTL_SEGUNDOS = 24 * 60 * 60
 # Duracao de video nao muda -- cache bem mais longo que a busca em si.
 _CACHE_TTL_DURACAO_SEGUNDOS = 30 * 24 * 60 * 60
 
-# Titulo sozinho nao pega toda "sequencia de musicas" (TERMOS_COLETANEA cobre so' os casos
-# com palavra reveladora no titulo) -- video de 15-20min com varias faixas emendadas sem
-# aviso nenhum no titulo passava reto e o sistema tratava como uma musica so'. Duracao real
-# e' o sinal confiavel: abaixo do minimo costuma ser trailer/teaser sem a faixa inteira ou
-# Short/Reel (formato classico de ate 60s), acima do maximo quase sempre e' medley/coletanea/
-# podcast, nao uma cancao unica.
+# Duracao MINIMA pra um resultado contar como a faixa inteira -- abaixo disso costuma ser
+# trailer/teaser sem a musica completa ou Short/Reel (formato classico de ate 60s). Sem teto
+# maximo de proposito: a busca ja parte de titulo+artista resolvido (Spotify/catalogo, ver
+# app.live.song_service), o YouTube so' precisa achar ESSE audio pra tocar -- uma faixa
+# legitimamente longa (balada, sertanejo raiz etc.) nao deve ser descartada so' por duracao.
+# Medley/coletanea/podcast continuam barrados por titulo (ver TERMOS_COLETANEA/PADRAO_TOP_N
+# abaixo), e o corte por fala/silencio no fim (obter_fim_seguro) cobre o resto.
 _DURACAO_MIN_SEGUNDOS = 61
-_DURACAO_MAX_SEGUNDOS = 8 * 60
-
-# Musica de fundo toca em loop e corta num ponto seguro (ver obter_fim_seguro/fim_segundos),
-# entao nao precisa ser faixa unica curta -- ao contrario da busca normal (_DURACAO_MAX_SEGUNDOS),
-# aqui um mix ambiente longo e' o resultado ESPERADO: busca por "instrumental radio fundo" no
-# YouTube devolve quase so' mix de 1-3h+ (compilacao "radio" e' literalmente isso), entao um
-# teto de 8min zera 100% dos candidatos nessa busca especifica.
-_DURACAO_MAX_FUNDO_SEGUNDOS = 4 * 60 * 60
 
 
 def _sem_acento(texto: str) -> str:
@@ -326,6 +319,12 @@ def _buscar_metadados_musica(video_id: str) -> dict:
 def _preencher_extras(resultado: MusicaEncontrada, duracoes: dict[str, int]) -> MusicaEncontrada:
     resultado.duracao_segundos = duracoes.get(resultado.video_id)
     resultado.fim_segundos = obter_fim_seguro(resultado.video_id, duracoes.get(resultado.video_id))
+    # max() com o que ja veio da escolha (ex.: SEGUNDOS_PULAR_AO_VIVO) -- a deteccao por
+    # silencio e' so' mais um sinal de onde cortar, nunca reduz um corte que a gente ja
+    # sabia ser necessario (video "ao vivo" sem pausa detectavel, so' banter continuo).
+    resultado.inicio_segundos = max(
+        resultado.inicio_segundos, obter_inicio_seguro(resultado.video_id, duracoes.get(resultado.video_id))
+    )
     metadados = _buscar_metadados_musica(resultado.video_id)
     resultado.descricao = metadados.get("descricao", "")
     resultado.tags = metadados.get("tags") or []
@@ -344,7 +343,6 @@ def buscar_musica(
     titulos_tocados: set[str] | None = None,
     canais_recentes: dict[str, int] | None = None,
     limite_por_canal: int = _LIMITE_PADRAO_POR_CANAL,
-    duracao_max_segundos: int = _DURACAO_MAX_SEGUNDOS,
     preferir_cantada: bool = False,
 ) -> MusicaEncontrada | None:
     """Busca a musica priorizando versao de estudio; se nao achar, cai pra versao ao vivo.
@@ -410,14 +408,12 @@ def buscar_musica(
 
         def duracao_invalida(video_id: str) -> bool:
             duracao = duracoes.get(video_id)
-            # Duracao CONHECIDA fora da faixa e' sempre invalida, mesmo no passo relaxado --
-            # bug corrigido aqui: antes, respeitar_duracao=False perdoava qualquer duracao
-            # conhecida (inclusive medley/coletanea de 1h que passou reto pelo filtro de
-            # titulo), quando o unico caso que deveria ser perdoado como ultimo recurso e'
-            # duracao DESCONHECIDA (falha/cota da API de videos.list).
+            # Duracao CONHECIDA abaixo do minimo e' sempre invalida, mesmo no passo relaxado --
+            # so' duracao DESCONHECIDA (falha/cota da API de videos.list) e' perdoada como
+            # ultimo recurso. Sem teto maximo: ver comentario de _DURACAO_MIN_SEGUNDOS acima.
             if duracao is None:
                 return respeitar_duracao
-            return not (_DURACAO_MIN_SEGUNDOS <= duracao <= duracao_max_segundos)
+            return duracao < _DURACAO_MIN_SEGUNDOS
 
         # 1a passada: canal oficial (auto-gerado "- Topic" ou VEVO) so' publica
         # faixa em si na maioria dos casos -- pula blocklist de reacao/historia/
@@ -497,8 +493,8 @@ def buscar_musica(
     # nenhuma combinacao de duracao/canal/ao-vivo achou nada dentro do genero pedido.
     # respeitar_duracao relaxa por ultimo, so' quando nenhuma combinacao de canal/ao-vivo
     # deu resultado -- mesma logica de "nao trava a busca" do limite_por_canal: preferencia
-    # de qualidade, nunca bloqueio duro (senao um genero onde toda gravacao disponivel foge
-    # da faixa 40s-8min, ex. so' tem versao "ao vivo" longa, para de tocar musica nenhuma).
+    # de qualidade, nunca bloqueio duro (senao um genero onde todo resultado conhecido fica
+    # abaixo do minimo, ex. so' tem trailer/teaser, para de tocar musica nenhuma).
     for respeitar_genero in (True, False):
         if not palavras_genero and not respeitar_genero:
             break  # sem genero pedido, relaxar de novo e' repetir a mesma busca a toa.
@@ -562,4 +558,4 @@ def buscar_musica_fundo(
     else:
         query = "musica instrumental radio fundo"
 
-    return buscar_musica(query, bloqueados=bloqueados, duracao_max_segundos=_DURACAO_MAX_FUNDO_SEGUNDOS)
+    return buscar_musica(query, bloqueados=bloqueados)
