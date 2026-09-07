@@ -29,6 +29,9 @@ router = APIRouter(prefix="/config", tags=["config"])
 class RadialistaRequest(BaseModel):
     nome_locutor: str
     personalidade: str = ""
+    biografia: str = ""
+    tracos_marcantes: list[str] = Field(default_factory=list)
+    fatos_do_dia: list[str] = Field(default_factory=list)
     voz_id: str | None = None
     timezone: str = "America/Sao_Paulo"
     resposta_automatica_whatsapp: bool = False
@@ -41,6 +44,32 @@ class RadialistaResponse(RadialistaRequest):
     model_config = {"from_attributes": True}
 
 
+class ConhecimentoLocal(BaseModel):
+    """Conhecimento local estruturado do lugar onde a rádio fica -- dado de configuração
+    preenchido manualmente pelo dono da rádio, nunca gerado por IA/pesquisa (ver
+    Account.conhecimento_local)."""
+
+    bairros: list[str] = Field(default_factory=list)
+    pontos_referencia: list[str] = Field(default_factory=list)
+    eventos_recorrentes: list[str] = Field(default_factory=list)
+    expressoes_regionais: list[str] = Field(default_factory=list)
+    gentilico: str = ""
+
+
+class BibliaRadio(BaseModel):
+    """História, rotina real e grade da rádio -- dado de configuração preenchido manualmente
+    pelo dono da rádio, nunca gerado por IA/pesquisa (ver Account.biblia_radio)."""
+
+    historia: str = ""
+    rotina: list[str] = Field(default_factory=list)
+    programas_grade: list[str] = Field(default_factory=list)
+    # Colegas que existem na rádio mas não estão ao vivo (técnico de som, comercial, outro
+    # locutor da grade) -- diferente do roster (ParticipantePrograma), que é só quem apresenta.
+    equipe: list[str] = Field(default_factory=list)
+    # Pequenos hábitos operacionais reais ("confere trânsito antes de entrar no ar").
+    habitos_trabalho: list[str] = Field(default_factory=list)
+
+
 class RadioContaRequest(BaseModel):
     nome_radio: str = ""
     slogan: str = ""
@@ -49,6 +78,8 @@ class RadioContaRequest(BaseModel):
     endereco: str = ""
     cidade: str = ""
     tipo_radio: str = ""
+    conhecimento_local: ConhecimentoLocal = Field(default_factory=ConhecimentoLocal)
+    biblia_radio: BibliaRadio = Field(default_factory=BibliaRadio)
 
 
 class RadioContaResponse(RadioContaRequest):

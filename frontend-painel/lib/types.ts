@@ -3,6 +3,9 @@ export type Radialista = {
   ativo: boolean;
   nome_locutor: string;
   personalidade: string;
+  biografia: string;
+  tracos_marcantes: string[];
+  fatos_do_dia: string[];
   voz_id: string | null;
   timezone: string;
   resposta_automatica_whatsapp: boolean;
@@ -11,9 +14,49 @@ export type Radialista = {
 export const RADIALISTA_VAZIO: Omit<Radialista, "id" | "ativo"> = {
   nome_locutor: "",
   personalidade: "",
+  biografia: "",
+  tracos_marcantes: [],
+  fatos_do_dia: [],
   voz_id: null,
   timezone: "America/Sao_Paulo",
   resposta_automatica_whatsapp: false,
+};
+
+// Conhecimento local estruturado do lugar onde a radio fica -- dado de configuracao
+// preenchido manualmente pelo dono da radio, nunca gerado por IA (ver backend
+// app/config/router.py::ConhecimentoLocal e app/models/account.py::Account.conhecimento_local).
+export type ConhecimentoLocal = {
+  bairros: string[];
+  pontos_referencia: string[];
+  eventos_recorrentes: string[];
+  expressoes_regionais: string[];
+  gentilico: string;
+};
+
+export const CONHECIMENTO_LOCAL_VAZIO: ConhecimentoLocal = {
+  bairros: [],
+  pontos_referencia: [],
+  eventos_recorrentes: [],
+  expressoes_regionais: [],
+  gentilico: "",
+};
+
+// Historia, rotina real e grade da radio -- dado de configuracao preenchido manualmente, nunca
+// gerado por IA (ver backend app/config/router.py::BibliaRadio e Account.biblia_radio).
+export type BibliaRadio = {
+  historia: string;
+  rotina: string[];
+  programas_grade: string[];
+  equipe: string[];
+  habitos_trabalho: string[];
+};
+
+export const BIBLIA_RADIO_VAZIA: BibliaRadio = {
+  historia: "",
+  rotina: [],
+  programas_grade: [],
+  equipe: [],
+  habitos_trabalho: [],
 };
 
 export type RadioPerfil = {
@@ -24,6 +67,8 @@ export type RadioPerfil = {
   endereco: string;
   cidade: string;
   tipo_radio: string;
+  conhecimento_local: ConhecimentoLocal;
+  biblia_radio: BibliaRadio;
 };
 
 export type RadioConta = RadioPerfil & {
@@ -38,6 +83,8 @@ export const RADIO_PERFIL_VAZIO: RadioPerfil = {
   endereco: "",
   cidade: "",
   tipo_radio: "",
+  conhecimento_local: CONHECIMENTO_LOCAL_VAZIO,
+  biblia_radio: BIBLIA_RADIO_VAZIA,
 };
 
 // Catalogo fechado de tipos de radio -- ver backend/app/llm/tipos_radio.py (fonte da

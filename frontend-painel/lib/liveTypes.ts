@@ -3,6 +3,10 @@ import { Programa } from "./types";
 export type MusicaBloco = {
   video_id: string;
   titulo: string;
+  // Canal/artista da faixa -- usado pro historico mandado de volta pro backend carregar
+  // "Titulo - Canal" de cada musica do bloco (ver prepararSegmento em useLiveEngine.ts),
+  // pra IA poder comentar as faixas assim que a sequencia acabar.
+  canal?: string;
   inicio_segundos?: number;
   fim_segundos?: number | null;
   duracao_segundos?: number | null;

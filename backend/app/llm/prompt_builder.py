@@ -1,13 +1,43 @@
 import datetime
+import random
 import re
 from zoneinfo import ZoneInfo
 
+from app.config.redis_client import redis_client
 from app.feriados import feriado_nacional_do_dia
 from app.models.account import Account
 from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
 from app.numeros import numero_por_extenso
 from app.weather.client import obter_clima_atual
+
+# Mesmo TTL de sessao ao vivo usado em app/live/router.py::_TTL_SESSAO_AO_VIVO.
+_TTL_SESSAO_AO_VIVO = 6 * 60 * 60
+
+
+def _proxima_variacao(programa_id: int, chave: str, opcoes: list[str]) -> str:
+    """Round-robin persistido no Redis por programa, mesmo primitivo de
+    app/live/router.py::_proxima_variacao (reimplementado aqui pra evitar import circular --
+    live/router.py importa de prompt_builder.py, nao o contrario). Injeta um item por vez de um
+    pool (conhecimento local, bíblia da rádio, etc.), pra nao despejar a lista inteira numa fala
+    so (soaria leitura de verbete)."""
+    redis_key = f"rotacao:{chave}:{programa_id}"
+    indice = redis_client.incr(redis_key)
+    redis_client.expire(redis_key, _TTL_SESSAO_AO_VIVO)
+    return opcoes[(indice - 1) % len(opcoes)]
+
+
+def _fato_do_dia(programa_id: int, radialista_id: int, opcoes: list[str]) -> str:
+    """Fato fixo por sessão ao vivo (não muda a cada fala, ao contrário de _proxima_variacao) --
+    a primeira escolha grava no Redis (SETNX) e o resto do programa reusa o mesmo valor, pra não
+    contradizer duas vezes na mesma transmissão (ver Frente H, estado do dia da persona)."""
+    redis_key = f"fato_do_dia:{programa_id}:{radialista_id}"
+    existente = redis_client.get(redis_key)
+    if existente in opcoes:
+        return existente
+    novo = random.choice(opcoes)
+    redis_client.set(redis_key, novo, nx=True, ex=_TTL_SESSAO_AO_VIVO)
+    return redis_client.get(redis_key) or novo
 
 _DIAS_SEMANA = [
     "segunda-feira",
@@ -105,7 +135,12 @@ def _contexto_atual(radialista: RadioConfig, account: Account, programa: Program
 
     clima = obter_clima_atual(account.cidade)
     if clima:
-        texto += f" Clima atual em {account.cidade}: {_clima_por_extenso(clima)}."
+        texto += (
+            f" Clima atual em {account.cidade}: {_clima_por_extenso(clima)}. Se for comentar o clima, "
+            "prefira um comentário com tom regional de quem é dali (o calor típico daqui, a friagem que desce "
+            "da serra, etc.) em vez de só citar o número -- só se tiver algo real configurado sobre o lugar "
+            "pra apoiar isso, senão comente de forma genérica mesmo."
+        )
 
     if account.cidade:
         texto += (
@@ -147,6 +182,19 @@ def montar_system_prompt(
         vozes_texto = "\n".join(
             f"- {p.radialista.nome_locutor} (papel: {p.papel}): "
             f"{p.comportamento or p.radialista.personalidade or 'sem instruções específicas de comportamento'}."
+            + (f" Fatos fixos sobre ele(a): {p.radialista.biografia}." if p.radialista.biografia else "")
+            + (
+                f" Traço marcante dele(a), use com moderação: "
+                f"{_proxima_variacao(programa.id, f'traco_marcante_{p.radialista.id}', p.radialista.tracos_marcantes)}."
+                if p.radialista.tracos_marcantes
+                else ""
+            )
+            + (
+                f" Fato fixo de hoje pra ele(a) citar se fizer sentido (só uma vez): "
+                f"{_fato_do_dia(programa.id, p.radialista.id, p.radialista.fatos_do_dia)}."
+                if p.radialista.fatos_do_dia
+                else ""
+            )
             for p in roster
         )
         partes = [
@@ -169,6 +217,26 @@ def montar_system_prompt(
         ]
         if radialista.personalidade:
             partes.append(f"Sua personalidade e forma de se comportar: {radialista.personalidade}.")
+        if radialista.biografia:
+            partes.append(
+                f"Fatos fixos sobre você (sua biografia real): {radialista.biografia}. "
+                "Esses fatos são sempre os mesmos -- nunca invente ou contradiga informação pessoal "
+                "diferente dessa em nenhuma fala. Cite algum deles só quando fizer sentido natural na "
+                "conversa, não em toda fala."
+            )
+        if radialista.tracos_marcantes:
+            traco_marcante = _proxima_variacao(programa.id, f"traco_marcante_{radialista.id}", radialista.tracos_marcantes)
+            partes.append(
+                f"Um traço marcante seu, sua 'marca registrada' (implicância boba, piada interna, jeito "
+                f"próprio de falar): {traco_marcante}. Use com moderação -- não em toda fala, senão vira "
+                "caricatura."
+            )
+        if radialista.fatos_do_dia:
+            fato_do_dia = _fato_do_dia(programa.id, radialista.id, radialista.fatos_do_dia)
+            partes.append(
+                f"Fato fixo de hoje pra você mencionar quando fizer sentido, só uma vez na transmissão (não "
+                f"repita nem contradiga ao longo do programa): {fato_do_dia}."
+            )
     partes += [
         f"Agora {'vocês apresentam' if multi_voz else 'você apresenta'} o programa '{programa.nome}'.",
     ]
@@ -205,6 +273,36 @@ def montar_system_prompt(
             f"Dados da rádio disponíveis pra você citar quando fizer sentido (identificação da rádio, "
             f"resposta a pergunta do ouvinte, ou reforço de marca): {', '.join(dados_radio)}. "
             "Não precisa recitar tudo isso o tempo todo -- use apenas quando for natural pra conversa."
+        )
+
+    conhecimento = account.conhecimento_local or {}
+    detalhes_locais = []
+    if conhecimento.get("gentilico"):
+        detalhes_locais.append(f"o gentílico de quem nasce/mora aqui é '{conhecimento['gentilico']}'")
+    detalhes_locais += [f"o bairro {b}" for b in conhecimento.get("bairros") or []]
+    detalhes_locais += [f"o ponto de referência {p}" for p in conhecimento.get("pontos_referencia") or []]
+    detalhes_locais += [f"o evento local: {e}" for e in conhecimento.get("eventos_recorrentes") or []]
+    if detalhes_locais:
+        detalhe_local = _proxima_variacao(programa.id, "conhecimento_local", detalhes_locais)
+        partes.append(
+            f"Detalhe real do lugar onde a rádio fica, pra puxar assunto local com naturalidade quando "
+            f"fizer sentido (não force, não cite em toda fala): {detalhe_local}."
+        )
+
+    biblia = account.biblia_radio or {}
+    if biblia.get("historia"):
+        partes.append(
+            f"História real da rádio (fatos fixos, nunca invente nem contradiga): {biblia['historia']}."
+        )
+    detalhes_biblia = [f"programa da grade: {p}" for p in biblia.get("programas_grade") or []]
+    detalhes_biblia += [f"rotina real da rádio: {r}" for r in biblia.get("rotina") or []]
+    detalhes_biblia += [f"colega de trabalho que existe na rádio (mas não está ao vivo agora): {c}" for c in biblia.get("equipe") or []]
+    detalhes_biblia += [f"hábito de trabalho real: {h}" for h in biblia.get("habitos_trabalho") or []]
+    if detalhes_biblia:
+        detalhe_biblia = _proxima_variacao(programa.id, "biblia_radio", detalhes_biblia)
+        partes.append(
+            f"Detalhe real de como a rádio funciona por dentro, pra soar como um lugar de trabalho de "
+            f"verdade quando fizer sentido (não force, não cite em toda fala): {detalhe_biblia}."
         )
 
     if programa.topicos_proibidos:

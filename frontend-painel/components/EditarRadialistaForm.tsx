@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import ConfirmDialog from "./ConfirmDialog";
 import VoiceSelect from "./VoiceSelect";
+import TagInput from "./TagInput";
 import { apiFetch, ApiError } from "../lib/api";
 import { setRadialistaAtualId } from "../lib/radialistas";
 import { invalidarConfiguracaoInicial } from "../lib/useConfiguracaoInicial";
@@ -232,6 +233,26 @@ export default function EditarRadialistaForm({
               onChange={(e) => setConfig({ ...config, personalidade: e.target.value })}
             />
           </div>
+          <div>
+            <label className={labelClass}>Biografia</label>
+            <textarea
+              className={inputClass}
+              rows={3}
+              placeholder="Poucos fatos pessoais fixos e reais: de onde é, há quanto tempo trabalha na rádio, time que torce, hobby. Esses fatos nunca mudam entre programas."
+              value={config.biografia}
+              onChange={(e) => setConfig({ ...config, biografia: e.target.value })}
+            />
+          </div>
+          <TagInput
+            label="Traços marcantes (1-2 marcas registradas: implicância boba, piada interna)"
+            tags={config.tracos_marcantes}
+            onChange={(tags) => setConfig({ ...config, tracos_marcantes: tags })}
+          />
+          <TagInput
+            label="Fatos do dia (pool sorteado uma vez por sessão ao vivo, ex.: 'hoje eu vim de bicicleta')"
+            tags={config.fatos_do_dia}
+            onChange={(tags) => setConfig({ ...config, fatos_do_dia: tags })}
+          />
           <label className="inline-flex items-center gap-2 text-sm font-medium text-fg/80">
             <input
               type="checkbox"

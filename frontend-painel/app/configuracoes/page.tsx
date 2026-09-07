@@ -5,6 +5,7 @@ import AppShell from "../../components/AppShell";
 import { apiFetch, ApiError } from "../../lib/api";
 import { RADIO_PERFIL_VAZIO, RadioPerfil, TipoRadio } from "../../lib/types";
 import { LocufySpin } from "../../components/LocufyLogo";
+import TagInput from "../../components/TagInput";
 
 export default function ConfiguracoesPage() {
   const [radio, setRadio] = useState<RadioPerfil>(RADIO_PERFIL_VAZIO);
@@ -144,6 +145,111 @@ export default function ConfiguracoesPage() {
             </p>
           </div>
         </div>
+
+        <hr className="border-border my-5" />
+        <h2 className="font-display text-base font-bold text-fg mb-1">Conhecimento local</h2>
+        <p className="text-sm text-fg/65 mb-5">
+          Bairro, ponto de referência, evento tradicional, gíria da região -- coisas que só quem é
+          daqui sabe de verdade. Preencha manualmente; não é gerado por IA, pra não inventar lugar
+          ou fato errado.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-fg/80 mb-1.5">Gentílico</label>
+            <input
+              type="text"
+              placeholder="Ex.: porto-alegrense"
+              value={radio.conhecimento_local.gentilico}
+              onChange={(e) =>
+                setRadio({
+                  ...radio,
+                  conhecimento_local: { ...radio.conhecimento_local, gentilico: e.target.value },
+                })
+              }
+              className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+            />
+          </div>
+        </div>
+        <TagInput
+          label="Bairros"
+          tags={radio.conhecimento_local.bairros}
+          onChange={(tags) =>
+            setRadio({ ...radio, conhecimento_local: { ...radio.conhecimento_local, bairros: tags } })
+          }
+        />
+        <TagInput
+          label="Pontos de referência"
+          tags={radio.conhecimento_local.pontos_referencia}
+          onChange={(tags) =>
+            setRadio({
+              ...radio,
+              conhecimento_local: { ...radio.conhecimento_local, pontos_referencia: tags },
+            })
+          }
+        />
+        <TagInput
+          label="Eventos recorrentes da cidade"
+          tags={radio.conhecimento_local.eventos_recorrentes}
+          onChange={(tags) =>
+            setRadio({
+              ...radio,
+              conhecimento_local: { ...radio.conhecimento_local, eventos_recorrentes: tags },
+            })
+          }
+        />
+        <TagInput
+          label="Gírias e expressões regionais"
+          tags={radio.conhecimento_local.expressoes_regionais}
+          onChange={(tags) =>
+            setRadio({
+              ...radio,
+              conhecimento_local: { ...radio.conhecimento_local, expressoes_regionais: tags },
+            })
+          }
+        />
+
+        <hr className="border-border my-5" />
+        <h2 className="font-display text-base font-bold text-fg mb-1">Bíblia da rádio</h2>
+        <p className="text-sm text-fg/65 mb-5">
+          História, rotina real e outros programas da grade -- o que faz a rádio parecer um lugar
+          de trabalho de verdade, não só um nome. Preencha manualmente; não é gerado por IA.
+        </p>
+        <div>
+          <label className="block text-sm font-medium text-fg/80 mb-1.5">História da rádio</label>
+          <textarea
+            rows={4}
+            placeholder="Ex.: Fundada em 1998 por seu Zé, começou como rádio comunitária de bairro e hoje é referência na cidade."
+            value={radio.biblia_radio.historia}
+            onChange={(e) =>
+              setRadio({ ...radio, biblia_radio: { ...radio.biblia_radio, historia: e.target.value } })
+            }
+            className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20 mb-4"
+          />
+        </div>
+        <TagInput
+          label="Rotina real (parcerias, transmissões fixas, etc.)"
+          tags={radio.biblia_radio.rotina}
+          onChange={(tags) => setRadio({ ...radio, biblia_radio: { ...radio.biblia_radio, rotina: tags } })}
+        />
+        <TagInput
+          label="Outros programas da grade (mesmo que não sejam de IA)"
+          tags={radio.biblia_radio.programas_grade}
+          onChange={(tags) =>
+            setRadio({ ...radio, biblia_radio: { ...radio.biblia_radio, programas_grade: tags } })
+          }
+        />
+        <TagInput
+          label="Equipe (colegas que existem na rádio mas não estão ao vivo: técnico de som, comercial, etc.)"
+          tags={radio.biblia_radio.equipe}
+          onChange={(tags) => setRadio({ ...radio, biblia_radio: { ...radio.biblia_radio, equipe: tags } })}
+        />
+        <TagInput
+          label="Hábitos de trabalho reais (ex.: 'confere o trânsito antes de entrar no ar')"
+          tags={radio.biblia_radio.habitos_trabalho}
+          onChange={(tags) =>
+            setRadio({ ...radio, biblia_radio: { ...radio.biblia_radio, habitos_trabalho: tags } })
+          }
+        />
 
         {erro && <p className="text-sm text-rust-text mt-4">{erro}</p>}
         {mensagem && <p className="text-sm text-teal-text mt-4">{mensagem}</p>}

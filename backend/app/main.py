@@ -156,6 +156,9 @@ def garantir_colunas_radio_config():
     novas_colunas = {
         "voz_id": "VARCHAR NULL",
         "resposta_automatica_whatsapp": "BOOLEAN NOT NULL DEFAULT false",
+        "biografia": "VARCHAR DEFAULT '' NOT NULL",
+        "tracos_marcantes": "JSON DEFAULT '[]' NOT NULL",
+        "fatos_do_dia": "JSON DEFAULT '[]' NOT NULL",
     }
 
     # account_id era unique (1 radialista por conta); agora uma conta pode ter varios radialistas.
@@ -191,6 +194,8 @@ def garantir_colunas_account():
         "wuzapi_desconectado_alerta_enviado": "BOOLEAN DEFAULT FALSE NOT NULL",
         "upsell_alerta_tipo": "VARCHAR NULL",
         "upsell_alerta_mes": "VARCHAR NULL",
+        "conhecimento_local": "JSON DEFAULT '{}' NOT NULL",
+        "biblia_radio": "JSON DEFAULT '{}' NOT NULL",
     }
 
     with engine.begin() as conn:

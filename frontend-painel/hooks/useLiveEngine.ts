@@ -649,6 +649,16 @@ export function useLiveEngine() {
     });
   }
 
+  // Sufixo com titulo+canal de cada musica do bloco, pro historico mandado ao backend --
+  // o locutor so anuncia a 1a faixa quando emenda [BLOCO_MUSICAS:N] (ver gerarProximaFala),
+  // entao sem isso a IA nunca sabe o que emendou depois dela pra poder comentar assim que
+  // a sequencia acabar (ver instrucao correspondente em app.live.router).
+  function linhaMusicasHistorico(fala: ProgramSegment): string {
+    if (!fala.musicas || fala.musicas.length === 0) return "";
+    const lista = fala.musicas.map((m) => (m.canal ? `${m.titulo} - ${m.canal}` : m.titulo)).join(", ");
+    return ` [Música(s) tocada(s) nesse bloco: ${lista}]`;
+  }
+
   function adicionarFala(segmento: Omit<ProgramSegment, "id">) {
     const novaFala: ProgramSegment = { ...segmento, id: Date.now() };
     const atualizadas = [novaFala, ...falasProgramaRef.current].slice(0, 20);
@@ -685,7 +695,7 @@ export function useLiveEngine() {
             historico: falasProgramaRef.current
               .slice(0, 8)
               .reverse()
-              .map((fala) => `${fala.tipo}: ${fala.fala}`),
+              .map((fala) => `${fala.tipo}: ${fala.fala}${linhaMusicasHistorico(fala)}`),
             total_falas: totalFalasRef.current,
           }),
         }

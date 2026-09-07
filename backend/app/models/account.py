@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import Boolean, DateTime, Integer, String
+from sqlalchemy import JSON, Boolean, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -35,6 +35,18 @@ class Account(Base):
     # Tipo de radio pre-definido (ver app/llm/tipos_radio.py) -- usado como perfil
     # padrao nas geracoes via IA quando a descricao livre nao e' suficiente. "" = nao definido.
     tipo_radio: Mapped[str] = mapped_column(String, default="")
+
+    # Conhecimento local estruturado do lugar onde a radio fica: bairros, pontos de referencia,
+    # eventos recorrentes, expressoes regionais, gentilico (chaves ver ConhecimentoLocal em
+    # app/config/router.py). Preenchido manualmente pelo dono da radio, nunca gerado por IA/
+    # pesquisa -- inventar bairro ou rua errada destroi credibilidade mais do que ajuda.
+    conhecimento_local: Mapped[dict] = mapped_column(JSON, default=dict)
+
+    # "Biblia" institucional da radio: historia (fundacao, trajetoria), rotina real (parceria,
+    # transmissao fixa) e outros programas da grade que nao sao gerados por IA (chaves ver
+    # BibliaRadio em app/config/router.py). Mesmo criterio de conhecimento_local: preenchido
+    # manualmente, nunca gerado -- inventar historia da radio destroi credibilidade.
+    biblia_radio: Mapped[dict] = mapped_column(JSON, default=dict)
 
     # trial | ativo | inadimplente | cancelado
     plano_status: Mapped[str] = mapped_column(String, default="trial")

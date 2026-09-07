@@ -65,6 +65,95 @@ def test_prompt_inclui_personalidade_quando_definida():
 
 
 @freeze_time("2026-08-10 15:00:00")
+def test_prompt_inclui_detalhe_de_conhecimento_local_quando_definido():
+    account = _account(
+        conhecimento_local={"bairros": ["Centro"], "pontos_referencia": [], "eventos_recorrentes": [], "gentilico": ""}
+    )
+    prompt = montar_system_prompt(account, _radialista(), _programa(id=1))
+    assert "Centro" in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_prompt_sem_conhecimento_local_nao_quebra():
+    prompt = montar_system_prompt(_account(), _radialista(), _programa(id=1))
+    assert "Ze do Radio" in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_prompt_inclui_historia_da_radio_quando_definida():
+    account = _account(biblia_radio={"historia": "Fundada em 1998 por seu Ze.", "rotina": [], "programas_grade": []})
+    prompt = montar_system_prompt(account, _radialista(), _programa(id=1))
+    assert "Fundada em 1998 por seu Ze." in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_prompt_inclui_detalhe_de_rotina_da_radio_quando_definida():
+    account = _account(
+        biblia_radio={"historia": "", "rotina": ["toda sexta tem jogo do time local"], "programas_grade": []}
+    )
+    prompt = montar_system_prompt(account, _radialista(), _programa(id=1))
+    assert "toda sexta tem jogo do time local" in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_prompt_sem_biblia_radio_nao_quebra():
+    prompt = montar_system_prompt(_account(), _radialista(), _programa(id=1))
+    assert "Ze do Radio" in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_prompt_inclui_traco_marcante_quando_definido():
+    radialista = _radialista(tracos_marcantes=["sempre implica com segunda-feira"])
+    prompt = montar_system_prompt(_account(), radialista, _programa(id=1))
+    assert "sempre implica com segunda-feira" in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_prompt_inclui_fato_do_dia_quando_definido_e_e_estavel_na_mesma_sessao():
+    radialista = _radialista(id=7, fatos_do_dia=["hoje eu vim de bicicleta"])
+    programa = _programa(id=1)
+    primeiro = montar_system_prompt(_account(), radialista, programa)
+    segundo = montar_system_prompt(_account(), radialista, programa)
+    assert "hoje eu vim de bicicleta" in primeiro
+    assert "hoje eu vim de bicicleta" in segundo
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_prompt_inclui_colega_de_equipe_quando_definido():
+    account = _account(biblia_radio={"equipe": ["Marcos, técnico de som"]})
+    prompt = montar_system_prompt(account, _radialista(), _programa(id=1))
+    assert "Marcos, técnico de som" in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_prompt_inclui_habito_de_trabalho_quando_definido():
+    account = _account(biblia_radio={"habitos_trabalho": ["confere o trânsito antes de entrar no ar"]})
+    prompt = montar_system_prompt(account, _radialista(), _programa(id=1))
+    assert "confere o trânsito antes de entrar no ar" in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_prompt_comenta_clima_com_tom_regional_quando_ha_clima(monkeypatch):
+    monkeypatch.setattr("app.llm.prompt_builder.obter_clima_atual", lambda cidade: "23°C, ensolarado")
+    account = _account(cidade="Porto Alegre")
+    prompt = montar_system_prompt(account, _radialista(), _programa(id=1))
+    assert "tom regional" in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_prompt_multi_voz_inclui_traco_e_fato_do_dia_por_participante():
+    dono = _radialista(id=1, nome_locutor="Ze", tracos_marcantes=["odeia segunda-feira, sempre brinca disso"])
+    convidado = _radialista(id=2, nome_locutor="Maria", fatos_do_dia=["hoje é aniversário dela"])
+    roster = [
+        ParticipantePrograma(dono, "Apresentador principal", "sempre animado"),
+        ParticipantePrograma(convidado, "Comentarista", "mais calma"),
+    ]
+    prompt = montar_system_prompt(_account(), dono, _programa(id=1), roster=roster)
+    assert "odeia segunda-feira, sempre brinca disso" in prompt
+    assert "hoje é aniversário dela" in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")
 def test_prompt_multi_voz_lista_todos_os_participantes():
     dono = _radialista(nome_locutor="Ze")
     convidado = _radialista(nome_locutor="Maria")

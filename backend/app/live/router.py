@@ -82,6 +82,12 @@ class LiveTtsRequest(BaseModel):
 class MusicaBlocoItem(BaseModel):
     video_id: str
     titulo: str
+    # Canal/artista da faixa -- vai junto pro frontend poder compor o historico com
+    # "Titulo - Canal" de cada musica do bloco (ver useLiveEngine.ts), dado que o locutor
+    # so anuncia a 1a faixa quando emenda um [BLOCO_MUSICAS:N]: sem o canal aqui, o
+    # historico enviado de volta pro LLM no proximo bloco nao tem material suficiente
+    # pra comentar as faixas 2a/3a que tocaram sem nunca terem sido faladas.
+    canal: str = ""
     inicio_segundos: int = 0
     fim_segundos: int | None = None
     # Duracao real do video inteiro (YouTube), None quando a API nao devolveu --
@@ -226,6 +232,30 @@ _PROB_MARCO_TEMPO = 0.15
 # de comecar"/"estamos na metade" pra fins de _marco_tempo_programa.
 _JANELA_MARCO_TEMPO_MIN = 10
 
+# Chance de, numa fala qualquer (fora noticia), o locutor genuinamente mudar de ideia no meio da
+# frase em vez de so reformular -- baixa de proposito, e' recurso forte, exagerar vira caricatura.
+_PROB_MUDANCA_DE_IDEIA = 0.06
+
+# Chance de, numa fala qualquer (fora noticia), soar com concordancia mais coloquial/real --
+# baixa e com risco assumido (ver Frente I do plano de profundidade): exagerar soa como erro de
+# verdade, nao naturalidade.
+_PROB_IMPERFEICAO_GRAMATICAL = 0.1
+
+# Janela pra considerar que um pedido novo "acabou de chegar" na fila enquanto o locutor ja
+# estava gerando outro tipo de bloco -- curta de proposito, e' pra soar como interrupcao real,
+# nao como pedido velho sendo mencionado fora de hora.
+_JANELA_PEDIDO_RECENTE_SEGUNDOS = 120
+
+# Janela (em dias) pra reconhecer o mesmo ouvinte (mesmo telefone) voltando em uma transmissao
+# de outro dia -- mais larga que _JANELA_OUVINTE_RECORRENTE_HORAS (que e' "voltou nesta mesma
+# transmissao"), por isso casa por telefone (mais confiavel que nome numa janela tao larga).
+_DIAS_JANELA_OUVINTE_RECORRENTE = 30
+
+# Chance de puxar um callback explicito ("lembra que outro dia eu comentei...") pra um tema de
+# uma transmissao ANTERIOR (nao desta sessao) -- baixa, e' excecao pontual a regra de "nao repita
+# assunto", nao um convite a reciclar conteudo antigo com frequencia.
+_PROB_CALLBACK_TEMA_ANTERIOR = 0.12
+
 
 def _duracao_total_minutos(programa: Programa) -> int:
     inicio = programa.horario_inicio.hour * 60 + programa.horario_inicio.minute
@@ -250,6 +280,26 @@ def _marco_tempo_programa(programa: Programa, timezone: str) -> str | None:
     metade = duracao_total / 2
     if abs(decorridos - metade) <= _JANELA_MARCO_TEMPO_MIN:
         return f"já estamos há cerca de {decorridos} minutos no ar, mais ou menos na metade do programa de hoje"
+    return None
+
+
+def _ajuste_energia_meio_programa(programa: Programa, timezone: str) -> str | None:
+    """Locutor real nao mantem a mesma energia por horas: cansa um pouco no miolo do programa e
+    recupera perto do fim -- mesma aritmetica de _marco_tempo_programa, mas cobrindo uma faixa
+    larga (30% a 70% do tempo decorrido), nao um instante pontual, porque fadiga e' um estado que
+    dura, nao um anuncio que se faz uma vez."""
+    restantes = minutos_restantes(programa, timezone)
+    duracao_total = _duracao_total_minutos(programa)
+    if restantes < 0 or restantes > duracao_total or duracao_total <= 0:
+        return None
+    decorridos = duracao_total - restantes
+    proporcao = decorridos / duracao_total
+    if 0.3 <= proporcao <= 0.7:
+        return (
+            "Você já está no miolo do programa há um tempo: deixe a energia um pouco mais contida "
+            "que na abertura, sem cair pra neutro -- ainda soa presente, só menos eufórico, como "
+            "quem já pegou o ritmo do dia."
+        )
     return None
 
 _DESCRICAO_BLOCO = {
@@ -1080,6 +1130,29 @@ def _ouvinte_recorrente_anterior(db: Session, radio_config_id: int, pedido_atual
     )
 
 
+def _ouvinte_recorrente_dias_anteriores(db: Session, radio_config_id: int, pedido_atual: FilaAoVivo) -> FilaAoVivo | None:
+    """Extensao de _ouvinte_recorrente_anterior pra fora da janela de sessao (_JANELA_OUVINTE_
+    RECORRENTE_HORAS): mesmo telefone aparecendo numa transmissao de outro dia, ate
+    _DIAS_JANELA_OUVINTE_RECORRENTE dias atras (ver Frente J do plano de profundidade). Casa por
+    telefone, nao por nome -- numa janela tao larga o nome pode ter mudado/faltado, telefone e'
+    o identificador estavel. None quando nao ha pedido atendido anterior fora da janela recente."""
+    limite_recente = pedido_atual.criado_em - datetime.timedelta(hours=_JANELA_OUVINTE_RECORRENTE_HORAS)
+    limite_antigo = pedido_atual.criado_em - datetime.timedelta(days=_DIAS_JANELA_OUVINTE_RECORRENTE)
+    return (
+        db.query(FilaAoVivo)
+        .filter(
+            FilaAoVivo.radio_config_id == radio_config_id,
+            FilaAoVivo.atendido.is_(True),
+            FilaAoVivo.id != pedido_atual.id,
+            FilaAoVivo.telefone == pedido_atual.telefone,
+            FilaAoVivo.criado_em < limite_recente,
+            FilaAoVivo.criado_em >= limite_antigo,
+        )
+        .order_by(FilaAoVivo.criado_em.desc())
+        .first()
+    )
+
+
 def _proximo_pedido_fila(db: Session, radialista: RadioConfig, tipo: str) -> FilaAoVivo | None:
     """Pega (e marca como atendido) o pedido mais antigo da fila vindo do WhatsApp."""
     pedido = (
@@ -1093,6 +1166,29 @@ def _proximo_pedido_fila(db: Session, radialista: RadioConfig, tipo: str) -> Fil
         pedido.atendido_em = datetime.datetime.now(datetime.timezone.utc)
         db.commit()
     return pedido
+
+
+def _pedido_recente_nao_atendido(db: Session, radialista: RadioConfig, tipo: str) -> FilaAoVivo | None:
+    """Espia (sem consumir) o pedido nao atendido mais recente, pra saber se algo "acabou de
+    chegar" no WhatsApp enquanto o locutor esta gerando outro tipo de bloco -- ao contrario de
+    _proximo_pedido_fila, nao marca atendido nem tira da fila (ver Frente I, reacao a evento
+    real: essa e' so a checagem, quem consome de verdade continua sendo _proximo_pedido_fila nos
+    blocos dedicados). Janela filtrada em SQL (nao em Python) de proposito: SQLite (usado nos
+    testes) devolve criado_em sem tzinfo na leitura, e subtrair isso de um datetime aware em
+    Python quebra -- mesmo padrao ja usado pelas outras janelas de tempo deste arquivo
+    (_temas_recentes_da_radio, _pedidos_publico_mais_frequentes etc)."""
+    limiar = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=_JANELA_PEDIDO_RECENTE_SEGUNDOS)
+    return (
+        db.query(FilaAoVivo)
+        .filter(
+            FilaAoVivo.radio_config_id == radialista.id,
+            FilaAoVivo.tipo == tipo,
+            FilaAoVivo.atendido.is_(False),
+            FilaAoVivo.criado_em >= limiar,
+        )
+        .order_by(FilaAoVivo.criado_em.desc())
+        .first()
+    )
 
 
 @router.post("/{radialista_id}/programas/{programa_id}/proxima", response_model=LiveProgramResponse)
@@ -1202,23 +1298,52 @@ def gerar_proxima_fala(
     ouvinte_recorrente = (
         _ouvinte_recorrente_anterior(db, radialista.id, pedido_abraco) if pedido_abraco is not None else None
     )
+    # So checa a janela de dias quando nao achou recorrencia dentro da sessao -- evita instrucao
+    # duplicada/conflitante pro mesmo pedido (ver Frente J, reconhecimento de ouvinte entre dias).
+    ouvinte_recorrente_dias = (
+        _ouvinte_recorrente_dias_anteriores(db, radialista.id, pedido_abraco)
+        if pedido_abraco is not None and ouvinte_recorrente is None
+        else None
+    )
+
+    # Peek (nao consome) em pedido que acabou de chegar enquanto o locutor esta gerando outro
+    # tipo de bloco -- so faz sentido fora dos blocos que ja tratam a fila de propria (musica,
+    # chamada_ouvinte), senao a interrupcao concorreria com o atendimento normal do pedido.
+    pedido_recente_inesperado = None
+    if categoria not in ("musica", "chamada_ouvinte"):
+        pedido_recente_inesperado = _pedido_recente_nao_atendido(
+            db, radialista, "abraco"
+        ) or _pedido_recente_nao_atendido(db, radialista, "musica")
 
     # buscado aqui (antes do prompt) pra alimentar o aviso de abertura/fechamento repetido abaixo;
     # reaproveitado depois da geracao pra checagem de fala repetida (ver _fala_semelhante_no_historico).
     historico_falas_categoria = _historico_falas(programa.id, categoria)
 
     temas_usados = []
+    tema_callback_transmissao_anterior = None
     if categoria in ("comentario", "noticia"):
         # Historico de sessao do proprio programa primeiro (mais recente/relevante), depois o
         # que outros programas da mesma radio ja comentaram (ver _temas_recentes_da_radio) --
         # ordem importa pro dedup abaixo preferir manter a entrada da sessao atual quando o
         # mesmo tema aparece nos dois.
+        temas_sessao_atual = _historico_temas(programa.id)
+        temas_outras_transmissoes = _temas_recentes_da_radio(db, programa.radio_config_id)
         vistos: set[str] = set()
-        for tema in _historico_temas(programa.id) + _temas_recentes_da_radio(db, programa.radio_config_id):
+        for tema in temas_sessao_atual + temas_outras_transmissoes:
             if tema not in vistos:
                 vistos.add(tema)
                 temas_usados.append(tema)
         temas_usados = temas_usados[:_MAX_TEMAS_RADIO_NO_PROMPT]
+
+        # So conta como "transmissao anterior" de verdade um tema que NAO veio da sessao atual --
+        # callback pra algo dito 2 minutos atras na mesma transmissao nao e' "lembra que outro
+        # dia" (ver Frente J, memoria entre sessoes: reaproveita TemaHistorico ja persistente em
+        # vez de criar pipeline de resumo novo).
+        temas_so_de_outras_transmissoes = [t for t in temas_outras_transmissoes if t not in set(temas_sessao_atual)]
+        if temas_so_de_outras_transmissoes and random.random() < _PROB_CALLBACK_TEMA_ANTERIOR:
+            tema_callback_transmissao_anterior = _proxima_variacao(
+                programa.id, "callback_tema_anterior", temas_so_de_outras_transmissoes
+            )
     variacao_verbo_identificacao = _proxima_variacao(
         programa.id, "verbo_identificacao", _VARIACOES_VERBO_IDENTIFICACAO
     )
@@ -1310,19 +1435,54 @@ def gerar_proxima_fala(
         ),
     ]
 
+    if tipo != "encerramento":
+        ajuste_energia = _ajuste_energia_meio_programa(programa, radialista.timezone)
+        if ajuste_energia:
+            system_prompt_linhas.append(ajuste_energia)
+
     if categoria != "noticia":
+        opcoes_fala_natural = [
+            "um maneirismo no começo da frase (\"então\", \"olha só\", \"e aí\", \"pô\")",
+            "uma autocorreção leve (\"quer dizer\", \"ou melhor\", \"deixa eu reformular\")",
+            "uma ênfase por repetição (\"foi bom, muito bom mesmo\")",
+            "uma hesitação pontual (\"é... deixa eu ver aqui\")",
+        ]
+        # Gírias/expressões regionais reais (ver Frente F do plano de profundidade de lugar) --
+        # trocam maneirismo genérico por algo que só um locutor daquele lugar diria. Config
+        # manual em Account.conhecimento_local, girando uma por vez (mesmo primitivo de
+        # _proxima_variacao) pra não repetir sempre a mesma.
+        expressoes_regionais = (account.conhecimento_local or {}).get("expressoes_regionais") or []
+        if expressoes_regionais:
+            expressao_regional = _proxima_variacao(programa.id, "expressao_regional", expressoes_regionais)
+            opcoes_fala_natural.append(f"uma expressão típica daqui (\"{expressao_regional}\")")
+
         system_prompt_linhas.append(
             "De vez em quando, pra soar mais espontâneo, use UM (e só um) destes recursos de fala natural -- "
-            "nunca mais de um na mesma fala, senão vira caricatura de locutor: um maneirismo no começo da "
-            "frase (\"então\", \"olha só\", \"e aí\", \"pô\"); uma autocorreção leve (\"quer dizer\", \"ou melhor\", "
-            "\"deixa eu reformular\"); uma ênfase por repetição (\"foi bom, muito bom mesmo\"); ou uma "
-            "hesitação pontual (\"é... deixa eu ver aqui\"). Nem toda fala precisa de um desses -- use só "
-            "quando sair natural, muitas falas seguidas sem nenhum também é normal."
+            "nunca mais de um na mesma fala, senão vira caricatura de locutor: "
+            + "; ".join(opcoes_fala_natural[:-1])
+            + f"; ou {opcoes_fala_natural[-1]}. Nem toda fala precisa de um desses -- use só quando sair "
+            "natural, muitas falas seguidas sem nenhum também é normal."
         )
     else:
         system_prompt_linhas.append(
             "Notícia pede tom sério e direto: nada de maneirismo, autocorreção encenada, repetição de ênfase "
             "ou hesitação nesse bloco."
+        )
+
+    if categoria != "noticia" and random.random() < _PROB_MUDANCA_DE_IDEIA:
+        system_prompt_linhas.append(
+            "Rara exceção pra esta fala: em vez de só reformular a mesma frase (autocorreção leve), você "
+            "pode genuinamente mudar de ideia no meio dela -- começar afirmando ou elogiando algo e emendar "
+            "uma ressalva real, com conteúdo diferente do que a fala prometia no início, não decorativa. "
+            "Use isso raro; a maioria das falas não precisa disso."
+        )
+
+    if categoria != "noticia" and random.random() < _PROB_IMPERFEICAO_GRAMATICAL:
+        system_prompt_linhas.append(
+            "Rara exceção pra esta fala: pode soar com uma concordância um pouco mais coloquial e real, tipo "
+            "preferir 'a gente vai' a 'nós vamos', ou uma frase que muda levemente de estrutura no meio como "
+            "fala real às vezes faz -- sutil, nunca a ponto de soar como erro de verdade ou prejudicar o "
+            "entendimento."
         )
 
     if settings.elevenlabs_model == "eleven_v3" and categoria != "noticia":
@@ -1365,6 +1525,21 @@ def gerar_proxima_fala(
         "algo assim, nunca de 'bloco final'.",
     ]
 
+    if categoria != "musica" and dados.historico and _ultima_categoria_bloco(dados.historico) == "musica":
+        # Bloco anterior foi de musica (uma faixa ou uma sequencia emendada via
+        # [BLOCO_MUSICAS:N] -- ver instrucao mais abaixo) -- a linha do historico carrega
+        # titulo+canal de TODAS as faixas que tocaram (ver enriquecimento em
+        # useLiveEngine.ts), inclusive as que emendaram sem nunca terem sido anunciadas.
+        # Sem isso o locutor so tinha material pra comentar a 1a faixa (a unica que ele
+        # mesmo anunciou antes de tocar) e nunca sabia o que emendou depois dela.
+        system_prompt_linhas.append(
+            f"O bloco anterior foi de música: \"{dados.historico[-1]}\". Se fizer sentido, comente "
+            "naturalmente sobre a(s) música(s) que acabaram de tocar assim que elas terminarem -- o que achou, "
+            "uma curiosidade, o clima que ficou no ar -- antes de seguir com o assunto desta fala. Não é "
+            "obrigatório toda vez, só quando render um gancho real; e nunca repita a mesma frase de opinião "
+            "sobre música usada num bloco anterior."
+        )
+
     aberturas_usadas, fechamentos_usados = _aberturas_e_fechamentos(historico_falas_categoria)
     if aberturas_usadas:
         system_prompt_linhas.append(
@@ -1388,6 +1563,14 @@ def gerar_proxima_fala(
         system_prompt_linhas.append(
             "Temas de comentário/notícia já abordados nesta transmissão, do mais recente pro mais antigo -- "
             f"não repita nenhum deles agora, escolha um assunto novo: {', '.join(temas_usados)}."
+        )
+
+    if tema_callback_transmissao_anterior:
+        system_prompt_linhas.append(
+            f"Exceção pontual à regra acima: você já comentou sobre '{tema_callback_transmissao_anterior}' em "
+            "uma transmissão anterior (não nesta sessão de hoje). Se fizer sentido, você pode puxar isso como "
+            "um callback explícito pra uma vez passada (tipo 'lembra que outro dia eu comentei sobre...') em "
+            "vez de tratar como assunto novo -- use só se render um gancho natural, não force."
         )
 
     if conteudo_quadro_fixo is not None:
@@ -1443,6 +1626,29 @@ def gerar_proxima_fala(
             f"{pedido_abraco.nome} já apareceu antes nesta transmissão pedindo {tipo_anterior_legivel}. Se "
             "fizer sentido, você pode citar naturalmente que ele voltou a mandar mensagem agora -- não force "
             "isso se não couber bem na fala."
+        )
+    elif ouvinte_recorrente_dias is not None:
+        tipo_anterior_legivel = _TIPO_PEDIDO_LEGIVEL.get(ouvinte_recorrente_dias.tipo, "uma mensagem")
+        system_prompt_linhas.append(
+            f"{pedido_abraco.nome} já apareceu em uma transmissão de outro dia pedindo {tipo_anterior_legivel} "
+            "-- não é a primeira vez que manda mensagem pra rádio, só não foi hoje nem agora há pouco. Se "
+            "fizer sentido, você pode reconhecer isso de forma natural (tipo 'e aí, você de novo por aqui'), "
+            "sem tratar como se fosse a mesma transmissão de antes."
+        )
+
+    if pedido_recente_inesperado is not None:
+        nome_pedido_recente = pedido_recente_inesperado.nome or "um ouvinte"
+        o_que_pediu = (
+            f"pedindo a música '{pedido_recente_inesperado.musica_query}'"
+            if pedido_recente_inesperado.tipo == "musica" and pedido_recente_inesperado.musica_query
+            else "com um recado"
+        )
+        system_prompt_linhas.append(
+            f"Acabou de chegar uma mensagem nova no WhatsApp da rádio, de {nome_pedido_recente}, {o_que_pediu}, "
+            "bem enquanto você já estava neste assunto. Se fizer sentido, você pode interromper naturalmente "
+            "pra comentar rapidinho que acabou de chegar algo (tipo 'opa, peraí, chegou uma mensagem aqui...') "
+            "antes de voltar pro que estava falando -- não é obrigatório, só uma opção quando soar natural; "
+            "o pedido em si ainda vai ser atendido de verdade no bloco próprio dele depois."
         )
 
     if tipo != "encerramento" and random.random() < _PROB_HORA_CERTA:
@@ -1621,6 +1827,7 @@ def gerar_proxima_fala(
             MusicaBlocoItem(
                 video_id=m.video_id,
                 titulo=m.titulo,
+                canal=m.canal,
                 inicio_segundos=m.inicio_segundos,
                 fim_segundos=m.fim_segundos,
                 duracao_segundos=m.duracao_segundos,
