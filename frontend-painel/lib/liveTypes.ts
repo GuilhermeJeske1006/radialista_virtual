@@ -36,6 +36,10 @@ export type ProgramSegment = {
   // compoe esse bloco, medida ao vivo pelo player/audio -- ver atualizarDuracaoFala em
   // useLiveEngine.ts), preenchida so' depois que o bloco termina de tocar.
   duracao_segundos?: number;
+  // Silencio (ms) sugerido pelo backend antes do PROXIMO bloco, variando pelo tipo de transicao
+  // (ver Frente K.5/_intervalo_transicao_ms no backend) -- null/ausente cai no INTERVALO_PROGRAMA_MS
+  // fixo (patrocinador/vinheta e o fallback local nao preenchem esse campo).
+  intervalo_ms?: number | null;
 };
 
 export type LiveProgramResponse = {
@@ -52,6 +56,7 @@ export type LiveProgramResponse = {
   patrocinador_voz_id?: string | null;
   vinheta_id?: number | null;
   falas?: FalaItem[] | null;
+  intervalo_ms?: number | null;
 };
 
 export type ProgramaOpcao = Programa & { radialistaId: number; radialistaNome: string };

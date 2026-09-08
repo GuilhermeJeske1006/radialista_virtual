@@ -334,6 +334,33 @@ export function useLiveEngine() {
   // Devolve quanto tempo (segundos, medido no relogio de parede) o audio ficou
   // realmente no ar -- e' a duracao REAL da fala, nao uma estimativa (ver
   // atualizarDuracaoFala, que soma isso por bloco).
+  // Frente K.6 (alternativa): cada bloco de fala e' uma chamada de sintese isolada (ElevenLabs
+  // nao suporta request stitching no eleven_v3 -- previous_text/previous_request_ids da erro
+  // nesse modelo, ver texto_anterior em app.tts.client), entao a PROSODIA de um clipe pro outro
+  // nao tem como continuar de verdade via API. Isso aqui NAO resolve isso -- so' declica a borda
+  // de cada clipe (fade curto de entrada/saida) pra sumir com o "clique"/corte digital abrupto
+  // no início e no fim de cada mp3 isolado, que e' um problema separado (defeito de edicao, nao
+  // de entonacao) e esse sim da pra corrigir do lado do audio.
+  const FADE_BORDA_FALA_MS = 80;
+
+  function fadeVolumeAudioElemento(audio: HTMLAudioElement, duracaoMs: number, alvo: number) {
+    const inicio = audio.volume;
+    const delta = alvo - inicio;
+    if (Math.abs(delta) < 0.01 || duracaoMs <= 0) {
+      audio.volume = alvo;
+      return;
+    }
+    const inicioMs = performance.now();
+    const passo = () => {
+      const progresso = Math.min(1, (performance.now() - inicioMs) / duracaoMs);
+      audio.volume = Math.max(0, Math.min(1, inicio + delta * progresso));
+      if (progresso < 1 && audioFalaRef.current === audio) {
+        requestAnimationFrame(passo);
+      }
+    };
+    requestAnimationFrame(passo);
+  }
+
   async function reproduzirAudioPreparado(audioUrl: string | null, texto: string): Promise<number> {
     const inicio = Date.now();
     duckMusicaFundo(true);
@@ -341,11 +368,40 @@ export function useLiveEngine() {
     try {
       if (audioUrl) {
         const audio = new Audio(audioUrl);
+        audio.volume = 0;
         audioFalaRef.current = audio;
+        let fadeSaidaTimeout: ReturnType<typeof setTimeout> | null = null;
+        const limparFadeSaida = () => {
+          if (fadeSaidaTimeout) {
+            clearTimeout(fadeSaidaTimeout);
+            fadeSaidaTimeout = null;
+          }
+        };
+        audio.addEventListener(
+          "loadedmetadata",
+          () => {
+            if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
+            const atrasoMs = Math.max(0, audio.duration * 1000 - FADE_BORDA_FALA_MS);
+            fadeSaidaTimeout = setTimeout(() => fadeVolumeAudioElemento(audio, FADE_BORDA_FALA_MS, 0), atrasoMs);
+          },
+          { once: true }
+        );
         await new Promise<void>((resolve) => {
-          audio.onended = () => resolve();
-          audio.onerror = () => resolve();
-          audio.play().catch(() => resolve());
+          audio.onended = () => {
+            limparFadeSaida();
+            resolve();
+          };
+          audio.onerror = () => {
+            limparFadeSaida();
+            resolve();
+          };
+          audio
+            .play()
+            .then(() => fadeVolumeAudioElemento(audio, FADE_BORDA_FALA_MS, 1))
+            .catch(() => {
+              limparFadeSaida();
+              resolve();
+            });
         });
         URL.revokeObjectURL(audioUrl);
         if (audioFalaRef.current === audio) {
@@ -902,7 +958,11 @@ export function useLiveEngine() {
     }
 
     if (programaAtivoRef.current) {
-      programaTimerRef.current = setTimeout(() => gerarProximaFala(), INTERVALO_PROGRAMA_MS);
+      // ver Frente K.5: backend varia o silencio pelo tipo de transicao (emenda quase sem pausa
+      // saindo de/pra musica, respiro maior em volta de noticia) -- cai no fixo so' quando o
+      // backend nao mandou nada (fallback local, patrocinador, vinheta).
+      const intervalo = novaFala.intervalo_ms ?? INTERVALO_PROGRAMA_MS;
+      programaTimerRef.current = setTimeout(() => gerarProximaFala(), intervalo);
     }
   }
 

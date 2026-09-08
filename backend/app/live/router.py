@@ -121,6 +121,10 @@ class LiveProgramResponse(BaseModel):
     # Preenchido só quando o programa tem mais de um radialista (ver ProgramaRadialista):
     # diálogo alternado, uma linha por participante, cada uma com sua própria voz.
     falas: list[FalaItem] | None = None
+    # Silêncio (ms) sugerido antes do PRÓXIMO bloco, variando pelo tipo de transição -- ver
+    # _intervalo_transicao_ms (Frente K.5). None quando não há bloco anterior pra comparar
+    # (frontend cai no próprio fallback fixo nesse caso).
+    intervalo_ms: int | None = None
 
 
 class MusicaFundoResponse(BaseModel):
@@ -337,6 +341,121 @@ _PROSODIA_BLOCO = {
         "feche com uma despedida clara, sem deixar no ar."
     ),
 }
+
+
+# Movimento de transicao especifico pro PAR (categoria_anterior, categoria_atual) -- sair de
+# noticia pra musica pede um jeito de emendar diferente de sair de comentario pra chamada_ouvinte
+# (ver Frente K.1: o prompt ja tinha o "gancho" generico de puxar um detalhe da ultima fala, mas
+# nao instrucao especifica de COMO o tom se move de um tipo de bloco pro outro). So cobre os pares
+# onde o movimento de tom realmente difere do generico; par nao listado aqui cai no fallback por
+# origem (_TRANSICOES_POR_ORIGEM) ou, na falta desse tambem, so no gancho generico ja existente.
+_TRANSICOES_DE_BLOCO: dict[tuple[str, str], list[str]] = {
+    ("noticia", "musica"): [
+        "A fala anterior foi uma notícia: não pule friamente pro clima animado da música. Baixe a "
+        "guarda aos poucos -- uma frase curta que reconhece o peso do que acabou de ser dito antes "
+        "de deixar a energia subir de novo.",
+        "A fala anterior foi uma notícia: dê um respiro antes de mudar o clima -- algo como 'bom...' "
+        "ou uma pausa curta -- antes de deixar a empolgação da música tomar conta.",
+    ],
+    ("noticia", "comentario"): [
+        "A fala anterior foi uma notícia: o comentário pode emendar ainda com o peso do fato no ar, "
+        "em vez de trocar de assunto seco -- só solte pro tom mais leve se o assunto do comentário "
+        "realmente pedir isso.",
+    ],
+    ("musica", "comentario"): [
+        "A fala anterior foi uma música: retome com energia mais leve, reconhecendo que algo acabou "
+        "de tocar (o clima dela, a letra, uma reação genuína) antes de emendar o assunto do "
+        "comentário -- não comece do zero como se nada tivesse tocado.",
+        "A fala anterior foi uma música: puxe o comentário a partir de uma reação curta e real à "
+        "faixa que acabou de tocar, e só depois vira pro assunto de verdade.",
+    ],
+    ("musica", "noticia"): [
+        "A fala anterior foi uma música: corte a empolgação aos poucos antes do fato -- uma frase de "
+        "transição mais contida, sem emendar a notícia com o mesmo tom animado de quem acabou de "
+        "chamar uma faixa.",
+    ],
+    ("musica", "chamada_ouvinte"): [
+        "A fala anterior foi uma música: mantenha a leveza de quem acabou de tocar algo bom antes de "
+        "puxar o ouvinte pro recado -- retomada rápida e animada, sem soar como assunto novo do zero.",
+    ],
+    ("comentario", "musica"): [
+        "A fala anterior foi um comentário: feche a ideia com uma síntese curta (não precisa de "
+        "conclusão elaborada) antes de emendar a chamada da música, como quem fecha um raciocínio "
+        "pra abrir espaço pro próximo momento.",
+    ],
+    ("comentario", "chamada_ouvinte"): [
+        "A fala anterior foi um comentário: use o gancho pra abrir espaço real pro ouvinte entrar no "
+        "assunto (ex.: perguntar o que ele acha), em vez de uma virada seca de tópico.",
+    ],
+    ("chamada_ouvinte", "musica"): [
+        "A fala anterior foi a chamada ao ouvinte: feche o recado com uma frase curta antes de "
+        "emendar o embalo da música -- não deixe o convite no ar sem fechamento.",
+    ],
+    ("chamada_ouvinte", "comentario"): [
+        "A fala anterior foi a chamada ao ouvinte: pode reconhecer rapidamente que o recado ficou no "
+        "ar (ex.: 'e enquanto isso...') antes de puxar o assunto do comentário.",
+    ],
+    ("chamada_ouvinte", "noticia"): [
+        "A fala anterior foi a chamada ao ouvinte: baixe o tom caloroso pro tom mais sério da "
+        "notícia -- uma frase curta de transição em vez de emenda seca.",
+    ],
+}
+
+# Fallback por origem (so a categoria anterior), usado quando o par especifico nao esta em
+# _TRANSICOES_DE_BLOCO -- cobre o resto da matriz sem precisar listar toda combinacao possivel
+# (estrutura_blocos customizada permite qualquer sequencia).
+_TRANSICOES_POR_ORIGEM: dict[str, list[str]] = {
+    "musica": [
+        "A fala anterior foi uma música: reconheça isso na abertura, mesmo que rápido -- não emende "
+        "o próximo assunto como se nada tivesse tocado antes.",
+    ],
+    "noticia": [
+        "A fala anterior foi uma notícia: não emende o próximo bloco com o mesmo tom sério sem "
+        "transição -- marque a mudança de clima antes de seguir.",
+    ],
+}
+
+
+def _instrucao_transicao(programa_id: int, categoria_anterior: str | None, categoria_atual: str) -> str | None:
+    """Instrucao de COMO o tom se move da categoria anterior pra atual (ver _TRANSICOES_DE_BLOCO) --
+    None quando nao ha bloco anterior (largada do programa) ou quando o par nao tem movimento
+    especifico cadastrado nem fallback por origem (cai so no gancho generico ja existente no
+    prompt)."""
+    if categoria_anterior is None or categoria_anterior == categoria_atual:
+        return None
+    par = (categoria_anterior, categoria_atual)
+    opcoes = _TRANSICOES_DE_BLOCO.get(par) or _TRANSICOES_POR_ORIGEM.get(categoria_anterior)
+    if not opcoes:
+        # Nenhum movimento especifico cadastrado pro par -- ainda assim rotula explicitamente o
+        # tipo do bloco anterior (ver Frente K.2), pra o LLM sempre saber de onde a fala esta
+        # vindo mesmo sem instrucao de movimento dedicada.
+        return f"A fala anterior foi do tipo '{categoria_anterior}'."
+    chave = f"transicao_{categoria_anterior}_{categoria_atual}"
+    return _proxima_variacao(programa_id, chave, opcoes)
+
+
+# Faixas (ms) de silencio entre o fim do audio do bloco anterior e o inicio do proximo, por tipo
+# de transicao -- ver _intervalo_transicao_ms (Frente K.5). Silencio sempre igual entre blocos e'
+# outro sinal claro de "colado"/robotico: radio de verdade emenda quase sem pausa numa transicao
+# animada (ex.: saindo de musica) e da um respiro maior em volta de notica (mais serio/pensativo).
+_INTERVALO_TRANSICAO_PADRAO_MS = 2200
+_INTERVALO_TRANSICAO_ANIMADA_MS = (900, 1400)
+_INTERVALO_TRANSICAO_NOTICIA_MS = (2800, 3400)
+_INTERVALO_TRANSICAO_NORMAL_MS = (1800, 2600)
+
+
+def _intervalo_transicao_ms(categoria_anterior: str | None, categoria_atual: str) -> int:
+    """Duracao do silencio (ms) antes do proximo bloco -- ver constantes acima. Usa random.randint
+    dentro da faixa (nao um valor fixo por par) pra nem repetir o mesmo silencio toda vez que o
+    mesmo par de categorias se repete, mesmo padrao de "nao decorar" ja aplicado ao texto (ver
+    _proxima_variacao)."""
+    if categoria_anterior is None:
+        return _INTERVALO_TRANSICAO_PADRAO_MS
+    if "noticia" in (categoria_anterior, categoria_atual):
+        return random.randint(*_INTERVALO_TRANSICAO_NOTICIA_MS)
+    if "musica" in (categoria_anterior, categoria_atual) and categoria_anterior != categoria_atual:
+        return random.randint(*_INTERVALO_TRANSICAO_ANIMADA_MS)
+    return random.randint(*_INTERVALO_TRANSICAO_NORMAL_MS)
 
 
 def _ultima_categoria_bloco(historico: list[str]) -> str | None:
@@ -1204,6 +1323,8 @@ def gerar_proxima_fala(
 
     total_falas = dados.total_falas if dados.total_falas is not None else len(dados.historico)
 
+    ultima_categoria = _ultima_categoria_bloco(dados.historico)
+
     ja_encerrou = any(linha.startswith("encerramento:") for linha in dados.historico)
     perto_do_fim = minutos_restantes(programa, radialista.timezone) <= _LIMIAR_ENCERRAMENTO_MIN
     if perto_do_fim and not ja_encerrou:
@@ -1211,7 +1332,7 @@ def gerar_proxima_fala(
         # daqui em diante, para o loop e gera a fala de encerramento.
         tipo = "encerramento"
     else:
-        tipo = _tipo_proximo_bloco(programa, total_falas, _ultima_categoria_bloco(dados.historico))
+        tipo = _tipo_proximo_bloco(programa, total_falas, ultima_categoria)
 
     if _PATROCINADOR_RE.match(tipo):
         patrocinador = _buscar_patrocinador_ativo(db, account, tipo)
@@ -1435,6 +1556,21 @@ def gerar_proxima_fala(
         ),
     ]
 
+    instrucao_transicao = _instrucao_transicao(programa.id, ultima_categoria, categoria)
+    if instrucao_transicao:
+        system_prompt_linhas.append(instrucao_transicao)
+
+    if categoria != "encerramento" and ultima_categoria is not None:
+        # Frente K.3: a prosodia acima (_PROSODIA_BLOCO) e' uma instrucao so' pro bloco inteiro --
+        # mas a ENTRADA de um bloco (logo apos a transicao) tem ritmo diferente do meio dele, real
+        # locutor comeca mais medido/comedido e ganha velocidade normal so depois da primeira frase.
+        system_prompt_linhas.append(
+            "O ritmo não é uniforme do início ao fim do bloco: a primeira frase, logo na entrada "
+            "(ainda emendando a transição de antes), tende a sair mais medida/comedida -- só ganha "
+            "o ritmo normal do bloco a partir da segunda frase em diante, em vez de já entrar "
+            "acelerado como quem começa no meio de uma ideia."
+        )
+
     if tipo != "encerramento":
         ajuste_energia = _ajuste_energia_meio_programa(programa, radialista.timezone)
         if ajuste_energia:
@@ -1456,6 +1592,14 @@ def gerar_proxima_fala(
             expressao_regional = _proxima_variacao(programa.id, "expressao_regional", expressoes_regionais)
             opcoes_fala_natural.append(f"uma expressão típica daqui (\"{expressao_regional}\")")
 
+        # Frente K.4: reacao de abertura calibrada pela transicao, nao so aleatoria -- depois de
+        # uma musica anima, a abertura pode soltar reacao mais leve; depois de noticia, nunca
+        # (ver aviso logo abaixo, que restringe o tom mesmo quando o bloco atual permite maneirismo).
+        if ultima_categoria == "musica":
+            opcoes_fala_natural.append(
+                "uma reação curta e solta pro que acabou de tocar (\"boa\", \"aí sim\", uma risadinha breve)"
+            )
+
         system_prompt_linhas.append(
             "De vez em quando, pra soar mais espontâneo, use UM (e só um) destes recursos de fala natural -- "
             "nunca mais de um na mesma fala, senão vira caricatura de locutor: "
@@ -1463,6 +1607,12 @@ def gerar_proxima_fala(
             + f"; ou {opcoes_fala_natural[-1]}. Nem toda fala precisa de um desses -- use só quando sair "
             "natural, muitas falas seguidas sem nenhum também é normal."
         )
+        if ultima_categoria == "noticia":
+            system_prompt_linhas.append(
+                "Como o bloco anterior foi uma notícia, se usar algum desses recursos de fala natural agora, "
+                "mantenha contido -- nada de riso ou empolgação solta logo depois de assunto sério; prefira "
+                "algo como \"bom...\", \"então tá\" ou \"pois é\" em vez de ênfase animada."
+            )
     else:
         system_prompt_linhas.append(
             "Notícia pede tom sério e direto: nada de maneirismo, autocorreção encenada, repetição de ênfase "
@@ -1492,6 +1642,12 @@ def gerar_proxima_fala(
             "cada tag imediatamente antes do trecho que ela deve afetar, no máximo 2 por fala, e só quando "
             "o momento realmente pedir -- não force uma tag em toda fala. Nunca invente tag fora dessa lista."
         )
+        if ultima_categoria is not None:
+            system_prompt_linhas.append(
+                "Se usar uma tag logo na primeira frase (a entrada do bloco, ver ritmo mais medido acima), "
+                "ela pode ser diferente da tag usada mais adiante na mesma fala -- ex.: [calm] pra segurar a "
+                "entrada e [excited] só quando o assunto pegar tração no meio da fala."
+            )
 
     system_prompt_linhas += [
         "Além do tipo do bloco, varie intensidade dentro da própria fala conforme o conteúdo -- ela não pode "
@@ -1836,6 +1992,7 @@ def gerar_proxima_fala(
         ],
         programa_atual=programa.nome,
         falas=falas_bloco or None,
+        intervalo_ms=_intervalo_transicao_ms(ultima_categoria, categoria),
     )
 
 
