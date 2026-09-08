@@ -40,6 +40,18 @@ _DURACAO_MIN_SEGUNDOS = 61
 # cobre a reproducao em si.
 _DURACAO_MAX_SEGUNDOS = 8 * 60
 
+# Teto ABSOLUTO, esse sim nunca relaxado (ver duracao_invalida) -- diferente do teto acima, que
+# so' evita quando ha alternativa mais curta pro MESMO pedido resolvido (titulo+artista). Existe
+# pra cobrir a busca SEM pedido especifico (query generica tipo "musica instrumental", usada
+# quando a radio nao tem genero configurado -- ver _buscar_musica_para_bloco): nesse caso o
+# YouTube devolve quase so' mix ambiente/"focus music"/"study music" de horas de duracao (mesmo
+# problema que buscar_musica_fundo ja tratava pra query "instrumental radio fundo"), entao TODO
+# candidato da busca fica acima do teto de preferencia e a relaxacao (respeitar_duracao=False)
+# libera geral -- sem esse teto absoluto, esse cenario literalmente colocava um mix de 7h-12h
+# pra tocar como se fosse uma musica. 20min cobre com folga qualquer faixa unica legitima (balada
+# longa, sertanejo raiz, medley de CTG), sem deixar passar um mix de horas.
+_DURACAO_MAX_ABSOLUTA_SEGUNDOS = 20 * 60
+
 # Musica de fundo toca em loop e corta num ponto seguro (ver obter_fim_seguro/fim_segundos),
 # entao nao precisa ser faixa unica curta -- ao contrario da busca normal (_DURACAO_MAX_SEGUNDOS),
 # aqui um mix ambiente longo e' o resultado ESPERADO: busca por "instrumental radio fundo" no
@@ -356,6 +368,7 @@ def buscar_musica(
     canais_recentes: dict[str, int] | None = None,
     limite_por_canal: int = _LIMITE_PADRAO_POR_CANAL,
     duracao_max_segundos: int = _DURACAO_MAX_SEGUNDOS,
+    duracao_absoluta_max_segundos: int | None = _DURACAO_MAX_ABSOLUTA_SEGUNDOS,
     preferir_cantada: bool = False,
 ) -> MusicaEncontrada | None:
     """Busca a musica priorizando versao de estudio; se nao achar, cai pra versao ao vivo.
@@ -426,7 +439,12 @@ def buscar_musica(
             # ultimo recurso.
             if duracao is None:
                 return respeitar_duracao
-            return duracao < _DURACAO_MIN_SEGUNDOS
+            if duracao < _DURACAO_MIN_SEGUNDOS:
+                return True
+            # Teto ABSOLUTO (ver _DURACAO_MAX_ABSOLUTA_SEGUNDOS acima) -- diferente do teto de
+            # preferencia (duracao_muito_longa abaixo), esse aqui NUNCA relaxa: nao importa o
+            # quao "ultimo recurso" a busca esteja, um video de horas nao vira musica.
+            return duracao_absoluta_max_segundos is not None and duracao > duracao_absoluta_max_segundos
 
         def duracao_muito_longa(video_id: str) -> bool:
             # Preferencia, nao bloqueio duro (ver comentario de _DURACAO_MAX_SEGUNDOS acima) --
@@ -581,4 +599,12 @@ def buscar_musica_fundo(
     else:
         query = "musica instrumental radio fundo"
 
-    return buscar_musica(query, bloqueados=bloqueados, duracao_max_segundos=_DURACAO_MAX_FUNDO_SEGUNDOS)
+    # duracao_absoluta_max_segundos=None: o teto absoluto (ver _DURACAO_MAX_ABSOLUTA_SEGUNDOS)
+    # existe pra barrar mix de horas quando o pedido era uma musica normal -- aqui e' o oposto,
+    # mix longo e' o resultado ESPERADO (ver docstring de _DURACAO_MAX_FUNDO_SEGUNDOS acima).
+    return buscar_musica(
+        query,
+        bloqueados=bloqueados,
+        duracao_max_segundos=_DURACAO_MAX_FUNDO_SEGUNDOS,
+        duracao_absoluta_max_segundos=None,
+    )

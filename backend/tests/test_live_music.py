@@ -235,19 +235,36 @@ def test_buscar_musica_prefere_duracao_curta_quando_ha_alternativa(monkeypatch):
 
 
 def test_buscar_musica_aceita_duracao_longa_como_ultimo_recurso(monkeypatch):
-    """Sem alternativa nenhuma dentro do teto, a faixa longa ainda toca -- preferencia relaxa
-    no ultimo recurso em vez de deixar o bloco sem musica nenhuma (busca ja parte de
-    titulo+artista resolvido via Spotify/catalogo, o YouTube so' precisa achar ESSE audio).
-    Medley/coletanea sem palavra reveladora no titulo continua barrado por titulo (ver
-    TERMOS_COLETANEA/PADRAO_TOP_N), e o corte por fala/silencio no fim/comeco
-    (obter_fim_seguro/obter_inicio_seguro) cobre a reproducao em si."""
+    """Sem alternativa nenhuma dentro do teto de preferencia, a faixa longa ainda toca --
+    preferencia relaxa no ultimo recurso em vez de deixar o bloco sem musica nenhuma (busca ja
+    parte de titulo+artista resolvido via Spotify/catalogo, o YouTube so' precisa achar ESSE
+    audio). 900s (15min) fica acima do teto de preferencia (_DURACAO_MAX_SEGUNDOS, 8min) mas
+    dentro do teto absoluto (_DURACAO_MAX_ABSOLUTA_SEGUNDOS, 20min) -- ver teste seguinte pro
+    caso do teto absoluto, esse sim nunca relaxado. Medley/coletanea sem palavra reveladora no
+    titulo continua barrado por titulo (ver TERMOS_COLETANEA/PADRAO_TOP_N), e o corte por
+    fala/silencio no fim/comeco (obter_fim_seguro/obter_inicio_seguro) cobre a reproducao em si."""
     monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
     itens = [_item("id1", "Minha Musica - Artista", "Canal Qualquer")]
     monkeypatch.setattr("app.live.music._buscar_itens", lambda query: itens)
-    monkeypatch.setattr("app.live.music._buscar_duracoes", lambda ids: {"id1": 3600})
+    monkeypatch.setattr("app.live.music._buscar_duracoes", lambda ids: {"id1": 900})
 
     resultado = buscar_musica("minha musica")
     assert resultado.video_id == "id1"
+
+
+def test_buscar_musica_rejeita_duracao_acima_do_teto_absoluto_mesmo_sem_alternativa(monkeypatch):
+    """Teto absoluto (_DURACAO_MAX_ABSOLUTA_SEGUNDOS) NUNCA relaxa, nem no ultimo recurso --
+    diferente do teto de preferencia (ver teste anterior). Cobre o caso real que motivou esse
+    teto: busca sem pedido especifico (query generica tipo "musica instrumental") devolvendo
+    quase so' mix ambiente de horas, onde SEM esse teto o unico candidato conhecido (por mais
+    que fosse um mix de horas, nao uma musica) acabava tocando como ultimo recurso."""
+    monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
+    itens = [_item("id1", "Music for Deep Focus and Concentration - 10 Hours", "Canal Qualquer")]
+    monkeypatch.setattr("app.live.music._buscar_itens", lambda query: itens)
+    monkeypatch.setattr("app.live.music._buscar_duracoes", lambda ids: {"id1": 36000})
+
+    resultado = buscar_musica("musica instrumental")
+    assert resultado is None
 
 
 def test_buscar_musica_rejeita_duracao_conhecida_abaixo_do_minimo_mesmo_relaxando(monkeypatch):
