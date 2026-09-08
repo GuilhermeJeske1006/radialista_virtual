@@ -28,6 +28,19 @@ def _sem_espera_debounce(monkeypatch):
     monkeypatch.setattr(asyncio, "sleep", _sleep_imediato)
 
 
+@pytest.fixture(autouse=True)
+def _guardrail_llm_aprova_por_padrao(monkeypatch):
+    """A segunda camada do guardrail (avaliar_adequacao_programa) chama o LLM de verdade --
+    nos testes que nao exercitam ela especificamente, aprova por padrao pra nao depender de rede
+    nem mascarar o teste original com falha de credencial (ver Frente V)."""
+    monkeypatch.setattr(
+        "app.whatsapp.webhook.avaliar_adequacao_programa", lambda texto, programa: (True, "")
+    )
+    monkeypatch.setattr(
+        "app.whatsapp.webhook.avaliar_adequacao_ao_vivo", lambda texto, programa: (True, "")
+    )
+
+
 @pytest.fixture()
 def conta_no_ar(db_session, account_factory):
     account = account_factory(
@@ -58,12 +71,18 @@ def _payload(
     message_id="msg-1",
     push_name="Fulano",
     audio=False,
+    imagem=False,
 ):
     info = {"Chat": telefone, "FromMe": from_me, "ID": message_id, "PushName": push_name}
-    mensagem = {"audioMessage": {"url": "https://example.com/audio.ogg"}} if audio else {"conversation": texto}
-    payload = {"userID": user_id, "event": {"Info": info, "Message": mensagem}}
     if audio:
-        payload["base64"] = "ZmFrZS1hdWRpby1ieXRlcw=="
+        mensagem = {"audioMessage": {"url": "https://example.com/audio.ogg"}}
+    elif imagem:
+        mensagem = {"imageMessage": {"url": "https://example.com/foto.jpg", "mimetype": "image/jpeg"}}
+    else:
+        mensagem = {"conversation": texto}
+    payload = {"userID": user_id, "event": {"Info": info, "Message": mensagem}}
+    if audio or imagem:
+        payload["base64"] = "ZmFrZS1taWRpYS1ieXRlcw=="
     return payload
 
 
@@ -140,6 +159,32 @@ def test_falha_na_transcricao_e_registrada(client, conta_no_ar, monkeypatch, db_
 
 
 @freeze_time(AGORA_UTC)
+def test_imagem_descrita_segue_fluxo_normal(client, conta_no_ar, monkeypatch, db_session):
+    monkeypatch.setattr(
+        "app.whatsapp.webhook.descrever_imagem", lambda imagem_b64, mime_type: "foto de uma pessoa sorrindo na praia"
+    )
+    monkeypatch.setattr("app.whatsapp.webhook.classificar_intencao", lambda config, programa, texto: ("guardar", None))
+    resposta = _post_webhook(client, _payload(imagem=True, message_id="msg-img-1"))
+    assert resposta.json() == {"status": "ok", "acao": "guardar"}
+
+    log = db_session.query(InteractionLog).filter_by(wuzapi_message_id="msg-img-1").first()
+    assert log.mensagem_usuario == "foto de uma pessoa sorrindo na praia"
+
+
+@freeze_time(AGORA_UTC)
+def test_falha_ao_descrever_imagem_e_registrada(client, conta_no_ar, monkeypatch, db_session):
+    def _falha(imagem_b64, mime_type):
+        raise RuntimeError("falha na api")
+
+    monkeypatch.setattr("app.whatsapp.webhook.descrever_imagem", _falha)
+    resposta = _post_webhook(client, _payload(imagem=True, message_id="msg-img-2"))
+    assert resposta.json() == {"status": "ignorado", "motivo": "falha_descricao_imagem"}
+
+    log = db_session.query(InteractionLog).filter_by(wuzapi_message_id="msg-img-2").first()
+    assert log.status == "falha_descricao_imagem"
+
+
+@freeze_time(AGORA_UTC)
 def test_limite_de_plano_excedido_bloqueia(client, conta_no_ar, monkeypatch, db_session):
     monkeypatch.setattr("app.whatsapp.webhook.limite_mensagens_efetivo", lambda db, account: 0)
     resposta = _post_webhook(client, _payload(message_id="msg-limite-1"))
@@ -175,6 +220,70 @@ def test_conteudo_proibido_bloqueia(client, conta_no_ar, db_session):
 
     log = db_session.query(InteractionLog).filter_by(wuzapi_message_id="msg-cf-1").first()
     assert log.status == "bloqueado_conteudo"
+
+
+@freeze_time(AGORA_UTC)
+def test_guardrail_llm_reprova_conteudo_bloqueia(client, conta_no_ar, monkeypatch, db_session):
+    monkeypatch.setattr(
+        "app.whatsapp.webhook.avaliar_adequacao_programa",
+        lambda texto, programa: (False, "fora do tom do programa"),
+    )
+    resposta = _post_webhook(client, _payload(texto="mensagem qualquer", message_id="msg-guardrail-1"))
+    assert resposta.json() == {"status": "bloqueado", "motivo": "conteudo"}
+
+    log = db_session.query(InteractionLog).filter_by(wuzapi_message_id="msg-guardrail-1").first()
+    assert log.status == "bloqueado_conteudo"
+
+
+@freeze_time(AGORA_UTC)
+def test_audio_reprovado_pelo_guardrail_de_ao_vivo_e_bloqueado(client, conta_no_ar, monkeypatch, db_session):
+    monkeypatch.setattr("app.whatsapp.webhook.stt_habilitado", lambda: True)
+    monkeypatch.setattr("app.whatsapp.webhook.transcrever_audio", lambda audio_b64: "toca uma musica")
+    monkeypatch.setattr(
+        "app.whatsapp.webhook.classificar_intencao", lambda config, programa, texto: ("musica", "Legiao Urbana")
+    )
+    monkeypatch.setattr(
+        "app.whatsapp.webhook.avaliar_adequacao_ao_vivo",
+        lambda texto, programa: (False, "transcricao incoerente, provavel ruido de fundo"),
+    )
+    resposta = _post_webhook(client, _payload(audio=True, message_id="msg-audio-guardrail-1"))
+    assert resposta.json() == {"status": "bloqueado", "motivo": "audio_ao_vivo"}
+
+    log = db_session.query(InteractionLog).filter_by(wuzapi_message_id="msg-audio-guardrail-1").first()
+    assert log.status == "bloqueado_audio_ao_vivo"
+    assert db_session.query(FilaAoVivo).count() == 0
+
+
+@freeze_time(AGORA_UTC)
+def test_texto_digitado_nao_passa_pelo_guardrail_de_ao_vivo(client, conta_no_ar, monkeypatch, db_session):
+    """O guardrail extra (Frente U) e' so' pra audio -- mensagem de texto normal, mesmo indo
+    pra fila, nunca deve chamar avaliar_adequacao_ao_vivo."""
+    chamadas = []
+    monkeypatch.setattr(
+        "app.whatsapp.webhook.avaliar_adequacao_ao_vivo",
+        lambda texto, programa: chamadas.append(texto) or (True, ""),
+    )
+    monkeypatch.setattr(
+        "app.whatsapp.webhook.classificar_intencao", lambda config, programa, texto: ("musica", "Legiao Urbana")
+    )
+    resposta = _post_webhook(client, _payload(texto="toca legiao urbana", message_id="msg-texto-guardrail-1"))
+    assert resposta.json() == {"status": "ok", "acao": "musica"}
+    assert chamadas == []
+
+
+@freeze_time(AGORA_UTC)
+def test_pedido_de_sorteio_entra_na_fila(client, conta_no_ar, monkeypatch, db_session):
+    monkeypatch.setattr(
+        "app.whatsapp.webhook.classificar_intencao", lambda config, programa, texto: ("sorteio", None)
+    )
+    resposta = _post_webhook(client, _payload(texto="quero participar do sorteio", message_id="msg-sorteio-1"))
+    assert resposta.json() == {"status": "ok", "acao": "sorteio"}
+
+    pedido = db_session.query(FilaAoVivo).filter_by(tipo="sorteio").first()
+    assert pedido is not None
+
+    log = db_session.query(InteractionLog).filter_by(wuzapi_message_id="msg-sorteio-1").first()
+    assert log.status == "fila_sorteio"
 
 
 @freeze_time(AGORA_UTC)

@@ -7,7 +7,7 @@ from app.models.radio_config import RadioConfig
 
 logger = logging.getLogger("radialista.intent")
 
-ACOES_VALIDAS = {"abraco", "musica", "guardar"}
+ACOES_VALIDAS = {"abraco", "musica", "sorteio", "guardar"}
 
 
 def classificar_intencao(config: RadioConfig, programa: Programa, texto_usuario: str) -> tuple[str, str | None]:
@@ -16,6 +16,10 @@ def classificar_intencao(config: RadioConfig, programa: Programa, texto_usuario:
     Retorna (acao, musica_query):
     - "musica": ouvinte PEDIU explicitamente uma musica/artista/dedicatoria -> entra na fila pra tocar ao vivo.
     - "abraco": ouvinte PEDIU explicitamente pra ser mencionado/saudado no ar -> entra na fila pro "alo".
+    - "sorteio": ouvinte PEDIU explicitamente pra participar/confirmar participacao num sorteio ou
+      promocao da radio -> entra na fila pra confirmacao no ar. A confirmacao em si e' sempre
+      deterministica (quem pede, participa -- ver Frente S), o LLM so' classifica a intencao aqui,
+      nunca decide elegibilidade.
     - "guardar": qualquer outra coisa (recado sem pedido, elogio, desabafo, spam, fora de escopo,
       ou pedido de musica fora do estilo permitido pelo programa) -- nunca vai ao ar so' por
       "merecer"; sem pedido explicito (ou fora do estilo aceito), so' fica registrado no log.
@@ -36,8 +40,11 @@ def classificar_intencao(config: RadioConfig, programa: Programa, texto_usuario:
         '- "musica": pede explicitamente uma musica, artista ou dedicatoria musical especifica.',
         '- "abraco": pede explicitamente pra ser mencionado, saudado ou mandar um "alo" ao vivo '
         "(locutor vai falar o nome dele e comentar o que ele mandou).",
-        '- "guardar": qualquer coisa sem pedido explicito de musica ou de aparecer no ar -- '
-        "inclui elogio, desabafo, saudacao simples, spam ou fora do escopo da radio.",
+        '- "sorteio": pede explicitamente pra participar ou confirmar participacao num sorteio '
+        "ou promocao da radio.",
+        '- "guardar": qualquer coisa sem pedido explicito de musica, de aparecer no ar ou de '
+        "participar de sorteio -- inclui elogio, desabafo, saudacao simples, spam ou fora do "
+        "escopo da radio.",
         "Leve em conta o CONTEXTO completo da mensagem antes de decidir, nao so' uma palavra "
         "isolada. Mensagem confusa, incompleta, cortada no meio, cheia de erro de "
         "autocorretor/digitacao, so' com simbolos/letras soltas, ou que parece ter sido "
@@ -58,7 +65,7 @@ def classificar_intencao(config: RadioConfig, programa: Programa, texto_usuario:
 
     system_prompt_linhas.append("Responda APENAS com um JSON compacto, sem markdown e sem explicacao:")
     system_prompt_linhas.append(
-        '{"acao": "musica|abraco|guardar", "musica_query": "artista/musica pedida ou null"}'
+        '{"acao": "musica|abraco|sorteio|guardar", "musica_query": "artista/musica pedida ou null"}'
     )
     system_prompt = "\n".join(system_prompt_linhas)
 

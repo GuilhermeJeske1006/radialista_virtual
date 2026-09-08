@@ -1959,6 +1959,71 @@ def test_ouvinte_sem_pedido_anterior_nao_e_citado_como_recorrente(
     assert "já apareceu antes nesta transmissão" not in prompts[0]
 
 
+@freeze_time(AGORA_UTC)
+def test_pedido_de_sorteio_gera_confirmacao_deterministica(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    """Frente S: pedido tipo "sorteio" na fila do chamada_ouvinte deve virar instrucao de
+    confirmacao de participacao, nao a reacao generica de abraco."""
+    radio_config, programa = radialista_e_programa
+    pedido = FilaAoVivo(
+        radio_config_id=radio_config.id,
+        telefone="5511999999999",
+        nome="Joana",
+        tipo="sorteio",
+        mensagem_usuario="quero participar do sorteio",
+    )
+    db_session.add(pedido)
+    db_session.commit()
+
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Joana, você está concorrendo!"
+    )
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 5},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert "confirme a participação de Joana no sorteio" in prompts[0]
+
+    pedido_atualizado = db_session.query(FilaAoVivo).filter_by(id=pedido.id).first()
+    assert pedido_atualizado.atendido is True
+
+
+@freeze_time(AGORA_UTC)
+def test_pedido_de_abraco_reacao_calibrada_pelo_tom(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    """Frente S: a instrucao de reacao ao pedido de abraco referencia explicitamente o tom do
+    programa, em vez de so' pedir um comentario generico."""
+    radio_config, programa = radialista_e_programa
+    pedido = FilaAoVivo(
+        radio_config_id=radio_config.id,
+        telefone="5511999999999",
+        nome="Pedro",
+        tipo="abraco",
+        mensagem_usuario="mandando um alo daqui",
+    )
+    db_session.add(pedido)
+    db_session.commit()
+
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "E aí, Pedro!"
+    )
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 5},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert "calibre a reação pelo tom do programa" in prompts[0]
+
+
 @freeze_time(AGORA_UTC)  # 12:00 local, exatamente na metade de um programa 10:00-14:00
 def test_marco_tempo_metade_do_programa_mencionado(
     client, account, auth_headers, radialista_e_programa, monkeypatch

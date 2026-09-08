@@ -37,6 +37,16 @@ def test_classifica_pedido_de_abraco(monkeypatch):
     assert musica_query is None
 
 
+def test_classifica_pedido_de_sorteio(monkeypatch):
+    monkeypatch.setattr(
+        "app.llm.intent.gerar_classificacao",
+        lambda system, user: json.dumps({"acao": "sorteio", "musica_query": None}),
+    )
+    acao, musica_query = classificar_intencao(_config(), _programa(), "quero participar do sorteio")
+    assert acao == "sorteio"
+    assert musica_query is None
+
+
 def test_classifica_como_guardar_por_padrao(monkeypatch):
     monkeypatch.setattr(
         "app.llm.intent.gerar_classificacao",

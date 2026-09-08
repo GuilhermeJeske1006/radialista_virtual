@@ -326,11 +326,12 @@ _PROSODIA_BLOCO = {
     ),
     "comentario": (
         "Este bloco é um COMENTÁRIO: fale mais devagar e pausado, como quem está pensando alto. "
-        "Use reticências e vírgulas pra marcar respiração entre as ideias, sem pressa."
+        "Use vírgulas pra marcar respiração entre as ideias, sem pressa -- reticências não são o "
+        "marcador padrão de pausa aqui."
     ),
     "noticia": (
         "Este bloco é uma NOTÍCIA: tom mais sério e sereno, ritmo mais lento que o normal, "
-        "pausas claras (reticências/vírgulas) entre fato e comentário."
+        "pausas claras com vírgula e ponto final entre fato e comentário."
     ),
     "chamada_ouvinte": (
         "Este bloco é a CHAMADA AO OUVINTE: tom caloroso e próximo, ritmo normal a levemente mais rápido, "
@@ -1222,7 +1223,7 @@ def _fallback_curado_genero(
 # dias atras como se fosse "há pouco".
 _JANELA_OUVINTE_RECORRENTE_HORAS = 6
 
-_TIPO_PEDIDO_LEGIVEL = {"musica": "uma música", "abraco": "um recado"}
+_TIPO_PEDIDO_LEGIVEL = {"musica": "uma música", "abraco": "um recado", "sorteio": "participação no sorteio"}
 
 
 def _ouvinte_recorrente_anterior(db: Session, radio_config_id: int, pedido_atual: FilaAoVivo) -> FilaAoVivo | None:
@@ -1274,9 +1275,21 @@ def _ouvinte_recorrente_dias_anteriores(db: Session, radio_config_id: int, pedid
 
 def _proximo_pedido_fila(db: Session, radialista: RadioConfig, tipo: str) -> FilaAoVivo | None:
     """Pega (e marca como atendido) o pedido mais antigo da fila vindo do WhatsApp."""
+    return _proximo_pedido_fila_dentre(db, radialista, (tipo,))
+
+
+def _proximo_pedido_fila_dentre(db: Session, radialista: RadioConfig, tipos: tuple[str, ...]) -> FilaAoVivo | None:
+    """Como _proximo_pedido_fila, mas escolhe o mais antigo nao atendido dentre varios tipos --
+    usado pelo bloco chamada_ouvinte, que atende tanto "abraco" quanto "sorteio" na mesma fala
+    (ver Frente S): FIFO entre os tipos, so' consome o pedido escolhido, os outros tipos ficam
+    intactos na fila pros proximos blocos."""
     pedido = (
         db.query(FilaAoVivo)
-        .filter_by(radio_config_id=radialista.id, tipo=tipo, atendido=False)
+        .filter(
+            FilaAoVivo.radio_config_id == radialista.id,
+            FilaAoVivo.tipo.in_(tipos),
+            FilaAoVivo.atendido.is_(False),
+        )
         .order_by(FilaAoVivo.criado_em.asc())
         .first()
     )
@@ -1415,15 +1428,17 @@ def gerar_proxima_fala(
     else:
         musica = _buscar_musica_para_bloco(db, programa, tipo) if categoria == "musica" else None
 
-    pedido_abraco = _proximo_pedido_fila(db, radialista, "abraco") if categoria == "chamada_ouvinte" else None
+    pedido_ouvinte = (
+        _proximo_pedido_fila_dentre(db, radialista, ("abraco", "sorteio")) if categoria == "chamada_ouvinte" else None
+    )
     ouvinte_recorrente = (
-        _ouvinte_recorrente_anterior(db, radialista.id, pedido_abraco) if pedido_abraco is not None else None
+        _ouvinte_recorrente_anterior(db, radialista.id, pedido_ouvinte) if pedido_ouvinte is not None else None
     )
     # So checa a janela de dias quando nao achou recorrencia dentro da sessao -- evita instrucao
     # duplicada/conflitante pro mesmo pedido (ver Frente J, reconhecimento de ouvinte entre dias).
     ouvinte_recorrente_dias = (
-        _ouvinte_recorrente_dias_anteriores(db, radialista.id, pedido_abraco)
-        if pedido_abraco is not None and ouvinte_recorrente is None
+        _ouvinte_recorrente_dias_anteriores(db, radialista.id, pedido_ouvinte)
+        if pedido_ouvinte is not None and ouvinte_recorrente is None
         else None
     )
 
@@ -1432,9 +1447,11 @@ def gerar_proxima_fala(
     # chamada_ouvinte), senao a interrupcao concorreria com o atendimento normal do pedido.
     pedido_recente_inesperado = None
     if categoria not in ("musica", "chamada_ouvinte"):
-        pedido_recente_inesperado = _pedido_recente_nao_atendido(
-            db, radialista, "abraco"
-        ) or _pedido_recente_nao_atendido(db, radialista, "musica")
+        pedido_recente_inesperado = (
+            _pedido_recente_nao_atendido(db, radialista, "abraco")
+            or _pedido_recente_nao_atendido(db, radialista, "sorteio")
+            or _pedido_recente_nao_atendido(db, radialista, "musica")
+        )
 
     # buscado aqui (antes do prompt) pra alimentar o aviso de abertura/fechamento repetido abaixo;
     # reaproveitado depois da geracao pra checagem de fala repetida (ver _fala_semelhante_no_historico).
@@ -1518,8 +1535,9 @@ def gerar_proxima_fala(
     system_prompt_linhas = [
         montar_system_prompt(account, radialista, programa, roster=roster if multi_voz else None),
         *introducao_ao_vivo,
-        "Use reticências para pausas de respiração e vírgulas pra dar ritmo -- fale como locutor de verdade, "
-        "não como texto escrito.",
+        "Prefira ponto final firme pra fechar cada ideia e vírgula pra dar ritmo dentro da frase -- fale "
+        "como locutor de verdade, não como texto escrito. Reticências (\"...\") são exceção rara, só "
+        "quando a frase fica de propósito em suspenso -- não vire hábito de pontuação.",
         f"O programa segue esta sequência lógica de blocos, em loop: {posicao_roteiro}. "
         "Tenha consciência de qual momento do programa você está vivendo agora e conecte a fala com o que "
         "vem antes e depois dela, mantendo transição natural (não repita a mesma abertura ou o mesmo gancho "
@@ -1542,12 +1560,12 @@ def gerar_proxima_fala(
         f"cidade'). Se for citar a identificação nessa fala, prefira o verbo de chamada "
         f"'{variacao_verbo_identificacao}' -- troque a ordem das outras informações, use só parte delas, ou nem "
         "cite a identificação nessa fala. Trate isso como qualquer outro gancho: repetição literal soa de robô.",
-        "Ao mudar de tópico dentro da fala ou encerrar o bloco pra entrar no próximo, marque uma pausa mais "
-        "longa que o normal: use reticências duplas (\"......\") ou um respiro curto antes de virar o assunto, "
-        "em vez de emendar direto.",
-        "A pausa longa (\"......\") não é só pra troca de assunto: use ela também no meio de uma fala, bem antes "
-        "de um ponto que precise de peso real -- uma notícia forte, o nome do ouvinte sorteado, o clímax de uma "
-        "piada, um dado surpreendente. Nem toda fala precisa desse tipo de pausa; ela só funciona se for rara "
+        "Ao mudar de tópico dentro da fala ou encerrar o bloco pra entrar no próximo, feche a ideia anterior "
+        "com ponto final firme antes de virar o assunto -- o silêncio entre blocos já é cuidado pelo sistema "
+        "de áudio (ver _intervalo_transicao_ms), não precisa marcar isso na pontuação com reticências.",
+        "Existe uma pausa longa especial (\"......\"), reservada pro meio de uma fala, bem antes de um ponto "
+        "que precise de peso real -- uma notícia forte, o nome do ouvinte sorteado, o clímax de uma piada, "
+        "um dado surpreendente. Nem toda fala precisa desse tipo de pausa; ela só funciona se for rara "
         "e vier no momento certo (no máximo uma vez por fala, quando fizer sentido) -- espalhar em todo ponto "
         "final destrói o efeito e some com o ritmo real de rádio.",
         _PROSODIA_BLOCO.get(
@@ -1659,9 +1677,10 @@ def gerar_proxima_fala(
         "frase é o que realmente controla o ritmo de leitura, não a quantidade de pontos finais.",
         "Use a pontuação como interpretação, não só como gramática: coloque exclamação (!) exatamente nos "
         "pontos de real empolgação ou efeito, no máximo uma ou duas por fala -- nunca em toda frase. Nas "
-        "partes que pedem tom mais ameno, use vírgulas e reticências (...) pra marcar pausa e respiração, "
-        "e ponto final simples no resto. A pontuação deve nascer do que a frase está sentindo naquele "
-        "momento, não de um padrão fixo repetido em toda fala.",
+        "partes que pedem tom mais ameno, use vírgula pra marcar pausa e respiração, e ponto final simples "
+        "no resto -- reticências (\"...\") ficam de fora daqui, são exceção rara (ver acima), não o padrão "
+        "pra tom ameno. A pontuação deve nascer do que a frase está sentindo naquele momento, não de um "
+        "padrão fixo repetido em toda fala.",
         "Escreva todo número por extenso em português (ex.: 'catorze e trinta e cinco', 'oitenta e sete "
         "e cinco', 'dois mil e vinte e quatro', 'dezenove reais e noventa'), nunca em algarismo -- isso "
         "vale pra hora, frequência, preço, quantidade, data, telefone ou qualquer outro número que "
@@ -1779,14 +1798,14 @@ def gerar_proxima_fala(
     if ouvinte_recorrente is not None:
         tipo_anterior_legivel = _TIPO_PEDIDO_LEGIVEL.get(ouvinte_recorrente.tipo, "uma mensagem")
         system_prompt_linhas.append(
-            f"{pedido_abraco.nome} já apareceu antes nesta transmissão pedindo {tipo_anterior_legivel}. Se "
+            f"{pedido_ouvinte.nome} já apareceu antes nesta transmissão pedindo {tipo_anterior_legivel}. Se "
             "fizer sentido, você pode citar naturalmente que ele voltou a mandar mensagem agora -- não force "
             "isso se não couber bem na fala."
         )
     elif ouvinte_recorrente_dias is not None:
         tipo_anterior_legivel = _TIPO_PEDIDO_LEGIVEL.get(ouvinte_recorrente_dias.tipo, "uma mensagem")
         system_prompt_linhas.append(
-            f"{pedido_abraco.nome} já apareceu em uma transmissão de outro dia pedindo {tipo_anterior_legivel} "
+            f"{pedido_ouvinte.nome} já apareceu em uma transmissão de outro dia pedindo {tipo_anterior_legivel} "
             "-- não é a primeira vez que manda mensagem pra rádio, só não foi hoje nem agora há pouco. Se "
             "fizer sentido, você pode reconhecer isso de forma natural (tipo 'e aí, você de novo por aqui'), "
             "sem tratar como se fosse a mesma transmissão de antes."
@@ -1869,11 +1888,24 @@ def gerar_proxima_fala(
             "não inclua nenhuma tag."
         )
 
-    if pedido_abraco is not None:
-        nome_ouvinte = pedido_abraco.nome or "um ouvinte"
+    if pedido_ouvinte is not None and pedido_ouvinte.tipo == "sorteio":
+        nome_ouvinte = pedido_ouvinte.nome or "um ouvinte"
+        system_prompt_linhas.append(
+            f"Quando o bloco for chamada_ouvinte, confirme a participação de {nome_ouvinte} no sorteio: diga "
+            "de forma clara e cordial que a participação foi registrada e ele já está concorrendo. Essa "
+            "confirmação é sempre a mesma pra qualquer ouvinte que pediu -- não invente critério de "
+            "elegibilidade, prêmio, data de sorteio ou regra que não foi informada; varie só as palavras "
+            "usadas, nunca o fato em si de que a pessoa está participando."
+        )
+    elif pedido_ouvinte is not None:
+        nome_ouvinte = pedido_ouvinte.nome or "um ouvinte"
         system_prompt_linhas.append(
             f"Quando o bloco for chamada_ouvinte, mande um alô pra {nome_ouvinte}: cumprimente pelo nome e "
-            f"comente em poucas palavras o que ele mandou pelo WhatsApp: \"{pedido_abraco.mensagem_usuario}\"."
+            f"reaja de verdade ao que ele mandou pelo WhatsApp: \"{pedido_ouvinte.mensagem_usuario}\" -- "
+            "calibre a reação pelo tom do programa já estabelecido acima (programa descontraído: reaja com "
+            "bom humor genuíno, brinque, comente o clima da mensagem; programa mais sério: agradeça com "
+            "cordialidade, sem forçar humor que não combina). Não é só citar o que ele escreveu, é reagir "
+            "a isso como um locutor de verdade reagiria."
         )
     else:
         system_prompt_linhas.append(

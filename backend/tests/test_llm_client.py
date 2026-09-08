@@ -41,6 +41,29 @@ def test_gerar_classificacao_sem_bloco_devolve_string_vazia(monkeypatch):
     assert llm_client.gerar_classificacao("system", "user") == ""
 
 
+def test_descrever_imagem_devolve_texto_do_primeiro_bloco(monkeypatch):
+    resposta_fake = SimpleNamespace(content=[_block("foto de uma pessoa sorrindo na praia")])
+    kwargs_capturados = {}
+
+    def _fake_create(**kwargs):
+        kwargs_capturados.update(kwargs)
+        return resposta_fake
+
+    monkeypatch.setattr(llm_client._client.messages, "create", _fake_create)
+    resultado = llm_client.descrever_imagem("ZmFrZQ==", "image/jpeg")
+    assert resultado == "foto de uma pessoa sorrindo na praia"
+
+    conteudo = kwargs_capturados["messages"][0]["content"]
+    assert conteudo[0]["source"]["media_type"] == "image/jpeg"
+    assert conteudo[0]["source"]["data"] == "ZmFrZQ=="
+
+
+def test_descrever_imagem_sem_bloco_devolve_string_vazia(monkeypatch):
+    resposta_fake = SimpleNamespace(content=[])
+    monkeypatch.setattr(llm_client._client.messages, "create", lambda **kwargs: resposta_fake)
+    assert llm_client.descrever_imagem("ZmFrZQ==", "image/jpeg") == ""
+
+
 def test_gerar_configuracao_com_refusal_devolve_string_vazia(monkeypatch):
     resposta_fake = SimpleNamespace(stop_reason="refusal", content=[])
     monkeypatch.setattr(llm_client._client.messages, "create", lambda **kwargs: resposta_fake)

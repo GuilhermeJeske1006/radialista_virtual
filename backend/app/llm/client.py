@@ -90,6 +90,41 @@ def gerar_classificacao(system_prompt: str, mensagem_usuario: str) -> str:
     return ""
 
 
+def descrever_imagem(imagem_base64: str, mime_type: str) -> str:
+    """Descreve o conteudo de uma foto enviada por um ouvinte, em texto curto e objetivo -- o
+    radialista nunca "ve" a imagem, so' recebe essa descricao como se fosse o texto da mensagem
+    dele, mesmo padrao do audio transcrito por STT (ver app.stt.client), alimentando tanto os
+    guardrails de conteudo (app.guardrails.content_filter) quanto o prompt de reacao contextual
+    (ver Frente T)."""
+    response = _client.messages.create(
+        model=CLASSIFICATION_MODEL,
+        max_tokens=128,
+        system=(
+            "Descreva o conteudo desta imagem em uma frase curta e objetiva, como um resumo "
+            "neutro do que aparece -- sem opiniao, sem decidir se e' apropriada ou nao pra ir ao "
+            "ar, so' descreva o que ve."
+        ),
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {"type": "base64", "media_type": mime_type, "data": imagem_base64},
+                    },
+                    {"type": "text", "text": "Descreva esta imagem."},
+                ],
+            }
+        ],
+    )
+
+    for block in response.content:
+        if block.type == "text":
+            return block.text
+
+    return ""
+
+
 def gerar_configuracao(system_prompt: str, mensagem_usuario: str) -> str:
     """Chamada ao LLM pra gerar configuracao estruturada (JSON) de radialista/programa.
 

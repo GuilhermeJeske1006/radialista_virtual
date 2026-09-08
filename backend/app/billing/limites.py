@@ -13,7 +13,7 @@ from app.planos import limites_do_plano
 # fila do ao vivo pra virar abraco/pedido de musica, ou recebe resposta automatica no
 # proprio WhatsApp). Mensagem bloqueada (horario, rate limit, conteudo, plano) ou so
 # registrada sem resposta ("guardado") nao conta.
-_STATUS_RESPONDIDA = ("fila_musica", "fila_abraco", "respondido_whatsapp")
+_STATUS_RESPONDIDA = ("fila_musica", "fila_abraco", "fila_sorteio", "respondido_whatsapp")
 
 
 def mes_referencia_atual() -> str:

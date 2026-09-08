@@ -11,11 +11,15 @@ from sqlalchemy.orm import Session
 
 from app.config.redis_client import redis_client
 from app.db.database import get_db
-from app.guardrails.content_filter import contem_topico_proibido
+from app.guardrails.content_filter import (
+    avaliar_adequacao_ao_vivo,
+    avaliar_adequacao_programa,
+    contem_topico_proibido,
+)
 from app.guardrails.http_rate_limit import limitar_por_ip
 from app.guardrails.rate_limiter import dentro_do_limite
 from app.guardrails.schedule import encontrar_programa_atual
-from app.llm.client import gerar_resposta
+from app.llm.client import descrever_imagem, gerar_resposta
 from app.llm.intent import classificar_intencao
 from app.llm.prompt_builder import montar_system_prompt
 from app.models.account import Account
@@ -119,9 +123,12 @@ def _radialista_no_ar(db: Session, account_id: int) -> tuple[RadioConfig | None,
 
 def _extrair_mensagem(
     payload: dict,
-) -> tuple[str, str, str | None, str | None, str | None, str | None, bool, str | None] | None:
-    """Extrai (telefone, nome, texto, audio_base64, wuzapi_token, wuzapi_user_id, from_me,
-    message_id) do payload do WuzAPI.
+) -> (
+    tuple[str, str, str | None, str | None, str | None, str, str | None, str | None, bool, str | None]
+    | None
+):
+    """Extrai (telefone, nome, texto, audio_base64, imagem_base64, imagem_mime_type,
+    wuzapi_token, wuzapi_user_id, from_me, message_id) do payload do WuzAPI.
 
     O corpo do webhook manda "userID" (id interno do usuario no WuzAPI), nao o
     "token" -- esse so aparece em chamadas manuais/teste. Aceita qualquer um
@@ -131,10 +138,11 @@ def _extrair_mensagem(
     a radio responde (FromMe=True) -- "Sender" so' bate com o ouvinte no primeiro
     caso; em FromMe ele vira a identidade (LID) de quem enviou pela radio.
 
-    Mensagem de audio (audioMessage) nao traz texto -- o WuzAPI (com media_delivery
-    configurado pra "base64", ver app/whatsapp/session_manager.py::configurar_entrega_midia)
-    ja manda o audio decriptado em base64 no corpo do webhook. Quando so' isso vier,
-    "texto" fica None e quem chama decide se transcreve (ver receber_webhook).
+    Mensagem de audio (audioMessage) ou foto (imageMessage) nao traz texto -- o WuzAPI (com
+    media_delivery configurado pra "base64", ver app/whatsapp/session_manager.py::
+    configurar_entrega_midia) ja manda a midia decriptada em base64 no corpo do webhook. Quando
+    so' isso vier, "texto" fica None e quem chama decide o que fazer (transcrever audio via STT
+    ou descrever a imagem via LLM com visao -- ver receber_webhook e Frente T).
     """
     wuzapi_token = payload.get("token")
     wuzapi_user_id = payload.get("userID")
@@ -165,6 +173,13 @@ def _extrair_mensagem(
     if mensagem.get("audioMessage") or mensagem.get("AudioMessage"):
         audio_base64 = payload.get("base64")
 
+    imagem_base64 = None
+    imagem_mime_type = "image/jpeg"
+    imagem_msg = mensagem.get("imageMessage") or mensagem.get("ImageMessage")
+    if imagem_msg:
+        imagem_base64 = payload.get("base64")
+        imagem_mime_type = imagem_msg.get("mimetype") or imagem_msg.get("Mimetype") or imagem_mime_type
+
     # Status do WhatsApp (Stories) chega no webhook com Chat/Sender "status@broadcast" --
     # nao e' uma conversa de ouvinte nenhum, e sem esse filtro entra no guardrails/fila/log
     # como se fosse (telefone acaba virando literalmente a string "status" depois do split).
@@ -172,7 +187,7 @@ def _extrair_mensagem(
     if not telefone or str(telefone).endswith("@broadcast") or str(telefone).endswith("@g.us"):
         return None
 
-    if not texto and not audio_base64:
+    if not texto and not audio_base64 and not imagem_base64:
         return None
 
     telefone = str(telefone).split("@")[0]
@@ -181,6 +196,8 @@ def _extrair_mensagem(
         str(nome),
         str(texto) if texto else None,
         audio_base64,
+        imagem_base64,
+        imagem_mime_type,
         str(wuzapi_token) if wuzapi_token else None,
         str(wuzapi_user_id) if wuzapi_user_id else None,
         from_me,
@@ -235,11 +252,12 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
     /live/programa/proxima ou digitadas a mao no numero conectado), so' ficam
     registradas, sem passar pelos guardrails/fila (esses valem so' pro ouvinte).
 
-    Mensagem do ouvinte so pode gerar um de tres destinos: entra na fila pra
-    virar um "alo" ao vivo (abraco), entra na fila pra virar um pedido de
-    musica ao vivo (musica), ou fica so registrada (guardar). Audio (nota de
-    voz) e' transcrito (ver app.stt.client) e daí em diante segue o mesmo
-    caminho de uma mensagem de texto.
+    Mensagem do ouvinte so pode gerar um de quatro destinos: entra na fila pra
+    virar um "alo" ao vivo (abraco), pedido de musica (musica), confirmacao de
+    participacao em sorteio (sorteio), ou fica so registrada (guardar). Audio
+    (nota de voz) e' transcrito (ver app.stt.client) e foto e' descrita em
+    texto por um LLM com visao (ver app.llm.client.descrever_imagem) -- dai em
+    diante os dois seguem o mesmo caminho de uma mensagem de texto.
     """
     raw_body = await request.body()
     payload = json.loads(raw_body)
@@ -249,7 +267,18 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
     if extraido is None:
         return {"status": "ignorado"}
 
-    telefone, nome, texto_usuario, audio_base64, wuzapi_token, wuzapi_user_id, from_me, wuzapi_message_id = extraido
+    (
+        telefone,
+        nome,
+        texto_usuario,
+        audio_base64,
+        imagem_base64,
+        imagem_mime_type,
+        wuzapi_token,
+        wuzapi_user_id,
+        from_me,
+        wuzapi_message_id,
+    ) = extraido
 
     if wuzapi_message_id is not None:
         ja_processada = (
@@ -285,7 +314,7 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
             config,
             telefone,
             None,
-            texto_usuario or "[audio]",
+            texto_usuario or ("[imagem]" if imagem_base64 else "[audio]"),
             "enviada",
             origem="radio",
             wuzapi_message_id=wuzapi_message_id,
@@ -308,6 +337,18 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
                 db, config, telefone, nome, "[audio]", "falha_transcricao", wuzapi_message_id=wuzapi_message_id
             )
             return {"status": "ignorado", "motivo": "falha_transcricao"}
+
+    if texto_usuario is None and imagem_base64:
+        try:
+            texto_usuario = descrever_imagem(imagem_base64, imagem_mime_type)
+        except Exception:
+            logger.exception("Falha ao descrever imagem do WhatsApp")
+            texto_usuario = None
+        if not texto_usuario:
+            _registrar_log(
+                db, config, telefone, nome, "[imagem]", "falha_descricao_imagem", wuzapi_message_id=wuzapi_message_id
+            )
+            return {"status": "ignorado", "motivo": "falha_descricao_imagem"}
 
     limite_mensagens = limite_mensagens_efetivo(db, account)
     if mensagens_respondidas_no_mes(db, account.id) >= limite_mensagens:
@@ -336,14 +377,41 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
         )
         return {"status": "bloqueado", "motivo": "conteudo"}
 
+    adequado, motivo_guardrail = avaliar_adequacao_programa(texto_usuario, programa_atual)
+    if not adequado:
+        _registrar_log(
+            db, config, telefone, nome, texto_usuario, "bloqueado_conteudo", wuzapi_message_id=wuzapi_message_id
+        )
+        logger.info(
+            "Mensagem bloqueada pelo guardrail de adequacao: motivo=%s config_id=%s telefone=%s",
+            motivo_guardrail,
+            config.id,
+            telefone,
+        )
+        return {"status": "bloqueado", "motivo": "conteudo"}
+
     acao, musica_query = classificar_intencao(config, programa_atual, texto_usuario)
     logger.info("Mensagem classificada: acao=%s config_id=%s telefone=%s", acao, config.id, telefone)
+
+    if acao in ("abraco", "musica", "sorteio") and audio_base64 is not None:
+        apropriado, motivo_audio = avaliar_adequacao_ao_vivo(texto_usuario, programa_atual)
+        if not apropriado:
+            _registrar_log(
+                db, config, telefone, nome, texto_usuario, "bloqueado_audio_ao_vivo", wuzapi_message_id=wuzapi_message_id
+            )
+            logger.info(
+                "Audio bloqueado pro ao vivo: motivo=%s config_id=%s telefone=%s",
+                motivo_audio,
+                config.id,
+                telefone,
+            )
+            return {"status": "bloqueado", "motivo": "audio_ao_vivo"}
 
     resposta_enviada = None
     if config.resposta_automatica_whatsapp and account.wuzapi_token:
         resposta_enviada = _gerar_e_enviar_resposta(account, config, programa_atual, telefone, texto_usuario)
 
-    if acao in ("abraco", "musica"):
+    if acao in ("abraco", "musica", "sorteio"):
         db.add(
             FilaAoVivo(
                 radio_config_id=config.id,
@@ -360,7 +428,7 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
             telefone,
             nome,
             texto_usuario,
-            "fila_musica" if acao == "musica" else "fila_abraco",
+            {"musica": "fila_musica", "sorteio": "fila_sorteio"}.get(acao, "fila_abraco"),
             wuzapi_message_id=wuzapi_message_id,
             resposta=resposta_enviada,
         )
