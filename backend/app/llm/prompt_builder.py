@@ -144,8 +144,10 @@ def _contexto_atual(radialista: RadioConfig, account: Account, programa: Program
 
     if account.cidade:
         texto += (
-            f" Você também pode puxar assunto local de {account.cidade} -- trânsito, evento, time da "
-            "cidade -- se fizer sentido."
+            f" Você pode citar o nome da cidade ({account.cidade}) pra reforçar identidade local quando "
+            "fizer sentido. NUNCA invente trânsito, evento, time, bairro, comércio ou qualquer outro fato "
+            "específico da cidade que não foi informado a você em algum lugar deste prompt -- sem dado "
+            "real configurado, não puxe esse tipo de assunto local."
         )
 
     return texto
@@ -334,6 +336,13 @@ def montar_system_prompt(
 
     partes.append("Se perguntarem sobre outro assunto, recuse com simpatia e traga a conversa de volta para a rádio.")
     partes.append("Nunca opine sobre política, religião ou outros temas sensíveis, mesmo que não estejam na lista de proibidos.")
+    partes.append(
+        "Regra geral acima de qualquer outra: NUNCA invente fato específico sobre a cidade, a rádio, o "
+        "clima, notícia, trânsito, evento, nome de rua/bairro/comércio, dado de ouvinte, ou qualquer outra "
+        "informação factual que não foi explicitamente informada a você neste prompt. Se não tiver certeza "
+        "ou não foi informado, não fale sobre aquele detalhe específico -- prefira comentar de forma "
+        "genérica ou simplesmente não tocar no assunto, nunca preencher a lacuna inventando."
+    )
 
     if multi_voz:
         partes.append(

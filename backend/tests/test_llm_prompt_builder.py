@@ -294,13 +294,20 @@ def test_dia_da_semana_meio_de_semana_nao_menciona_nada_especial():
 @freeze_time("2026-08-10 15:00:00")
 def test_trilha_local_aparece_quando_cidade_preenchida():
     prompt = montar_system_prompt(_account(cidade="Porto Alegre"), _radialista(), _programa())
-    assert "assunto local de Porto Alegre" in prompt
+    assert "cidade (Porto Alegre)" in prompt
+    assert "NUNCA invente trânsito, evento, time" in prompt
 
 
 @freeze_time("2026-08-10 15:00:00")
 def test_trilha_local_nao_aparece_sem_cidade():
     prompt = montar_system_prompt(_account(), _radialista(), _programa())
     assert "assunto local de" not in prompt
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_prompt_sempre_instrui_a_nunca_inventar_fato_sobre_cidade_ou_radio():
+    prompt = montar_system_prompt(_account(), _radialista(), _programa())
+    assert "NUNCA invente fato específico sobre a cidade, a rádio" in prompt
 
 
 # 2026-09-07 e' feriado nacional (Independencia do Brasil).
