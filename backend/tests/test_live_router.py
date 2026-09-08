@@ -1,6 +1,7 @@
 import datetime
 import json
 
+import httpx
 import pytest
 from freezegun import freeze_time
 
@@ -12,6 +13,7 @@ from app.live.router import (
     _registrar_fala_gerada,
     _registrar_historico_persistente,
     _ultima_frase,
+    _tom_sintese_do_bloco,
 )
 from app.models.biblioteca_audio import BibliotecaAudioItem
 from app.models.fila_ao_vivo import FilaAoVivo
@@ -345,7 +347,8 @@ def test_tts_endpoint_com_sucesso(client, account, auth_headers, radialista_e_pr
     monkeypatch.setattr("app.live.router.tts_habilitado", lambda voz_id=None: True)
     monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "neutro")
     monkeypatch.setattr(
-        "app.live.router.sintetizar_audio", lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: b"audio-bytes"
+        "app.live.router.sintetizar_audio_stream",
+        lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: iter([b"audio-bytes"]),
     )
 
     resposta = client.post(
@@ -353,6 +356,40 @@ def test_tts_endpoint_com_sucesso(client, account, auth_headers, radialista_e_pr
     )
     assert resposta.status_code == 200
     assert resposta.content == b"audio-bytes"
+
+
+def test_tom_integrado_usa_direcao_editorial_do_bloco():
+    assert _tom_sintese_do_bloco("abertura") == "energico"
+    assert _tom_sintese_do_bloco("comentario") == "calmo"
+    assert _tom_sintese_do_bloco("quadro livre") == "neutro"
+
+
+@freeze_time(AGORA_UTC)
+def test_proxima_informa_falha_de_audio_sem_forcar_segunda_sintese(
+    client, account, auth_headers, radialista_e_programa, monkeypatch
+):
+    """O frontend usa esse estado para manter a cama musical, sem repetir TTS e sem recorrer
+    a voz generica do navegador."""
+    radio_config, programa = radialista_e_programa
+    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: "Bom dia, ouvintes.")
+    monkeypatch.setattr("app.live.router.tts_habilitado", lambda voz_id=None: True)
+    monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "neutro")
+
+    def falhar_tts(*args, **kwargs):
+        raise RuntimeError("provedor indisponivel")
+
+    monkeypatch.setattr("app.live.router.sintetizar_audio", falhar_tts)
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 0},
+        headers=auth_headers(account.id),
+    )
+
+    assert resposta.status_code == 200
+    assert resposta.json()["audio_status"] == "falhou"
+    assert resposta.json()["audio_erro"] == "RuntimeError"
+    assert resposta.json()["audio_base64"] is None
 
 
 def test_tts_endpoint_com_programa_id_registra_ultimo_tom(
@@ -366,7 +403,8 @@ def test_tts_endpoint_com_programa_id_registra_ultimo_tom(
     monkeypatch.setattr("app.live.router.tts_habilitado", lambda voz_id=None: True)
     monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "energico")
     monkeypatch.setattr(
-        "app.live.router.sintetizar_audio", lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: b"audio-bytes"
+        "app.live.router.sintetizar_audio_stream",
+        lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: iter([b"audio-bytes"]),
     )
 
     resposta = client.post(
@@ -387,7 +425,8 @@ def test_tts_endpoint_sem_programa_id_nao_registra_tom(
     monkeypatch.setattr("app.live.router.tts_habilitado", lambda voz_id=None: True)
     monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "energico")
     monkeypatch.setattr(
-        "app.live.router.sintetizar_audio", lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: b"audio-bytes"
+        "app.live.router.sintetizar_audio_stream",
+        lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: iter([b"audio-bytes"]),
     )
 
     resposta = client.post(
@@ -493,7 +532,7 @@ def test_tts_endpoint_com_perfil_pos_producao(client, account, auth_headers, rad
     assert resposta.content == b"audio-cru-processado:alfa_fm"
 
 
-def test_tts_endpoint_com_perfil_pos_producao_invalido_400(
+def test_tts_endpoint_com_perfil_pos_producao_invalido_422(
     client, account, auth_headers, radialista_e_programa, monkeypatch
 ):
     radio_config, _ = radialista_e_programa
@@ -508,7 +547,54 @@ def test_tts_endpoint_com_perfil_pos_producao_invalido_400(
         json={"texto": "ola", "perfil_pos_producao": "perfil-que-nao-existe"},
         headers=auth_headers(account.id),
     )
-    assert resposta.status_code == 400
+    assert resposta.status_code == 422
+
+
+def test_tts_endpoint_usa_streaming_sem_perfil_pos_producao(
+    client, account, auth_headers, radialista_e_programa, monkeypatch
+):
+    """Sem perfil_pos_producao (caminho default), /tts deve chamar sintetizar_audio_stream (ver
+    Plano B.4) em vez do sintetizar_audio buffered -- e' o que corta a cauda de latencia em
+    blocos de fala mais longos."""
+    radio_config, _ = radialista_e_programa
+    monkeypatch.setattr("app.live.router.tts_habilitado", lambda voz_id=None: True)
+    monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "neutro")
+
+    def _stream_falso(*args, **kwargs):
+        raise AssertionError("sintetizar_audio nao deveria ser chamado quando streaming esta disponivel")
+
+    monkeypatch.setattr("app.live.router.sintetizar_audio", _stream_falso)
+    monkeypatch.setattr(
+        "app.live.router.sintetizar_audio_stream",
+        lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: iter(
+            [b"parte1", b"parte2"]
+        ),
+    )
+
+    resposta = client.post(
+        f"/live/{radio_config.id}/tts", json={"texto": "ola ouvintes"}, headers=auth_headers(account.id)
+    )
+    assert resposta.status_code == 200
+    assert resposta.content == b"parte1parte2"
+
+
+def test_tts_endpoint_falha_de_streaming_retorna_502(client, account, auth_headers, radialista_e_programa, monkeypatch):
+    """Erro na sintese antes do primeiro chunk (ver sintetizar_audio_stream) ainda precisa virar
+    502 normal -- e' so' depois do primeiro chunk que a resposta ja comprometeu o status 200."""
+    radio_config, _ = radialista_e_programa
+    monkeypatch.setattr("app.live.router.tts_habilitado", lambda voz_id=None: True)
+    monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "neutro")
+
+    def _stream_com_erro(*args, **kwargs):
+        raise httpx.ConnectError("timeout")
+        yield b""  # torna a funcao um gerador -- nunca alcancado
+
+    monkeypatch.setattr("app.live.router.sintetizar_audio_stream", _stream_com_erro)
+
+    resposta = client.post(
+        f"/live/{radio_config.id}/tts", json={"texto": "ola ouvintes"}, headers=auth_headers(account.id)
+    )
+    assert resposta.status_code == 502
 
 
 @freeze_time(AGORA_UTC)
@@ -1960,11 +2046,10 @@ def test_ouvinte_sem_pedido_anterior_nao_e_citado_como_recorrente(
 
 
 @freeze_time(AGORA_UTC)
-def test_pedido_de_sorteio_gera_confirmacao_deterministica(
+def test_pedido_de_sorteio_nao_confirma_inscricao_sem_registro(
     client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
 ):
-    """Frente S: pedido tipo "sorteio" na fila do chamada_ouvinte deve virar instrucao de
-    confirmacao de participacao, nao a reacao generica de abraco."""
+    """A fila de pedidos não é um cadastro verificado de inscrições."""
     radio_config, programa = radialista_e_programa
     pedido = FilaAoVivo(
         radio_config_id=radio_config.id,
@@ -1978,7 +2063,7 @@ def test_pedido_de_sorteio_gera_confirmacao_deterministica(
 
     prompts = []
     monkeypatch.setattr(
-        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Joana, você está concorrendo!"
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Joana, recebemos seu contato sobre o sorteio."
     )
 
     resposta = client.post(
@@ -1987,7 +2072,8 @@ def test_pedido_de_sorteio_gera_confirmacao_deterministica(
         headers=auth_headers(account.id),
     )
     assert resposta.status_code == 200
-    assert "confirme a participação de Joana no sorteio" in prompts[0]
+    assert "Joana enviou uma solicitação sobre o sorteio" in prompts[0]
+    assert "Não confirme inscrição" in prompts[0]
 
     pedido_atualizado = db_session.query(FilaAoVivo).filter_by(id=pedido.id).first()
     assert pedido_atualizado.atendido is True
@@ -2408,3 +2494,34 @@ def test_ouvinte_recorrente_de_dias_anteriores_e_citado(
     assert resposta.status_code == 200
     assert "já apareceu em uma transmissão de outro dia" in prompts[0]
     assert "já apareceu antes nesta transmissão" not in prompts[0]
+
+
+@freeze_time(AGORA_UTC)
+def test_radio_fm_processa_audio_embutido_e_endpoint_tts(
+    client, account, auth_headers, radialista_e_programa, monkeypatch
+):
+    import base64
+    import io
+    from pydub import AudioSegment
+    from pydub.generators import Sine
+
+    radio_config, programa = radialista_e_programa
+    buffer = io.BytesIO()
+    Sine(220).to_audio_segment(duration=1000).apply_gain(-12).export(buffer, format="mp3")
+    original = buffer.getvalue()
+    monkeypatch.setattr("app.live.router.gerar_resposta", lambda *a, **kw: "Bom dia, ouvintes.")
+    monkeypatch.setattr("app.live.router.tts_habilitado", lambda *a: True)
+    monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda *a: "neutro")
+    monkeypatch.setattr("app.live.router.sintetizar_audio", lambda *a, **kw: original)
+    headers = auth_headers(account.id)
+    proxima = client.post(_url_proxima(radio_config.id, programa.id),
+                          json={"total_falas": 0, "perfil_pos_producao": "radio_fm"}, headers=headers)
+    assert proxima.status_code == 200
+    assert proxima.json()["audio_status"] == "pronto"
+    embutido = base64.b64decode(proxima.json()["audio_base64"])
+    avulso = client.post(f"/live/{radio_config.id}/tts",
+                         json={"texto": "Bom dia, ouvintes.", "perfil_pos_producao": "radio_fm"}, headers=headers)
+    assert avulso.status_code == 200
+    assert embutido == avulso.content
+    assert embutido != original
+    assert abs(len(AudioSegment.from_file(io.BytesIO(embutido), format="mp3")) - 1000) < 50

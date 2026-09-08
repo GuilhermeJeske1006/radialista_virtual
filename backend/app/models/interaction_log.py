@@ -20,6 +20,8 @@ class InteractionLog(Base):
     telefone: Mapped[str] = mapped_column(String, index=True)
     nome: Mapped[str | None] = mapped_column(String, nullable=True)
     mensagem_usuario: Mapped[str] = mapped_column(Text)
+    resposta_pendente: Mapped[str | None] = mapped_column(Text, nullable=True)
+    tentativas_envio: Mapped[int] = mapped_column(Integer, default=0)
     resposta: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # ok | bloqueado_horario | bloqueado_rate_limit | bloqueado_conteudo | bloqueado_plano

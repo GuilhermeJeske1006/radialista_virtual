@@ -356,3 +356,46 @@ def test_status_broadcast_e_ignorado(client, conta_no_ar):
     payload = _payload(telefone="status@broadcast", message_id="msg-status-1")
     resposta = _post_webhook(client, payload)
     assert resposta.json() == {"status": "ignorado"}
+
+
+@freeze_time(AGORA_UTC)
+def test_limite_isolado_por_radio_sem_token_no_payload(client, conta_no_ar, account_factory, db_session):
+    _, _, programa = conta_no_ar
+    programa.limite_mensagens_hora = 1
+    outra = account_factory(email="outra@radio.com", wuzapi_user_id="outra", wuzapi_token="outro-token")
+    config = RadioConfig(account_id=outra.id, ativo=True, timezone="America/Sao_Paulo")
+    db_session.add(config)
+    db_session.flush()
+    db_session.add(Programa(radio_config_id=config.id, nome="Outro programa",
+                            horario_inicio=datetime.time(10), horario_fim=datetime.time(14),
+                            limite_mensagens_hora=1))
+    db_session.commit()
+    assert _post_webhook(client, _payload(message_id="primeira")).json()["status"] == "ok"
+    assert _post_webhook(client, _payload(message_id="segunda")).json()["motivo"] == "rate_limit"
+    assert _post_webhook(client, _payload(user_id="outra", message_id="terceira")).json()["status"] == "ok"
+
+
+@freeze_time(AGORA_UTC)
+def test_duplicada_tambem_exige_assinatura(client, conta_no_ar, db_session):
+    account, _, _ = conta_no_ar
+    _post_webhook(client, _payload(message_id="reentrega"))
+    account.wuzapi_hmac_key = "segredo"
+    db_session.commit()
+    assert _post_webhook(client, _payload(message_id="reentrega")).json()["motivo"] == "assinatura_invalida"
+
+
+def test_resposta_whatsapp_preserva_identidade_e_contexto(conta_no_ar, monkeypatch):
+    from app.whatsapp.webhook import _gerar_e_enviar_resposta
+    account, config, programa = conta_no_ar
+    account.nome_radio = "Rádio Aurora"
+    config.nome_locutor = "Ana"
+    capturado = {}
+    monkeypatch.setattr("app.llm.prompt_builder.obter_clima_atual", lambda cidade: None)
+    def gerar(prompt, texto):
+        capturado["prompt"] = prompt
+        return "Olá!"
+    monkeypatch.setattr("app.whatsapp.webhook.gerar_resposta", gerar)
+    monkeypatch.setattr("app.whatsapp.webhook.enviar_mensagem", lambda *args: None)
+    assert _gerar_e_enviar_resposta(account, config, programa, "5511999999999", "Oi") == "Olá!"
+    for trecho in ("Rádio Aurora", "Ana", programa.nome, "conversa privada", "não prometa execução"):
+        assert trecho in capturado["prompt"]

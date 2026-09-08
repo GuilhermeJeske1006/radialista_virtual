@@ -12,6 +12,7 @@ type PedidoFila = {
   mensagem_usuario: string;
   musica_query: string | null;
   atendido: boolean;
+  estado: string;
   atendido_em: string | null;
   criado_em: string;
 };
@@ -116,7 +117,7 @@ export default function HistoricoFilaPanel({ radialistaId }: Props) {
                     pedido.atendido ? "bg-teal/10 text-teal-text" : "bg-amber/10 text-amber-text"
                   }`}
                 >
-                  {pedido.atendido ? "Atendido" : "Pendente"}
+                  {pedido.estado === "historico_legado" ? "Histórico legado" : pedido.atendido ? "Executado" : ({em_fila: "Na fila", aguardando_revisao: "Em revisão", selecionado: "Selecionado", expirado: "Expirado", cancelado: "Cancelado", nao_atendido: "Não atendido"} as Record<string, string>)[pedido.estado] || "Pendente"}
                 </span>
               </div>
               <p className="text-xs text-fg/65 truncate">{pedido.musica_query || pedido.mensagem_usuario}</p>

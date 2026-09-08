@@ -2,6 +2,7 @@ import logging
 import re
 import time
 import unicodedata
+from collections.abc import Iterator
 
 import httpx
 
@@ -15,10 +16,14 @@ logger = logging.getLogger("radialista.tts")
 # antes de desistir e o front cair pra voz generica do navegador.
 _TTS_MAX_TENTATIVAS = 3
 _TTS_BACKOFF_BASE_SEGUNDOS = 1.5
+_TTS_TIMEOUT_SEGUNDOS = 25.0
+_TTS_MAX_ESPERA_RETRY_SEGUNDOS = 3.0
 
 _ELEVENLABS_URL = "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+_ELEVENLABS_STREAM_URL = "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/stream"
 _ELEVENLABS_VOICES_URL = "https://api.elevenlabs.io/v1/voices/add"
 _ELEVENLABS_VOICE_URL = "https://api.elevenlabs.io/v1/voices/{voice_id}"
+_ELEVENLABS_SHARED_VOICES_URL = "https://api.elevenlabs.io/v1/shared-voices"
 
 # radio e sempre em portugues -- fixa o idioma pro modelo nao tentar detectar sozinho por
 # trecho (numero solto e onde a deteccao mais erra, cai pra leitura estilo ingles).
@@ -127,8 +132,14 @@ _SIMILARITY_BOOST_CLONE = 0.8
 # Empiricamente a voz clonada ainda sai um pouco mais rapida/menos estavel que uma voz de catalogo
 # com os mesmos multiplicadores de tipo de bloco/tom -- ajuste fino pra compensar, aplicado antes do
 # clamp em _construir_voice_settings. Reavaliar por audicao se o modelo do catalogo mudar.
+#
+# delta de stability subido de 0.1 pra 0.15 (reclamacao de clone "robotizado" nos blocos energicos,
+# onde a stability efetiva ficava perto de 0.44) -- mantido como delta proporcional em vez de floor
+# fixo pra preservar a diferenca relativa entre tipo de bloco (abertura/musica continuam mais soltos
+# que noticia/comentario, so' desloca todos pra cima). Trocar pra floor fixo (max(stability, X)) e'
+# o proximo passo se o delta maior nao resolver, mas achataria essa diferenca entre blocos.
 _AJUSTE_SPEED_CLONADA = -0.08
-_AJUSTE_CLONADA = {"stability": 0.1, "style": -0.15}
+_AJUSTE_CLONADA = {"stability": 0.15, "style": -0.15}
 
 
 def tts_habilitado(voice_id: str | None = None) -> bool:
@@ -175,27 +186,16 @@ def _construir_voice_settings(tipo_bloco: str | None, tom: str | None, modelo: s
     return {k: v for k, v in voice_settings.items() if k not in _CHAVES_INDISPONIVEIS_V3}
 
 
-def sintetizar_audio(
+def _preparar_sintese(
     texto: str,
-    voice_id: str | None = None,
-    tipo_bloco: str | None = None,
-    tom: str | None = None,
-    eh_clonada: bool = False,
-    texto_anterior: str | None = None,
-) -> bytes:
-    """Gera audio (mp3) a partir de texto via ElevenLabs. Lanca httpx.HTTPStatusError em falha.
-
-    eh_clonada indica se voice_id e' uma voz clonada da conta (app.models.voz_clonada.VozClonada,
-    ver app.tts.voices.voz_valida_para_conta) em vez de uma voz do catalogo fixo -- afeta o
-    similarity_boost e os ajustes finos de prosodia usados (ver _SIMILARITY_BOOST_CLONE acima).
-
-    texto_anterior e' o texto da fala imediatamente anterior (mesmo locutor), repassado como
-    previous_text pra ElevenLabs manter a prosodia contigua entre chamadas -- cada bloco/linha do
-    programa ao vivo e' uma chamada de API isolada, sem isso o modelo trata toda fala como um
-    enunciado novo e solto, sem saber que continua uma conversa, o que sai como entonacao de
-    inicio/fim de frase mais artificial/cortada.
-    """
-    url = _ELEVENLABS_URL.format(voice_id=voice_id or settings.elevenlabs_voice_id)
+    tipo_bloco: str | None,
+    tom: str | None,
+    eh_clonada: bool,
+    texto_anterior: str | None,
+) -> tuple[dict, dict]:
+    """Headers e payload compartilhados entre sintetizar_audio (buffered) e
+    sintetizar_audio_stream (streaming) -- so' o endpoint e a forma de ler a resposta mudam
+    entre as duas (ver Plano B.4)."""
     headers = {
         "xi-api-key": settings.elevenlabs_api_key,
         "Content-Type": "application/json",
@@ -228,18 +228,101 @@ def sintetizar_audio(
     if texto_anterior and modelo != "eleven_v3":
         payload["previous_text"] = texto_anterior
 
-    with httpx.Client(timeout=30.0) as client:
-        for tentativa in range(1, _TTS_MAX_TENTATIVAS + 1):
+    return headers, payload
+
+
+def sintetizar_audio(
+    texto: str,
+    voice_id: str | None = None,
+    tipo_bloco: str | None = None,
+    tom: str | None = None,
+    eh_clonada: bool = False,
+    texto_anterior: str | None = None,
+    timeout_segundos: float = _TTS_TIMEOUT_SEGUNDOS,
+    max_tentativas: int = _TTS_MAX_TENTATIVAS,
+) -> bytes:
+    """Gera audio (mp3) a partir de texto via ElevenLabs. Lanca httpx.HTTPStatusError em falha.
+
+    eh_clonada indica se voice_id e' uma voz clonada da conta (app.models.voz_clonada.VozClonada,
+    ver app.tts.voices.voz_valida_para_conta) em vez de uma voz do catalogo fixo -- afeta o
+    similarity_boost e os ajustes finos de prosodia usados (ver _SIMILARITY_BOOST_CLONE acima).
+
+    texto_anterior e' o texto da fala imediatamente anterior (mesmo locutor), repassado como
+    previous_text pra ElevenLabs manter a prosodia contigua entre chamadas -- cada bloco/linha do
+    programa ao vivo e' uma chamada de API isolada, sem isso o modelo trata toda fala como um
+    enunciado novo e solto, sem saber que continua uma conversa, o que sai como entonacao de
+    inicio/fim de frase mais artificial/cortada.
+
+    timeout_segundos/max_tentativas tem defaults generosos (pensados pro endpoint /tts avulso,
+    que tem seu proprio orcamento de tempo isolado) -- a sintese embutida em /proxima (ver Plano
+    B.3 em app.live.router) passa valores bem mais curtos aqui, porque ali o tempo desta chamada
+    soma com o tempo de geracao da fala pelo LLM dentro do MESMO request, competindo pelo mesmo
+    timeout que o frontend aplica na chamada de /proxima inteira -- sem isso, uma unica fala mais
+    lenta na ElevenLabs estourava o timeout do frontend antes mesmo do backend responder com
+    audio_status="falhou", perdendo a fala inteira (nao so' o audio) pro fallback local generico.
+    """
+    url = _ELEVENLABS_URL.format(voice_id=voice_id or settings.elevenlabs_voice_id)
+    headers, payload = _preparar_sintese(texto, tipo_bloco, tom, eh_clonada, texto_anterior)
+
+    # O ao vivo nao pode ficar preso meio minuto numa unica fala. O frontend ja prepara o
+    # proximo bloco em paralelo; se este provedor nao responder em tempo de radio, o bloco
+    # seguinte assume com a cama musical ainda no ar.
+    with httpx.Client(timeout=timeout_segundos) as client:
+        for tentativa in range(1, max_tentativas + 1):
             response = client.post(url, headers=headers, json=payload)
-            if response.status_code != 429 or tentativa == _TTS_MAX_TENTATIVAS:
+            if response.status_code != 429 or tentativa == max_tentativas:
                 if response.status_code >= 400:
                     logger.warning("Falha ao sintetizar audio na ElevenLabs (%s)", response.status_code)
                 response.raise_for_status()
                 return response.content
 
-            logger.warning("Rate limit da ElevenLabs (429) na tentativa %s/%s", tentativa, _TTS_MAX_TENTATIVAS)
+            logger.warning("Rate limit da ElevenLabs (429) na tentativa %s/%s", tentativa, max_tentativas)
             espera = float(response.headers.get("retry-after", 0)) or _TTS_BACKOFF_BASE_SEGUNDOS * tentativa
+            espera = min(espera, _TTS_MAX_ESPERA_RETRY_SEGUNDOS)
             time.sleep(espera)
+
+
+def sintetizar_audio_stream(
+    texto: str,
+    voice_id: str | None = None,
+    tipo_bloco: str | None = None,
+    tom: str | None = None,
+    eh_clonada: bool = False,
+    texto_anterior: str | None = None,
+) -> Iterator[bytes]:
+    """Mesma sintese de sintetizar_audio, via endpoint de streaming da ElevenLabs -- devolve os
+    bytes do mp3 conforme chegam em vez de esperar o audio inteiro antes de responder, cortando a
+    cauda de latencia em blocos de fala mais longos (ver Plano B.4).
+
+    O CHAMADOR deve puxar o primeiro item (next()) fora de uma StreamingResponse ja iniciada:
+    ate' o primeiro yield, qualquer erro de conexao/rate-limit/autenticacao ainda sobe como
+    excecao normal (httpx.HTTPStatusError/HTTPError), dando pra virar HTTPException com status
+    certo -- depois que os headers HTTP 200 ja foram enviados pro cliente nao da mais pra trocar
+    o status code, entao esse e' o unico ponto em que o erro pode virar resposta de erro de verdade.
+    """
+    url = _ELEVENLABS_STREAM_URL.format(voice_id=voice_id or settings.elevenlabs_voice_id)
+    headers, payload = _preparar_sintese(texto, tipo_bloco, tom, eh_clonada, texto_anterior)
+
+    with httpx.Client(timeout=_TTS_TIMEOUT_SEGUNDOS) as client:
+        for tentativa in range(1, _TTS_MAX_TENTATIVAS + 1):
+            with client.stream("POST", url, headers=headers, json=payload) as response:
+                if response.status_code == 429 and tentativa < _TTS_MAX_TENTATIVAS:
+                    response.read()  # drena o corpo pra liberar a conexao antes do backoff
+                    logger.warning(
+                        "Rate limit da ElevenLabs (429) na tentativa %s/%s (streaming)",
+                        tentativa,
+                        _TTS_MAX_TENTATIVAS,
+                    )
+                    espera = float(response.headers.get("retry-after", 0)) or _TTS_BACKOFF_BASE_SEGUNDOS * tentativa
+                    espera = min(espera, _TTS_MAX_ESPERA_RETRY_SEGUNDOS)
+                    time.sleep(espera)
+                    continue
+                if response.status_code >= 400:
+                    response.read()
+                    logger.warning("Falha ao sintetizar audio (streaming) na ElevenLabs (%s)", response.status_code)
+                    response.raise_for_status()
+                yield from response.iter_bytes()
+                return
 
 
 def clonar_voz(nome: str, audio_bytes: bytes, content_type: str, nome_arquivo: str) -> str:
@@ -267,11 +350,23 @@ def obter_preview_url(voice_id: str) -> str | None:
     if not settings.elevenlabs_api_key:
         return None
 
-    url = _ELEVENLABS_VOICE_URL.format(voice_id=voice_id)
     headers = {"xi-api-key": settings.elevenlabs_api_key}
+    url = _ELEVENLABS_VOICE_URL.format(voice_id=voice_id)
     try:
         with httpx.Client(timeout=10.0) as client:
             response = client.get(url, headers=headers)
+            if response.status_code == 400:
+                # voz da Voice Library (premade, ex.: catalogo fixo em app/tts/voices.py) nunca
+                # foi adicionada a conta -- GET /v1/voices/{id} so' enxerga voz propria/clonada
+                # e devolve voice_not_found aqui, mesmo a sintese (POST text-to-speech) funcionando
+                # normal com o mesmo id. /v1/shared-voices busca no catalogo publico por id.
+                response = client.get(
+                    _ELEVENLABS_SHARED_VOICES_URL, headers=headers, params={"search": voice_id, "page_size": 1}
+                )
+                response.raise_for_status()
+                vozes = response.json().get("voices") or []
+                encontrada = next((v for v in vozes if v.get("voice_id") == voice_id), None)
+                return encontrada.get("preview_url") if encontrada else None
             response.raise_for_status()
             return response.json().get("preview_url")
     except httpx.HTTPError:

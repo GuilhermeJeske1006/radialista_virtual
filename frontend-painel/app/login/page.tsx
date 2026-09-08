@@ -60,8 +60,9 @@ export default function LoginPage() {
           <h1 className="font-display text-lg font-bold text-fg mb-6">Entrar</h1>
           <form onSubmit={enviar} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-fg/80 mb-1.5">E-mail</label>
+              <label htmlFor="login-email" className="block text-sm font-medium text-fg/80 mb-1.5">E-mail</label>
               <input
+                id="login-email"
                 type="email"
                 required
                 placeholder="Ex.: email@dominio.com"
@@ -71,8 +72,9 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-fg/80 mb-1.5">Senha</label>
+              <label htmlFor="login-senha" className="block text-sm font-medium text-fg/80 mb-1.5">Senha</label>
               <input
+                id="login-senha"
                 type="password"
                 placeholder="Mínimo de 8 caracteres"
                 minLength={8}

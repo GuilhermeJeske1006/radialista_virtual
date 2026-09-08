@@ -39,3 +39,7 @@ __all__ = [
     "SuperAdmin",
     "TemaHistorico",
 ]
+
+from app.models.conversa_ouvinte import ConversaOuvinte
+
+from app.models.mensagem_ouvinte import MensagemOuvinte

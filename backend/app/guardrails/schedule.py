@@ -21,10 +21,15 @@ def programa_no_ar(programa: Programa, timezone: str) -> bool:
 
     agora = datetime.datetime.now(ZoneInfo(timezone))
 
+    # Na madrugada, a ocorrência pertence ao dia em que o programa começou.
+    data_inicio = agora.date()
+    if programa.horario_inicio > programa.horario_fim and agora.time() <= programa.horario_fim:
+        data_inicio -= datetime.timedelta(days=1)
+
     if programa.data_especifica is not None:
-        if agora.date() != programa.data_especifica:
+        if data_inicio != programa.data_especifica:
             return False
-    elif programa.dias_semana and agora.weekday() not in programa.dias_semana:
+    elif programa.dias_semana and data_inicio.weekday() not in programa.dias_semana:
         return False
 
     return _dentro_da_janela(agora.time(), programa.horario_inicio, programa.horario_fim)

@@ -23,7 +23,7 @@ NATUREZAS_VALIDAS = {
 def classificar_intencao(
     config: RadioConfig, programa: Programa, texto_usuario: str
 ) -> tuple[str, str | None, str]:
-    """Classifica a mensagem do ouvinte pra uma acao de bastidor -- o bot nunca responde no WhatsApp.
+    """Classifica a mensagem do ouvinte pra uma acao de bastidor -- a resposta privada é tratada separadamente.
 
     Retorna (acao, musica_query, natureza):
     - "musica": ouvinte PEDIU explicitamente uma musica/artista/dedicatoria -> entra na fila pra tocar ao vivo.
@@ -47,7 +47,7 @@ def classificar_intencao(
 
     system_prompt_linhas = [
         f"Voce e o assistente de bastidores de {config.nome_locutor}, uma radio.",
-        "Um ouvinte mandou mensagem no WhatsApp da radio. O bot NUNCA responde direto no WhatsApp.",
+        "Um ouvinte mandou mensagem no WhatsApp da radio. A resposta privada é tratada por outro componente.",
         "Sua unica tarefa: classificar a mensagem numa acao de bastidor pro locutor usar ao vivo.",
         "Regra geral: SO' vai ao ar (musica ou abraco) se o ouvinte PEDIU EXPLICITAMENTE isso. "
         "Elogio, recado, desabafo ou saudacao SEM pedido claro de tocar musica ou de ser "

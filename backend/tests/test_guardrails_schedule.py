@@ -115,3 +115,20 @@ def test_minutos_restantes_overnight_apos_meia_noite():
     # fim as 06:00 do dia seguinte (data local ainda 10/08, 01:00) -> 5h = 300 min
     programa = _programa(horario_inicio=datetime.time(22, 0), horario_fim=datetime.time(6, 0))
     assert minutos_restantes(programa, TZ) == 300
+
+
+@freeze_time("2026-08-11 04:00:00")  # terça 01h, programa iniciado segunda
+def test_madrugada_respeita_dia_de_inicio():
+    programa = _programa(horario_inicio=datetime.time(22), horario_fim=datetime.time(6), dias_semana=[0])
+    assert programa_no_ar(programa, TZ)
+    programa.dias_semana = [1]
+    assert not programa_no_ar(programa, TZ)
+
+
+@freeze_time("2026-08-11 04:00:00")
+def test_programa_avulso_continua_apos_meia_noite():
+    programa = _programa(horario_inicio=datetime.time(22), horario_fim=datetime.time(6),
+                         data_especifica=datetime.date(2026, 8, 10))
+    assert programa_no_ar(programa, TZ)
+    programa.data_especifica = datetime.date(2026, 8, 11)
+    assert not programa_no_ar(programa, TZ)

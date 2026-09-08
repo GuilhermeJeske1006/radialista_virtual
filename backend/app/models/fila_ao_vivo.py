@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
@@ -9,9 +9,8 @@ from app.db.database import Base
 class FilaAoVivo(Base):
     """Pedidos de ouvintes (via WhatsApp) esperando pra entrar no programa ao vivo.
 
-    O bot nunca responde no WhatsApp: mensagens viram um item aqui (tipo "abraco" ou
-    "musica") e sao consumidas pelo /live/programa/proxima quando o locutor le o
-    recado ou toca a musica no ar.
+    O novo atendimento separa o relato privado do conteúdo aprovado e só marca
+    atendido após confirmação de reprodução. Registros legados preservam seu histórico.
     """
 
     __tablename__ = "fila_ao_vivo"
@@ -20,6 +19,14 @@ class FilaAoVivo(Base):
 
     radio_config_id: Mapped[int] = mapped_column(ForeignKey("radio_configs.id"), index=True)
 
+    programa_id: Mapped[int | None] = mapped_column(ForeignKey("programas.id"), nullable=True, index=True)
+    transmissao: Mapped[str | None] = mapped_column(String, nullable=True)
+    estado: Mapped[str] = mapped_column(String, default="em_fila", index=True)
+    eventos: Mapped[list] = mapped_column(JSON, default=list)
+    texto_autorizado: Mapped[str] = mapped_column(Text, default="")
+    motivo: Mapped[str] = mapped_column(String, default="")
+    selecao_token: Mapped[str | None] = mapped_column(String, nullable=True)
+    selecionado_em: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     telefone: Mapped[str] = mapped_column(String, index=True)
     nome: Mapped[str] = mapped_column(String, default="")
 

@@ -13,6 +13,8 @@ class Account(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
+    atendimento_ouvinte_ativo: Mapped[bool] = mapped_column(Boolean, default=False)
+
     usuarios = relationship("Usuario", back_populates="account")
 
     @property

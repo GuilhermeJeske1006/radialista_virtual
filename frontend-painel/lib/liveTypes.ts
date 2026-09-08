@@ -16,7 +16,14 @@ export type MusicaBloco = {
 // quando o programa tem mais de um radialista, uma linha por participante que falou no bloco.
 export type FalaItem = { radio_config_id: number; nome_locutor: string; voz_id: string | null; texto: string };
 
-export type ProgramSegment = {
+export type ConfirmacaoPedido = {
+  pedido_id?: number | null;
+  pedido_token?: string | null;
+  pedido_programa_id?: number | null;
+  pedido_radialista_id?: number | null;
+};
+
+export type ProgramSegment = ConfirmacaoPedido & {
   id: number;
   tipo: string;
   fala: string;
@@ -42,7 +49,7 @@ export type ProgramSegment = {
   intervalo_ms?: number | null;
 };
 
-export type LiveProgramResponse = {
+export type LiveProgramResponse = ConfirmacaoPedido & {
   tipo: string;
   fala: string;
   criado_em: string;
@@ -57,6 +64,14 @@ export type LiveProgramResponse = {
   vinheta_id?: number | null;
   falas?: FalaItem[] | null;
   intervalo_ms?: number | null;
+  // Audio ja sintetizado (mp3, base64) do texto de `fala` -- preenchido so' pra bloco de fala
+  // unica quando o backend conseguiu sintetizar dentro do proprio /proxima (ver Plano B.3).
+  // Ausente/null: frontend cai pro fallback antigo de chamar POST /tts em separado.
+  audio_base64?: string | null;
+  // Diferencia "nao ha audio porque o bloco nao usa TTS" de uma falha ja conhecida pelo
+  // backend, evitando uma segunda chamada cara e a voz sintetica do navegador.
+  audio_status?: "pronto" | "falhou" | "indisponivel" | "nao_aplicavel";
+  audio_erro?: string | null;
 };
 
 export type ProgramaOpcao = Programa & { radialistaId: number; radialistaNome: string };

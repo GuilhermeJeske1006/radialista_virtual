@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import hashlib
 import hmac
 import json
@@ -95,7 +96,16 @@ def _gerar_e_enviar_resposta(
     de volta pro comportamento sem resposta automatica, sem derrubar o webhook.
     """
     try:
-        resposta = gerar_resposta(montar_system_prompt(account, config, programa), texto_usuario)
+        prompt = montar_system_prompt(account, config, programa)
+        prompt += (
+            "\nCanal desta resposta: conversa privada no WhatsApp com um ouvinte. "
+            "Mantenha a identidade do radialista, da rádio e o tom do programa acima. "
+            "Responda de forma breve e natural, sem roteiro de locução, blocos ou diálogo entre apresentadores. "
+            "Trate pedidos de música, abraço e sorteio como solicitações: não prometa execução, "
+            "horário, inscrição ou premiação confirmados. Não diga que algo já foi ao ar. "
+            "Você não tem ferramenta de pesquisa nesta conversa; não alegue ter consultado fontes."
+        )
+        resposta = gerar_resposta(prompt, texto_usuario)
     except Exception:
         logger.exception("Falha ao gerar resposta automatica de WhatsApp: config_id=%s", config.id)
         return None
@@ -237,8 +247,19 @@ async def _aguardar_contexto_completo(config_id: int, telefone: str, texto: str)
     if redis_client.get(chave_marc) != token:
         return None
 
-    mensagens = redis_client.lrange(chave_buf, 0, -1)
-    redis_client.delete(chave_buf, chave_marc)
+    # Uma nova bolha entre a leitura e o delete não pode ser apagada por esta execução.
+    from redis.exceptions import WatchError
+    with redis_client.pipeline() as pipe:
+        try:
+            pipe.watch(chave_marc, chave_buf)
+            if pipe.get(chave_marc) != token:
+                return None
+            mensagens = pipe.lrange(chave_buf, 0, -1)
+            pipe.multi()
+            pipe.delete(chave_buf, chave_marc)
+            pipe.execute()
+        except WatchError:
+            return None
     return "\n".join(mensagens)
 
 
@@ -261,7 +282,16 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
     """
     raw_body = await request.body()
     payload = json.loads(raw_body)
-    logger.info("Webhook recebido: %s", payload)
+    # Payloads de midia carregam base64 e podem ter megabytes. Alem de poluir o log e esconder
+    # incidentes do ao vivo, registrar esse conteudo e' desnecessario para diagnostico.
+    info = ((payload.get("event") or {}).get("Info") or {}) if isinstance(payload, dict) else {}
+    logger.info(
+        "Webhook recebido: tipo=%s instancia=%s mensagem_id=%s midia=%s",
+        payload.get("type") if isinstance(payload, dict) else type(payload).__name__,
+        payload.get("instanceName") if isinstance(payload, dict) else None,
+        info.get("ID"),
+        info.get("MediaType"),
+    )
 
     extraido = _extrair_mensagem(payload)
     if extraido is None:
@@ -280,14 +310,6 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
         wuzapi_message_id,
     ) = extraido
 
-    if wuzapi_message_id is not None:
-        ja_processada = (
-            db.query(InteractionLog).filter_by(wuzapi_message_id=wuzapi_message_id).first()
-        )
-        if ja_processada is not None:
-            logger.info("Mensagem %s ja processada, ignorando reentrega", wuzapi_message_id)
-            return {"status": "ignorado", "motivo": "duplicada"}
-
     account = None
     if wuzapi_user_id:
         account = db.query(Account).filter_by(wuzapi_user_id=wuzapi_user_id).first()
@@ -301,6 +323,20 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
         logger.warning("Assinatura HMAC invalida no webhook da conta %s", account.id)
         return {"status": "ignorado", "motivo": "assinatura_invalida"}
 
+    if account.atendimento_ouvinte_ativo and wuzapi_message_id:
+        # Namespace sem mudar a restrição UNIQUE legada nem reescrever o histórico.
+        wuzapi_message_id = f"radio:{account.id}:" + hashlib.sha256(wuzapi_message_id.encode()).hexdigest()
+
+    # Verifique reentregas somente depois de autenticar a origem.
+    if wuzapi_message_id is not None:
+        ja_processada = (
+            db.query(InteractionLog)
+            .filter_by(wuzapi_message_id=wuzapi_message_id)
+            .first()
+        )
+        if ja_processada is not None:
+            return {"status": "ignorado", "motivo": "duplicada"}
+
     # Numero de WhatsApp e' unico por conta, mas varios radialistas (agentes) podem
     # compartilha-lo, cada um no ar num horario diferente -- acha quem esta na escala agora.
     config, programa_atual = _radialista_no_ar(db, account.id)
@@ -309,6 +345,21 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
         return {"status": "ignorado"}
 
     if from_me:
+        if account.atendimento_ouvinte_ativo and texto_usuario:
+            from app.whatsapp.atendimento import conversa
+            from app.whatsapp.locks import bloquear_conversa
+            with bloquear_conversa(account.id, telefone):
+                # Ecos do envio automático não assumem o atendimento humano.
+                eco = db.query(InteractionLog).join(RadioConfig).filter(
+                    RadioConfig.account_id == account.id, InteractionLog.telefone == telefone,
+                    (InteractionLog.resposta == texto_usuario) | (InteractionLog.resposta_pendente == texto_usuario),
+                ).order_by(InteractionLog.id.desc()).first()
+                if not eco:
+                    c = conversa(db, account.id, telefone)
+                    c.humano = True
+                    c.atualizado_em = datetime.datetime.now(datetime.timezone.utc)
+                    c.historico = [*c.historico, {"role": "assistant", "content": texto_usuario[:4000]}][-10:]
+                    db.commit()
         _registrar_log(
             db,
             config,
@@ -355,6 +406,10 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
         _registrar_log(db, config, telefone, nome, texto_usuario, "bloqueado_plano", wuzapi_message_id=wuzapi_message_id)
         return {"status": "bloqueado", "motivo": "limite_plano"}
 
+    if account.atendimento_ouvinte_ativo:
+        from app.whatsapp.inbox import receber
+        return await receber(db, account, config, programa_atual, telefone, nome, texto_usuario, wuzapi_message_id)
+
     if programa_atual is None:
         _registrar_log(db, config, telefone, nome, texto_usuario, "bloqueado_horario", wuzapi_message_id=wuzapi_message_id)
         return {"status": "bloqueado", "motivo": "horario"}
@@ -365,7 +420,7 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
         # contexto completo e' aquela chamada, essa aqui desiste sem registrar nada.
         return {"status": "ok", "motivo": "aguardando_contexto"}
 
-    if not dentro_do_limite(wuzapi_token, telefone, programa_atual.limite_mensagens_hora):
+    if not dentro_do_limite(f"account:{account.id}:programa:{programa_atual.id}", telefone, programa_atual.limite_mensagens_hora):
         _registrar_log(
             db, config, telefone, nome, texto_usuario, "bloqueado_rate_limit", wuzapi_message_id=wuzapi_message_id
         )

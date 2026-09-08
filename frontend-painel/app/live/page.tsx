@@ -10,11 +10,17 @@ import PlaylistCentral from "../../components/live/PlaylistCentral";
 import BibliotecaAudioPanel from "../../components/live/BibliotecaAudioPanel";
 import CartwallPanel from "../../components/live/CartwallPanel";
 import InteracoesPanel from "../../components/live/InteracoesPanel";
+import AtendimentoOuvintesPanel from "../../components/live/AtendimentoOuvintesPanel";
 import HistoricoFilaPanel from "../../components/live/HistoricoFilaPanel";
 import { apiFetch, ApiError } from "../../lib/api";
 import { BibliotecaAudioItem } from "../../lib/bibliotecaAudio";
 import { CategoriaVinheta } from "../../lib/types";
 import { useLiveEngine } from "../../hooks/useLiveEngine";
+
+// numero de blocos seguidos sem locucao (so' cama musical) a partir do qual o alerta vira
+// persistente na tela -- abaixo disso pode ser so' um solavanco pontual da ElevenLabs (ja
+// coberto pelo toast transitorio em engine.erro), 1 falha isolada nao merece alarme forte.
+const LIMIAR_ALERTA_FALHA_AUDIO = 3;
 
 export default function LivePage() {
   const engine = useLiveEngine();
@@ -56,6 +62,16 @@ export default function LivePage() {
       <div id="yt-live-player" className="pointer-events-none fixed left-[-9999px] top-0 h-px w-px overflow-hidden" />
       <div id="yt-bg-player" className="pointer-events-none fixed left-[-9999px] top-0 h-px w-px overflow-hidden" />
 
+      {engine.falhasAudioConsecutivas >= LIMIAR_ALERTA_FALHA_AUDIO && (
+        <div className="mb-4 rounded-lg border border-rust bg-rust/10 px-4 py-3">
+          <p className="text-sm font-medium text-rust-text">
+            Sintese de voz falhando ha {engine.falhasAudioConsecutivas} blocos seguidos -- o programa esta
+            no ar so' com musica, sem locucao. Verifique a ElevenLabs (chave de API, limite de uso) ou a
+            conexao do backend.
+          </p>
+        </div>
+      )}
+
       {(engine.erro || erroBiblioteca || engine.abaEmSegundoPlano || engine.avisoGravacao) && (
         <div className="space-y-2 mb-4">
           {engine.erro && <p className="text-sm text-rust-text">{engine.erro}</p>}
@@ -83,7 +99,7 @@ export default function LivePage() {
           radialistaSelecionado={engine.radialistaSelecionado}
           programaSelecionadoNoAr={engine.programaSelecionadoNoAr}
           onSelecionar={(opcao) => engine.selecionarPrograma(opcao)}
-          onIniciar={engine.iniciarPrograma}
+          onIniciar={() => engine.iniciarPrograma()}
           onPausar={() => engine.pausarPrograma(true)}
           onEditarRadialista={setModalRadialistaId}
           onEditarPrograma={(radialistaId, programaId) => setModalPrograma({ radialistaId, programaId })}
@@ -137,6 +153,7 @@ export default function LivePage() {
               onNovaInteracao={avisarNovaInteracao}
             />
             <HistoricoFilaPanel radialistaId={engine.radialistaId} />
+            <AtendimentoOuvintesPanel />
           </div>
         </div>
       )}

@@ -78,7 +78,7 @@ describe("GradeProgramacaoForm", () => {
   it("salva a programação chamando PUT com a estrutura atual", async () => {
     await renderComPrograma({ programa: programaFixture({ estrutura_blocos: ["abertura"] }) });
     apiFetchMock.mockClear();
-    apiFetchMock.mockResolvedValue(programaFixture({ estrutura_blocos: ["abertura"] }));
+    // Mantém as respostas por rota: o elenco ainda pode estar carregando.
 
     await userEvent.click(screen.getByRole("button", { name: "Salvar programação" }));
 

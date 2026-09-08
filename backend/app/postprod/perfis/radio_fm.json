@@ -1,0 +1,33 @@
+{
+  "eq": {
+    "high_pass_hz": 80,
+    "presence_freq_hz": 3000,
+    "presence_boost_db": 2,
+    "brightness_boost_db": 0.5,
+    "mud_cut_db": -1.5
+  },
+  "compression": {
+    "threshold_db": -18,
+    "ratio": 3,
+    "attack_ms": 10,
+    "release_ms": 120
+  },
+  "saturation": {
+    "drive_db": 0.5
+  },
+  "reverb": {
+    "wet_level": 0,
+    "room_size": 0.15
+  },
+  "naturalness": {
+    "pitch_jitter_cents": 0,
+    "room_noise_db": null
+  },
+  "deesser": {
+    "intensity": 0.25,
+    "max": 0.5,
+    "frequency": 0.5
+  },
+  "loudness_target_lufs": -16,
+  "true_peak_db": -2
+}

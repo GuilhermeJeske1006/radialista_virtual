@@ -40,5 +40,5 @@ def array_para_mp3_bytes(audio: np.ndarray, sample_rate: int, sample_width: int 
     )
 
     buffer = io.BytesIO()
-    segmento.export(buffer, format="mp3")
+    segmento.export(buffer, format="mp3", bitrate="192k" if sample_rate >= 32000 else "64k")
     return buffer.getvalue()

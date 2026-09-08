@@ -1,5 +1,7 @@
 import hashlib
 
+from freezegun import freeze_time
+
 from app.auth.security import COOKIE_TOKEN
 from app.biblioteca_audio.sons_padrao import SONS_PADRAO
 from app.categorias_vinheta.defaults import CATEGORIAS_PADRAO
@@ -11,7 +13,9 @@ def _registrar(client, email="fulano@example.com", senha="senha12345", nome="Ful
     return client.post("/auth/register", json={"nome": nome, "email": email, "senha": senha})
 
 
-def test_registro_cria_conta_radio_config_e_programa_padrao(client, db_session):
+def test_registro_cria_conta_radio_config_e_programa_padrao(client, db_session, monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "storage_backend", "local")
+    monkeypatch.setattr(settings, "upload_dir", str(tmp_path))
     resposta = _registrar(client)
     assert resposta.status_code == 200
     token = resposta.json()["access_token"]
@@ -23,7 +27,7 @@ def test_registro_cria_conta_radio_config_e_programa_padrao(client, db_session):
     assert corpo["tem_radio_config"] is True
 
     categorias = client.get("/categorias-vinheta", headers={"Authorization": f"Bearer {token}"}).json()
-    assert sorted((c["nome"], c["tipo"]) for c in categorias) == sorted(CATEGORIAS_PADRAO)
+    assert sorted((c["nome"], c["tipo"]) for c in categorias) == sorted([*CATEGORIAS_PADRAO, ("Cartwall", "biblioteca")])
 
 
 def test_registro_seeda_sons_padrao_no_cartwall(client, monkeypatch, tmp_path):
@@ -254,6 +258,7 @@ def test_dois_usuarios_da_mesma_conta_logam_separado(client, db_session, account
     assert login_admin.status_code == 200
 
 
+@freeze_time("2026-08-10 15:00:00")
 def test_register_respeita_rate_limit_por_ip(client):
     for _ in range(5):
         resposta = _registrar(client, email=f"user{_}@example.com")

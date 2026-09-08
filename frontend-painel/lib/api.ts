@@ -20,6 +20,24 @@ async function mensagemDeErro(response: Response): Promise<string> {
   return corpo || `Erro ${response.status}`;
 }
 
+async function requisitar(path: string, options: RequestInit, timeoutMs?: number): Promise<Response> {
+  const controller = timeoutMs ? new AbortController() : null;
+  const timeoutId = controller ? window.setTimeout(() => controller.abort(), timeoutMs) : null;
+  try {
+    return await fetch(`${API_URL}${path}`, {
+      ...options,
+      signal: controller?.signal ?? options.signal,
+    });
+  } catch (erro) {
+    if (controller?.signal.aborted) {
+      throw new ApiError(408, "Tempo esgotado ao preparar a proxima fala");
+    }
+    throw erro;
+  } finally {
+    if (timeoutId !== null) window.clearTimeout(timeoutId);
+  }
+}
+
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
     "content-type": "application/json",
@@ -28,7 +46,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
 
   // sessao via cookie httpOnly (setado pelo backend no login/registro) -- o
   // browser manda sozinho, sem o JS precisar ler/guardar token nenhum.
-  const response = await fetch(`${API_URL}${path}`, { ...options, headers, credentials: "include" });
+  const response = await requisitar(path, { ...options, headers, credentials: "include" });
 
   // 401 aqui normalmente e' sessao expirada/ausente -- exceto no proprio /auth/login, onde
   // 401 so' significa "credenciais erradas" (login unico pra tenant e super-admin, ver
@@ -49,6 +67,18 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     return undefined as T;
   }
 
+  return response.json() as Promise<T>;
+}
+
+/** Request com limite explicito para os caminhos do ao vivo. */
+export async function apiFetchComTimeout<T>(path: string, options: RequestInit, timeoutMs: number): Promise<T> {
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    ...(options.headers as Record<string, string> | undefined),
+  };
+  const response = await requisitar(path, { ...options, headers, credentials: "include" }, timeoutMs);
+  if (!response.ok) throw new ApiError(response.status, await mensagemDeErro(response));
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
 
@@ -81,12 +111,22 @@ export async function apiFetchBlob(path: string, options: RequestInit = {}): Pro
     ...(options.headers as Record<string, string> | undefined),
   };
 
-  const response = await fetch(`${API_URL}${path}`, { ...options, headers, credentials: "include" });
+  const response = await requisitar(path, { ...options, headers, credentials: "include" });
 
   if (!response.ok) {
     throw new ApiError(response.status, await mensagemDeErro(response));
   }
 
+  return response.blob();
+}
+
+export async function apiFetchBlobComTimeout(path: string, options: RequestInit, timeoutMs: number): Promise<Blob> {
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    ...(options.headers as Record<string, string> | undefined),
+  };
+  const response = await requisitar(path, { ...options, headers, credentials: "include" }, timeoutMs);
+  if (!response.ok) throw new ApiError(response.status, await mensagemDeErro(response));
   return response.blob();
 }
 

@@ -37,6 +37,7 @@ wuzapi/qr.png
 
 # --- uploads (audio de patrocinadores etc.) ---
 backend/uploads/
+/uploads/
 
 # --- OS / editor ---
 .DS_Store

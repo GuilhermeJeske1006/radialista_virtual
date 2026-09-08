@@ -527,6 +527,8 @@ def excluir_radialista(
         db.query(ProgramaRadialista).filter(ProgramaRadialista.programa_id.in_(programas_do_radialista)).delete(
             synchronize_session=False
         )
+    from app.models.mensagem_ouvinte import MensagemOuvinte
+    db.query(MensagemOuvinte).filter_by(radio_config_id=radialista.id).delete()
     db.query(InteractionLog).filter_by(radio_config_id=radialista.id).delete()
     db.query(FilaAoVivo).filter_by(radio_config_id=radialista.id).delete()
     db.query(Programa).filter_by(radio_config_id=radialista.id).delete()
@@ -653,6 +655,18 @@ def excluir_programa(
     db: Session = Depends(get_db),
 ):
     programa = _buscar_programa(db, account, programa_id)
+    from app.models.mensagem_ouvinte import MensagemOuvinte
+    from app.whatsapp.atendimento import registrar_evento
+    for pedido in db.query(FilaAoVivo).filter_by(programa_id=programa.id).all():
+        if pedido.estado in ("recebido", "em_fila", "aguardando_revisao", "selecionado"):
+            pedido.estado = "nao_atendido"
+            pedido.motivo = "Programa excluído"
+            pedido.selecao_token = None
+        registrar_evento(pedido, "programa_excluido", programa_anterior=programa.id)
+        pedido.programa_id = None
+    db.query(MensagemOuvinte).filter_by(programa_id=programa.id, estado="pendente").update({"estado": "expirada"})
+    db.query(MensagemOuvinte).filter_by(programa_id=programa.id).update({"programa_id": None})
+    db.flush()
     db.query(ProgramaRadialista).filter_by(programa_id=programa.id).delete()
     db.query(MusicaHistorico).filter_by(programa_id=programa.id).delete()
     db.query(TemaHistorico).filter_by(programa_id=programa.id).delete()

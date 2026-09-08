@@ -48,6 +48,7 @@ from app.patrocinadores.router import router as patrocinadores_router
 from app.suporte.router import router as suporte_router
 from app.tts.router import router as tts_router
 from app.whatsapp.webhook import router as whatsapp_router
+from app.whatsapp.gestao import router as ouvintes_router
 
 _LOG_DIR = pathlib.Path("logs")
 _LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -108,6 +109,7 @@ async def _security_headers(request, call_next):
 
 
 app.include_router(whatsapp_router)
+app.include_router(ouvintes_router)
 app.include_router(auth_router)
 app.include_router(equipe_router)
 app.include_router(config_router)
@@ -185,6 +187,7 @@ def garantir_colunas_account():
 
     colunas = {coluna["name"] for coluna in inspector.get_columns("accounts")}
     novas_colunas = {
+        "atendimento_ouvinte_ativo": "BOOLEAN DEFAULT false NOT NULL",
         "plano": "VARCHAR DEFAULT 'starter' NOT NULL",
         "wuzapi_token": "VARCHAR NULL",
         "wuzapi_user_id": "VARCHAR NULL",
@@ -263,6 +266,8 @@ def garantir_colunas_interaction_log():
 
     colunas = {coluna["name"] for coluna in inspector.get_columns("interaction_logs")}
     novas_colunas = {
+        "resposta_pendente": "TEXT NULL",
+        "tentativas_envio": "INTEGER DEFAULT 0 NOT NULL",
         "nome": "VARCHAR NULL",
         "origem": "VARCHAR DEFAULT 'ouvinte' NOT NULL",
     }
@@ -279,12 +284,26 @@ def garantir_colunas_fila_ao_vivo():
 
     colunas = {coluna["name"] for coluna in inspector.get_columns("fila_ao_vivo")}
     novas_colunas = {
+        "programa_id": "INTEGER NULL REFERENCES programas(id)",
+        "transmissao": "VARCHAR NULL",
+        "estado": "VARCHAR DEFAULT 'em_fila' NOT NULL",
+        "texto_autorizado": "TEXT DEFAULT '' NOT NULL",
+        "motivo": "VARCHAR DEFAULT '' NOT NULL",
+        "eventos": "JSON DEFAULT '[]' NOT NULL",
+        "selecao_token": "VARCHAR NULL",
+        "selecionado_em": "TIMESTAMP NULL",
+
         "natureza": "VARCHAR DEFAULT 'outro' NOT NULL",
     }
     with engine.begin() as conn:
         for nome, definicao in novas_colunas.items():
             if nome not in colunas:
                 conn.execute(text(f"ALTER TABLE fila_ao_vivo ADD COLUMN {nome} {definicao}"))
+
+        if "estado" not in colunas:
+            conn.execute(text("UPDATE fila_ao_vivo SET estado = CASE WHEN atendido THEN 'historico_legado' ELSE 'aguardando_revisao' END"))
+
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_fila_programa_transmissao_estado ON fila_ao_vivo (programa_id, transmissao, estado)"))
 
 
 def garantir_colunas_musica_historico():

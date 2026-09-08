@@ -1,4 +1,4 @@
-from pedalboard import Compressor, Distortion, HighpassFilter, Limiter, Pedalboard, PeakFilter, Reverb
+from pedalboard import Compressor, Distortion, HighpassFilter, Pedalboard, PeakFilter, Reverb
 
 # frequencia fixa de brilho (8kHz) -- so a intensidade (brightness_boost_db) varia por perfil,
 # ver docs/plano-pos-producao-voz.md secao 3.2.
@@ -6,7 +6,7 @@ _BRIGHTNESS_FREQ_HZ = 8000.0
 
 
 def montar_pipeline(perfil: dict) -> Pedalboard:
-    """Monta a cadeia EQ -> compressao -> saturacao -> reverb -> limitador de um perfil de estilo."""
+    """Monta a cadeia EQ -> compressao -> saturacao -> reverb; masterizacao vem depois de um perfil de estilo."""
     eq = perfil["eq"]
     comp = perfil["compression"]
     sat = perfil["saturation"]
@@ -15,6 +15,7 @@ def montar_pipeline(perfil: dict) -> Pedalboard:
     return Pedalboard(
         [
             HighpassFilter(cutoff_frequency_hz=eq["high_pass_hz"]),
+            PeakFilter(cutoff_frequency_hz=275, gain_db=eq.get("mud_cut_db", 0), q=0.8),
             PeakFilter(cutoff_frequency_hz=eq["presence_freq_hz"], gain_db=eq["presence_boost_db"], q=1.0),
             PeakFilter(cutoff_frequency_hz=_BRIGHTNESS_FREQ_HZ, gain_db=eq["brightness_boost_db"], q=0.7),
             Compressor(
@@ -25,6 +26,5 @@ def montar_pipeline(perfil: dict) -> Pedalboard:
             ),
             Distortion(drive_db=sat["drive_db"]),
             Reverb(room_size=rev["room_size"], wet_level=rev["wet_level"], dry_level=1 - rev["wet_level"]),
-            Limiter(threshold_db=-1.0, release_ms=100),
         ]
     )

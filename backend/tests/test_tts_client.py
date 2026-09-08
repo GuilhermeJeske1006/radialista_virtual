@@ -43,6 +43,45 @@ class _FakeClient:
         return self._respostas.pop(0)
 
 
+class _FakeStreamResponse:
+    def __init__(self, status_code=200, chunks=(b"mp3-data",), headers=None):
+        self.status_code = status_code
+        self._chunks = list(chunks)
+        self.headers = headers or {}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def iter_bytes(self):
+        yield from self._chunks
+
+    def read(self):
+        return b"".join(self._chunks)
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise httpx.HTTPStatusError("erro", request=None, response=self)
+
+
+class _FakeStreamClient:
+    def __init__(self, respostas):
+        self._respostas = list(respostas)
+        self.chamadas = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def stream(self, method, url, **kwargs):
+        self.chamadas.append((method, url, kwargs))
+        return self._respostas.pop(0)
+
+
 def _habilitar_elevenlabs(monkeypatch):
     monkeypatch.setattr(tts_client.settings, "elevenlabs_api_key", "fake-key")
     monkeypatch.setattr(tts_client.settings, "elevenlabs_voice_id", "voz-padrao")
@@ -274,6 +313,54 @@ def test_sintetizar_audio_levanta_erro_em_falha_definitiva(monkeypatch):
         tts_client.sintetizar_audio("ola")
 
 
+def test_sintetizar_audio_stream_devolve_bytes(monkeypatch):
+    _habilitar_elevenlabs(monkeypatch)
+    fake = _FakeStreamClient([_FakeStreamResponse(status_code=200, chunks=[b"parte1", b"parte2"])])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+
+    audio = b"".join(tts_client.sintetizar_audio_stream("ola ouvintes", tipo_bloco="abertura", tom="energico"))
+    assert audio == b"parte1parte2"
+
+
+def test_sintetizar_audio_stream_usa_endpoint_de_streaming(monkeypatch):
+    _habilitar_elevenlabs(monkeypatch)
+    fake = _FakeStreamClient([_FakeStreamResponse(status_code=200, chunks=[b"x"])])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+
+    list(tts_client.sintetizar_audio_stream("ola", "voz-x"))
+    metodo, url, _kwargs = fake.chamadas[0]
+    assert metodo == "POST"
+    assert url == tts_client._ELEVENLABS_STREAM_URL.format(voice_id="voz-x")
+
+
+def test_sintetizar_audio_stream_faz_retry_em_429(monkeypatch):
+    _habilitar_elevenlabs(monkeypatch)
+    monkeypatch.setattr(tts_client.time, "sleep", lambda segundos: None)
+    fake = _FakeStreamClient(
+        [
+            _FakeStreamResponse(status_code=429, headers={"retry-after": "0"}),
+            _FakeStreamResponse(status_code=200, chunks=[b"mp3-final"]),
+        ]
+    )
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+
+    audio = b"".join(tts_client.sintetizar_audio_stream("ola"))
+    assert audio == b"mp3-final"
+    assert len(fake.chamadas) == 2
+
+
+def test_sintetizar_audio_stream_levanta_erro_em_falha_definitiva(monkeypatch):
+    """Erro precisa subir ANTES do primeiro yield -- e' o que deixa o endpoint /tts ainda
+    converter pra HTTPException normal em vez de truncar uma StreamingResponse ja iniciada
+    (ver docstring de sintetizar_audio_stream e uso em app.live.router.gerar_audio_fala)."""
+    _habilitar_elevenlabs(monkeypatch)
+    fake = _FakeStreamClient([_FakeStreamResponse(status_code=500)])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+
+    with pytest.raises(httpx.HTTPStatusError):
+        next(tts_client.sintetizar_audio_stream("ola"))
+
+
 def test_clonar_voz_devolve_voice_id(monkeypatch):
     _habilitar_elevenlabs(monkeypatch)
     fake = _FakeClient([_FakeResponse(status_code=200, json_data={"voice_id": "novo-id"})])
@@ -299,6 +386,39 @@ def test_obter_preview_url_devolve_url(monkeypatch):
 def test_obter_preview_url_devolve_none_em_falha(monkeypatch):
     _habilitar_elevenlabs(monkeypatch)
     fake = _FakeClient([_FakeResponse(status_code=500)])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+
+    assert tts_client.obter_preview_url("voz-1") is None
+
+
+def test_obter_preview_url_cai_pra_shared_voices_quando_voz_da_library(monkeypatch):
+    # voz premade (catalogo fixo em app/tts/voices.py) nao esta na conta -- GET /v1/voices/{id}
+    # devolve voice_not_found (400); shared-voices e' onde a voz publica de fato existe.
+    _habilitar_elevenlabs(monkeypatch)
+    fake = _FakeClient(
+        [
+            _FakeResponse(status_code=400),
+            _FakeResponse(
+                status_code=200,
+                json_data={"voices": [{"voice_id": "voz-1", "preview_url": "https://example.com/shared.mp3"}]},
+            ),
+        ]
+    )
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+
+    assert tts_client.obter_preview_url("voz-1") == "https://example.com/shared.mp3"
+    assert fake.chamadas[1][1] == tts_client._ELEVENLABS_SHARED_VOICES_URL
+    assert fake.chamadas[1][2]["params"] == {"search": "voz-1", "page_size": 1}
+
+
+def test_obter_preview_url_shared_voices_sem_match_devolve_none(monkeypatch):
+    _habilitar_elevenlabs(monkeypatch)
+    fake = _FakeClient(
+        [
+            _FakeResponse(status_code=400),
+            _FakeResponse(status_code=200, json_data={"voices": []}),
+        ]
+    )
     monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
 
     assert tts_client.obter_preview_url("voz-1") is None

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { apiFetch, apiFetchBlob, apiFetchForm, ApiError } from "../api";
+import { apiFetch, apiFetchBlob, apiFetchComTimeout, apiFetchForm, ApiError } from "../api";
 
 function respostaJson(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -57,6 +57,22 @@ describe("apiFetch", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 401 })));
 
     await expect(apiFetch("/algo")).rejects.toBeInstanceOf(ApiError);
+  });
+
+  it("interrompe uma requisicao do ao vivo quando ultrapassa o limite", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((_: string, options: RequestInit) =>
+        new Promise((_, reject) => options.signal?.addEventListener("abort", () => reject(new DOMException("Abortado", "AbortError"))))
+      )
+    );
+
+    const requisicao = apiFetchComTimeout("/live/proxima", { method: "POST" }, 1000);
+    const expectativa = expect(requisicao).rejects.toMatchObject({ status: 408 });
+    await vi.advanceTimersByTimeAsync(1000);
+    await expectativa;
+    vi.useRealTimers();
   });
 });
 

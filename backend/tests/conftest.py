@@ -50,6 +50,19 @@ def _redis_limpo():
     redis_client.flushall()
 
 
+@pytest.fixture(autouse=True)
+def _classificar_tema_fala_mockado(monkeypatch):
+    """Bloco comentario/noticia em /live/.../proxima dispara _registrar_tema_em_background (ver
+    app.live.router) -- uma thread solta, fora do ciclo de vida do request, que chama
+    classificar_tema_fala (LLM real). Sem mock por padrao, um teste que esqueceu de mockar isso
+    bate a API da Anthropic de verdade (com a key fake deste conftest) numa thread em segundo
+    plano: a excecao so' vira um log de warning (a thread engole tudo), entao o teste passa do
+    mesmo jeito, mas a suite fica lenta/flaky e depende de rede. Teste que precisa de um retorno
+    especifico ainda pode sobrescrever com seu proprio monkeypatch.setattr (roda depois deste
+    fixture, vale por cima)."""
+    monkeypatch.setattr("app.live.router.classificar_tema_fala", lambda texto: "")
+
+
 @pytest.fixture()
 def db_session():
     engine = create_engine(
