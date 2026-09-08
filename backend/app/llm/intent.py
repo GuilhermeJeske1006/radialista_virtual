@@ -9,11 +9,23 @@ logger = logging.getLogger("radialista.intent")
 
 ACOES_VALIDAS = {"abraco", "musica", "sorteio", "guardar"}
 
+NATUREZAS_VALIDAS = {
+    "recado_comum",
+    "participacao_sorteio",
+    "reacao_engracada",
+    "pedido_musica",
+    "reclamacao",
+    "pergunta",
+    "outro",
+}
 
-def classificar_intencao(config: RadioConfig, programa: Programa, texto_usuario: str) -> tuple[str, str | None]:
+
+def classificar_intencao(
+    config: RadioConfig, programa: Programa, texto_usuario: str
+) -> tuple[str, str | None, str]:
     """Classifica a mensagem do ouvinte pra uma acao de bastidor -- o bot nunca responde no WhatsApp.
 
-    Retorna (acao, musica_query):
+    Retorna (acao, musica_query, natureza):
     - "musica": ouvinte PEDIU explicitamente uma musica/artista/dedicatoria -> entra na fila pra tocar ao vivo.
     - "abraco": ouvinte PEDIU explicitamente pra ser mencionado/saudado no ar -> entra na fila pro "alo".
     - "sorteio": ouvinte PEDIU explicitamente pra participar/confirmar participacao num sorteio ou
@@ -23,6 +35,11 @@ def classificar_intencao(config: RadioConfig, programa: Programa, texto_usuario:
     - "guardar": qualquer outra coisa (recado sem pedido, elogio, desabafo, spam, fora de escopo,
       ou pedido de musica fora do estilo permitido pelo programa) -- nunca vai ao ar so' por
       "merecer"; sem pedido explicito (ou fora do estilo aceito), so' fica registrado no log.
+
+    natureza classifica o QUE a mensagem e' (independente da acao), pra calibrar como o locutor
+    reage quando ela for lida ao vivo: "recado_comum", "participacao_sorteio", "reacao_engracada",
+    "pedido_musica", "reclamacao", "pergunta" ou "outro". Falha ou resposta invalida cai no
+    fallback "outro" (nao bloqueia nada, so' afeta o tom da reacao).
     """
     estilos_permitidos = list(
         dict.fromkeys([*(programa.generos_musicais or []), *(programa.musicas_permitidas or [])])
@@ -63,9 +80,22 @@ def classificar_intencao(config: RadioConfig, programa: Programa, texto_usuario:
             "um pedido explicito."
         )
 
+    system_prompt_linhas.append(
+        "Alem da acao, classifique tambem a NATUREZA da mensagem -- o que ela e', pra calibrar "
+        "como o locutor vai reagir ao ler ela ao vivo (isso e' independente da acao acima):"
+    )
+    system_prompt_linhas.append('- "recado_comum": recado, elogio ou saudacao sem categoria mais especifica.')
+    system_prompt_linhas.append('- "participacao_sorteio": pedido de participar de sorteio ou promocao.')
+    system_prompt_linhas.append('- "reacao_engracada": mensagem bem-humorada, piada, brincadeira.')
+    system_prompt_linhas.append('- "pedido_musica": pedido de musica, artista ou dedicatoria musical.')
+    system_prompt_linhas.append('- "reclamacao": critica, reclamacao ou desabafo negativo.')
+    system_prompt_linhas.append('- "pergunta": pergunta direta esperando resposta do locutor.')
+    system_prompt_linhas.append('- "outro": nao se encaixa em nenhuma das anteriores.')
     system_prompt_linhas.append("Responda APENAS com um JSON compacto, sem markdown e sem explicacao:")
     system_prompt_linhas.append(
-        '{"acao": "musica|abraco|sorteio|guardar", "musica_query": "artista/musica pedida ou null"}'
+        '{"acao": "musica|abraco|sorteio|guardar", "musica_query": "artista/musica pedida ou null", '
+        '"natureza": "recado_comum|participacao_sorteio|reacao_engracada|pedido_musica|reclamacao|'
+        'pergunta|outro"}'
     )
     system_prompt = "\n".join(system_prompt_linhas)
 
@@ -73,7 +103,7 @@ def classificar_intencao(config: RadioConfig, programa: Programa, texto_usuario:
         texto_resposta = gerar_classificacao(system_prompt, texto_usuario)
     except Exception:
         logger.exception("Falha ao classificar intencao, usando fallback 'guardar'")
-        return "guardar", None
+        return "guardar", None, "outro"
 
     try:
         dados = json.loads(texto_resposta)
@@ -81,7 +111,10 @@ def classificar_intencao(config: RadioConfig, programa: Programa, texto_usuario:
         if acao not in ACOES_VALIDAS:
             raise ValueError(f"acao invalida: {acao!r}")
         musica_query = dados.get("musica_query")
-        return acao, (str(musica_query) if musica_query else None)
+        natureza = dados.get("natureza")
+        if natureza not in NATUREZAS_VALIDAS:
+            natureza = "outro"
+        return acao, (str(musica_query) if musica_query else None), natureza
     except (json.JSONDecodeError, AttributeError, ValueError):
         logger.warning("Resposta de classificacao invalida: %r", texto_resposta)
-        return "guardar", None
+        return "guardar", None, "outro"

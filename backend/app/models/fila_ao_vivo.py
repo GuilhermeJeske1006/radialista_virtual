@@ -23,8 +23,11 @@ class FilaAoVivo(Base):
     telefone: Mapped[str] = mapped_column(String, index=True)
     nome: Mapped[str] = mapped_column(String, default="")
 
-    # abraco | musica
+    # abraco | musica | sorteio
     tipo: Mapped[str] = mapped_column(String, index=True)
+
+    # recado_comum | participacao_sorteio | reacao_engracada | pedido_musica | reclamacao | pergunta | outro
+    natureza: Mapped[str] = mapped_column(String, default="outro")
 
     mensagem_usuario: Mapped[str] = mapped_column(Text)
     musica_query: Mapped[str | None] = mapped_column(String, nullable=True)

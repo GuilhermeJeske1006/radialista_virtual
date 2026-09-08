@@ -132,6 +132,7 @@ async def criar_tabelas():
     garantir_colunas_account()
     garantir_colunas_programa()
     garantir_colunas_interaction_log()
+    garantir_colunas_fila_ao_vivo()
     garantir_colunas_musica_historico()
     garantir_colunas_patrocinador()
     garantir_colunas_voz_clonada()
@@ -269,6 +270,21 @@ def garantir_colunas_interaction_log():
         for nome, definicao in novas_colunas.items():
             if nome not in colunas:
                 conn.execute(text(f"ALTER TABLE interaction_logs ADD COLUMN {nome} {definicao}"))
+
+
+def garantir_colunas_fila_ao_vivo():
+    inspector = inspect(engine)
+    if "fila_ao_vivo" not in inspector.get_table_names():
+        return
+
+    colunas = {coluna["name"] for coluna in inspector.get_columns("fila_ao_vivo")}
+    novas_colunas = {
+        "natureza": "VARCHAR DEFAULT 'outro' NOT NULL",
+    }
+    with engine.begin() as conn:
+        for nome, definicao in novas_colunas.items():
+            if nome not in colunas:
+                conn.execute(text(f"ALTER TABLE fila_ao_vivo ADD COLUMN {nome} {definicao}"))
 
 
 def garantir_colunas_musica_historico():

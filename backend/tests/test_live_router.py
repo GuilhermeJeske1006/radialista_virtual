@@ -2024,6 +2024,100 @@ def test_pedido_de_abraco_reacao_calibrada_pelo_tom(
     assert "calibre a reação pelo tom do programa" in prompts[0]
 
 
+@freeze_time(AGORA_UTC)
+def test_pedido_com_natureza_reacao_engracada_gera_instrucao_de_brincar_junto(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    """Frente T: natureza reacao_engracada troca o catch-all generico por instrucao especifica
+    de brincar junto com o ouvinte."""
+    radio_config, programa = radialista_e_programa
+    pedido = FilaAoVivo(
+        radio_config_id=radio_config.id,
+        telefone="5511999999999",
+        nome="Bia",
+        tipo="abraco",
+        natureza="reacao_engracada",
+        mensagem_usuario="kkkkk vim so mandar uma piada ruim",
+    )
+    db_session.add(pedido)
+    db_session.commit()
+
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Kkk, boa Bia!"
+    )
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 5},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert "é uma mensagem bem-humorada" in prompts[0]
+
+
+@freeze_time(AGORA_UTC)
+def test_pedido_com_natureza_reclamacao_gera_instrucao_de_reconhecer_com_respeito(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    """Frente T: natureza reclamacao pede reconhecimento respeitoso, nao reacao bem-humorada."""
+    radio_config, programa = radialista_e_programa
+    pedido = FilaAoVivo(
+        radio_config_id=radio_config.id,
+        telefone="5511999999999",
+        nome="Carlos",
+        tipo="abraco",
+        natureza="reclamacao",
+        mensagem_usuario="o sinal da radio ta chiando muito hoje",
+    )
+    db_session.add(pedido)
+    db_session.commit()
+
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Valeu pelo aviso, Carlos!"
+    )
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 5},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert "é uma reclamação ou crítica" in prompts[0]
+
+
+@freeze_time(AGORA_UTC)
+def test_pedido_com_natureza_pergunta_gera_instrucao_de_responder(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    """Frente T: natureza pergunta pede resposta de verdade em vez de so' reagir ao clima."""
+    radio_config, programa = radialista_e_programa
+    pedido = FilaAoVivo(
+        radio_config_id=radio_config.id,
+        telefone="5511999999999",
+        nome="Ana",
+        tipo="abraco",
+        natureza="pergunta",
+        mensagem_usuario="que horas termina o programa hoje?",
+    )
+    db_session.add(pedido)
+    db_session.commit()
+
+    prompts = []
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Boa pergunta, Ana!"
+    )
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 5},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert "responda de verdade a pergunta" in prompts[0]
+
+
 @freeze_time(AGORA_UTC)  # 12:00 local, exatamente na metade de um programa 10:00-14:00
 def test_marco_tempo_metade_do_programa_mencionado(
     client, account, auth_headers, radialista_e_programa, monkeypatch

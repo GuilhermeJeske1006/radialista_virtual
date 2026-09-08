@@ -750,6 +750,55 @@ _VARIACOES_CONVITE_OUVINTE = [
     "WhatsApp da rádio.",
 ]
 
+def _instrucao_reacao_recado_comum(nome: str, mensagem: str, tom: str) -> str:
+    return (
+        f"Quando o bloco for chamada_ouvinte, mande um alô pra {nome}: cumprimente pelo nome e "
+        f"reaja de verdade ao que ele mandou pelo WhatsApp: \"{mensagem}\" -- "
+        "calibre a reação pelo tom do programa já estabelecido acima (programa descontraído: reaja com "
+        "bom humor genuíno, brinque, comente o clima da mensagem; programa mais sério: agradeça com "
+        "cordialidade, sem forçar humor que não combina). Não é só citar o que ele escreveu, é reagir "
+        "a isso como um locutor de verdade reagiria."
+    )
+
+
+def _instrucao_reacao_engracada(nome: str, mensagem: str, tom: str) -> str:
+    return (
+        f"Quando o bloco for chamada_ouvinte, mande um alô pra {nome}: cumprimente pelo nome e "
+        f"reaja ao que ele mandou pelo WhatsApp: \"{mensagem}\" -- é uma mensagem bem-humorada, "
+        f"brinque junto de verdade, no clima da piada, respeitando o tom do programa ({tom}). Não "
+        "seja morno nem ignore o humor."
+    )
+
+
+def _instrucao_reacao_reclamacao(nome: str, mensagem: str, tom: str) -> str:
+    return (
+        f"Quando o bloco for chamada_ouvinte, mande um alô pra {nome}: cumprimente pelo nome e "
+        f"reconheça o que ele trouxe pelo WhatsApp: \"{mensagem}\" -- é uma reclamação ou crítica. "
+        "Reconheça com respeito e sem debochar, sem se desculpar de forma exagerada nem prometer "
+        "solução que você não tem como garantir."
+    )
+
+
+def _instrucao_reacao_pergunta(nome: str, mensagem: str, tom: str) -> str:
+    return (
+        f"Quando o bloco for chamada_ouvinte, mande um alô pra {nome}: cumprimente pelo nome e "
+        f"responda de verdade a pergunta que ele mandou pelo WhatsApp: \"{mensagem}\" -- use só "
+        "informação real que já está neste prompt (rádio, programa, cidade etc.); se não souber a "
+        "resposta com o que foi informado, diga com naturalidade que não tem essa informação agora, "
+        "sem inventar."
+    )
+
+
+_INSTRUCAO_REACAO_POR_NATUREZA = {
+    "recado_comum": _instrucao_reacao_recado_comum,
+    "reacao_engracada": _instrucao_reacao_engracada,
+    "reclamacao": _instrucao_reacao_reclamacao,
+    "pergunta": _instrucao_reacao_pergunta,
+    "pedido_musica": _instrucao_reacao_recado_comum,
+    "participacao_sorteio": _instrucao_reacao_recado_comum,
+    "outro": _instrucao_reacao_recado_comum,
+}
+
 _VARIACOES_FORMATO_COMENTARIO = [
     "Para este comentário, puxe com uma pergunta retórica pro ouvinte -- não precisa de resposta "
     "real, é só um gancho de fala.",
@@ -1899,13 +1948,10 @@ def gerar_proxima_fala(
         )
     elif pedido_ouvinte is not None:
         nome_ouvinte = pedido_ouvinte.nome or "um ouvinte"
+        natureza = pedido_ouvinte.natureza or "recado_comum"
+        construir_instrucao = _INSTRUCAO_REACAO_POR_NATUREZA.get(natureza, _instrucao_reacao_recado_comum)
         system_prompt_linhas.append(
-            f"Quando o bloco for chamada_ouvinte, mande um alô pra {nome_ouvinte}: cumprimente pelo nome e "
-            f"reaja de verdade ao que ele mandou pelo WhatsApp: \"{pedido_ouvinte.mensagem_usuario}\" -- "
-            "calibre a reação pelo tom do programa já estabelecido acima (programa descontraído: reaja com "
-            "bom humor genuíno, brinque, comente o clima da mensagem; programa mais sério: agradeça com "
-            "cordialidade, sem forçar humor que não combina). Não é só citar o que ele escreveu, é reagir "
-            "a isso como um locutor de verdade reagiria."
+            construir_instrucao(nome_ouvinte, pedido_ouvinte.mensagem_usuario, programa.tom)
         )
     else:
         system_prompt_linhas.append(

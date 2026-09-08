@@ -20,58 +20,68 @@ def _programa(generos_musicais=None, musicas_permitidas=None):
 def test_classifica_pedido_de_musica(monkeypatch):
     monkeypatch.setattr(
         "app.llm.intent.gerar_classificacao",
-        lambda system, user: json.dumps({"acao": "musica", "musica_query": "Legiao Urbana"}),
+        lambda system, user: json.dumps(
+            {"acao": "musica", "musica_query": "Legiao Urbana", "natureza": "pedido_musica"}
+        ),
     )
-    acao, musica_query = classificar_intencao(_config(), _programa(), "toca uma musica da legiao urbana")
+    acao, musica_query, natureza = classificar_intencao(_config(), _programa(), "toca uma musica da legiao urbana")
     assert acao == "musica"
     assert musica_query == "Legiao Urbana"
+    assert natureza == "pedido_musica"
 
 
 def test_classifica_pedido_de_abraco(monkeypatch):
     monkeypatch.setattr(
         "app.llm.intent.gerar_classificacao",
-        lambda system, user: json.dumps({"acao": "abraco", "musica_query": None}),
+        lambda system, user: json.dumps({"acao": "abraco", "musica_query": None, "natureza": "recado_comum"}),
     )
-    acao, musica_query = classificar_intencao(_config(), _programa(), "manda um alo pra mim")
+    acao, musica_query, natureza = classificar_intencao(_config(), _programa(), "manda um alo pra mim")
     assert acao == "abraco"
     assert musica_query is None
+    assert natureza == "recado_comum"
 
 
 def test_classifica_pedido_de_sorteio(monkeypatch):
     monkeypatch.setattr(
         "app.llm.intent.gerar_classificacao",
-        lambda system, user: json.dumps({"acao": "sorteio", "musica_query": None}),
+        lambda system, user: json.dumps(
+            {"acao": "sorteio", "musica_query": None, "natureza": "participacao_sorteio"}
+        ),
     )
-    acao, musica_query = classificar_intencao(_config(), _programa(), "quero participar do sorteio")
+    acao, musica_query, natureza = classificar_intencao(_config(), _programa(), "quero participar do sorteio")
     assert acao == "sorteio"
     assert musica_query is None
+    assert natureza == "participacao_sorteio"
 
 
 def test_classifica_como_guardar_por_padrao(monkeypatch):
     monkeypatch.setattr(
         "app.llm.intent.gerar_classificacao",
-        lambda system, user: json.dumps({"acao": "guardar", "musica_query": None}),
+        lambda system, user: json.dumps({"acao": "guardar", "musica_query": None, "natureza": "outro"}),
     )
-    acao, musica_query = classificar_intencao(_config(), _programa(), "vocês são ótimos")
+    acao, musica_query, natureza = classificar_intencao(_config(), _programa(), "vocês são ótimos")
     assert acao == "guardar"
     assert musica_query is None
+    assert natureza == "outro"
 
 
 def test_resposta_com_acao_invalida_cai_no_fallback_guardar(monkeypatch):
     monkeypatch.setattr(
         "app.llm.intent.gerar_classificacao",
-        lambda system, user: json.dumps({"acao": "dancar", "musica_query": None}),
+        lambda system, user: json.dumps({"acao": "dancar", "musica_query": None, "natureza": "outro"}),
     )
-    acao, musica_query = classificar_intencao(_config(), _programa(), "oi")
+    acao, musica_query, natureza = classificar_intencao(_config(), _programa(), "oi")
     assert acao == "guardar"
     assert musica_query is None
+    assert natureza == "outro"
 
 
 def test_resposta_nao_json_cai_no_fallback_guardar(monkeypatch):
     monkeypatch.setattr("app.llm.intent.gerar_classificacao", lambda system, user: "isso nao e json")
-    acao, musica_query = classificar_intencao(_config(), _programa(), "oi")
+    acao, musica_query, natureza = classificar_intencao(_config(), _programa(), "oi")
     assert acao == "guardar"
     assert musica_query is None
+    assert natureza == "outro"
 
 
 def test_excecao_no_llm_cai_no_fallback_guardar(monkeypatch):
@@ -79,19 +89,31 @@ def test_excecao_no_llm_cai_no_fallback_guardar(monkeypatch):
         raise RuntimeError("falha de rede")
 
     monkeypatch.setattr("app.llm.intent.gerar_classificacao", _levanta)
-    acao, musica_query = classificar_intencao(_config(), _programa(), "oi")
+    acao, musica_query, natureza = classificar_intencao(_config(), _programa(), "oi")
     assert acao == "guardar"
     assert musica_query is None
+    assert natureza == "outro"
 
 
 def test_musica_query_vazia_vira_none(monkeypatch):
     monkeypatch.setattr(
         "app.llm.intent.gerar_classificacao",
-        lambda system, user: json.dumps({"acao": "musica", "musica_query": ""}),
+        lambda system, user: json.dumps({"acao": "musica", "musica_query": "", "natureza": "pedido_musica"}),
     )
-    acao, musica_query = classificar_intencao(_config(), _programa(), "toca algo ai")
+    acao, musica_query, natureza = classificar_intencao(_config(), _programa(), "toca algo ai")
     assert acao == "musica"
     assert musica_query is None
+    assert natureza == "pedido_musica"
+
+
+def test_natureza_invalida_cai_no_fallback_outro(monkeypatch):
+    monkeypatch.setattr(
+        "app.llm.intent.gerar_classificacao",
+        lambda system, user: json.dumps({"acao": "guardar", "musica_query": None, "natureza": "chorando"}),
+    )
+    acao, musica_query, natureza = classificar_intencao(_config(), _programa(), "oi")
+    assert acao == "guardar"
+    assert natureza == "outro"
 
 
 def test_estilos_permitidos_vao_pro_prompt_quando_programa_restringe(monkeypatch):

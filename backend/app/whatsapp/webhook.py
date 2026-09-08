@@ -390,8 +390,10 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
         )
         return {"status": "bloqueado", "motivo": "conteudo"}
 
-    acao, musica_query = classificar_intencao(config, programa_atual, texto_usuario)
-    logger.info("Mensagem classificada: acao=%s config_id=%s telefone=%s", acao, config.id, telefone)
+    acao, musica_query, natureza = classificar_intencao(config, programa_atual, texto_usuario)
+    logger.info(
+        "Mensagem classificada: acao=%s natureza=%s config_id=%s telefone=%s", acao, natureza, config.id, telefone
+    )
 
     if acao in ("abraco", "musica", "sorteio") and audio_base64 is not None:
         apropriado, motivo_audio = avaliar_adequacao_ao_vivo(texto_usuario, programa_atual)
@@ -418,6 +420,7 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
                 telefone=telefone,
                 nome=nome,
                 tipo=acao,
+                natureza=natureza,
                 mensagem_usuario=texto_usuario,
                 musica_query=musica_query,
             )
