@@ -89,3 +89,18 @@ describe("ProximosBlocosPanel", () => {
     expect(container).toBeEmptyDOMElement();
   });
 });
+
+it("prévia musical acompanha o ciclo do backend e não promete comentários extras", async () => {
+  const { rerender } = render(<ProximosBlocosPanel programa={programa({ perfil_programacao: "musical_companhia" })} totalFalas={0} />);
+  await screen.findByText("Proximos blocos");
+  let textos = textosDosBlocos();
+  expect(textos[0]).toContain("Abertura");
+  expect(textos[1]).toContain("Música");
+  expect(textos[2]).toContain("Música");
+  expect(textos[3]).toContain("Identificação curta");
+  expect(screen.queryByText(/A IA pode ocasionalmente/)).not.toBeInTheDocument();
+  rerender(<ProximosBlocosPanel programa={programa({ perfil_programacao: "musical_companhia" })} totalFalas={6} />);
+  textos = textosDosBlocos();
+  expect(textos[0]).toContain("Retomada");
+  expect(textos.some((t) => t.includes("Abertura"))).toBe(false);
+});

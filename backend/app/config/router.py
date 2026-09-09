@@ -1,5 +1,6 @@
 import datetime
 import logging
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, ValidationError
@@ -110,6 +111,7 @@ class ProgramaRequest(BaseModel):
     limite_mensagens_hora: int = 1000
 
     estrutura_blocos: list[str] = Field(default_factory=list)
+    perfil_programacao: Literal["padrao", "musical_companhia"] = "padrao"
     ia_pode_adicionar_blocos: bool = True
 
     generos_musicais: list[str] = Field(default_factory=list)

@@ -55,10 +55,20 @@ export default function VozCloneModal({ onCriada, onFechar }: Props) {
   async function iniciarGravacao() {
     setErro("");
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // echoCancellation/noiseSuppression/autoGainControl desligados: bons pra chamada de voz,
+      // ruins pra amostra de clonagem -- comem corpo/dinamica do timbre que a ElevenLabs precisa
+      // pra um clone fiel (voz saindo metalica). Upload de arquivo continua o caminho preferencial
+      // (ver texto abaixo) porque nao passa por processamento nenhum do navegador.
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+        },
+      });
       streamRef.current = stream;
       chunksRef.current = [];
-      const recorder = new MediaRecorder(stream);
+      const recorder = new MediaRecorder(stream, { audioBitsPerSecond: 128000 });
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
@@ -123,8 +133,8 @@ export default function VozCloneModal({ onCriada, onFechar }: Props) {
       >
         <h2 className="font-display text-base font-bold text-fg mb-2">Clonar voz</h2>
         <p className="text-sm text-fg/70 mb-4">
-          Grave (ou envie) uns 60 segundos de fala limpa, sem musica nem ruido de fundo. A voz clonada fica
-          disponivel so pra sua conta.
+          Envie um arquivo com uns 60 segundos de fala limpa, sem musica nem ruido de fundo — melhor
+          qualidade que gravar aqui pelo navegador. A voz clonada fica disponivel so pra sua conta.
         </p>
 
         <div className="mb-4">
@@ -140,6 +150,17 @@ export default function VozCloneModal({ onCriada, onFechar }: Props) {
 
         <div className="mb-4 space-y-3">
           <div className="flex items-center gap-3">
+            <label className="rounded-lg border border-amber/50 px-3 py-2 text-sm font-medium text-fg hover:border-amber cursor-pointer">
+              📁 Enviar arquivo
+              <input
+                type="file"
+                accept="audio/*"
+                className="hidden"
+                disabled={enviando}
+                onChange={(e) => selecionarArquivo(e.target.files?.[0] ?? null)}
+              />
+            </label>
+            <span className="text-sm text-fg/65">ou</span>
             {!gravando ? (
               <button
                 type="button"
@@ -158,17 +179,6 @@ export default function VozCloneModal({ onCriada, onFechar }: Props) {
                 ⏹ Parar
               </button>
             )}
-            <span className="text-sm text-fg/65">ou</span>
-            <label className="rounded-lg border border-border-strong px-3 py-2 text-sm font-medium text-fg hover:border-amber/50 cursor-pointer">
-              Enviar arquivo
-              <input
-                type="file"
-                accept="audio/*"
-                className="hidden"
-                disabled={enviando}
-                onChange={(e) => selecionarArquivo(e.target.files?.[0] ?? null)}
-              />
-            </label>
           </div>
 
           {arquivo && <p className="text-xs text-fg/65">Arquivo: {arquivo.name}</p>}

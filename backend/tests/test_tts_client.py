@@ -141,6 +141,29 @@ def test_sintetizar_audio_clonada_usa_mesmo_modelo_do_catalogo(monkeypatch):
     assert "similarity_boost" not in payload["voice_settings"]
 
 
+@pytest.mark.parametrize("eh_clonada", [False, True])
+@pytest.mark.parametrize("tipo_bloco,tom", [("musica", "energico"), ("noticia", "calmo")])
+@pytest.mark.parametrize("streaming", [False, True])
+def test_flash_envia_perfil_proprio_sem_deltas_do_v3(monkeypatch, eh_clonada, tipo_bloco, tom, streaming):
+    _habilitar_elevenlabs(monkeypatch)
+    monkeypatch.setattr(tts_client.settings, "elevenlabs_model", "eleven_flash_v2_5")
+    fake = _FakeStreamClient([_FakeStreamResponse()]) if streaming else _FakeClient([_FakeResponse()])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+    parametros = dict(tipo_bloco=tipo_bloco, tom=tom, eh_clonada=eh_clonada, texto_anterior="Fala anterior.")
+    if streaming:
+        list(tts_client.sintetizar_audio_stream("Ola ouvintes!", **parametros))
+    else:
+        tts_client.sintetizar_audio("Ola ouvintes!", **parametros)
+    payload = fake.chamadas[0][2]["json"]
+    assert payload["model_id"] == "eleven_flash_v2_5"
+    assert payload["voice_settings"] == {
+        "stability": 0.5, "similarity_boost": 0.75, "style": 0.0,
+        "use_speaker_boost": True, "speed": 1.0,
+    }
+    assert payload["previous_text"] == "Fala anterior."
+    assert payload["language_code"] == "pt"
+
+
 def test_sintetizar_audio_v3_nao_manda_previous_text(monkeypatch):
     """eleven_v3 devolve 400 (unsupported_model) se previous_text for mandado -- ver
     comentario em sintetizar_audio. texto_anterior deve ser descartado nesse modelo."""

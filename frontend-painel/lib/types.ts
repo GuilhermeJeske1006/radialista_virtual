@@ -130,6 +130,7 @@ export type Programa = {
   limite_mensagens_hora: number;
 
   estrutura_blocos: string[];
+  perfil_programacao?: "padrao" | "musical_companhia";
   ia_pode_adicionar_blocos: boolean;
 
   generos_musicais: string[];
@@ -164,6 +165,7 @@ export const PROGRAMA_VAZIO: Omit<Programa, "id" | "radio_config_id"> = {
   limite_mensagens_hora: 10,
 
   estrutura_blocos: [],
+  perfil_programacao: "padrao",
   ia_pode_adicionar_blocos: true,
 
   generos_musicais: [],
@@ -199,6 +201,7 @@ export const PAPEIS_SUGERIDOS = ["Co-apresentador", "Comentarista", "Repórter c
 export function normalizarPrograma(p: Programa): Programa {
   return {
     ...p,
+    perfil_programacao: p.perfil_programacao ?? "padrao",
     topicos_permitidos: p.topicos_permitidos ?? [],
     topicos_proibidos: p.topicos_proibidos ?? [],
     estrutura_blocos: p.estrutura_blocos ?? [],
@@ -219,6 +222,8 @@ export const DIAS_SEMANA_LABEL = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Do
 // atende fila de pedidos do WhatsApp e ajusta prosodia automaticamente. Blocos digitados
 // livremente (fora desse preset) funcionam como falas genericas, sem esse comportamento extra.
 export const BLOCOS_PRESET: { value: string; label: string }[] = [
+  { value: "retomada", label: "Retomada" },
+  { value: "identificacao", label: "Identificação curta" },
   { value: "abertura", label: "Abertura" },
   { value: "musica", label: "Música" },
   { value: "comentario", label: "Comentário" },

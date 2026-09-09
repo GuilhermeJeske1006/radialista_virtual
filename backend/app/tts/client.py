@@ -37,6 +37,17 @@ _VOICE_SETTINGS_PADRAO = {
     "speed": 0.97,
 }
 
+# Perfil inicial do Flash para comparacao por escuta. Os presets abaixo foram
+# calibrados para a locucao anterior: empilhar estilo, tom e desaceleracao do clone
+# no Flash mudou a entrega vocal. Mantemos este perfil independente desses deltas.
+_VOICE_SETTINGS_FLASH = {
+    "stability": 0.5,
+    "similarity_boost": 0.75,
+    "style": 0.0,
+    "use_speaker_boost": True,
+    "speed": 1.0,
+}
+
 # ajustes de prosodia por tipo de bloco do programa ao vivo (ver _PROSODIA_BLOCO em app.live.router):
 # blocos de abertura/musica/chamada pedem mais energia e ritmo mais rapido (menos estabilidade, mais estilo);
 # comentario/noticia pedem ritmo mais calmo e estavel.
@@ -163,6 +174,9 @@ def _categoria_tipo_bloco(tipo_bloco: str) -> str:
 
 
 def _construir_voice_settings(tipo_bloco: str | None, tom: str | None, modelo: str, eh_clonada: bool) -> dict:
+    if modelo == "eleven_flash_v2_5":
+        return dict(_VOICE_SETTINGS_FLASH)
+
     categoria = _categoria_tipo_bloco(tipo_bloco) if tipo_bloco else ""
     voice_settings = {**_VOICE_SETTINGS_PADRAO, **_VOICE_SETTINGS_POR_TIPO.get(categoria, {})}
     for chave, delta in _AJUSTE_TOM.get(tom or "", {}).items():

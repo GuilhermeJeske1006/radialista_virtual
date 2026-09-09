@@ -1,6 +1,8 @@
 "use client";
 
 import { confirmarParticipacao } from "../lib/participacoes";
+import { esperarTransicao, pausaAntesDoBloco, reproduzirGrupoDeFalas } from "../lib/continuidadeAudio";
+import { FilaPreparo } from "../lib/filaPreparo";
 
 import { useEffect, useRef, useState } from "react";
 import { apiFetch, apiFetchBlob, apiFetchBlobComTimeout, apiFetchComTimeout, ApiError } from "../lib/api";
@@ -23,25 +25,22 @@ declare global {
   }
 }
 
-const INTERVALO_PROGRAMA_MS = 2200;
+const INTERVALO_PROGRAMA_MS = 0;
 
-// pausa deliberada entre blocos, pelo tipo do bloco QUE ACABOU DE TOCAR --
-// intencional (ritmo de radio), nunca efeito colateral de latencia de geracao/rede
-const PAUSA_MS_POR_TIPO: Record<string, number> = {
-  abertura: 400,
-  musica: 600,
-  chamada_ouvinte: 500,
-  comentario: 350,
-  noticia: 450,
-  patrocinador: 400,
-  encerramento: 0,
+type HistoricoFonte = { tipo: string; fala: string; musicas?: MusicaBloco[] };
+type ContextoPreparo = {
+  radialistaId: number;
+  programaId: number;
+  historicoBase: HistoricoFonte[];
+  totalFalas: number;
+  ultimaFala: string | null;
 };
-
-function aguardarPausaDeliberada(tipoAnterior: string | undefined): Promise<void> {
-  const pausa = PAUSA_MS_POR_TIPO[tipoAnterior ?? ""] ?? 400;
-  if (pausa <= 0) return Promise.resolve();
-  return new Promise((resolve) => setTimeout(resolve, pausa));
-}
+type TextoPreparado = {
+  segmento: Omit<ProgramSegment, "id">;
+  audioBase64?: string | null;
+  audioStatus?: LiveProgramResponse["audio_status"];
+  audioErro?: string | null;
+};
 
 const DIAS_SEMANA_ORDEM = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -104,6 +103,9 @@ function gerarFalaLocal(
   programa: Programa,
   totalFalas: number
 ): Omit<ProgramSegment, "id" | "criado_em" | "origem"> {
+  if (programa.perfil_programacao === "musical_companhia") {
+    return { tipo: "identificacao", fala: `Você está no ${programa.nome}. Obrigado pela companhia.` };
+  }
   const nome = radialista.nome_locutor || "Locutor";
   const roteiroPadrao = ["abertura", "musica", "comentario", "noticia", "chamada_ouvinte"];
   // "encerramento" fica de fora do round-robin de propósito -- esse fallback local nao
@@ -125,11 +127,11 @@ function gerarFalaLocal(
   const noticia = escolher(programa.tipos_noticias, "informacoes locais");
 
   const falas: Record<string, string> = {
-    abertura: `Muito bem, aqui e ${nome} chegando junto no ${programa.nome}. A partir de agora a gente segue com ${assunto}, boa musica e aquele clima de radio perto do ouvinte.`,
-    musica: `Na sequencia eu vou puxar o clima para ${musica}. Fica comigo porque a ideia e manter o ritmo gostoso, sem sair do perfil da radio.`,
-    comentario: `Falando rapidinho sobre ${assunto}, vale acompanhar o movimento e sentir o pulso do que esta acontecendo por ai. Me chama no WhatsApp que eu trago sua mensagem para a conversa.`,
-    noticia: `Espaco para ${noticia} por aqui, sempre com cuidado e sem inventar informacao recente. Quando a pesquisa estiver liberada, eu busco nas fontes configuradas antes de cravar qualquer detalhe.`,
-    chamada_ouvinte: `Agora eu quero ouvir quem esta do outro lado. Manda seu recado, pede sua musica dentro do nosso repertorio e ajuda o programa a ganhar cara de ao vivo.`,
+    abertura: `Muito bem, aqui e ${nome} no ${programa.nome}. Bora de ${assunto} e boa musica ate o fim do bloco.`,
+    musica: `Toca ai ${musica}. Ja volto com mais.`,
+    comentario: `Sobre ${assunto}: quem tiver passando por isso, manda mensagem no WhatsApp que eu leio aqui.`,
+    noticia: `${noticia}. Sem numero nem nome cravado agora, mas assim que a fonte confirmar eu trago certinho.`,
+    chamada_ouvinte: `Bora, manda seu recado ou pede sua musica no WhatsApp.`,
   };
 
   const falaGenerica = `Seguimos com o bloco de ${tipo.replace(/_/g, " ")} aqui no ${programa.nome}, fica comigo.`;
@@ -176,6 +178,7 @@ export function useLiveEngine() {
   // no roteiro depois que passa desse teto.
   const totalFalasRef = useRef(0);
   const programaTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const transicaoRef = useRef<AbortController | null>(null);
   const ultimoDisparoAutomaticoRef = useRef<string | null>(null);
   // true so' quando a transmissao atual foi disparada pelo watchdog de horario agendado
   // (verificarHorarioAgendado), nao pelo clique manual em "Comecar transmissao" -- usado pra
@@ -200,13 +203,9 @@ export function useLiveEngine() {
   // ja tiver ajustado nesse meio tempo.
   const bgDesmutadoRef = useRef(false);
   const musicDesmutadoRef = useRef(false);
-  const proximoPreparoRef = useRef<Promise<SegmentoPreparado> | null>(null);
-  // Preparo especulativo do bloco DEPOIS do proximo (profundidade 2 do pipeline) -- comeca a
-  // ser preenchido assim que proximoPreparoRef RESOLVE, sem esperar ele entrar no ar (ver
-  // agendarPreparoEspeculativo). So' 1 nivel de antecedencia (o de sempre) deixava visivel o
-  // "gerando..." sempre que o audio do bloco atual tocava por menos tempo que o proximo levava
-  // pra ficar pronto (LLM + TTS eleven_v3, ~20-30s) -- caso comum em blocos de fala curta.
-  const segundoPreparoRef = useRef<Promise<SegmentoPreparado> | null>(null);
+  // A fila pertence à transmissão, não à execução de um player. Trocar de bloco
+  // não invalida a escrita/síntese que ainda está em andamento para os seguintes.
+  const filaPreparoRef = useRef<FilaPreparo<ContextoPreparo, TextoPreparado, SegmentoPreparado> | null>(null);
   const gravacaoBlobsRef = useRef<Blob[]>([]);
   // incrementado a cada chamada de gerarProximaFala -- pularFala usa isso pra
   // "aposentar" a execucao em andamento (a que estava tocando quando o usuario
@@ -312,6 +311,8 @@ export function useLiveEngine() {
   }
 
   function limparTimerPrograma() {
+    transicaoRef.current?.abort();
+    transicaoRef.current = null;
     if (programaTimerRef.current) {
       clearTimeout(programaTimerRef.current);
       programaTimerRef.current = null;
@@ -365,13 +366,13 @@ export function useLiveEngine() {
     requestAnimationFrame(passo);
   }
 
-  async function reproduzirAudioPreparado(audioUrl: string | null, _texto: string, aoConcluir?: () => void): Promise<number> {
+  async function reproduzirAudioPreparado(audioUrl: string | null, _texto: string, aoConcluir?: () => void, gerenciarFundo = true): Promise<number> {
     const inicio = Date.now();
     if (!audioUrl) {
       setEstagioAtual("idle");
       return 0;
     }
-    duckMusicaFundo(true);
+    if (gerenciarFundo) duckMusicaFundo(true);
     setEstagioAtual("fala");
     try {
       if (audioUrl) {
@@ -420,7 +421,7 @@ export function useLiveEngine() {
       }
       return 0;
     } finally {
-      duckMusicaFundo(false);
+      if (gerenciarFundo) duckMusicaFundo(false);
       setEstagioAtual("idle");
     }
   }
@@ -726,22 +727,6 @@ export function useLiveEngine() {
     return ` [Música(s) tocada(s) nesse bloco: ${lista}]`;
   }
 
-  // Fonte minima pra montar uma linha de historico (ver linhaMusicasHistorico acima) -- tanto
-  // falasProgramaRef.current (ProgramSegment[], historico real) quanto o "bloco hipotetico"
-  // usado no preparo especulativo (ver agendarPreparoEspeculativo) cabem aqui, sem precisar
-  // forjar um ProgramSegment completo (id/criado_em/origem) so' pra montar uma string.
-  type HistoricoFonte = { tipo: string; fala: string; musicas?: MusicaBloco[] };
-
-  // Contexto que prepararSegmento usaria "de qualquer forma" a partir das refs (historico,
-  // total_falas, ultima_fala) -- passado explicitamente quando preparando o bloco DEPOIS do
-  // proximo, cujo bloco anterior (o proximo em si) ainda nao esta em falasProgramaRef/
-  // totalFalasRef (so' entra la' quando de fato vai ao ar). Omitido: cai nas refs, como sempre.
-  type ContextoPreparo = {
-    historicoBase: HistoricoFonte[];
-    totalFalas: number;
-    ultimaFala: string | null;
-  };
-
   function adicionarFala(segmento: Omit<ProgramSegment, "id">) {
     const novaFala: ProgramSegment = { ...segmento, id: Date.now() };
     const atualizadas = [novaFala, ...falasProgramaRef.current].slice(0, 20);
@@ -764,13 +749,9 @@ export function useLiveEngine() {
     setFalasPrograma(atualizadas);
   }
 
-  // gera o texto e ja sintetiza o audio do proximo bloco, sem tocar --
-  // chamado com antecedencia (enquanto o bloco atual esta no ar) pra nao
-  // ter vazio entre uma fala e outra
-  async function prepararSegmento(contexto?: ContextoPreparo): Promise<SegmentoPreparado> {
-    const historicoBase = contexto?.historicoBase ?? falasProgramaRef.current;
-    const totalFalasAtual = contexto?.totalFalas ?? totalFalasRef.current;
-    const ultimaFalaAtual = contexto?.ultimaFala ?? (falasProgramaRef.current[0]?.fala ?? null);
+  // Entrega o texto antes do TTS para liberar a escrita do próximo bloco.
+  async function prepararTexto(contexto: ContextoPreparo, ativa: () => boolean): Promise<TextoPreparado> {
+    const { historicoBase, totalFalas: totalFalasAtual, ultimaFala: ultimaFalaAtual } = contexto;
     let segmento: Omit<ProgramSegment, "id">;
     // audio ja sintetizado dentro de /proxima (ver Plano B.3) -- so' preenchido quando o backend
     // conseguiu; guardado fora de `segmento` pra nao carregar mp3 em base64 dentro do historico
@@ -780,10 +761,11 @@ export function useLiveEngine() {
     let audioErro: string | null | undefined;
     try {
       const { audio_base64, audio_status, audio_erro, ...resposta } = await apiFetchComTimeout<LiveProgramResponse>(
-        `/live/${radialistaIdRef.current}/programas/${programaIdRef.current}/proxima`,
+        `/live/${contexto.radialistaId}/programas/${contexto.programaId}/proxima`,
         {
           method: "POST",
           body: JSON.stringify({
+            incluir_audio: false,
             historico: historicoBase
               .slice(0, 8)
               .reverse()
@@ -799,14 +781,14 @@ export function useLiveEngine() {
       audioStatus = audio_status;
       audioErro = audio_erro;
       segmento = { ...resposta, origem: "ia" };
-      setErro("");
+      if (ativa()) setErro("");
     } catch (err) {
-      const radialistaAtual = radialistas.find((r) => r.id === radialistaIdRef.current);
-      const programaAtual = programasTodos.find((p) => p.id === programaIdRef.current);
+      const radialistaAtual = radialistas.find((r) => r.id === contexto.radialistaId);
+      const programaAtual = programasTodos.find((p) => p.id === contexto.programaId);
       if (radialistaAtual && programaAtual) {
         const local = gerarFalaLocal(radialistaAtual, programaAtual, totalFalasAtual);
         segmento = { ...local, criado_em: new Date().toISOString(), origem: "local" };
-        setErro(err instanceof ApiError ? `${err.message}. Usando fala local.` : "IA indisponivel. Usando fala local.");
+        if (ativa()) setErro(err instanceof ApiError ? `${err.message}. Usando fala local.` : "IA indisponivel. Usando fala local.");
       } else {
         segmento = {
           tipo: "comentario",
@@ -814,13 +796,20 @@ export function useLiveEngine() {
           criado_em: new Date().toISOString(),
           origem: "local",
         };
-        setErro(err instanceof ApiError ? err.message : "IA indisponivel");
+        if (ativa()) setErro(err instanceof ApiError ? err.message : "IA indisponivel");
       }
     }
+    return { segmento, audioBase64, audioStatus, audioErro };
+  }
+
+  // Só fica pronto após baixar a voz ou vinheta e concluir o tratamento Rádio FM.
+  async function prepararAudio(texto: TextoPreparado, contexto: ContextoPreparo, ativa: () => boolean): Promise<SegmentoPreparado> {
+    const { segmento, audioBase64, audioStatus, audioErro } = texto;
+    const ultimaFalaAtual = contexto.ultimaFala;
 
     // dialogo multi-voz (mais de um radialista no programa): busca um audio por linha,
     // cada uma com a voz do radialista que falou -- em vez de um audio unico pro bloco.
-    if (segmento.falas && segmento.falas.length > 0 && radialistaIdRef.current) {
+    if (segmento.falas && segmento.falas.length > 0) {
       // previous_text pra ElevenLabs (ver texto_anterior em LiveTtsRequest): dentro de um dialogo
       // multi-voz, cada linha continua a linha anterior do mesmo bloco; a primeira linha continua
       // a ultima fala do bloco anterior (falasProgramaRef, mais recente primeiro).
@@ -828,7 +817,7 @@ export function useLiveEngine() {
         segmento.falas.map(async (linha, indice): Promise<AudioFala> => {
           const textoAnterior = indice > 0 ? segmento.falas![indice - 1].texto : ultimaFalaAtual;
           try {
-            const blob = await apiFetchBlobComTimeout(`/live/${radialistaIdRef.current}/tts`, {
+            const blob = await apiFetchBlobComTimeout(`/live/${contexto.radialistaId}/tts`, {
               method: "POST",
               body: JSON.stringify({
                 perfil_pos_producao: "radio_fm",
@@ -836,13 +825,13 @@ export function useLiveEngine() {
                 tipo: segmento.tipo,
                 voz_id: linha.voz_id,
                 texto_anterior: textoAnterior,
-                programa_id: programaIdRef.current,
+                programa_id: contexto.programaId,
               }),
             }, 60_000);
             return { url: URL.createObjectURL(blob), blob };
           } catch (err) {
             console.error("Falha ao gerar audio TTS (dialogo multi-voz), mantendo cama musical", err);
-            setErro(err instanceof ApiError ? `${err.message}. Linha pulada; cama musical mantida.` : "Voz IA indisponivel. Linha pulada; cama musical mantida.");
+            if (ativa()) setErro(err instanceof ApiError ? `${err.message}. Linha pulada; cama musical mantida.` : "Voz IA indisponivel. Linha pulada; cama musical mantida.");
             return { url: null, blob: null };
           }
         })
@@ -850,10 +839,14 @@ export function useLiveEngine() {
       return { segmento, audioUrl: null, audioBlob: null, audiosFalas };
     }
 
+    // Sequências musicais sem locução não devem chamar TTS com texto vazio.
+    if (!segmento.fala.trim() && !segmento.vinheta_id && !segmento.patrocinador_audio) {
+      return { segmento, audioUrl: null, audioBlob: null, audiosFalas: null };
+    }
+
     let audioUrl: string | null = null;
     let audioBlob: Blob | null = null;
     try {
-      if (!radialistaIdRef.current) throw new Error("sem radialista selecionado");
       // audio ja veio pronto no proprio /proxima (ver Plano B.3) -- poupa o round-trip
       // separado de /tts. So' vem preenchido quando o backend conseguiu sintetizar;
       // qualquer outro caso cai nos ramos de sempre (patrocinador/vinheta/POST /tts).
@@ -875,26 +868,29 @@ export function useLiveEngine() {
             ? await apiFetchBlob(`/patrocinadores/${segmento.patrocinador_id}/audio`)
             : segmento.tipo === "vinheta" && segmento.vinheta_id
               ? await apiFetchBlob(`/biblioteca-audio/${segmento.vinheta_id}/audio`)
-              : await apiFetchBlobComTimeout(`/live/${radialistaIdRef.current}/tts`, {
+              : await apiFetchBlobComTimeout(`/live/${contexto.radialistaId}/tts`, {
                   method: "POST",
                   body: JSON.stringify({
                     perfil_pos_producao: "radio_fm",
                     texto: segmento.fala,
                     tipo: segmento.tipo,
+                    tom: segmento.tom ?? null,
                     voz_id: segmento.patrocinador_voz_id ?? null,
                     texto_anterior: ultimaFalaAtual,
-                    programa_id: programaIdRef.current,
+                    programa_id: contexto.programaId,
                 }),
               }, 60_000);
       }
       audioUrl = URL.createObjectURL(audioBlob);
-      setFalhasAudioConsecutivas(0);
+      if (ativa()) setFalhasAudioConsecutivas(0);
     } catch (err) {
       // engolir aqui sem log/aviso fazia a fala cair calada pra voz robotica do navegador (ver
       // falarComVozNavegador) sem nenhum indicio de que o TTS/audio do backend falhou.
       console.error("Falha ao gerar audio (TTS/patrocinador/vinheta), mantendo cama musical", err);
-      setErro(err instanceof ApiError ? `${err.message}. Fala pulada; cama musical mantida.` : "Voz IA indisponivel. Fala pulada; cama musical mantida.");
-      setFalhasAudioConsecutivas((n) => n + 1);
+      if (ativa()) {
+        setErro(err instanceof ApiError ? `${err.message}. Fala pulada; cama musical mantida.` : "Voz IA indisponivel. Fala pulada; cama musical mantida.");
+        setFalhasAudioConsecutivas((n) => n + 1);
+      }
       audioUrl = null;
       audioBlob = null;
     }
@@ -903,40 +899,35 @@ export function useLiveEngine() {
   }
 
   function descartarPreparo() {
-    for (const ref of [proximoPreparoRef, segundoPreparoRef]) {
-      ref.current
-        ?.then((preparado) => {
-          if (preparado.audioUrl) URL.revokeObjectURL(preparado.audioUrl);
-          preparado.audiosFalas?.forEach((a) => a.url && URL.revokeObjectURL(a.url));
-        })
-        .catch(() => {});
-      ref.current = null;
-    }
+    filaPreparoRef.current?.cancelar();
+    filaPreparoRef.current = null;
   }
 
-  // Assim que `promiseProximo` (o bloco que vai tocar OU JA' esta tocando em seguida) resolve,
-  // ja dispara o preparo do bloco DEPOIS dele pra segundoPreparoRef -- sem esperar o proximo
-  // comecar a tocar (ver comentario no ref). `minhaExecucao` e' o token da execucao que agendou
-  // isso (ver execucaoAtualRef): se um pulo/pausa/insercao manual mudar de execucao ou pausar o
-  // programa antes desta promise resolver, a continuacao e' descartada em silencio -- o pipeline
-  // especulativo so' faz sentido pra a mesma sequencia que o originou.
-  function agendarPreparoEspeculativo(promiseProximo: Promise<SegmentoPreparado>, minhaExecucao: number) {
-    promiseProximo
-      .then((resolvido) => {
-        if (execucaoAtualRef.current !== minhaExecucao || !programaAtivoRef.current || segundoPreparoRef.current) {
-          return;
-        }
-        const contexto: ContextoPreparo = {
-          historicoBase: [
-            { tipo: resolvido.segmento.tipo, fala: resolvido.segmento.fala, musicas: resolvido.segmento.musicas },
-            ...falasProgramaRef.current,
-          ],
-          totalFalas: totalFalasRef.current + 1,
-          ultimaFala: resolvido.segmento.fala,
-        };
-        segundoPreparoRef.current = prepararSegmento(contexto);
-      })
-      .catch(() => {});
+  function obterFilaPreparo(): FilaPreparo<ContextoPreparo, TextoPreparado, SegmentoPreparado> {
+    if (!filaPreparoRef.current) {
+      const fila: FilaPreparo<ContextoPreparo, TextoPreparado, SegmentoPreparado> = new FilaPreparo<ContextoPreparo, TextoPreparado, SegmentoPreparado>({
+        radialistaId: radialistaIdRef.current!,
+        programaId: programaIdRef.current!,
+        historicoBase: [...falasProgramaRef.current],
+        totalFalas: totalFalasRef.current,
+        ultimaFala: falasProgramaRef.current[0]?.fala ?? null,
+      }, {
+        gerarTexto: (contexto) => prepararTexto(contexto, () => fila.ativa),
+        prepararAudio: (texto, contexto) => prepararAudio(texto, contexto, () => fila.ativa),
+        avancar: (contexto, { segmento }) => segmento.tipo === "encerramento" ? null : ({
+          ...contexto,
+          historicoBase: [segmento, ...contexto.historicoBase].slice(0, 20),
+          totalFalas: contexto.totalFalas + 1,
+          ultimaFala: segmento.fala,
+        }),
+        descartar: (preparado) => {
+          if (preparado.audioUrl) URL.revokeObjectURL(preparado.audioUrl);
+          preparado.audiosFalas?.forEach((audio) => audio.url && URL.revokeObjectURL(audio.url));
+        },
+      });
+      filaPreparoRef.current = fila;
+    }
+    return filaPreparoRef.current;
   }
 
   async function gerarProximaFala(forcar = false) {
@@ -954,46 +945,58 @@ export function useLiveEngine() {
     setGerandoFala(true);
     setErro("");
 
-    const preparado = await (proximoPreparoRef.current ?? prepararSegmento());
-    proximoPreparoRef.current = null;
+    let preparado: SegmentoPreparado | null;
+    try {
+      preparado = await obterFilaPreparo().retirar();
+    } catch {
+      if (execucaoAtualRef.current === minhaExecucao) {
+        pausarPrograma();
+        setErro("Não foi possível preparar a sequência. Inicie a transmissão novamente.");
+      }
+      return;
+    }
 
     // usuario clicou "Pausar transmissao" enquanto essa fala/audio ainda estava sendo
     // preparada (busca no backend nao e' cancelavel) -- descarta em vez de por no ar,
     // senao a transmissao "pausada" segue falando/tocando musica mesmo assim.
-    if (!programaAtivoRef.current) {
-      if (preparado.audioUrl) URL.revokeObjectURL(preparado.audioUrl);
-      preparado.audiosFalas?.forEach((a) => a.url && URL.revokeObjectURL(a.url));
-      gerandoFalaRef.current = false;
-      setGerandoFala(false);
+    if (!preparado || !programaAtivoRef.current || execucaoAtualRef.current !== minhaExecucao) {
+      if (preparado?.audioUrl) URL.revokeObjectURL(preparado.audioUrl);
+      preparado?.audiosFalas?.forEach((a) => a.url && URL.revokeObjectURL(a.url));
+      if (execucaoAtualRef.current === minhaExecucao) {
+        gerandoFalaRef.current = false;
+        setGerandoFala(false);
+      }
       return;
     }
 
-    if (preparado.audioBlob) {
-      gravacaoBlobsRef.current.push(preparado.audioBlob);
-    }
-    preparado.audiosFalas?.forEach((a) => a.blob && gravacaoBlobsRef.current.push(a.blob));
-
-    const tipoBlocoAnterior = falasProgramaRef.current[0]?.tipo;
     const novaFala = adicionarFala(preparado.segmento);
     limparTimerPrograma();
 
-    // ja dispara a preparacao do proximo bloco em paralelo com a fala atual no ar -- e o que
-    // deixa as falas coladas, sem vazio entre elas. Quando o proximo ja foi preparado
-    // especulativamente enquanto o bloco anterior ainda tocava (profundidade 2 do pipeline, ver
-    // segundoPreparoRef/agendarPreparoEspeculativo), reaproveita em vez de gerar de novo -- e'
-    // o que evita o "gerando..." em blocos de fala curta.
-    if (programaAtivoRef.current) {
-      proximoPreparoRef.current = segundoPreparoRef.current ?? prepararSegmento();
-      segundoPreparoRef.current = null;
-      agendarPreparoEspeculativo(proximoPreparoRef.current, minhaExecucao);
-    }
+    // retirar() já repôs duas entradas na fila enquanto esta voz era finalizada.
 
     gerandoFalaRef.current = false;
     setGerandoFala(false);
 
-    // pausa deliberada, fixa por tipo -- sempre acontece, nao depende de quanto
-    // o preparo acima demorou (ver Plano B.1: intervalo hoje era acidente de rede/geracao)
-    await aguardarPausaDeliberada(tipoBlocoAnterior);
+    const transicao = new AbortController();
+    transicaoRef.current = transicao;
+    const podeTocar = await esperarTransicao(pausaAntesDoBloco(novaFala.pausa_antes_ms), transicao.signal);
+    if (transicaoRef.current === transicao) transicaoRef.current = null;
+    if (!podeTocar || !programaAtivoRef.current || execucaoAtualRef.current !== minhaExecucao) {
+      if (preparado.audioUrl) URL.revokeObjectURL(preparado.audioUrl);
+      preparado.audiosFalas?.forEach((a) => a.url && URL.revokeObjectURL(a.url));
+      atualizarDuracaoFala(novaFala.id, 0);
+      if (novaFala.pedido_id && novaFala.pedido_token && novaFala.pedido_programa_id) {
+        try {
+          await confirmarParticipacao(novaFala, "interrompido");
+        } catch {
+          setErro("Não foi possível confirmar a interrupção da participação. Confira o pedido na fila.");
+        }
+      }
+      return;
+    }
+
+    if (preparado.audioBlob) gravacaoBlobsRef.current.push(preparado.audioBlob);
+    preparado.audiosFalas?.forEach((a) => a.blob && gravacaoBlobsRef.current.push(a.blob));
 
     // Duracao REAL do bloco inteiro: soma o tempo de ar de cada musica + cada fala que
     // compoe ele (medido no relogio de parede por reproduzirAudioPreparado/tocarMusica),
@@ -1035,11 +1038,14 @@ export function useLiveEngine() {
       }
     } else if (preparado.audiosFalas && preparado.audiosFalas.length > 0) {
       // dialogo multi-voz: toca uma linha de cada vez, na voz de quem falou
-      for (let i = 0; i < preparado.audiosFalas.length; i++) {
-        if (!programaAtivoRef.current || execucaoAtualRef.current !== minhaExecucao) break;
-        const textoLinha = novaFala.falas?.[i]?.texto ?? novaFala.fala;
-        duracaoBlocoSegundos += await reproduzirAudioPreparado(preparado.audiosFalas[i].url, textoLinha, () => { linhasConcluidas++; });
-      }
+      duracaoBlocoSegundos += await reproduzirGrupoDeFalas(
+        preparado.audiosFalas,
+        () => programaAtivoRef.current && execucaoAtualRef.current === minhaExecucao,
+        (audio, i) => reproduzirAudioPreparado(
+          audio.url, novaFala.falas?.[i]?.texto ?? novaFala.fala, () => { linhasConcluidas++; }, false,
+        ),
+        duckMusicaFundo,
+      );
     } else {
       duracaoBlocoSegundos += await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala, () => { participacaoConcluida = true; });
     }
@@ -1069,11 +1075,8 @@ export function useLiveEngine() {
     }
 
     if (programaAtivoRef.current) {
-      // ver Frente K.5: backend varia o silencio pelo tipo de transicao (emenda quase sem pausa
-      // saindo de/pra musica, respiro maior em volta de noticia) -- cai no fixo so' quando o
-      // backend nao mandou nada (fallback local, patrocinador, vinheta).
-      const intervalo = novaFala.intervalo_ms ?? INTERVALO_PROGRAMA_MS;
-      programaTimerRef.current = setTimeout(() => gerarProximaFala(), intervalo);
+      // O próximo conteúdo já recebe sua própria pausa_antes_ms. Não somar outra espera aqui.
+      programaTimerRef.current = setTimeout(() => gerarProximaFala(), INTERVALO_PROGRAMA_MS);
     }
   }
 
@@ -1109,16 +1112,15 @@ export function useLiveEngine() {
       audioBlob = await apiFetchBlob(`/biblioteca-audio/${item.id}/audio`);
       audioUrl = URL.createObjectURL(audioBlob);
     } catch (err) {
-      setErro(err instanceof ApiError ? err.message : "Erro ao tocar audio");
+      if (execucaoAtualRef.current === minhaExecucao) setErro(err instanceof ApiError ? err.message : "Erro ao tocar audio");
     }
 
-    gerandoFalaRef.current = false;
-    setGerandoFala(false);
-
-    if (execucaoAtualRef.current !== minhaExecucao) {
+    if (!programaAtivoRef.current || execucaoAtualRef.current !== minhaExecucao) {
       if (audioUrl) URL.revokeObjectURL(audioUrl);
       return;
     }
+    gerandoFalaRef.current = false;
+    setGerandoFala(false);
 
     const novaFala = adicionarFala({
       tipo: "vinheta",
@@ -1130,12 +1132,9 @@ export function useLiveEngine() {
 
     if (audioBlob) gravacaoBlobsRef.current.push(audioBlob);
 
-    // dispara o proximo bloco normal do roteiro em paralelo -- descartarPreparo() acima
-    // jogou fora o que estava preparado antes (proximo E o especulativo depois dele),
-    // entao precisa regerar os dois a partir daqui
+    // A inserção manual muda o contexto. Refaz a fila durante a vinheta.
     if (programaAtivoRef.current) {
-      proximoPreparoRef.current = prepararSegmento();
-      agendarPreparoEspeculativo(proximoPreparoRef.current, minhaExecucao);
+      obterFilaPreparo().preencher();
     }
 
     const duracaoSegundos = await reproduzirAudioPreparado(audioUrl, novaFala.fala);
@@ -1149,6 +1148,7 @@ export function useLiveEngine() {
   }
 
   function iniciarPrograma(peloAgendamento = false) {
+    if (programaAtivoRef.current) return;
     if (!radialistaIdRef.current || !programaIdRef.current) {
       setErro("Selecione um programa antes de iniciar.");
       return;
@@ -1197,6 +1197,9 @@ export function useLiveEngine() {
 
   function pausarPrograma(exportar = false) {
     limparTimerPrograma();
+    execucaoAtualRef.current += 1;
+    gerandoFalaRef.current = false;
+    setGerandoFala(false);
     programaAtivoRef.current = false;
     iniciadoPeloAgendamentoRef.current = false;
     setProgramaAtivo(false);

@@ -38,9 +38,9 @@ class Settings(BaseSettings):
 
     elevenlabs_api_key: str = ""
     elevenlabs_voice_id: str = ""
-    # Flash reduziu a latencia de voz com Radio FM no benchmark de 09/09/2026.
-    # ELEVENLABS_MODEL permite optar por eleven_v3 quando a expressividade for prioridade.
-    elevenlabs_model: str = "eleven_flash_v2_5"
+    # V3 recupera a expressividade da locucao; o ao vivo ja prepara os proximos blocos.
+    # Flash continua disponivel via ELEVENLABS_MODEL, com perfil proprio, para testes.
+    elevenlabs_model: str = "eleven_v3"
 
     # Diretorio (local, relativo ou absoluto) onde ficam os arquivos enviados pelo usuario
     # (ex.: audio de patrocinadores -- app/patrocinadores/router.py) quando storage_backend=local.

@@ -14,7 +14,8 @@ _CAMPOS_PROGRAMA_JSON = (
     '{"nome": str, "descricao": str, "dias_semana": [int], "horario_inicio": "HH:MM", '
     '"horario_fim": "HH:MM", "tom": str, "topicos_permitidos": [str], "topicos_proibidos": [str], '
     '"mensagem_saudacao": str, "mensagem_recusa": str, "limite_mensagens_hora": int, '
-    '"estrutura_blocos": [str], "ia_pode_adicionar_blocos": bool, "generos_musicais": [str], '
+    '"estrutura_blocos": [str], "perfil_programacao": "padrao" ou "musical_companhia", '
+    '"ia_pode_adicionar_blocos": bool, "generos_musicais": [str], '
     '"musicas_permitidas": [str], "musicas_bloqueadas": [str], "criterios_busca_musicas": str, '
     '"assuntos_ao_vivo": [str], "tipos_noticias": [str], "fontes_noticias": [str], '
     '"pode_pesquisar": bool, "fontes_pesquisa": [str], "instrucoes_pesquisa": str}'
@@ -25,6 +26,10 @@ _CAMPOS_RADIALISTA_JSON = (
 )
 
 _REGRAS_COMUNS = [
+    "Use perfil_programacao='musical_companhia' quando o pedido for um programa predominantemente "
+    "musical, com poucas intervenções de companhia. Nesse formato use ia_pode_adicionar_blocos=false "
+    "e estrutura_blocos=['musica','musica','identificacao','musica','musica','retomada']; a abertura "
+    "e o encerramento são automáticos. Para variedades, entrevistas, debate ou jornalismo, use 'padrao'.",
     "dias_semana usa inteiros (0=segunda ... 6=domingo); lista vazia significa todos os dias.",
     "horario_inicio e horario_fim no formato 24h HH:MM.",
     "Nunca inclua nenhum destes temas em topicos_permitidos, generos_musicais ou qualquer outro campo "

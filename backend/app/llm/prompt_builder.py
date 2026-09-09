@@ -340,7 +340,7 @@ def montar_system_prompt(
 
     if programa.estrutura_blocos:
         sequencia = " -> ".join(programa.estrutura_blocos)
-        if programa.ia_pode_adicionar_blocos:
+        if programa.ia_pode_adicionar_blocos and getattr(programa, "perfil_programacao", "padrao") != "musical_companhia":
             partes.append(
                 f"Estrutura de blocos do programa (ordem de referência): {sequencia}. "
                 "Siga essa sequência como guia, mas fique livre pra inserir blocos extras "
@@ -359,6 +359,12 @@ def montar_system_prompt(
 
     partes.append("Se perguntarem sobre outro assunto, recuse com simpatia e traga a conversa de volta para a rádio.")
     partes.append("Nunca opine sobre política, religião ou outros temas sensíveis, mesmo que não estejam na lista de proibidos.")
+    partes.append(
+        "Nunca comente o próprio formato do programa nem fale sobre rádio em vez de fazer rádio -- "
+        "proibidas frases como 'clima de rádio', 'cara de ao vivo', 'perto do ouvinte', 'sentir o pulso', "
+        "'perfil da rádio', 'ritmo gostoso' e qualquer variação de linguagem que descreva o programa de fora "
+        "em vez de simplesmente apresentá-lo."
+    )
     partes.append(
         "Regra geral acima de qualquer outra: NUNCA invente fato específico sobre a cidade, a rádio, o "
         "clima, notícia, trânsito, evento, nome de rua/bairro/comércio, dado de ouvinte, ou qualquer outra "

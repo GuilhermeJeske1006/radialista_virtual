@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "../../lib/api";
 import { Patrocinador, Programa, rotuloBloco } from "../../lib/types";
 import { BibliotecaAudioItem } from "../../lib/bibliotecaAudio";
+import { tipoMusical } from "../../lib/formatoPrograma";
 
 // Porta em JS a logica de _tipo_proximo_bloco (backend/app/live/router.py) -- so os TIPOS,
 // sem gerar conteudo real (LLM/TTS) antecipadamente. Fiel a parte deterministica do motor;
@@ -76,7 +77,10 @@ export default function ProximosBlocosPanel({ programa, totalFalas, variant = "c
 
   const nomesPatrocinadores = Object.fromEntries(patrocinadores.map((p) => [p.id, p.nome]));
   const nomesVinhetas = Object.fromEntries(vinhetas.map((v) => [v.id, v.nome]));
-  const tipos = proximosTipos(programa.estrutura_blocos, totalFalas, QUANTIDADE_PREVIEW);
+  const musical = programa.perfil_programacao === "musical_companhia";
+  const tipos = musical
+    ? Array.from({ length: QUANTIDADE_PREVIEW }, (_, i) => tipoMusical(programa.estrutura_blocos, totalFalas + i))
+    : proximosTipos(programa.estrutura_blocos, totalFalas, QUANTIDADE_PREVIEW);
 
   const lista = (
     <ol
@@ -121,7 +125,7 @@ export default function ProximosBlocosPanel({ programa, totalFalas, variant = "c
           {lista}
           <div className="pointer-events-none absolute right-0 top-0 bottom-1.5 w-10 bg-linear-to-l from-surface to-transparent" />
         </div>
-        {programa.ia_pode_adicionar_blocos && (
+        {!musical && programa.ia_pode_adicionar_blocos && (
           <p className="text-xs text-fg/65 mt-2">A IA pode ocasionalmente inserir um comentario extra fora dessa sequencia.</p>
         )}
       </div>
@@ -136,7 +140,7 @@ export default function ProximosBlocosPanel({ programa, totalFalas, variant = "c
         na hora de ir ao ar.
       </p>
       {lista}
-      {programa.ia_pode_adicionar_blocos && (
+      {!musical && programa.ia_pode_adicionar_blocos && (
         <p className="text-xs text-fg/65 mt-3">
           A IA pode ocasionalmente inserir um comentario extra fora dessa sequencia.
         </p>

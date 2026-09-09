@@ -440,6 +440,10 @@ export default function RoteiroBlocosEditor({
             <p className="text-xs text-fg/65">Nenhuma propaganda cadastrada. Cadastre em /vinhetagem.</p>
           </section>
         )}
+
+        {filtro && presetsFiltrados.length === 0 && vinhetasFiltradas.length === 0 && patrocinadoresFiltrados.length === 0 && (
+          <p className="text-sm text-fg/65">Nenhum item encontrado pro filtro.</p>
+        )}
       </div>
     </div>
   );

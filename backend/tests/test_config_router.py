@@ -492,3 +492,18 @@ def test_limite_radialistas_por_programa_do_plano_starter(client, account, auth_
     _criar_radialista(client, auth_headers, account.id, nome="Unico")
     segundo = _criar_radialista(client, auth_headers, account.id, nome="Segundo")
     assert segundo.status_code == 402
+
+
+def test_perfil_musical_persiste_e_rejeita_valor_desconhecido(client, account, auth_headers):
+    radialista = _criar_radialista(client, auth_headers, account.id).json()
+    headers = auth_headers(account.id)
+    criado = client.post(f"/config/radialistas/{radialista['id']}/programas",
+                         json=_programa_payload(perfil_programacao="musical_companhia"), headers=headers)
+    assert criado.status_code == 201
+    url = f"/config/programas/{criado.json()['id']}"
+    assert client.get(url, headers=headers).json()["perfil_programacao"] == "musical_companhia"
+    invalido = client.put(url, json=_programa_payload(perfil_programacao="inexistente"), headers=headers)
+    assert invalido.status_code == 422
+    assert client.get(url, headers=headers).json()["perfil_programacao"] == "musical_companhia"
+    padrao = client.put(url, json=_programa_payload(perfil_programacao="padrao"), headers=headers)
+    assert padrao.json()["perfil_programacao"] == "padrao"

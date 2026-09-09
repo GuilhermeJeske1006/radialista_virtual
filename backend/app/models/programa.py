@@ -50,6 +50,7 @@ class Programa(Base):
     # "abertura", "noticia", "musica"]). Guia a ordem do ao vivo; a IA segue essa estrutura mas
     # pode inserir blocos extras entre os definidos quando ia_pode_adicionar_blocos for True.
     estrutura_blocos: Mapped[list[str]] = mapped_column(JSON, default=list)
+    perfil_programacao: Mapped[str] = mapped_column(String, default="padrao")
     ia_pode_adicionar_blocos: Mapped[bool] = mapped_column(Boolean, default=True)
 
     generos_musicais: Mapped[list[str]] = mapped_column(JSON, default=list)

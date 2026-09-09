@@ -223,6 +223,7 @@ def garantir_colunas_programa():
     novas_colunas = {
         "data_especifica": "DATE NULL",
         "estrutura_blocos": "JSON DEFAULT '[]' NOT NULL",
+        "perfil_programacao": "VARCHAR DEFAULT 'padrao' NOT NULL",
         "ia_pode_adicionar_blocos": "BOOLEAN DEFAULT TRUE NOT NULL",
         "descricao": "VARCHAR DEFAULT '' NOT NULL",
         "quadros_fixos": "JSON DEFAULT '{}' NOT NULL",

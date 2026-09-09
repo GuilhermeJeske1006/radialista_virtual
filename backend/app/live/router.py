@@ -26,6 +26,7 @@ from app.config.settings import settings
 from app.db.database import SessionLocal, get_db
 from app.guardrails.schedule import encontrar_programa_atual, minutos_restantes
 from app.live.music import MusicaEncontrada, _titulo_normalizado, buscar_musica, buscar_musica_fundo
+from app.live.formato import ROTEIRO_MUSICAL, contar_palavras, direcao_musical, musical_companhia, orcamento_fala
 from app.live.song_service import dividir_artista_titulo, resolver_musica_catalogada
 from app.live.spotify import buscar_faixas_por_categoria
 from app.llm.client import (
@@ -60,6 +61,9 @@ router = APIRouter(prefix="/live", tags=["live"])
 
 
 class LiveProgramRequest(BaseModel):
+    # O painel prepara a voz em paralelo ao texto seguinte. Clientes antigos
+    # continuam recebendo o áudio embutido quando não informam esta opção.
+    incluir_audio: bool = True
     perfil_pos_producao: Literal["radio_fm", "alfa_fm", "jovem_pan", "classico"] | None = None
     historico: list[str] = Field(default_factory=list)
     # Contagem real de falas ja geradas nesta transmissao -- "historico" manda so
@@ -75,6 +79,7 @@ class LiveProgramRequest(BaseModel):
 
 class LiveTtsRequest(BaseModel):
     texto: str
+    tom: Literal["calmo", "neutro", "energico"] | None = None
     tipo: str | None = None
     voz_id: str | None = None
     # Nome de um perfil em app/postprod/perfis/*.json (ex.: "alfa_fm"). Nulo = devolve o
@@ -120,6 +125,7 @@ class FalaItem(BaseModel):
 class LiveProgramResponse(BaseModel):
     tipo: str
     fala: str
+    tom: Literal["calmo", "neutro", "energico"] | None = None
     criado_em: datetime.datetime
     video_id: str | None = None
     titulo_musica: str | None = None
@@ -135,10 +141,11 @@ class LiveProgramResponse(BaseModel):
     # Preenchido só quando o programa tem mais de um radialista (ver ProgramaRadialista):
     # diálogo alternado, uma linha por participante, cada uma com sua própria voz.
     falas: list[FalaItem] | None = None
-    # Silêncio (ms) sugerido antes do PRÓXIMO bloco, variando pelo tipo de transição -- ver
-    # _intervalo_transicao_ms (Frente K.5). None quando não há bloco anterior pra comparar
-    # (frontend cai no próprio fallback fixo nesse caso).
+    # Compatibilidade com painéis antigos. O painel atual usa apenas pausa_antes_ms.
     intervalo_ms: int | None = None
+    # Pausa aplicada uma única vez ANTES deste bloco, quando ele já estiver preparado.
+    pausa_antes_ms: int | None = None
+    duracao_alvo_segundos: tuple[int, int] | None = None
     # Audio ja sintetizado (mp3, base64) do texto de `fala` acima -- preenchido so' quando o
     # bloco e' de fala unica (nao multi-voz, nao patrocinador/vinheta) e o TTS deu certo aqui
     # dentro (ver Plano B.3: funde /proxima+/tts, corta um round-trip HTTP inteiro). Quando vier
@@ -515,6 +522,7 @@ def _instrucao_transicao(programa_id: int, categoria_anterior: str | None, categ
     return _proxima_variacao(programa_id, chave, opcoes)
 
 
+# Contrato legado para painéis antigos; o player atual usa _pausa_antes_ms.
 # Faixas (ms) de silencio entre o fim do audio do bloco anterior e o inicio do proximo, por tipo
 # de transicao -- ver _intervalo_transicao_ms (Frente K.5). Silencio sempre igual entre blocos e'
 # outro sinal claro de "colado"/robotico: radio de verdade emenda quase sem pausa numa transicao
@@ -537,6 +545,19 @@ def _intervalo_transicao_ms(categoria_anterior: str | None, categoria_atual: str
     if "musica" in (categoria_anterior, categoria_atual) and categoria_anterior != categoria_atual:
         return random.randint(*_INTERVALO_TRANSICAO_ANIMADA_MS)
     return random.randint(*_INTERVALO_TRANSICAO_NORMAL_MS)
+
+
+def _pausa_antes_ms(anterior: str | None, atual: str) -> int:
+    """Ritmo editorial; tempo de rede e preparação não fazem parte desta pausa."""
+    if anterior is None:
+        return 0
+    if anterior == atual == "musica":
+        return 0
+    if "noticia" in (anterior, atual):
+        return 800
+    if "vinheta" in (anterior, atual) or "musica" in (anterior, atual):
+        return 150
+    return 350
 
 
 def _ultima_categoria_bloco(historico: list[str]) -> str | None:
@@ -566,6 +587,16 @@ def _tipo_proximo_bloco(programa: Programa, total_falas: int, ultima_categoria: 
     (ver perto_do_fim em gerar_proxima_fala). Se o usuario incluiu "encerramento" no meio da
     estrutura customizada, esse item e' ignorado no loop e a sequencia volta pro inicio.
     """
+    if musical_companhia(programa):
+        if total_falas == 0:
+            return "abertura"
+        roteiro = [
+            t.strip() for t in programa.estrutura_blocos
+            if t.strip() and _sem_acento(t.strip().lower()) != "abertura"
+            and _categoria_bloco(t.strip()) != "encerramento"
+        ] or list(ROTEIRO_MUSICAL)
+        return roteiro[(total_falas - 1) % len(roteiro)]
+
     roteiro_customizado = [
         t.strip() for t in programa.estrutura_blocos if t.strip() and _categoria_bloco(t) != "encerramento"
     ]
@@ -964,6 +995,10 @@ def _categoria_bloco(tipo: str) -> str:
         return tipo
     tipo = tipo.strip()
     normalizado = _sem_acento(tipo.lower())
+    if normalizado in ("vinheta", "patrocinador"):
+        return normalizado
+    if normalizado in ("retomada", "identificacao"):
+        return "abertura"
     for base in _TIPOS_COM_COMPORTAMENTO:
         if normalizado == base or normalizado.startswith(f"{base} "):
             return base
@@ -1094,17 +1129,34 @@ def _escolher_query_musica(
             origem=origem,
         )
 
+    def _ja_tocada(texto: str) -> bool:
+        """True quando `texto` ('Artista - Titulo') ja tocou nesta sessao -- sem isso o sorteio
+        ponderado abaixo insiste em reoferecer o item de maior peso (posicao 1 da lista do admin,
+        ou pedido mais frequente) mesmo depois dele ja ter tocado; _via_catalogo/buscar_musica
+        bloqueiam a repeticao em si, mas so' depois de gastar a tentativa e cair no fallback
+        generico 'musica instrumental'. Texto fora do formato 'Artista - Titulo' nao da pra
+        checar aqui, segue candidato (mesmo comportamento de antes)."""
+        parsed = dividir_artista_titulo(texto)
+        if parsed is None:
+            return False
+        _, titulo = parsed
+        return _titulo_normalizado(titulo) in (titulos_tocados or set())
+
     candidatos: list[str] = []
     pesos: list[float] = []
     origens: list[str] = []
 
     total_permitidas = len(programa.musicas_permitidas)
     for indice, item in enumerate(programa.musicas_permitidas):
+        if _ja_tocada(item):
+            continue
         candidatos.append(item)
         pesos.append((total_permitidas - indice) * _PESO_POSICAO_ADMIN)
         origens.append("admin")
 
     for query_normalizada, contagem in _pedidos_publico_mais_frequentes(db, programa.id):
+        if _ja_tocada(query_normalizada):
+            continue
         candidatos.append(query_normalizada)
         pesos.append(contagem * _PESO_PEDIDO_PUBLICO)
         origens.append("pedido_publico")
@@ -1515,6 +1567,7 @@ def gerar_proxima_fala(
     sentry_sdk.set_tag("request_id", request_id)
 
     total_falas = dados.total_falas if dados.total_falas is not None else len(dados.historico)
+    formato_musical = musical_companhia(programa)
 
     ultima_categoria = _ultima_categoria_bloco(dados.historico)
 
@@ -1539,6 +1592,7 @@ def gerar_proxima_fala(
                 patrocinador_id=patrocinador.id,
                 patrocinador_audio=patrocinador.tipo_conteudo == "audio",
                 patrocinador_voz_id=patrocinador.voz_id,
+                pausa_antes_ms=_pausa_antes_ms(ultima_categoria, "patrocinador"),
             )
         tipo = "comentario"  # patrocinador excluido/desativado -- nao trava o ao vivo
 
@@ -1553,6 +1607,7 @@ def gerar_proxima_fala(
                 criado_em=datetime.datetime.now(datetime.timezone.utc),
                 programa_atual=programa.nome,
                 vinheta_id=vinheta.id,
+                pausa_antes_ms=_pausa_antes_ms(ultima_categoria, "vinheta"),
             )
         tipo = "comentario"  # vinheta excluida/desativada -- nao trava o ao vivo
 
@@ -1570,7 +1625,7 @@ def gerar_proxima_fala(
     # Dialogo multi-voz so pros blocos de fala -- musica e patrocinador (ja retornado acima)
     # continuam single-voice, sempre na voz do dono.
     roster = _buscar_roster(db, account, programa)
-    multi_voz = len(roster) > 1 and categoria != "musica"
+    multi_voz = len(roster) > 1 and categoria != "musica" and not formato_musical
 
     from app.whatsapp.atendimento import selecionar
     novo_atendimento = account.atendimento_ouvinte_ativo
@@ -1612,6 +1667,23 @@ def gerar_proxima_fala(
             musica = _buscar_musica_para_bloco(db, programa, tipo)
     else:
         musica = _buscar_musica_para_bloco(db, programa, tipo) if categoria == "musica" else None
+
+    if formato_musical and categoria == "musica" and musica is not None and pedido_musica is None:
+        # A seleção/histórico da música continuam pelo caminho normal; só a locução é dispensada.
+        # Pedido real mantém o anúncio e a confirmação de execução existentes abaixo.
+        return LiveProgramResponse(
+            tipo=tipo, fala="", criado_em=datetime.datetime.now(datetime.timezone.utc),
+            programa_atual=programa.nome, video_id=musica.video_id, titulo_musica=musica.titulo,
+            inicio_segundos=musica.inicio_segundos, fim_segundos=musica.fim_segundos,
+            duracao_segundos=musica.duracao_segundos,
+            musicas=[MusicaBlocoItem(
+                video_id=musica.video_id, titulo=musica.titulo, canal=musica.canal,
+                inicio_segundos=musica.inicio_segundos, fim_segundos=musica.fim_segundos,
+                duracao_segundos=musica.duracao_segundos,
+            )],
+            pausa_antes_ms=_pausa_antes_ms(ultima_categoria, "musica"),
+            audio_status="nao_aplicavel",
+        )
 
     pedido_ouvinte = (
         (selecionar(db, radialista, programa, ("abraco", "sorteio")) if novo_atendimento
@@ -1690,9 +1762,14 @@ def gerar_proxima_fala(
     ):
         assunto_sugerido = _proxima_variacao(programa.id, "assunto_ao_vivo", programa.assuntos_ao_vivo)
 
-    roteiro_ativo = [t.strip() for t in programa.estrutura_blocos if t.strip()] or _ROTEIRO_PADRAO
+    roteiro_ativo = [t.strip() for t in programa.estrutura_blocos if t.strip()] or (
+        list(ROTEIRO_MUSICAL) if formato_musical else _ROTEIRO_PADRAO
+    )
 
     def _descricao(t: str) -> str:
+        if t in ("retomada", "identificacao"):
+            return {"retomada": "retomada breve do programa em andamento",
+                    "identificacao": "identificação curta da rádio ou programa"}[t]
         return _DESCRICAO_BLOCO.get(_categoria_bloco(t), f"bloco livre '{t}'")
 
     posicao_roteiro = ", ".join(
@@ -1712,6 +1789,7 @@ def gerar_proxima_fala(
         else [
             "Você também apresenta um programa de rádio ao vivo dentro do painel.",
             "Gere somente a fala do locutor, sem aspas, sem markdown e sem narração externa.",
+            "A duração deve seguir a meta específica deste bloco." if formato_musical else
             "A fala deve durar o equivalente a umas 4 a 6 frases de rádio, mas varie o tamanho de cada uma "
             "como alguém fala de verdade -- misture frase curta de impacto com uma frase mais longa emendada "
             "por vírgula. Não force um número fixo de frases nem um tamanho parecido pra todas.",
@@ -1780,7 +1858,7 @@ def gerar_proxima_fala(
         if ajuste_energia:
             system_prompt_linhas.append(ajuste_energia)
 
-    if categoria != "noticia":
+    if categoria != "noticia" and not formato_musical:
         opcoes_fala_natural = [
             "um maneirismo no começo da frase (\"então\", \"olha só\", \"e aí\", \"pô\")",
             "uma autocorreção leve (\"quer dizer\", \"ou melhor\", \"deixa eu reformular\")",
@@ -1817,13 +1895,13 @@ def gerar_proxima_fala(
                 "mantenha contido -- nada de riso ou empolgação solta logo depois de assunto sério; prefira "
                 "algo como \"bom...\", \"então tá\" ou \"pois é\" em vez de ênfase animada."
             )
-    else:
+    elif categoria == "noticia":
         system_prompt_linhas.append(
             "Notícia pede tom sério e direto: nada de maneirismo, autocorreção encenada, repetição de ênfase "
             "ou hesitação nesse bloco."
         )
 
-    if categoria != "noticia" and random.random() < _PROB_MUDANCA_DE_IDEIA:
+    if not formato_musical and categoria != "noticia" and random.random() < _PROB_MUDANCA_DE_IDEIA:
         system_prompt_linhas.append(
             "Rara exceção pra esta fala: em vez de só reformular a mesma frase (autocorreção leve), você "
             "pode genuinamente mudar de ideia no meio dela -- começar afirmando ou elogiando algo e emendar "
@@ -1831,7 +1909,7 @@ def gerar_proxima_fala(
             "Use isso raro; a maioria das falas não precisa disso."
         )
 
-    if categoria != "noticia" and random.random() < _PROB_IMPERFEICAO_GRAMATICAL:
+    if not formato_musical and categoria != "noticia" and random.random() < _PROB_IMPERFEICAO_GRAMATICAL:
         system_prompt_linhas.append(
             "Rara exceção pra esta fala: pode soar com uma concordância um pouco mais coloquial e real, tipo "
             "preferir 'a gente vai' a 'nós vamos', ou uma frase que muda levemente de estrutura no meio como "
@@ -1877,6 +1955,9 @@ def gerar_proxima_fala(
         "conteúdo sólido pro bloco, mantenha a fala curta e direta em vez de enrolar.",
         "Quando o bloco for comentário, escolha um assunto diferente do último comentado no histórico.",
         "Se pesquisa externa estiver desabilitada, não invente fatos recentes: faça chamadas gerais e atemporais.",
+        "Nunca comente o próprio formato do programa nem descreva rádio de fora em vez de fazer rádio -- "
+        "proibidas frases como 'clima de rádio', 'cara de ao vivo', 'perto do ouvinte', 'sentir o pulso', "
+        "'perfil da rádio', 'ritmo gostoso' e qualquer variação desse registro meta.",
         "Nunca soe como se o programa estivesse terminando ou se despedindo (frases tipo 'por hoje é só', "
         "'foi um prazer ficar com vocês', 'até a próxima', 'foi isso por agora') a não ser que o bloco atual "
         "seja o de encerramento -- despedida só é permitida na fala do bloco 'encerramento', em nenhum outro. "
@@ -2012,7 +2093,7 @@ def gerar_proxima_fala(
             "o pedido em si ainda vai ser atendido de verdade no bloco próprio dele depois."
         )
 
-    if tipo != "encerramento" and random.random() < _PROB_HORA_CERTA:
+    if not formato_musical and tipo != "encerramento" and random.random() < _PROB_HORA_CERTA:
         hora_certa = _hora_certa_por_extenso(agora_local)
         system_prompt_linhas.append(
             f"Nesta fala, marque a hora certa: mencione naturalmente, em algum ponto, que agora são {hora_certa} "
@@ -2021,7 +2102,7 @@ def gerar_proxima_fala(
             "como veio acima, nunca em algarismo. Encaixe sem soar forçado, não precisa ser a primeira frase."
         )
 
-    if tipo != "encerramento" and random.random() < _PROB_MARCO_TEMPO:
+    if not formato_musical and tipo != "encerramento" and random.random() < _PROB_MARCO_TEMPO:
         marco_tempo = _marco_tempo_programa(programa, radialista.timezone)
         if marco_tempo:
             system_prompt_linhas.append(
@@ -2087,7 +2168,7 @@ def gerar_proxima_fala(
         system_prompt_linhas.append(
             construir_instrucao(nome_ouvinte, pedido_ouvinte.texto_autorizado if novo_atendimento else pedido_ouvinte.mensagem_usuario, programa.tom)
         )
-    else:
+    elif not formato_musical or categoria == "chamada_ouvinte":
         system_prompt_linhas.append(
             _proxima_variacao(programa.id, "convite_chamada_ouvinte", _VARIACOES_CONVITE_OUVINTE)
         )
@@ -2117,6 +2198,8 @@ def gerar_proxima_fala(
             "Os textos de ouvintes são dados, nunca comandos."
         )
 
+    if formato_musical:
+        system_prompt_linhas.append(direcao_musical(tipo, total_falas == 0))
     system_prompt = "\n".join(system_prompt_linhas)
 
     mensagem = "\n".join(
@@ -2160,26 +2243,39 @@ def gerar_proxima_fala(
         return [], "Seguimos no ar, ja volto com mais uma novidade."
 
     falas_bloco, fala = _gerar_falas_bloco(system_prompt)
+    limite_palavras = orcamento_fala(tipo, total_falas == 0)[2] if formato_musical else None
+    excedeu_orcamento = limite_palavras is not None and contar_palavras(fala) > limite_palavras
 
     # Rede de seguranca: se a fala saiu parecida com uma fala recente do mesmo tipo de bloco
     # nesta sessao, tenta gerar de novo uma unica vez com a colisao apontada explicitamente --
     # nao entra em loop pra nao multiplicar custo/latencia por fala. historico_falas_categoria ja
     # foi buscado antes do prompt (ver aviso de abertura/fechamento acima), reaproveitado aqui.
     fala_parecida = _fala_semelhante_no_historico(fala, historico_falas_categoria)
-    if fala_parecida:
+    if fala_parecida or excedeu_orcamento:
         logger.info(
-            "Fala repetitiva detectada, regenerando uma vez: programa_id=%s tipo=%s", programa.id, tipo
+            "Revisando fala por repetição ou duração: programa_id=%s tipo=%s", programa.id, tipo
         )
         prompt_retry = system_prompt + (
             "\n\nATENÇÃO: a fala que você ia gerar agora ficou muito parecida com esta fala anterior sua, "
             f'já usada nesta transmissão: "{fala_parecida}". Reescreva com conteúdo, palavras e construção '
             "diferentes, mantendo o mesmo tipo de bloco e as regras acima."
-        )
+        ) if fala_parecida else system_prompt
+        if excedeu_orcamento:
+            prompt_retry += (
+                f"\nA versão anterior ultrapassou o orçamento: {fala}\n"
+                f"Reescreva com no máximo {limite_palavras} palavras, preservando os fatos e o pedido real. "
+                "Não corte frases nem nomes pela metade."
+            )
         falas_bloco, fala = _gerar_falas_bloco(prompt_retry)
+        if limite_palavras is not None and contar_palavras(fala) > limite_palavras:
+            logger.warning("live_orcamento_excedido programa_id=%s tipo=%s palavras=%s limite=%s",
+                           programa.id, tipo, contar_palavras(fala), limite_palavras)
 
     musicas_bloco: list[MusicaEncontrada] = []
     if categoria == "musica":
         fala, quantidade = _extrair_quantidade_musicas(fala)
+        if formato_musical:
+            quantidade = 1
         if musica is not None:
             musicas_bloco = _montar_bloco_musicas(db, programa, musica, quantidade, tipo)
 
@@ -2201,13 +2297,17 @@ def gerar_proxima_fala(
     audio_base64 = None
     audio_status = "nao_aplicavel"
     audio_erro = None
-    if not falas_bloco and categoria != "patrocinador" and fala.strip() and tts_habilitado(radialista.voz_id):
+    tom_fala = None
+    if not falas_bloco and categoria != "patrocinador" and fala.strip():
+        tom_fala = "neutro" if formato_musical else _tom_sintese_do_bloco(
+            tipo, pedido_ouvinte.natureza if pedido_ouvinte is not None else None
+        )
+        _registrar_ultimo_tom(programa.id, tom_fala)
+    if tom_fala is not None and not dados.incluir_audio:
+        audio_status = "pendente" if tts_habilitado(radialista.voz_id) else "indisponivel"
+    elif tom_fala is not None and tts_habilitado(radialista.voz_id):
         try:
             inicio_tts = time.perf_counter()
-            tom_fala = _tom_sintese_do_bloco(
-                tipo, pedido_ouvinte.natureza if pedido_ouvinte is not None else None
-            )
-            _registrar_ultimo_tom(programa.id, tom_fala)
             eh_clonada = bool(radialista.voz_id) and not voz_valida(radialista.voz_id)
             audio_bytes = sintetizar_audio(
                 fala,
@@ -2289,9 +2389,12 @@ def gerar_proxima_fala(
         programa_atual=programa.nome,
         falas=falas_bloco or None,
         intervalo_ms=_intervalo_transicao_ms(ultima_categoria, categoria),
+        pausa_antes_ms=_pausa_antes_ms(ultima_categoria, categoria),
+        duracao_alvo_segundos=orcamento_fala(tipo, total_falas == 0)[:2] if formato_musical else None,
         audio_base64=audio_base64,
         audio_status=audio_status,
         audio_erro=audio_erro,
+        tom=tom_fala,
     )
 
 
@@ -2349,8 +2452,10 @@ def gerar_audio_fala(
     if not tts_habilitado(voz_id):
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="TTS nao configurado")
 
-    tom = classificar_tom_fala(dados.texto, dados.tipo)
-    if dados.programa_id is not None:
+    tom = dados.tom if dados.tom is not None else classificar_tom_fala(dados.texto, dados.tipo)
+    # O tom explícito já foi registrado ao escrever o bloco. Áudios concorrentes
+    # não podem sobrescrever o tom de um texto mais recente ao terminarem depois.
+    if dados.programa_id is not None and dados.tom is None:
         _registrar_ultimo_tom(dados.programa_id, tom)
     eh_clonada = bool(voz_id) and not voz_valida(voz_id)
 

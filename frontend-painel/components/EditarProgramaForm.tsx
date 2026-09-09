@@ -19,6 +19,7 @@ import {
   TipoRadio,
 } from "../lib/types";
 import { janelaSegundos } from "../lib/duracaoBloco";
+import { ROTEIRO_MUSICAL } from "../lib/formatoPrograma";
 import { BibliotecaAudioItem } from "../lib/bibliotecaAudio";
 import { CORES_BLOCO, kindDoBloco } from "../lib/blocoVisual";
 import { LocufySpin } from "./LocufyLogo";
@@ -420,6 +421,42 @@ export default function EditarProgramaForm({
           </Link>
         </div>
 
+        <div>
+          <label htmlFor="perfil-programacao" className={labelClass}>Formato do programa</label>
+          <select
+            id="perfil-programacao"
+            className={inputClass}
+            value={programa.perfil_programacao ?? "padrao"}
+            onChange={(e) => setPrograma({ ...programa, perfil_programacao: e.target.value as Programa["perfil_programacao"] })}
+          >
+            <option value="padrao">Variedades e conversa</option>
+            <option value="musical_companhia">Musical de companhia</option>
+          </select>
+          {programa.perfil_programacao === "musical_companhia" && (
+            <div className="mt-2 space-y-2 text-sm text-fg/65">
+              <p>
+                Abertura breve, sequências de músicas e retomadas curtas com o apresentador principal.
+                Pedidos reais continuam recebendo anúncio. A sequência se repete até o encerramento.
+              </p>
+              <p>
+                Sem roteiro personalizado, o programa alterna duas músicas, uma identificação curta,
+                mais duas músicas e uma retomada. Você pode inserir as vinhetas da rádio no roteiro.
+              </p>
+              <button
+                type="button"
+                className="font-medium text-amber-text hover:text-amber-dim"
+                onClick={() => setPrograma({
+                  ...programa,
+                  estrutura_blocos: [...ROTEIRO_MUSICAL],
+                  ia_pode_adicionar_blocos: false,
+                })}
+              >
+                Usar sequência musical sugerida
+              </button>
+            </div>
+          )}
+        </div>
+
         {criando ? (
           <RoteiroBlocosEditor
             blocos={programa.estrutura_blocos}
@@ -447,7 +484,11 @@ export default function EditarProgramaForm({
                 })}
               </ol>
             ) : (
-              <p className="text-sm text-fg/65 mb-3">Nenhum bloco montado ainda -- o programa não tem roteiro definido.</p>
+              <p className="text-sm text-fg/65 mb-3">
+                {programa.perfil_programacao === "musical_companhia"
+                  ? "O programa usará a sequência musical sugerida."
+                  : "Nenhum bloco montado ainda -- o programa não tem roteiro definido."}
+              </p>
             )}
             <Link
               href={`/radialista/${programa.radio_config_id}/programas/${idEfetivo}/grade`}
@@ -461,11 +502,14 @@ export default function EditarProgramaForm({
         <label className="inline-flex items-center gap-2 text-sm font-medium text-fg/80">
           <input
             type="checkbox"
-            checked={programa.ia_pode_adicionar_blocos}
+            checked={programa.perfil_programacao !== "musical_companhia" && programa.ia_pode_adicionar_blocos}
+            disabled={programa.perfil_programacao === "musical_companhia"}
             onChange={(e) => setPrograma({ ...programa, ia_pode_adicionar_blocos: e.target.checked })}
             className="h-4 w-4 rounded border-border-strong bg-bg text-amber-text focus:ring-amber/40"
           />
-          IA pode inserir blocos extras entre os da sequência
+          {programa.perfil_programacao === "musical_companhia"
+            ? "O formato musical segue a sequência sem inserir comentários extras"
+            : "IA pode inserir blocos extras entre os da sequência"}
         </label>
 
         <hr className="border-border" />

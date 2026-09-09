@@ -11,6 +11,8 @@ const PALAVRAS_POR_SEGUNDO = 2.5;
 // abaixo via DURACAO_MUSICA_SEGUNDOS).
 const DURACAO_FALA_PADRAO_SEGUNDOS: Record<string, number> = {
   abertura: 40,
+  retomada: 10,
+  identificacao: 5,
   musica: 15,
   comentario: 45,
   noticia: 40,

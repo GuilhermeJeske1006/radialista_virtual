@@ -60,3 +60,17 @@ describe("EditarProgramaForm (criação)", () => {
     expect(screen.queryByText(/Sequência vazia/)).not.toBeInTheDocument();
   });
 });
+
+it("permite selecionar o formato musical e aplicar seu roteiro sem comentários extras", async () => {
+  await renderCriacao();
+  await userEvent.selectOptions(screen.getByLabelText("Formato do programa"), "musical_companhia");
+  expect(screen.getByText(/Pedidos reais continuam recebendo anúncio/)).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "Usar sequência musical sugerida" }));
+  expect(screen.queryByText(/Sequência vazia/)).not.toBeInTheDocument();
+  const extras = screen.getByRole("checkbox", { name: /O formato musical segue a sequência/ });
+  expect(extras).toBeDisabled();
+  expect(extras).not.toBeChecked();
+  expect(screen.getByLabelText("Formato do programa")).toHaveValue("musical_companhia");
+  await userEvent.selectOptions(screen.getByLabelText("Formato do programa"), "padrao");
+  expect(screen.getByRole("checkbox", { name: /IA pode inserir blocos extras/ })).toBeEnabled();
+});

@@ -5,7 +5,7 @@ import httpx
 import pytest
 from freezegun import freeze_time
 
-from app.live.music import MusicaEncontrada
+from app.live.music import MusicaEncontrada, _titulo_normalizado
 from app.live.router import (
     _aberturas_e_fechamentos,
     _escolher_query_musica,
@@ -390,6 +390,60 @@ def test_proxima_informa_falha_de_audio_sem_forcar_segunda_sintese(
     assert resposta.json()["audio_status"] == "falhou"
     assert resposta.json()["audio_erro"] == "RuntimeError"
     assert resposta.json()["audio_base64"] is None
+
+
+@freeze_time(AGORA_UTC)
+@pytest.mark.parametrize("habilitado,estado", [(True, "pendente"), (False, "indisponivel")])
+def test_proxima_pode_entregar_texto_sem_esperar_voz(
+    client, account, auth_headers, radialista_e_programa, monkeypatch, habilitado, estado
+):
+    from app.live.router import _ultimo_tom
+
+    radio_config, programa = radialista_e_programa
+    monkeypatch.setattr("app.live.router.gerar_resposta", lambda *args: "Bom dia, ouvintes!")
+    monkeypatch.setattr("app.live.router.tts_habilitado", lambda *args: habilitado)
+
+    def nao_deve_processar(*args, **kwargs):
+        pytest.fail("A resposta de texto não deve esperar síntese ou pós-produção")
+
+    monkeypatch.setattr("app.live.router.sintetizar_audio", nao_deve_processar)
+    monkeypatch.setattr("app.live.router.processar_audio", nao_deve_processar)
+    resposta = client.post(_url_proxima(radio_config.id, programa.id),
+                           json={"total_falas": 0, "incluir_audio": False, "perfil_pos_producao": "radio_fm"},
+                           headers=auth_headers(account.id))
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["fala"] == "Bom dia, ouvintes!"
+    assert corpo["audio_status"] == estado
+    assert corpo["audio_base64"] is None
+    assert corpo["tom"] == "energico"
+    assert _ultimo_tom(programa.id) == "energico"
+
+
+def test_tts_antecipado_preserva_tom_do_texto_sem_sobrescrever_bloco_seguinte(
+    client, account, auth_headers, radialista_e_programa, monkeypatch
+):
+    from app.live.router import _registrar_ultimo_tom, _ultimo_tom
+
+    radio_config, programa = radialista_e_programa
+    _registrar_ultimo_tom(programa.id, "energico")
+    monkeypatch.setattr("app.live.router.tts_habilitado", lambda *args: True)
+    monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda *args: pytest.fail("Tom já definido na escrita"))
+    chamadas = []
+
+    def sintetizar(texto, voz_id, **kwargs):
+        chamadas.append(kwargs)
+        return b"voz original"
+
+    monkeypatch.setattr("app.live.router.sintetizar_audio", sintetizar)
+    monkeypatch.setattr("app.live.router.processar_audio", lambda audio, perfil: audio + b" tratado")
+    resposta = client.post(f"/live/{radio_config.id}/tts", headers=auth_headers(account.id),
+                           json={"texto": "Vamos com calma.", "tom": "calmo", "tipo": "comentario",
+                                 "programa_id": programa.id, "perfil_pos_producao": "radio_fm"})
+    assert resposta.status_code == 200
+    assert resposta.content == b"voz original tratado"
+    assert chamadas[0]["tom"] == "calmo"
+    assert _ultimo_tom(programa.id) == "energico"
 
 
 def test_tts_endpoint_com_programa_id_registra_ultimo_tom(
@@ -918,6 +972,45 @@ def test_escolher_query_musica_pondera_posicao_admin_e_pedidos_publico(
     indice_sofrencia = capturado["population"].index("sofrencia pedida")
     indice_musica_c = capturado["population"].index("musica c")
     assert capturado["weights"][indice_sofrencia] > capturado["weights"][indice_musica_c]
+
+
+def test_escolher_query_musica_pula_candidato_ja_tocado_na_sessao(
+    db_session, radialista_e_programa, monkeypatch
+):
+    """Item da curadoria do admin (ou pedido mais frequente) que ja tocou nesta sessao (ver
+    titulos_tocados) nao entra no sorteio -- sem isso o peso maior da 1a posicao da lista (ver
+    _PESO_POSICAO_ADMIN) insiste em reoferecer a mesma musica ja tocada, que so' vai ser
+    bloqueada depois (ver _via_catalogo/buscar_musica) e cair no fallback generico 'musica
+    instrumental' em vez de seguir pra proxima musica da curadoria."""
+    _, programa = radialista_e_programa
+    programa.musicas_permitidas = ["Jorge & Mateus - Propaganda", "Outra Dupla - Segunda Musica"]
+    db_session.commit()
+
+    for _ in range(5):
+        _registrar_historico_persistente(
+            db_session,
+            programa.id,
+            MusicaEncontrada(video_id="x", titulo="t", canal="c"),
+            "Terceira Dupla - Pedido Popular",
+            origem="pedido_ouvinte",
+        )
+
+    capturado = {}
+
+    def _fake_choices(population, weights, k):
+        capturado["population"] = list(population)
+        return [population[0]]
+
+    monkeypatch.setattr("app.live.router.random.choices", _fake_choices)
+
+    titulos_tocados = {_titulo_normalizado("Propaganda"), _titulo_normalizado("Pedido Popular")}
+    query, genero, musica_catalogada = _escolher_query_musica(
+        db_session, programa, set(), titulos_tocados, {}
+    )
+
+    assert "Jorge & Mateus - Propaganda" not in capturado["population"]
+    assert "terceira dupla - pedido popular" not in capturado["population"]
+    assert "Outra Dupla - Segunda Musica" in capturado["population"]
     assert query == capturado["population"][0]
 
 
@@ -2525,3 +2618,108 @@ def test_radio_fm_processa_audio_embutido_e_endpoint_tts(
     assert embutido == avulso.content
     assert embutido != original
     assert abs(len(AudioSegment.from_file(io.BytesIO(embutido), format="mp3")) - 1000) < 50
+
+
+@pytest.fixture()
+def programa_musical(radialista_e_programa, db_session, monkeypatch):
+    radialista, programa = radialista_e_programa
+    programa.perfil_programacao = "musical_companhia"
+    db_session.commit()
+    monkeypatch.setattr("app.live.router.classificar_fio_condutor", lambda _: "")
+    monkeypatch.setattr("app.live.router.resumir_contexto_musica", lambda *_: "")
+    monkeypatch.setattr("app.live.router.random.random", lambda: 1.0)
+    return radialista, programa
+
+
+@freeze_time(AGORA_UTC)
+def test_musical_toca_sequencia_sem_llm_de_locucao_ou_tts(
+    client, account, auth_headers, programa_musical, monkeypatch
+):
+    from unittest.mock import Mock
+    radialista, programa = programa_musical
+    gerar = Mock(side_effect=AssertionError("não gerar fala para música sem pedido"))
+    tts = Mock(side_effect=AssertionError("não sintetizar texto vazio"))
+    monkeypatch.setattr("app.live.router.gerar_resposta", gerar)
+    monkeypatch.setattr("app.live.router.sintetizar_audio", tts)
+    monkeypatch.setattr("app.live.router._buscar_musica_para_bloco", lambda *_: MusicaEncontrada(
+        video_id="faixa123", titulo="Clássico", canal="Artista", duracao_segundos=240,
+    ))
+    r = client.post(_url_proxima(radialista.id, programa.id), headers=auth_headers(account.id),
+                    json={"total_falas": 2, "historico": ["musica: faixa anterior"]})
+    assert r.status_code == 200
+    d = r.json()
+    assert d["video_id"] == "faixa123"
+    assert d["musicas"][0]["canal"] == "Artista"
+    assert d["fala"] == ""
+    assert d["audio_status"] == "nao_aplicavel"
+    assert d["pausa_antes_ms"] == 0
+    gerar.assert_not_called()
+    tts.assert_not_called()
+
+
+def test_musical_repete_sequencia_sem_reabrir_ou_inserir_comentarios(programa_musical, monkeypatch):
+    from app.live.router import _tipo_proximo_bloco
+    _, programa = programa_musical
+    monkeypatch.setattr("app.live.router.random.random", lambda: 0.0)
+    tipos = [_tipo_proximo_bloco(programa, n, "musica") for n in range(13)]
+    assert tipos == ["abertura"] + ["musica", "musica", "identificacao", "musica", "musica", "retomada"] * 2
+    programa.estrutura_blocos = ["abertura", "musica", "vinheta:9", "retomada", "encerramento"]
+    tipos = [_tipo_proximo_bloco(programa, n, "musica") for n in range(7)]
+    assert tipos == ["abertura", "musica", "vinheta:9", "retomada", "musica", "vinheta:9", "retomada"]
+
+
+@freeze_time(AGORA_UTC)
+def test_musical_revisa_retomada_longa_uma_vez(
+    client, account, auth_headers, programa_musical, monkeypatch
+):
+    radialista, programa = programa_musical
+    prompts = []
+    curta = "Bom ter sua companhia! A seleção de clássicos continua por aqui."
+    def gerar(system, msg):
+        prompts.append(system)
+        return "Esta seleção acompanha seu dia com música. " * 12 if len(prompts) == 1 else curta
+    monkeypatch.setattr("app.live.router.gerar_resposta", gerar)
+    r = client.post(_url_proxima(radialista.id, programa.id), headers=auth_headers(account.id),
+                    json={"total_falas": 6, "historico": ["musica: faixa anterior"]})
+    assert r.status_code == 200
+    assert r.json()["tipo"] == "retomada"
+    assert r.json()["fala"] == curta
+    assert r.json()["duracao_alvo_segundos"] == [6, 12]
+    assert len(prompts) == 2
+    assert "no máximo 25 palavras" in prompts[1]
+    assert "A fala deve durar o equivalente a umas 4 a 6 frases" not in prompts[0]
+    assert "hesitação pontual" not in prompts[0]
+
+
+@freeze_time(AGORA_UTC)
+def test_musical_pedido_real_continua_anunciado(
+    client, account, auth_headers, programa_musical, db_session, monkeypatch
+):
+    radialista, programa = programa_musical
+    account.atendimento_ouvinte_ativo = False
+    db_session.add(FilaAoVivo(radio_config_id=radialista.id, telefone="5500000000000", nome="Ana",
+                             tipo="musica", mensagem_usuario="Quero ouvir Clássico", musica_query="Clássico"))
+    db_session.commit()
+    monkeypatch.setattr("app.live.router.buscar_musica", lambda *_, **kw: MusicaEncontrada(
+        video_id="pedido123", titulo="Clássico", canal="Artista"))
+    monkeypatch.setattr("app.live.router.gerar_resposta", lambda *_: "A Ana pediu e vem aí: Clássico!")
+    r = client.post(_url_proxima(radialista.id, programa.id), headers=auth_headers(account.id),
+                    json={"total_falas": 1, "historico": ["abertura: Bom dia"]})
+    assert r.status_code == 200
+    assert r.json()["fala"] == "A Ana pediu e vem aí: Clássico!"
+    assert r.json()["video_id"] == "pedido123"
+    assert r.json()["duracao_alvo_segundos"] == [4, 8]
+
+
+@freeze_time("2026-08-10 16:59:30")
+def test_musical_encerra_perto_do_fim_em_vez_de_iniciar_outra_musica(
+    client, account, auth_headers, programa_musical, monkeypatch
+):
+    radialista, programa = programa_musical
+    monkeypatch.setattr("app.live.router.gerar_resposta", lambda *_: "Obrigado pela companhia, até a próxima!")
+    r = client.post(_url_proxima(radialista.id, programa.id), headers=auth_headers(account.id),
+                    json={"total_falas": 7, "historico": ["retomada: Seguimos juntos"]})
+    assert r.status_code == 200
+    assert r.json()["tipo"] == "encerramento"
+    assert r.json()["duracao_alvo_segundos"] == [10, 18]
+    assert r.json()["video_id"] is None
