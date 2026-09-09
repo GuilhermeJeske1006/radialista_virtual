@@ -30,6 +30,11 @@ from app.models.usuario import Usuario
 
 logger = logging.getLogger("radialista.auth")
 
+# So' pra' gastar o mesmo tempo de bcrypt que uma verificacao real -- sem isso, e-mail que
+# nao bate com nenhum Usuario/SuperAdmin responde quase instantaneo (pula o hash inteiro),
+# e o delta de latencia vs. um login com senha errada revela se aquele e-mail existe.
+_SENHA_HASH_DUMMY = hash_senha(secrets.token_hex(32))
+
 TOKEN_RESET_VALIDADE_MINUTOS = 30
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -147,7 +152,11 @@ def login(dados: LoginRequest, response: Response, db: Session = Depends(get_db)
     )
 
     usuario = db.query(Usuario).filter_by(email=dados.email).first()
-    if usuario is not None and usuario.ativo and verificar_senha(dados.senha, usuario.senha_hash):
+    # Roda o bcrypt mesmo sem usuario (contra hash dummy) -- e-mail inexistente nao pode
+    # responder mais rapido que um com senha errada, ou o tempo de resposta vira oraculo
+    # de quais e-mails tem conta.
+    senha_ok_usuario = verificar_senha(dados.senha, usuario.senha_hash if usuario else _SENHA_HASH_DUMMY)
+    if usuario is not None and usuario.ativo and senha_ok_usuario:
         token = criar_token(usuario.id)
         definir_cookie_sessao(response, token)
         return TokenResponse(access_token=token, papel="usuario")
@@ -156,7 +165,8 @@ def login(dados: LoginRequest, response: Response, db: Session = Depends(get_db)
     # de desistir. Perfil isolado (app/models/super_admin.py), sem relacao com Usuario/Account,
     # mas divide o mesmo formulario de login (so' muda pra onde o frontend redireciona depois).
     admin = db.query(SuperAdmin).filter_by(email=dados.email).first()
-    if admin is not None and admin.ativo and verificar_senha(dados.senha, admin.senha_hash):
+    senha_ok_admin = verificar_senha(dados.senha, admin.senha_hash if admin else _SENHA_HASH_DUMMY)
+    if admin is not None and admin.ativo and senha_ok_admin:
         token = criar_token(admin.id, tipo="super_admin")
         definir_cookie_sessao(response, token, cookie_name=COOKIE_ADMIN_TOKEN)
         return TokenResponse(access_token=token, papel="super_admin")

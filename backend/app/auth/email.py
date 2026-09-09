@@ -12,7 +12,12 @@ def enviar_email_redefinicao_senha(email: str, token: str) -> bool:
     link = f"{settings.frontend_url}/redefinir-senha?token={token}"
 
     if not settings.smtp_host:
-        # Sem SMTP configurado (dev local) -- loga o link em vez de falhar o fluxo.
+        if settings.sentry_environment == "production":
+            # Nunca loga o token em producao -- se SMTP cair aqui, o log nao pode virar
+            # uma forma de assumir a conta de qualquer usuario que pediu redefinicao.
+            logger.warning("SMTP nao configurado. Redefinicao de senha para %s nao pode ser enviada.", email)
+            return False
+        # Dev local -- loga o link (com token) em vez de falhar o fluxo.
         logger.info("SMTP nao configurado. Link de redefinicao de senha para %s: %s", email, link)
         return True
 
@@ -198,7 +203,11 @@ def enviar_email_convite(email: str, token: str, nome_radio: str) -> bool:
     link = f"{settings.frontend_url}/convite?token={token}"
 
     if not settings.smtp_host:
-        # Sem SMTP configurado (dev local) -- loga o link em vez de falhar o fluxo.
+        if settings.sentry_environment == "production":
+            # Nunca loga o token em producao -- mesma razao do link de redefinicao de senha.
+            logger.warning("SMTP nao configurado. Convite para %s nao pode ser enviado.", email)
+            return False
+        # Dev local -- loga o link (com token) em vez de falhar o fluxo.
         logger.info("SMTP nao configurado. Link de convite para %s: %s", email, link)
         return True
 

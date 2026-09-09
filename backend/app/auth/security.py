@@ -43,8 +43,10 @@ def definir_cookie_sessao(response: Response, token: str, cookie_name: str = COO
         value=token,
         httponly=True,
         # Secure exige HTTPS -- em dev local (frontend_url http://) o cookie nao sairia
-        # nunca se forcado sempre True.
-        secure=settings.frontend_url.startswith("https://"),
+        # nunca se forcado sempre True. Checa tambem sentry_environment (nao so' o esquema
+        # de frontend_url) pra nao ficar sem Secure em producao com TLS terminado antes do
+        # app (onde frontend_url as vezes fica "http://" internamente).
+        secure=settings.sentry_environment == "production" or settings.frontend_url.startswith("https://"),
         samesite="lax",
         max_age=settings.jwt_expire_minutes * 60,
         path="/",

@@ -20,6 +20,11 @@ os.environ["ELEVENLABS_API_KEY"] = ""
 os.environ["YOUTUBE_API_KEY"] = ""
 os.environ["SPOTIFY_CLIENT_ID"] = ""
 os.environ["SPOTIFY_CLIENT_SECRET"] = ""
+# Sem isso, SENTRY_DSN/SENTRY_ENVIRONMENT reais no shell de quem roda os testes vazam pra
+# dentro do processo -- main.py inicializa o SDK de verdade e cada falha de teste manda um
+# evento pro Sentry de producao, marcado como "production". "" desativa o SDK (ver main.py).
+os.environ["SENTRY_DSN"] = ""
+os.environ["SENTRY_ENVIRONMENT"] = "test"
 
 import fakeredis
 import redis as redis_module

@@ -43,6 +43,12 @@ _DEBOUNCE_SEGUNDOS = 6.0
 # cair no meio da espera; bem maior que o debounce, nunca deveria expirar em uso normal.
 _TTL_BUFFER_SEGUNDOS = 60
 
+# Mesmo teto de app/tts/router.py e app/biblioteca_audio/router.py (15MB de arquivo) --
+# aqui e' base64 (~33% maior que o binario), sem isso midia gigante do WuzAPI decodifica e
+# vai inteira pro STT/vision antes de qualquer outro limite (ex.: rate limit por IP) se
+# aplicar, gastando memoria/banda por requisicao sem necessidade.
+_TAMANHO_MAXIMO_BASE64 = 20 * 1024 * 1024
+
 
 def _verificar_assinatura(account: Account, raw_body: bytes, assinatura: str | None) -> bool:
     """Confere o header x-hmac-signature (HMAC-SHA256 do corpo cru) que o WuzAPI manda
@@ -309,6 +315,12 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
         from_me,
         wuzapi_message_id,
     ) = extraido
+
+    if (audio_base64 and len(audio_base64) > _TAMANHO_MAXIMO_BASE64) or (
+        imagem_base64 and len(imagem_base64) > _TAMANHO_MAXIMO_BASE64
+    ):
+        logger.warning("Midia do WhatsApp acima do tamanho maximo, ignorada")
+        return {"status": "ignorado", "motivo": "midia_grande"}
 
     account = None
     if wuzapi_user_id:

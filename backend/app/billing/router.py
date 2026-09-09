@@ -21,6 +21,7 @@ from app.billing.stripe_client import (
     plano_por_price_id,
     trocar_plano_assinatura,
 )
+from app.config.redis_client import redis_client
 from app.config.settings import settings
 from app.db.database import get_db
 from app.guardrails.http_rate_limit import limitar_por_ip
@@ -163,6 +164,15 @@ async def webhook_stripe(request: Request, db: Session = Depends(get_db)):
     except (ValueError, stripe.error.SignatureVerificationError):
         logger.warning("Webhook Stripe com payload/assinatura invalidos")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Payload invalido")
+
+    # Stripe reentrega o mesmo evento em retry (ex.: timeout na resposta). Sem isso,
+    # "agente_extra" e "excedente_mensagens" creditam em dobro por reentrega -- as demais
+    # ramificacoes so' fixam estado (idempotentes por natureza), mas dedupar por evento.id
+    # cobre todas de uma vez.
+    evento_id = evento.get("id")
+    if evento_id and not redis_client.set(f"stripe_webhook:processado:{evento_id}", "1", nx=True, ex=60 * 60 * 24 * 30):
+        logger.info("Webhook Stripe ja processado, ignorando reentrega: evento_id=%s", evento_id)
+        return {"status": "duplicado"}
 
     tipo = evento["type"]
     dados = evento["data"]["object"]

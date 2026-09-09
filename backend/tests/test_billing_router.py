@@ -227,6 +227,32 @@ def test_webhook_agente_extra_incrementa_contador(client, account, db_session, m
     assert account.agentes_extras == 1
 
 
+def test_webhook_agente_extra_ignora_reentrega_do_mesmo_evento(client, account, db_session, monkeypatch):
+    # Stripe reentrega o mesmo evento em retry (ex.: timeout na resposta) -- sem dedupe por
+    # evento.id isso incrementaria agentes_extras de novo a cada reentrega.
+    evento = {
+        "id": "evt_agente_extra_1",
+        "type": "invoice.paid",
+        "data": {
+            "object": {
+                "billing_reason": "subscription_create",
+                "customer": "cus_123",
+                "lines": _linha_invoice({"tipo": "agente_extra", "account_id": str(account.id)}, "sub_extra_1"),
+            }
+        },
+    }
+    monkeypatch.setattr("app.billing.router.stripe.Webhook.construct_event", lambda *a, **k: evento)
+
+    for _ in range(2):
+        resposta = client.post(
+            "/billing/webhook", content=json.dumps(evento), headers={"stripe-signature": "fake"}
+        )
+        assert resposta.status_code == 200
+
+    db_session.refresh(account)
+    assert account.agentes_extras == 1
+
+
 def test_webhook_payment_intent_succeeded_credita_excedente(client, account, db_session, monkeypatch):
     evento = {
         "type": "payment_intent.succeeded",

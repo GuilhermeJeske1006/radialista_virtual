@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import exigir_admin, get_current_usuario
+from app.auth.dependencies import exigir_admin
 from app.auth.email import enviar_email_convite
 from app.auth.security import criar_token, definir_cookie_sessao, hash_senha
 from app.db.database import get_db
@@ -71,7 +71,7 @@ def _contar_admins_ativos(db: Session, account_id: int) -> int:
 
 
 @router.get("/equipe", response_model=list[UsuarioResponse])
-def listar_equipe(usuario: Usuario = Depends(get_current_usuario), db: Session = Depends(get_db)):
+def listar_equipe(usuario: Usuario = Depends(exigir_admin), db: Session = Depends(get_db)):
     usuarios = db.query(Usuario).filter_by(account_id=usuario.account_id).order_by(Usuario.criado_em).all()
     return usuarios
 

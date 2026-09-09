@@ -3,7 +3,7 @@ from functools import lru_cache
 import boto3
 from botocore.exceptions import ClientError
 
-from .base import Storage
+from .base import Storage, validar_path
 
 
 @lru_cache(maxsize=4)
@@ -21,11 +21,11 @@ class S3Storage(Storage):
         self._client = _cliente(region, endpoint_url)
 
     def save(self, path: str, content: bytes) -> None:
-        self._client.put_object(Bucket=self._bucket, Key=path, Body=content)
+        self._client.put_object(Bucket=self._bucket, Key=validar_path(path), Body=content)
 
     def read(self, path: str) -> bytes | None:
         try:
-            obj = self._client.get_object(Bucket=self._bucket, Key=path)
+            obj = self._client.get_object(Bucket=self._bucket, Key=validar_path(path))
         except ClientError as exc:
             codigo = exc.response.get("Error", {}).get("Code")
             if codigo in ("NoSuchKey", "404"):
@@ -34,4 +34,4 @@ class S3Storage(Storage):
         return obj["Body"].read()
 
     def delete(self, path: str) -> None:
-        self._client.delete_object(Bucket=self._bucket, Key=path)
+        self._client.delete_object(Bucket=self._bucket, Key=validar_path(path))

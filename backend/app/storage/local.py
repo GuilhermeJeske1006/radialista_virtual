@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from .base import Storage
+from .base import Storage, validar_path
 
 
 class LocalStorage(Storage):
@@ -8,15 +8,15 @@ class LocalStorage(Storage):
         self._root = Path(root)
 
     def save(self, path: str, content: bytes) -> None:
-        destino = self._root / path
+        destino = self._root / validar_path(path)
         destino.parent.mkdir(parents=True, exist_ok=True)
         destino.write_bytes(content)
 
     def read(self, path: str) -> bytes | None:
-        origem = self._root / path
+        origem = self._root / validar_path(path)
         if not origem.is_file():
             return None
         return origem.read_bytes()
 
     def delete(self, path: str) -> None:
-        (self._root / path).unlink(missing_ok=True)
+        (self._root / validar_path(path)).unlink(missing_ok=True)
