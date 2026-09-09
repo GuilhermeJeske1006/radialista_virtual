@@ -914,6 +914,7 @@ export function useLiveEngine() {
       }, {
         gerarTexto: (contexto) => prepararTexto(contexto, () => fila.ativa),
         prepararAudio: (texto, contexto) => prepararAudio(texto, contexto, () => fila.ativa),
+        contaNaAntecedencia: ({ segmento }) => segmento.tipo !== "vinheta",
         avancar: (contexto, { segmento }) => segmento.tipo === "encerramento" ? null : ({
           ...contexto,
           historicoBase: [segmento, ...contexto.historicoBase].slice(0, 20),

@@ -128,6 +128,41 @@ it.each(["musica", "vinheta"])("finaliza a próxima voz enquanto %s está tocand
   expect(mocks.tts).toHaveBeenCalledTimes(1);
 });
 
+it("prepara a fala depois de duas vinhetas enquanto a música anterior ainda toca", async () => {
+  const primeiraVinheta = pendente<Blob>();
+  const segundaVinheta = pendente<Blob>();
+  mocks.proxima
+    .mockResolvedValueOnce(segmento("", { tipo: "musica", video_id: "musica-1" }))
+    .mockResolvedValueOnce(segmento("Vinheta 1", { tipo: "vinheta", vinheta_id: 7 }))
+    .mockResolvedValueOnce(segmento("Vinheta 2", { tipo: "vinheta", vinheta_id: 8 }))
+    .mockResolvedValueOnce(segmento("Fala depois das vinhetas"));
+  mocks.arquivo.mockReturnValueOnce(primeiraVinheta.promise).mockReturnValueOnce(segundaVinheta.promise);
+  mocks.tts.mockResolvedValueOnce(new Blob(["fala pronta"]));
+  const { result } = await iniciar();
+
+  expect(musicas).toHaveLength(1);
+  expect(players).toHaveLength(0);
+  expect(mocks.tts).toHaveBeenCalledTimes(1);
+  expect(JSON.parse(mocks.tts.mock.calls[0][1].body).texto).toBe("Fala depois das vinhetas");
+  expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+  const contexto = JSON.parse(mocks.proxima.mock.calls[3][1].body);
+  expect(contexto.total_falas).toBe(3);
+  expect(contexto.historico.slice(-2)).toEqual(["vinheta: Vinheta 1", "vinheta: Vinheta 2"]);
+
+  await act(async () => {
+    primeiraVinheta.resolve(new Blob(["vinheta 1"]));
+    segundaVinheta.resolve(new Blob(["vinheta 2"]));
+  });
+  await act(async () => { musicas[0].terminar(); await vi.advanceTimersByTimeAsync(1); });
+  expect(result.current.falasPrograma[0].fala).toBe("Vinheta 1");
+  await act(async () => { players[0].terminar(); await vi.advanceTimersByTimeAsync(1); });
+  expect(result.current.falasPrograma[0].fala).toBe("Vinheta 2");
+  await act(async () => { players[1].terminar(); await vi.advanceTimersByTimeAsync(1); });
+  expect(result.current.falasPrograma[0].fala).toBe("Fala depois das vinhetas");
+  expect(players[2].src).toBe("blob:1");
+  expect(mocks.tts).toHaveBeenCalledTimes(1);
+});
+
 it("pausar e selecionar outro programa descarta texto atrasado sem sintetizar na nova seleção", async () => {
   const antigo = pendente<ReturnType<typeof segmento>>();
   mocks.proxima.mockReturnValueOnce(antigo.promise);

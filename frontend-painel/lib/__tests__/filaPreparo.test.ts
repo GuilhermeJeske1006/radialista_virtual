@@ -19,6 +19,7 @@ function criarFila() {
   const descartar = vi.fn();
   const fila = new FilaPreparo<string[], string, string>([], {
     gerarTexto, prepararAudio, descartar,
+    contaNaAntecedencia: (texto) => texto !== "vinheta",
     avancar: (contexto, texto) => texto === "fim" ? null : [...contexto, texto],
   });
   return { fila, textos, audios, gerarTexto, prepararAudio, descartar };
@@ -94,4 +95,34 @@ it("não gera outro bloco depois de um encerramento", async () => {
   expect(await primeira).toBe("despedida");
   expect(await fila.retirar()).toBeNull();
   expect(gerarTexto).toHaveBeenCalledTimes(1);
+});
+
+it("atravessa vinhetas consecutivas antes de seus downloads terminarem e reserva duas falas", async () => {
+  const { fila, textos, audios, prepararAudio, gerarTexto } = criarFila();
+  const primeira = fila.retirar();
+  for (const [i, texto] of ["musica", "vinheta", "vinheta", "fala seguinte", "outra fala"].entries()) {
+    textos[i].resolve(texto);
+  }
+  await aguardarEtapas();
+  expect(prepararAudio).toHaveBeenCalledTimes(5);
+  expect(gerarTexto).toHaveBeenLastCalledWith(["musica", "vinheta", "vinheta", "fala seguinte"]);
+  audios[0].resolve("musica");
+  expect(await primeira).toBe("musica");
+  fila.cancelar();
+});
+
+it("limita o preparo de um roteiro só de vinhetas e repõe a fila ao consumir uma", async () => {
+  const gerarTexto = vi.fn(async (indice: number) => indice);
+  const fila = new FilaPreparo(0, {
+    gerarTexto, prepararAudio: async (indice: number) => indice,
+    avancar: (indice: number) => indice + 1,
+    descartar: vi.fn(), contaNaAntecedencia: () => false,
+  });
+  expect(await fila.retirar()).toBe(0);
+  for (let i = 0; i < 5; i++) await aguardarEtapas();
+  expect(gerarTexto).toHaveBeenCalledTimes(13); // Atual + teto de 12 entradas.
+  expect(await fila.retirar()).toBe(1);
+  await aguardarEtapas();
+  expect(gerarTexto).toHaveBeenCalledTimes(14);
+  fila.cancelar();
 });
