@@ -38,9 +38,9 @@ class Settings(BaseSettings):
 
     elevenlabs_api_key: str = ""
     elevenlabs_voice_id: str = ""
-    # eleven_v3 suporta audio tags ([excited], [calm], etc) pra emocao mais humana; eleven_multilingual_v2
-    # fica como fallback facil via env var se v3 (ainda em alpha na ElevenLabs) apresentar instabilidade.
-    elevenlabs_model: str = "eleven_v3"
+    # Flash reduziu a latencia de voz com Radio FM no benchmark de 09/09/2026.
+    # ELEVENLABS_MODEL permite optar por eleven_v3 quando a expressividade for prioridade.
+    elevenlabs_model: str = "eleven_flash_v2_5"
 
     # Diretorio (local, relativo ou absoluto) onde ficam os arquivos enviados pelo usuario
     # (ex.: audio de patrocinadores -- app/patrocinadores/router.py) quando storage_backend=local.

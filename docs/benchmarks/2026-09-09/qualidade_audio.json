@@ -1,0 +1,126 @@
+[
+  {
+    "modelo": "eleven_v3",
+    "caso": "curta",
+    "rodada": 1,
+    "arquivo": "eleven_v3-curta-1.mp3",
+    "duracao_segundos": 8.48,
+    "amostras_finitas": true,
+    "pico": 0.72906494140625,
+    "fracao_amostras_saturadas": 0.0
+  },
+  {
+    "modelo": "eleven_flash_v2_5",
+    "caso": "curta",
+    "rodada": 1,
+    "arquivo": "eleven_flash_v2_5-curta-1.mp3",
+    "duracao_segundos": 6.687,
+    "amostras_finitas": true,
+    "pico": 0.7767333984375,
+    "fracao_amostras_saturadas": 0.0
+  },
+  {
+    "modelo": "eleven_v3",
+    "caso": "media",
+    "rodada": 1,
+    "arquivo": "eleven_v3-media-1.mp3",
+    "duracao_segundos": 23.44,
+    "amostras_finitas": true,
+    "pico": 0.772186279296875,
+    "fracao_amostras_saturadas": 0.0,
+    "transcricao": "Boa tarde pra você que está ligado na nossa programação. O Marcos mandou mensagem pedindo Twist and Shout dos Beatles e o pedido está na sequência. Tem música que dá vontade de aumentar o volume e acompanhar do começo ao fim. Você também pode participar pelo WhatsApp da rádio e contar qual canção quer ouvir. Agora, deixe o som acompanhar a sua tarde. Vamos de Beatles."
+  },
+  {
+    "modelo": "eleven_flash_v2_5",
+    "caso": "media",
+    "rodada": 1,
+    "arquivo": "eleven_flash_v2_5-media-1.mp3",
+    "duracao_segundos": 20.898,
+    "amostras_finitas": true,
+    "pico": 0.772857666015625,
+    "fracao_amostras_saturadas": 0.0,
+    "transcricao": "Boa tarde pra você que está ligado na nossa programação. O Marcos mandou mensagem pedindo Twist and Shout dos Beatles e o pedido está na sequência. Tem música que dá vontade de aumentar o volume e acompanhar do começo ao fim. Você também pode participar pelo WhatsApp da rádio e contar qual canção quer ouvir. Agora, deixe o som acompanhar a sua tarde. Vamos de Beatles"
+  },
+  {
+    "modelo": "eleven_v3",
+    "caso": "longa",
+    "rodada": 1,
+    "arquivo": "eleven_v3-longa-1.mp3",
+    "duracao_segundos": 44.48,
+    "amostras_finitas": true,
+    "pico": 0.77069091796875,
+    "fracao_amostras_saturadas": 0.0,
+    "transcricao": "Boa tarde pra você que está ligado na nossa programação. O Marcos mandou mensagem pedindo Twist and Shout dos Beatles e o pedido está na sequência. Tem música que dá vontade de aumentar o volume e acompanhar do começo ao fim. Você também pode participar pelo WhatsApp da rádio e contar qual canção quer ouvir. Mande o nome da música e do artista que a gente confere o pedido por aqui. Às vezes, uma canção lembra uma viagem, uma amizade ou um momento em família. Se essa música faz parte da sua história, conta pra gente. Enquanto isso, seguimos juntos com mais música e companhia para sua tarde. Um abraço para quem está trabalhando e para quem já conseguiu uma pausa. Vamos de Beatles"
+  },
+  {
+    "modelo": "eleven_flash_v2_5",
+    "caso": "longa",
+    "rodada": 1,
+    "arquivo": "eleven_flash_v2_5-longa-1.mp3",
+    "duracao_segundos": 37.477,
+    "amostras_finitas": true,
+    "pico": 0.772186279296875,
+    "fracao_amostras_saturadas": 0.0,
+    "transcricao": "Boa tarde pra você que está ligado na nossa programação. O Marcos mandou mensagem pedindo Twist and Shout dos Beatles e o pedido está na sequência. Tem música que dá vontade de aumentar o volume e acompanhar do começo ao fim. Você também pode participar pelo WhatsApp da rádio e contar qual canção quer ouvir. Mande o nome da música e do artista, que a gente confere o pedido por aqui. Às vezes, uma canção lembra uma viagem, uma amizade ou um momento em família. Se essa música faz parte da sua história, conta pra gente. Enquanto isso, seguimos juntos com mais música e companhia pra sua tarde. Um abraço pra quem está trabalhando e pra quem já conseguiu uma pausa. Vamos de Beatles"
+  },
+  {
+    "modelo": "eleven_flash_v2_5",
+    "caso": "curta",
+    "rodada": 2,
+    "arquivo": "eleven_flash_v2_5-curta-2.mp3",
+    "duracao_segundos": 6.734,
+    "amostras_finitas": true,
+    "pico": 0.7703857421875,
+    "fracao_amostras_saturadas": 0.0
+  },
+  {
+    "modelo": "eleven_v3",
+    "caso": "curta",
+    "rodada": 2,
+    "arquivo": "eleven_v3-curta-2.mp3",
+    "duracao_segundos": 8.0,
+    "amostras_finitas": true,
+    "pico": 0.77044677734375,
+    "fracao_amostras_saturadas": 0.0
+  },
+  {
+    "modelo": "eleven_flash_v2_5",
+    "caso": "media",
+    "rodada": 2,
+    "arquivo": "eleven_flash_v2_5-media-2.mp3",
+    "duracao_segundos": 20.573,
+    "amostras_finitas": true,
+    "pico": 0.774658203125,
+    "fracao_amostras_saturadas": 0.0
+  },
+  {
+    "modelo": "eleven_v3",
+    "caso": "media",
+    "rodada": 2,
+    "arquivo": "eleven_v3-media-2.mp3",
+    "duracao_segundos": 23.36,
+    "amostras_finitas": true,
+    "pico": 0.77227783203125,
+    "fracao_amostras_saturadas": 0.0
+  },
+  {
+    "modelo": "eleven_flash_v2_5",
+    "caso": "longa",
+    "rodada": 2,
+    "arquivo": "eleven_flash_v2_5-longa-2.mp3",
+    "duracao_segundos": 40.635,
+    "amostras_finitas": true,
+    "pico": 0.77191162109375,
+    "fracao_amostras_saturadas": 0.0
+  },
+  {
+    "modelo": "eleven_v3",
+    "caso": "longa",
+    "rodada": 2,
+    "arquivo": "eleven_v3-longa-2.mp3",
+    "duracao_segundos": 43.44,
+    "amostras_finitas": true,
+    "pico": 0.771759033203125,
+    "fracao_amostras_saturadas": 0.0
+  }
+]
