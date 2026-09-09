@@ -104,7 +104,8 @@ def test_construir_voice_settings_aplica_preset_do_tipo_bloco():
     assert settings_musica["speed"] > settings_comentario["speed"]
 
 
-def test_construir_voice_settings_bloco_customizado_reconhece_prefixo():
+def test_construir_voice_settings_bloco_customizado_reconhece_prefixo(monkeypatch):
+    monkeypatch.setattr(tts_client.random, "uniform", lambda a, b: 0.0)
     a = tts_client._construir_voice_settings("Musica Vaneira", None, "eleven_multilingual_v2", False)
     b = tts_client._construir_voice_settings("musica", None, "eleven_multilingual_v2", False)
     assert a == b
@@ -147,6 +148,7 @@ def test_sintetizar_audio_clonada_usa_mesmo_modelo_do_catalogo(monkeypatch):
 def test_flash_envia_perfil_proprio_sem_deltas_do_v3(monkeypatch, eh_clonada, tipo_bloco, tom, streaming):
     _habilitar_elevenlabs(monkeypatch)
     monkeypatch.setattr(tts_client.settings, "elevenlabs_model", "eleven_flash_v2_5")
+    monkeypatch.setattr(tts_client.random, "uniform", lambda a, b: 0.0)
     fake = _FakeStreamClient([_FakeStreamResponse()]) if streaming else _FakeClient([_FakeResponse()])
     monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
     parametros = dict(tipo_bloco=tipo_bloco, tom=tom, eh_clonada=eh_clonada, texto_anterior="Fala anterior.")

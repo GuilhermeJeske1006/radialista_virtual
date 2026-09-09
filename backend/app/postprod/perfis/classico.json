@@ -22,5 +22,10 @@
     "pitch_jitter_cents": 5,
     "room_noise_db": -50
   },
+  "deesser": {
+    "intensity": 0.2,
+    "max": 0.5,
+    "frequency": 0.5
+  },
   "loudness_target_lufs": -16
 }

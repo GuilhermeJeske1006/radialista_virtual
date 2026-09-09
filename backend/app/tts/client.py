@@ -1,4 +1,5 @@
 import logging
+import random
 import re
 import time
 import unicodedata
@@ -152,6 +153,29 @@ _SIMILARITY_BOOST_CLONE = 0.8
 _AJUSTE_SPEED_CLONADA = -0.08
 _AJUSTE_CLONADA = {"stability": 0.15, "style": -0.15}
 
+# tipo de bloco/tom fixam sempre o mesmo voice_settings -- em bloco recorrente (ex.: varias
+# "musica" numa transmissao) isso saia identico take a take, cara de robo lendo script. Medido
+# na API (3 sinteses do mesmo texto/settings vs 3 com este jitter): desvio do pitch medio entre
+# takes sobe de ~2Hz pra ~5Hz e da duracao de ~0.3s pra ~0.4s -- variacao proxima da que um
+# locutor real tem repetindo a mesma frase. Aplicado por cima do clamp de cada bloco de ajuste
+# (tipo/tom/clonada), pra nao interferir na calibracao relativa entre eles.
+_JITTER_STABILITY = 0.03
+_JITTER_STYLE = 0.03
+_JITTER_SPEED = 0.015
+
+
+def _aplicar_jitter(voice_settings: dict) -> dict:
+    voice_settings["stability"] = max(
+        0.0, min(1.0, voice_settings["stability"] + random.uniform(-_JITTER_STABILITY, _JITTER_STABILITY))
+    )
+    voice_settings["style"] = max(
+        0.0, min(1.0, voice_settings["style"] + random.uniform(-_JITTER_STYLE, _JITTER_STYLE))
+    )
+    voice_settings["speed"] = max(
+        0.7, min(1.2, voice_settings["speed"] + random.uniform(-_JITTER_SPEED, _JITTER_SPEED))
+    )
+    return voice_settings
+
 
 def tts_habilitado(voice_id: str | None = None) -> bool:
     return bool(settings.elevenlabs_api_key and (voice_id or settings.elevenlabs_voice_id))
@@ -175,7 +199,7 @@ def _categoria_tipo_bloco(tipo_bloco: str) -> str:
 
 def _construir_voice_settings(tipo_bloco: str | None, tom: str | None, modelo: str, eh_clonada: bool) -> dict:
     if modelo == "eleven_flash_v2_5":
-        return dict(_VOICE_SETTINGS_FLASH)
+        return _aplicar_jitter(dict(_VOICE_SETTINGS_FLASH))
 
     categoria = _categoria_tipo_bloco(tipo_bloco) if tipo_bloco else ""
     voice_settings = {**_VOICE_SETTINGS_PADRAO, **_VOICE_SETTINGS_POR_TIPO.get(categoria, {})}
@@ -190,6 +214,7 @@ def _construir_voice_settings(tipo_bloco: str | None, tom: str | None, modelo: s
     voice_settings["stability"] = max(0.0, min(1.0, voice_settings["stability"]))
     voice_settings["style"] = max(0.0, min(1.0, voice_settings["style"]))
     voice_settings["speed"] = max(0.7, min(1.2, voice_settings["speed"]))
+    _aplicar_jitter(voice_settings)
 
     if eh_clonada:
         voice_settings["similarity_boost"] = _SIMILARITY_BOOST_CLONE
