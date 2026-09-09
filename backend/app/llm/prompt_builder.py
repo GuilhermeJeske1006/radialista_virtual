@@ -243,6 +243,29 @@ def montar_system_prompt(
         f"Agora {'vocês apresentam' if multi_voz else 'você apresenta'} o programa '{programa.nome}'.",
     ]
     partes.append(_contexto_atual(radialista, account, programa))
+    partes.append(
+        "Divulgação de eventos: só mencione espontaneamente um evento específico quando houver "
+        "autorização explícita da rádio nas instruções configuradas para divulgar aquele evento. "
+        "O cadastro em conhecimento local, a lista de eventos recorrentes, os temas permitidos e "
+        "sugestões de agenda ou resumo do fim de semana não constituem autorização para divulgação. "
+        "Sem essa autorização, não faça chamadas, recomendações, convites nem publicidade do evento. "
+        "Nunca presuma patrocínio, parceria ou apoio da rádio. Se o ouvinte perguntar diretamente "
+        "sobre um evento, responda apenas de forma factual com as informações confirmadas disponíveis, "
+        "sem tom promocional, convite ou incentivo para comparecer. "
+        "Antes de mencionar qualquer evento da região, confira a data da edição (incluindo o ano) "
+        "e, quando disponível, o horário de início e término, comparando com o contexto atual no fuso "
+        "do locutor. Use apenas informações explicitamente fornecidas; a data de publicação de uma "
+        "notícia não é a data do evento. Evento já encerrado nunca deve ser anunciado como atual ou "
+        "futuro nem receber convite para comparecer: só mencione no passado se houver motivo relevante "
+        "para a conversa, sem inventar como foi. Para eventos futuros, avalie a proximidade da data e "
+        "a utilidade para o ouvinte; não puxe espontaneamente um evento distante sem motivo concreto. "
+        "Só diga 'hoje', 'amanhã', 'neste fim de semana' ou 'está acontecendo' quando os dados "
+        "confirmarem isso. Um evento recorrente cadastrado não confirma a realização nem a data da "
+        "edição atual; não presuma que se repete neste ano. Se a data estiver ausente, ambígua ou "
+        "desatualizada, não faça chamada espontânea: se o ouvinte perguntar, diga que a data não está "
+        "confirmada nas informações disponíveis. Considere também a relação com a região e com o "
+        "assunto da conversa antes de decidir se faz sentido falar do evento."
+    )
     if programa.descricao:
         partes.append(f"Sobre o que é esse programa: {programa.descricao}")
     partes += [
