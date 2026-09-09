@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from pathlib import Path
 
 from app.postprod.audio_io import mp3_bytes_para_array
@@ -25,6 +26,7 @@ def processar_audio(mp3_bytes: bytes, perfil_nome: str) -> bytes:
 
     Recebe e devolve mp3 em memoria -- ver app/tts/client.py:sintetizar_audio, que nunca
     toca disco (docs/plano-pos-producao-voz.md secao 1)."""
+    inicio = time.monotonic()
     perfil = carregar_perfil(perfil_nome)
 
     audio, sample_rate, _ = mp3_bytes_para_array(mp3_bytes)
@@ -37,4 +39,9 @@ def processar_audio(mp3_bytes: bytes, perfil_nome: str) -> bytes:
     if nat["room_noise_db"] is not None:
         audio = aplicar_ruido_de_sala(audio, nat["room_noise_db"])
 
-    return finalizar_audio(audio, sample_rate, perfil)
+    resultado = finalizar_audio(audio, sample_rate, perfil)
+    logger.info(
+        "postprod_concluido perfil=%s bytes_entrada=%s bytes_saida=%s duracao_ms=%s",
+        perfil_nome, len(mp3_bytes), len(resultado), int((time.monotonic() - inicio) * 1000),
+    )
+    return resultado

@@ -13,6 +13,7 @@ import uuid
 from zoneinfo import ZoneInfo
 
 import httpx
+import sentry_sdk
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -49,6 +50,7 @@ from app.models.programa_radialista import ProgramaRadialista
 from app.models.radio_config import RadioConfig
 from app.models.tema_historico import TemaHistorico
 from app.postprod.client import processar_audio
+from pydub.exceptions import PydubException
 from app.tts.client import sintetizar_audio, sintetizar_audio_stream, tts_habilitado
 from app.tts.voices import voz_valida, voz_valida_para_conta
 
@@ -1505,6 +1507,13 @@ def gerar_proxima_fala(
     radialista = _buscar_radialista(db, account, radialista_id)
     programa = _buscar_programa(db, radialista, programa_id)
 
+    # Mesmos 3 campos que ja' identificam cada linha de log deste endpoint (ver
+    # live_audio_pronto/live_proxima_pronta abaixo) -- como tag do Sentry pra' filtrar/agrupar
+    # issue por radialista/programa/request sem abrir o traceback primeiro.
+    sentry_sdk.set_tag("radialista_id", radialista_id)
+    sentry_sdk.set_tag("programa_id", programa_id)
+    sentry_sdk.set_tag("request_id", request_id)
+
     total_falas = dados.total_falas if dados.total_falas is not None else len(dados.historico)
 
     ultima_categoria = _ultima_categoria_bloco(dados.historico)
@@ -2324,6 +2333,13 @@ def gerar_audio_fala(
 ):
     radialista = _buscar_radialista(db, account, radialista_id)
 
+    # Tag em vez de contexto de request (Sentry ja' correlaciona por request via
+    # FastApiIntegration) -- so' pra' filtrar/agrupar issues por radialista/programa direto
+    # na lista de issues do Sentry, sem abrir cada evento pra' ver o traceback primeiro.
+    sentry_sdk.set_tag("radialista_id", radialista_id)
+    if dados.programa_id is not None:
+        sentry_sdk.set_tag("programa_id", dados.programa_id)
+
     # Patrocinador pode pedir uma voz especifica (independente da voz do locutor no ar) --
     # ver Patrocinador.voz_id em app/models/patrocinador.py.
     if dados.voz_id and not voz_valida_para_conta(db, account.id, dados.voz_id):
@@ -2397,7 +2413,10 @@ def gerar_audio_fala(
         audio = processar_audio(audio, dados.perfil_pos_producao)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    except RuntimeError:
+    except (RuntimeError, PydubException):
+        # PydubException (ex.: CouldntDecodeError) cobre mp3 vazio/corrompido vindo da
+        # ElevenLabs -- sem isso a excecao (subclasse direta de Exception, nao RuntimeError)
+        # sobe crua como 500 sem log nenhum, em vez do 502 com contexto que RuntimeError ja tinha.
         logger.exception("Falha na pos-producao: radialista_id=%s", radialista_id)
         raise HTTPException(status_code=502, detail="Falha ao processar audio da fala") from None
 
