@@ -44,7 +44,11 @@ services:
       - ./logs:/app/logs
 
   frontend:
-    build: ../frontend-painel
+    build:
+      context: ../frontend-painel
+      args:
+        NEXT_PUBLIC_API_URL: /api
+        INTERNAL_API_URL: http://backend:8000
     restart: unless-stopped
     depends_on:
       - backend
