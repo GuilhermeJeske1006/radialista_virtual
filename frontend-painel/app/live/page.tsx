@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import AppShell from "../../components/AppShell";
 import Modal from "../../components/Modal";
 import EditarRadialistaForm from "../../components/EditarRadialistaForm";
@@ -108,9 +109,31 @@ export default function LivePage() {
 
       {!engine.programaId ? (
         <section className="mt-5 bg-surface rounded-2xl border border-dashed border-border-strong p-10 text-center">
-          <p className="text-sm text-fg/65">
-            Selecione um programa acima para carregar os dados do locutor e liberar a transmissao.
-          </p>
+          {engine.radialistas.length === 0 ? (
+            <>
+              <p className="text-sm text-fg/65">Nenhum radialista cadastrado ainda.</p>
+              <Link
+                href="/radialista"
+                className="mt-3 inline-flex rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600"
+              >
+                1. Criar radialista →
+              </Link>
+            </>
+          ) : engine.programasTodos.length === 0 ? (
+            <>
+              <p className="text-sm text-fg/65">Nenhum programa cadastrado ainda.</p>
+              <Link
+                href="/programas"
+                className="mt-3 inline-flex rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600"
+              >
+                2. Criar programa →
+              </Link>
+            </>
+          ) : (
+            <p className="text-sm text-fg/65">
+              Selecione um programa acima para carregar os dados do locutor e liberar a transmissao.
+            </p>
+          )}
         </section>
       ) : (
         <div className="mt-5 grid grid-cols-1 xl:grid-cols-[280px_minmax(0,1fr)_340px] gap-5 items-start">

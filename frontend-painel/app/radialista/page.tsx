@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import AppShell from "../../components/AppShell";
+import CheckoutModal from "../../components/CheckoutModal";
 import { apiFetch, ApiError } from "../../lib/api";
 import { ConfiguracaoIA, Programa, Radialista, RadioPerfil, TipoRadio } from "../../lib/types";
 import { setRadialistaAtualId } from "../../lib/radialistas";
@@ -19,8 +20,7 @@ export default function RadialistasPage() {
   const [descricaoIA, setDescricaoIA] = useState("");
   const [gerandoIA, setGerandoIA] = useState(false);
   const [erroIA, setErroIA] = useState("");
-  const [comprandoAgenteExtra, setComprandoAgenteExtra] = useState(false);
-  const [erroCompraAgenteExtra, setErroCompraAgenteExtra] = useState("");
+  const [checkoutAgenteExtraAberto, setCheckoutAgenteExtraAberto] = useState(false);
   const [tipoRadioConta, setTipoRadioConta] = useState("");
   const [tiposRadio, setTiposRadio] = useState<TipoRadio[]>([]);
 
@@ -79,18 +79,6 @@ export default function RadialistasPage() {
         setErroIA(err instanceof ApiError ? err.message : "Erro ao gerar configuração com IA");
       }
       setGerandoIA(false);
-    }
-  }
-
-  async function comprarAgenteExtra() {
-    setComprandoAgenteExtra(true);
-    setErroCompraAgenteExtra("");
-    try {
-      const { url } = await apiFetch<{ url: string }>("/billing/agentes-extras/checkout", { method: "POST" });
-      window.location.href = url;
-    } catch (err) {
-      setErroCompraAgenteExtra(err instanceof ApiError ? err.message : "Erro ao iniciar compra");
-      setComprandoAgenteExtra(false);
     }
   }
 
@@ -235,13 +223,11 @@ export default function RadialistasPage() {
               <span className="font-semibold text-fg">R$ {formatarReais(PRECO_AGENTE_ADICIONAL)}/mês</span>, sem
               trocar de plano — ele entra no ar assim que o pagamento confirmar.
             </p>
-            {erroCompraAgenteExtra && <p className="text-sm text-rust-text mb-3">{erroCompraAgenteExtra}</p>}
             <div className="flex justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setMensagemUpgrade("")}
-                disabled={comprandoAgenteExtra}
-                className="rounded-lg px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg disabled:opacity-60"
+                className="rounded-lg px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
               >
                 Fechar
               </button>
@@ -253,21 +239,27 @@ export default function RadialistasPage() {
               </Link>
               <button
                 type="button"
-                onClick={comprarAgenteExtra}
-                disabled={comprandoAgenteExtra}
-                className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60"
+                onClick={() => setCheckoutAgenteExtraAberto(true)}
+                className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600"
               >
-                {comprandoAgenteExtra ? (
-                  <>
-                    <LocufySpin size={14} /> Redirecionando...
-                  </>
-                ) : (
-                  "Adicionar agente extra"
-                )}
+                Adicionar agente extra
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {checkoutAgenteExtraAberto && (
+        <CheckoutModal
+          open
+          endpoint="/billing/agentes-extras/checkout"
+          onClose={() => setCheckoutAgenteExtraAberto(false)}
+          onSuccess={() => {
+            setCheckoutAgenteExtraAberto(false);
+            setMensagemUpgrade("");
+            carregar();
+          }}
+        />
       )}
     </AppShell>
   );

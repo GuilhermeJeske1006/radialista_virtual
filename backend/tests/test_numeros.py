@@ -65,3 +65,21 @@ def test_substituir_valores_monetarios_multiplas_ocorrencias():
 
 def test_substituir_valores_monetarios_sem_valor_nao_altera_texto():
     assert substituir_valores_monetarios("Sem preco nenhum aqui.") == "Sem preco nenhum aqui."
+from app.numeros import normalizar_texto_fala
+
+
+@pytest.mark.parametrize("texto,esperado", [
+    ("R$ 1234,50", "mil e duzentos e trinta e quatro reais e cinquenta centavos"),
+    ("às 14:30", "às catorze horas e trinta"),
+    ("às 02h00", "às duas horas"),
+    ("87,5 FM", "oitenta e sete vírgula cinco efe eme"),
+    ("WhatsApp (11) 99999-1234", "WhatsApp um um nove nove nove nove nove um dois três quatro"),
+    ("20%", "vinte por cento"),
+    ("25°C", "vinte e cinco graus Celsius"),
+])
+def test_normalizacao_formatos_radio(texto, esperado):
+    assert normalizar_texto_fala(texto) == esperado
+
+
+def test_alias_nao_substitui_trechos_de_outras_palavras_nem_em_cascata():
+    assert normalizar_texto_fala("AC/DC e Radiohead na Radio", {"AC/DC": "êi ci di ci", "Radio": "Rádio", "Rádio": "Outra"}) == "êi ci di ci e Radiohead na Rádio"

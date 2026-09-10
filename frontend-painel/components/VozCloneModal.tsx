@@ -1,233 +1,188 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { apiFetchForm, ApiError } from "../lib/api";
-import { VozClonada } from "../lib/types";
+import { QualidadeVoz, VozClonada } from "../lib/types";
+import Modal from "./Modal";
 
-type Props = {
-  onCriada: (voz: VozClonada) => void;
-  onFechar: () => void;
-};
+type Props = { onCriada: (voz: VozClonada) => void; onFechar: () => void };
 
-// Espelha _DURACAO_MINIMA_SEGUNDOS em backend/app/tts/router.py -- so' pra dar feedback
-// imediato antes do upload; quem barra de verdade e' o backend.
-const DURACAO_MINIMA_SEGUNDOS = 20;
+export function formatoGravacao(): MediaRecorderOptions {
+  const mimeType = ["audio/webm;codecs=opus", "audio/mp4", "audio/ogg;codecs=opus"]
+    .find((tipo) => MediaRecorder.isTypeSupported(tipo));
+  return { ...(mimeType ? { mimeType } : {}), audioBitsPerSecond: 192000 };
+}
+
+export function arquivoGravado(blob: Blob): File {
+  const tipo = blob.type.split(";")[0];
+  const extensao = ({ "audio/mp4": "m4a", "audio/webm": "webm", "audio/ogg": "ogg", "audio/wav": "wav" } as Record<string, string>)[tipo];
+  if (!extensao) throw new Error("Formato de gravação não suportado. Envie um arquivo MP3, WAV ou M4A.");
+  return new File([blob], `gravacao.${extensao}`, { type: blob.type });
+}
 
 export default function VozCloneModal({ onCriada, onFechar }: Props) {
   const [nome, setNome] = useState("");
-  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [arquivos, setArquivos] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
   const [gravando, setGravando] = useState(false);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [duracaoSegundos, setDuracaoSegundos] = useState<number | null>(null);
-  const [enviando, setEnviando] = useState(false);
+  const [iniciando, setIniciando] = useState(false);
+  const [ocupado, setOcupado] = useState<"analisando" | "clonando" | null>(null);
+  const [segundos, setSegundos] = useState(0);
+  const [nivel, setNivel] = useState(0);
+  const [qualidade, setQualidade] = useState<QualidadeVoz | null>(null);
   const [erro, setErro] = useState("");
-
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const contextRef = useRef<AudioContext | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const montado = useRef(true);
+
+  function liberarMicrofone() {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = null;
+    if (contextRef.current) void contextRef.current.close().catch(() => {});
+    contextRef.current = null;
+  }
 
   useEffect(() => {
+    montado.current = true;
     return () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
+      montado.current = false;
+      if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+      liberarMicrofone();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (!audioUrl) {
-      setDuracaoSegundos(null);
-      return;
+    const urls = arquivos.map((f) => URL.createObjectURL(f));
+    setPreviews(urls);
+    return () => urls.forEach((url) => URL.revokeObjectURL(url));
+  }, [arquivos]);
+
+  function selecionar(novos: File[]) {
+    setQualidade(null); setErro("");
+    if (novos.length > 5 || novos.reduce((s, f) => s + f.size, 0) > 15 * 1024 * 1024) {
+      setArquivos([]); setErro("Selecione até 5 arquivos, somando no máximo 15 MB."); return;
     }
-    const audio = new Audio();
-    const aoCarregar = () => {
-      // metadata de webm gravado ao vivo as vezes vem Infinity ate' o audio tocar de verdade;
-      // nesse caso deixa passar sem bloquear no cliente (o backend ainda valida via pydub).
-      setDuracaoSegundos(Number.isFinite(audio.duration) ? audio.duration : null);
-    };
-    audio.addEventListener("loadedmetadata", aoCarregar);
-    audio.src = audioUrl;
-    return () => audio.removeEventListener("loadedmetadata", aoCarregar);
-  }, [audioUrl]);
+    setArquivos(novos);
+  }
 
   async function iniciarGravacao() {
-    setErro("");
+    setIniciando(true); setErro(""); setQualidade(null);
     try {
-      // echoCancellation/noiseSuppression/autoGainControl desligados: bons pra chamada de voz,
-      // ruins pra amostra de clonagem -- comem corpo/dinamica do timbre que a ElevenLabs precisa
-      // pra um clone fiel (voz saindo metalica). Upload de arquivo continua o caminho preferencial
-      // (ver texto abaixo) porque nao passa por processamento nenhum do navegador.
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-        },
-      });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: {
+        echoCancellation: false, noiseSuppression: false, autoGainControl: false,
+      } });
+      if (!montado.current) { stream.getTracks().forEach((t) => t.stop()); return; }
       streamRef.current = stream;
-      chunksRef.current = [];
-      const recorder = new MediaRecorder(stream, { audioBitsPerSecond: 128000 });
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
+      const recorder = new MediaRecorder(stream, formatoGravacao());
+      recorderRef.current = recorder;
+      const chunks: Blob[] = [];
+      let falhou = false;
+      recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
       recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        setAudioBlob(blob);
-        setArquivo(null);
-        setAudioUrl((atual) => {
-          if (atual) URL.revokeObjectURL(atual);
-          return URL.createObjectURL(blob);
-        });
-        stream.getTracks().forEach((t) => t.stop());
+        if (recorderRef.current !== recorder) return;
+        recorderRef.current = null;
+        liberarMicrofone();
+        if (!montado.current) return;
+        setGravando(false);
+        if (falhou) return;
+        try { selecionar([arquivoGravado(new Blob(chunks, { type: recorder.mimeType || chunks[0]?.type }))]); }
+        catch (err) { setErro(err instanceof Error ? err.message : "Não foi possível salvar a gravação."); }
       };
-      mediaRecorderRef.current = recorder;
-      recorder.start();
-      setGravando(true);
+      recorder.onerror = () => {
+        falhou = true;
+        if (recorderRef.current !== recorder) return;
+        liberarMicrofone();
+        if (montado.current) { setGravando(false); setErro("Falha na gravação. Tente novamente."); }
+      };
+      // Nível é apenas feedback de captura; fala útil é calculada no servidor.
+      let analyser: AnalyserNode | null = null;
+      if (typeof AudioContext !== "undefined") {
+        try {
+          const context = new AudioContext(); contextRef.current = context;
+          analyser = context.createAnalyser(); analyser.fftSize = 1024;
+          context.createMediaStreamSource(stream).connect(analyser);
+        } catch { /* Gravação segue mesmo sem suporte ao medidor. */ }
+      }
+      const inicio = Date.now(); setSegundos(0);
+      recorder.start(250); setGravando(true);
+      timerRef.current = setInterval(() => {
+        setSegundos(Math.floor((Date.now() - inicio) / 1000));
+        if (analyser) {
+          const dados = new Float32Array(analyser.fftSize);
+          analyser.getFloatTimeDomainData(dados);
+          setNivel(Math.min(1, Math.sqrt(dados.reduce((s, x) => s + x * x, 0) / dados.length) * 4));
+        }
+        if (Date.now() - inicio >= 180000 && recorder.state === "recording") recorder.stop();
+      }, 250);
     } catch {
-      setErro("Nao foi possivel acessar o microfone. Verifique a permissao do navegador.");
-    }
+      liberarMicrofone();
+      if (montado.current) setErro("Não foi possível gravar. Verifique a permissão do microfone ou envie um arquivo.");
+    } finally { if (montado.current) setIniciando(false); }
   }
 
-  function pararGravacao() {
-    mediaRecorderRef.current?.stop();
-    setGravando(false);
+  function formulario() {
+    const dados = new FormData(); arquivos.forEach((f) => dados.append("arquivos", f)); return dados;
   }
 
-  function selecionarArquivo(arquivoSelecionado: File | null) {
-    setArquivo(arquivoSelecionado);
-    setAudioBlob(null);
-    setAudioUrl((atual) => {
-      if (atual) URL.revokeObjectURL(atual);
-      return arquivoSelecionado ? URL.createObjectURL(arquivoSelecionado) : null;
-    });
+  async function analisar() {
+    setOcupado("analisando"); setErro(""); setQualidade(null);
+    try {
+      const resultado = await apiFetchForm<QualidadeVoz>("/tts/analisar-voz", formulario());
+      if (montado.current) setQualidade(resultado);
+    } catch (err) { if (montado.current) setErro(err instanceof ApiError ? err.message : "Falha ao analisar áudio."); }
+    finally { if (montado.current) setOcupado(null); }
   }
 
   async function enviar() {
-    if (!nome.trim() || (!arquivo && !audioBlob)) return;
-    if (duracaoSegundos !== null && duracaoSegundos < DURACAO_MINIMA_SEGUNDOS) {
-      setErro(`Audio muito curto (${Math.round(duracaoSegundos)}s). Grava pelo menos ${DURACAO_MINIMA_SEGUNDOS}s.`);
-      return;
-    }
-    setEnviando(true);
-    setErro("");
+    if (!qualidade || gravando || !nome.trim()) return;
+    setOcupado("clonando"); setErro("");
     try {
-      const dados = new FormData();
-      dados.set("nome", nome.trim());
-      dados.set("arquivo", arquivo ?? new File([audioBlob as Blob], "gravacao.webm", { type: "audio/webm" }));
-      const criada = await apiFetchForm<VozClonada>("/tts/vozes-clonadas", dados, "POST");
-      onCriada(criada);
-    } catch (err) {
-      setErro(err instanceof ApiError ? err.message : "Erro ao clonar voz");
-    } finally {
-      setEnviando(false);
-    }
+      const dados = formulario(); dados.set("nome", nome.trim());
+      const criada = await apiFetchForm<VozClonada>("/tts/vozes-clonadas", dados);
+      if (montado.current) onCriada(criada);
+    } catch (err) { if (montado.current) setErro(err instanceof ApiError ? err.message : "Erro ao clonar voz."); }
+    finally { if (montado.current) setOcupado(null); }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4" onClick={onFechar}>
-      <div
-        className="w-full max-w-md rounded-2xl border border-border-strong bg-surface p-6 shadow-theme-xs"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="font-display text-base font-bold text-fg mb-2">Clonar voz</h2>
-        <p className="text-sm text-fg/70 mb-4">
-          Envie um arquivo com uns 60 segundos de fala limpa, sem musica nem ruido de fundo — melhor
-          qualidade que gravar aqui pelo navegador. A voz clonada fica disponivel so pra sua conta.
-        </p>
-
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-fg/80 mb-1.5">Nome da voz</label>
-          <input
-            className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-            placeholder="Ex: Voz do Zé"
-            disabled={enviando}
-          />
-        </div>
-
-        <div className="mb-4 space-y-3">
-          <div className="flex items-center gap-3">
-            <label className="rounded-lg border border-amber/50 px-3 py-2 text-sm font-medium text-fg hover:border-amber cursor-pointer">
-              📁 Enviar arquivo
-              <input
-                type="file"
-                accept="audio/*"
-                className="hidden"
-                disabled={enviando}
-                onChange={(e) => selecionarArquivo(e.target.files?.[0] ?? null)}
-              />
-            </label>
-            <span className="text-sm text-fg/65">ou</span>
-            {!gravando ? (
-              <button
-                type="button"
-                onClick={iniciarGravacao}
-                disabled={enviando}
-                className="rounded-lg border border-border-strong px-3 py-2 text-sm font-medium text-fg hover:border-amber/50 disabled:opacity-60"
-              >
-                🎙️ Gravar
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={pararGravacao}
-                className="rounded-lg bg-rust px-3 py-2 text-sm font-medium text-white animate-pulse"
-              >
-                ⏹ Parar
-              </button>
-            )}
-          </div>
-
-          {arquivo && <p className="text-xs text-fg/65">Arquivo: {arquivo.name}</p>}
-          {audioUrl && (
-            <audio controls src={audioUrl} className="w-full h-9">
-              Seu navegador nao suporta audio.
-            </audio>
-          )}
-          {duracaoSegundos !== null && (
-            <p className={`text-xs ${duracaoSegundos < DURACAO_MINIMA_SEGUNDOS ? "text-rust-text" : "text-fg/65"}`}>
-              Duracao: {Math.round(duracaoSegundos)}s
-              {duracaoSegundos < DURACAO_MINIMA_SEGUNDOS && ` (minimo ${DURACAO_MINIMA_SEGUNDOS}s)`}
-            </p>
-          )}
-        </div>
-
-        {erro && <p className="text-sm text-rust-text mb-3">{erro}</p>}
-
-        <div className="flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={onFechar}
-            disabled={enviando}
-            className="rounded-lg px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg disabled:opacity-60"
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            onClick={enviar}
-            disabled={
-              enviando ||
-              !nome.trim() ||
-              (!arquivo && !audioBlob) ||
-              (duracaoSegundos !== null && duracaoSegundos < DURACAO_MINIMA_SEGUNDOS)
-            }
-            className="rounded-lg bg-amber px-4 py-2.5 text-sm font-medium text-ink hover:bg-amber/90 disabled:opacity-60"
-          >
-            {enviando ? "Clonando..." : "Clonar voz"}
-          </button>
-        </div>
-
-        <p className="text-xs text-fg/65 mt-3">
-          Recurso do plano Growth em diante.{" "}
-          <Link href="/billing" className="text-amber-text hover:underline">
-            Ver planos
-          </Link>
-        </p>
+  const bloqueado = !!ocupado || gravando || iniciando;
+  return <Modal open onClose={() => { if (!ocupado) onFechar(); }} title="Clonar voz" maxWidthClassName="max-w-xl">
+    <div role="dialog" aria-label="Clonar voz" aria-modal="true" className="space-y-4">
+      <p className="text-sm text-fg/70">Envie 60–120 segundos de fala do mesmo locutor, em até 5 arquivos. Grave sem música ou eco, a cerca de um palmo do microfone, mantendo distância e volume constantes. Use o jeito de falar que deseja ouvir na rádio.</p>
+      <label className="block text-sm">Nome da voz
+        <input className="mt-1 w-full rounded-lg border border-border-strong bg-bg p-2" value={nome} onChange={(e) => setNome(e.target.value)} maxLength={100} disabled={!!ocupado} placeholder="Ex.: Minha voz de rádio" />
+      </label>
+      <label className="block text-sm">Arquivos de voz
+        <input className="mt-1 block w-full text-xs" type="file" accept=".mp3,.wav,.m4a,.mp4,.ogg,.webm" multiple disabled={bloqueado} onChange={(e) => selecionar(Array.from(e.target.files ?? []))} />
+      </label>
+      <p className="text-xs text-fg/65">Até 15 MB e 3 minutos no total. Mínimo de 20 segundos de fala detectada.</p>
+      <button type="button" className="rounded-lg border border-border-strong px-3 py-2 text-sm disabled:opacity-50" disabled={!!ocupado || iniciando} onClick={() => gravando ? recorderRef.current?.stop() : iniciarGravacao()}>
+        {iniciando ? "Acessando microfone…" : gravando ? "Parar gravação" : "Gravar pelo microfone"}
+      </button>
+      {gravando && <div className="space-y-1">
+        <p className="text-sm">Gravação: {segundos}s · procure completar 60–120s</p>
+        <label className="block text-xs">Nível do microfone <meter aria-label="Nível do microfone" min={0} max={1} value={nivel} className="w-full" /></label>
+        <p className="text-xs text-fg/65">Se o nível ficar no máximo, afaste o microfone ou reduza o ganho.</p>
+      </div>}
+      {arquivos.map((f, i) => <div key={`${f.name}-${i}`} className="min-w-0">
+        <p className="break-all text-xs text-fg/65">{f.name}</p>
+        {previews[i] && <audio controls preload="metadata" src={previews[i]} className="mt-1 h-9 w-full" />}
+      </div>)}
+      <button type="button" onClick={analisar} disabled={bloqueado || !arquivos.length} className="rounded-lg border border-amber/50 px-3 py-2 text-sm disabled:opacity-50">{ocupado === "analisando" ? "Analisando áudio…" : "Analisar amostras"}</button>
+      {qualidade && <div role="status" className="rounded-lg border border-border-strong p-3 text-sm">
+        <p>{qualidade.fala_segundos}s de fala detectada em {qualidade.duracao_segundos}s de áudio.</p>
+        {qualidade.avisos.map((aviso) => <p key={aviso} className="mt-2 text-amber-text">{aviso}</p>)}
+        <p className="mt-2 text-xs text-fg/65">Ouça as amostras: a análise não garante ausência de música, eco ou outras pessoas.</p>
+      </div>}
+      {erro && <p role="alert" className="text-sm text-rust-text">{erro}</p>}
+      <div className="flex justify-end gap-3">
+        <button type="button" onClick={onFechar} disabled={!!ocupado} className="px-3 py-2 text-sm disabled:opacity-50">Cancelar</button>
+        <button type="button" onClick={enviar} disabled={bloqueado || !nome.trim() || !qualidade} className="rounded-lg bg-amber px-4 py-2 text-sm font-medium text-ink disabled:opacity-50">{ocupado === "clonando" ? "Clonando…" : "Clonar voz"}</button>
       </div>
+      <p className="text-xs text-fg/65">Para uma voz profissional, o titular precisa criar e verificar a própria voz na ElevenLabs. A clonagem aqui é instantânea.</p>
     </div>
-  );
+  </Modal>;
 }

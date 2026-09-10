@@ -113,25 +113,38 @@ def listar_itens(
     )
 
 
-@router.post("", response_model=BibliotecaAudioItemResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=list[BibliotecaAudioItemResponse], status_code=status.HTTP_201_CREATED)
 async def criar_item(
-    nome: str = Form(...),
+    nome: str | None = Form(None),
     categoria_id: int | None = Form(None),
     cor: str | None = Form(None),
-    arquivo: UploadFile = File(...),
+    arquivos: list[UploadFile] = File(...),
     account: Account = Depends(get_current_account),
     db: Session = Depends(get_db),
 ):
-    item = BibliotecaAudioItem(
-        account_id=account.id, nome=nome, categoria_id=_validar_categoria(db, account, categoria_id), cor=cor or None
-    )
-    item.audio_path, item.audio_nome_original, item.duracao_segundos = await _salvar_audio(arquivo, account.id)
+    if not arquivos:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nenhum arquivo de audio enviado")
 
-    db.add(item)
+    categoria_valida = _validar_categoria(db, account, categoria_id)
+    usar_nome_informado = bool(nome) and len(arquivos) == 1
+
+    itens: list[BibliotecaAudioItem] = []
+    for arquivo in arquivos:
+        nome_item = nome if usar_nome_informado else (Path(arquivo.filename or "").stem or "Sem nome")
+        item = BibliotecaAudioItem(
+            account_id=account.id, nome=nome_item, categoria_id=categoria_valida, cor=cor or None
+        )
+        item.audio_path, item.audio_nome_original, item.duracao_segundos = await _salvar_audio(arquivo, account.id)
+        db.add(item)
+        itens.append(item)
+
     db.commit()
-    db.refresh(item)
-    logger.info("Item de biblioteca de audio criado: id=%s account_id=%s", item.id, account.id)
-    return item
+    for item in itens:
+        db.refresh(item)
+    logger.info(
+        "Itens de biblioteca de audio criados: ids=%s account_id=%s", [item.id for item in itens], account.id
+    )
+    return itens
 
 
 @router.put("/{item_id}", response_model=BibliotecaAudioItemResponse)

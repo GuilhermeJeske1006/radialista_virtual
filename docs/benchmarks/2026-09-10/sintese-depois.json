@@ -1,0 +1,59 @@
+{
+  "categoria": "professional",
+  "referencia_humana": false,
+  "texto": "Boa tarde! Aqui é a Locufy. São 14:30, na frequência 87,5 FM. A promoção de hoje custa R$ 29,90. No dia 10/09/2026, tem música e companhia pra você.",
+  "sinteses": [
+    {
+      "nome": "v3-atual",
+      "modelo": "eleven_v3",
+      "perfil": "atual",
+      "formato": "mp3_44100_128",
+      "streaming": false,
+      "sintese_segundos": 7.807,
+      "status": "ok",
+      "bytes": 259596,
+      "duracao_segundos": 16.16,
+      "bit_rate": "128512",
+      "sample_rate": "44100"
+    },
+    {
+      "nome": "v3-neutra",
+      "modelo": "eleven_v3",
+      "perfil": "natural",
+      "formato": "mp3_44100_192",
+      "streaming": true,
+      "sintese_segundos": 7.22,
+      "status": "ok",
+      "bytes": 379343,
+      "duracao_segundos": 15.804083,
+      "bit_rate": "192022",
+      "sample_rate": "44100"
+    },
+    {
+      "nome": "v2-neutra",
+      "modelo": "eleven_multilingual_v2",
+      "perfil": "natural",
+      "formato": "mp3_44100_192",
+      "streaming": false,
+      "sintese_segundos": 4.234,
+      "status": "ok",
+      "bytes": 397523,
+      "duracao_segundos": 16.486168,
+      "bit_rate": "192900",
+      "sample_rate": "44100"
+    },
+    {
+      "nome": "flash-neutra",
+      "modelo": "eleven_flash_v2_5",
+      "perfil": "natural",
+      "formato": "mp3_44100_128",
+      "streaming": true,
+      "sintese_segundos": 1.427,
+      "status": "ok",
+      "bytes": 221981,
+      "duracao_segundos": 13.871,
+      "bit_rate": "128025",
+      "sample_rate": "44100"
+    }
+  ]
+}

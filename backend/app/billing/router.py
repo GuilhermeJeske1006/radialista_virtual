@@ -14,10 +14,12 @@ from app.billing.limites import (
     mes_referencia_atual,
 )
 from app.billing.stripe_client import (
+    CartaoSalvoNaoEncontrado,
     criar_portal_sessao,
     criar_sessao_checkout,
     criar_sessao_checkout_agente_extra,
     criar_sessao_checkout_excedente_mensagens,
+    obter_cartao_mais_recente,
     plano_por_price_id,
     trocar_plano_assinatura,
 )
@@ -37,10 +39,16 @@ router = APIRouter(prefix="/billing", tags=["billing"])
 
 class ExcedenteMensagensRequest(BaseModel):
     blocos: int = Field(default=1, ge=1, le=50)
+    usar_cartao_salvo: bool = False
 
 
 class CheckoutRequest(BaseModel):
     plano_id: str = "starter"
+    usar_cartao_salvo: bool = False
+
+
+class AgenteExtraCheckoutRequest(BaseModel):
+    usar_cartao_salvo: bool = False
 
 
 class TrocarPlanoRequest(BaseModel):
@@ -89,7 +97,10 @@ def checkout(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Voce ja tem uma assinatura ativa -- use a troca de plano.",
         )
-    assinatura = criar_sessao_checkout(account, dados.plano_id, db)
+    try:
+        assinatura = criar_sessao_checkout(account, dados.plano_id, db, usar_cartao_salvo=dados.usar_cartao_salvo)
+    except CartaoSalvoNaoEncontrado:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nenhum cartao salvo encontrado.")
     return {"client_secret": assinatura.latest_invoice.payment_intent.client_secret}
 
 
@@ -125,12 +136,16 @@ def portal(account: Account = Depends(get_current_account), _admin=Depends(exigi
 
 @router.post("/agentes-extras/checkout")
 def checkout_agente_extra(
+    dados: AgenteExtraCheckoutRequest = AgenteExtraCheckoutRequest(),
     account: Account = Depends(get_current_account),
     db: Session = Depends(get_db),
     _admin=Depends(exigir_admin),
 ):
     _exigir_plano_ativo(account)
-    assinatura = criar_sessao_checkout_agente_extra(account, db)
+    try:
+        assinatura = criar_sessao_checkout_agente_extra(account, db, usar_cartao_salvo=dados.usar_cartao_salvo)
+    except CartaoSalvoNaoEncontrado:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nenhum cartao salvo encontrado.")
     return {"client_secret": assinatura.latest_invoice.payment_intent.client_secret}
 
 
@@ -142,13 +157,23 @@ def checkout_excedente_mensagens(
     _admin=Depends(exigir_admin),
 ):
     _exigir_plano_ativo(account)
-    intent = criar_sessao_checkout_excedente_mensagens(account, dados.blocos, db)
+    try:
+        intent = criar_sessao_checkout_excedente_mensagens(
+            account, dados.blocos, db, usar_cartao_salvo=dados.usar_cartao_salvo
+        )
+    except CartaoSalvoNaoEncontrado:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nenhum cartao salvo encontrado.")
     return {"client_secret": intent.client_secret}
 
 
 @router.get("/status")
 def status_plano(account: Account = Depends(get_current_account), db: Session = Depends(get_db)):
     return _status_plano(account, db)
+
+
+@router.get("/cartao")
+def cartao_mais_recente(account: Account = Depends(get_current_account), _admin=Depends(exigir_admin)):
+    return {"cartao": obter_cartao_mais_recente(account)}
 
 
 @router.post(

@@ -40,6 +40,7 @@ from app.llm.client import (
     sugerir_musica_do_genero,
 )
 from app.llm.json_utils import extrair_json
+from app.llm.noticias import PesquisaNoticias, contexto_noticias, pesquisar_noticias
 from app.llm.prompt_builder import ParticipantePrograma, _perfil_editorial, montar_system_prompt
 from app.models.account import Account
 from app.models.biblioteca_audio import BibliotecaAudioItem
@@ -53,7 +54,8 @@ from app.models.tema_historico import TemaHistorico
 from app.postprod.client import processar_audio
 from pydub.exceptions import PydubException
 from app.tts.client import sintetizar_audio, sintetizar_audio_stream, tts_habilitado
-from app.tts.voices import voz_valida, voz_valida_para_conta
+from app.tts.voices import voz_valida_para_conta
+from app.tts.profiles import parametros_sintese
 
 logger = logging.getLogger("radialista.live")
 
@@ -125,6 +127,7 @@ class FalaItem(BaseModel):
 class LiveProgramResponse(BaseModel):
     tipo: str
     fala: str
+    pesquisa_noticias: PesquisaNoticias | None = None
     tom: Literal["calmo", "neutro", "energico"] | None = None
     criado_em: datetime.datetime
     video_id: str | None = None
@@ -1000,8 +1003,14 @@ def _categoria_bloco(tipo: str) -> str:
     if normalizado in ("retomada", "identificacao"):
         return "abertura"
     for base in _TIPOS_COM_COMPORTAMENTO:
-        if normalizado == base or normalizado.startswith(f"{base} "):
+        if normalizado == base or normalizado.startswith((f"{base} ", f"{base}_")):
             return base
+    if re.match(
+        r"^(manchetes?|boletim|jornal|giro de noticias|tempo e transito|previsao (?:do )?tempo|"
+        r"utilidade publica|agenda cultural|cotacoes)(?:\b|_)",
+        normalizado.replace("_", " "),
+    ):
+        return "noticia"
     return _classificar_bloco_customizado(tipo, normalizado) or normalizado
 
 
@@ -1364,6 +1373,11 @@ def _buscar_musica_para_bloco(
             titulos_tocados=titulos_tocados,
             canais_recentes=canais_tocados,
             preferir_cantada=True,
+            # genero_filtro so' vem preenchido na busca generica por genero (sem faixa
+            # especifica, ver _escolher_query_musica/genero_bloco acima) -- so' exige canal
+            # oficial quando a query e' uma musica especifica (curadoria do admin/pedido do
+            # publico), nao trava o bloco genero-so' sem musica.
+            exigir_canal_oficial=genero_filtro is None,
         )
     if musica is None and query.strip().lower() != "musica instrumental":
         # query especifica (curadoria do admin, pedido do publico ou genero/rotulo do bloco) nao
@@ -1612,7 +1626,10 @@ def gerar_proxima_fala(
         tipo = "comentario"  # vinheta excluida/desativada -- nao trava o ao vivo
 
     categoria = _categoria_bloco(tipo)
-    if categoria == "noticia" and not (programa.pode_pesquisar or programa.tipos_noticias or programa.fontes_noticias):
+    if categoria == "noticia" and not (
+        programa.pode_pesquisar or programa.tipos_noticias or programa.fontes_noticias
+        or tipo in (programa.estrutura_blocos or [])
+    ):
         # Sem fonte de noticia configurada: nao arrisca fala vaga/incerta, toca musica direto.
         tipo = "musica"
         categoria = "musica"
@@ -1644,6 +1661,7 @@ def gerar_proxima_fala(
             titulos_tocados=titulos_tocados,
             canais_recentes=canais_tocados,
             preferir_cantada=True,
+            exigir_canal_oficial=True,
         )
         if musica is not None:
             _registrar_musica_tocada(programa.id, musica)
@@ -2032,19 +2050,19 @@ def gerar_proxima_fala(
             _proxima_variacao(programa.id, "formato_comentario", _VARIACOES_FORMATO_COMENTARIO)
         )
 
-    if programa.pode_pesquisar and categoria in ("comentario", "noticia"):
-        system_prompt_linhas.append(
-            f"Se você tiver certeza absoluta de um fato real de hoje ({agora_local.strftime('%d/%m')}) -- "
-            "aniversário de artista conhecido, data histórica marcante, data comemorativa -- pode usar isso "
-            "como mote pro comentário ou notícia. NUNCA invente data, nome ou fato: se não tiver certeza "
-            "absoluta, ignore essa opção e siga com outro assunto."
+    pesquisa_noticias = None
+    if categoria in ("comentario", "noticia") and (programa.pode_pesquisar or categoria == "noticia"):
+        pesquisa_noticias = pesquisar_noticias(
+            programa, account, agora=agora_local,
+            assunto=conteudo_quadro_fixo or (assunto_sugerido if categoria == "comentario" else tipo),
         )
+        system_prompt_linhas.append(contexto_noticias(pesquisa_noticias, categoria=categoria))
 
     if categoria == "noticia" and "leve" in _perfil_editorial(agora_local.hour):
         system_prompt_linhas.append(
-            "Este horário pede conteúdo leve: prefira notícia leve/amena agora. Se só houver notícia pesada "
-            "disponível, prefira puxar um assunto do banco de assuntos ou da efeméride do dia em vez de "
-            "forçar a notícia pesada neste momento."
+            "Este horário pede linguagem acessível: prefira notícia leve quando houver opções de igual "
+            "relevância na apuração. Preserve os fatos de interesse público, mesmo sérios; o horário "
+            "não é motivo para substituir jornalismo por curiosidade."
         )
 
     if categoria == "abertura" and total_falas == 0:
@@ -2308,13 +2326,13 @@ def gerar_proxima_fala(
     elif tom_fala is not None and tts_habilitado(radialista.voz_id):
         try:
             inicio_tts = time.perf_counter()
-            eh_clonada = bool(radialista.voz_id) and not voz_valida(radialista.voz_id)
+            parametros_voz = parametros_sintese(db, account.id, radialista.voz_id)
             audio_bytes = sintetizar_audio(
                 fala,
                 radialista.voz_id,
                 tipo_bloco=tipo,
                 tom=tom_fala,
-                eh_clonada=eh_clonada,
+                **parametros_voz,
                 texto_anterior=dados.ultima_fala,
                 timeout_segundos=_TTS_TIMEOUT_EMBUTIDO_SEGUNDOS,
                 max_tentativas=1,
@@ -2364,6 +2382,7 @@ def gerar_proxima_fala(
 
     return LiveProgramResponse(
         pedido_id=pedido_confirmavel.id if pedido_confirmavel else None,
+        pesquisa_noticias=pesquisa_noticias,
         pedido_token=pedido_confirmavel.selecao_token if pedido_confirmavel else None,
         pedido_programa_id=programa.id if pedido_confirmavel else None,
         pedido_radialista_id=radialista.id if pedido_confirmavel else None,
@@ -2457,7 +2476,7 @@ def gerar_audio_fala(
     # não podem sobrescrever o tom de um texto mais recente ao terminarem depois.
     if dados.programa_id is not None and dados.tom is None:
         _registrar_ultimo_tom(dados.programa_id, tom)
-    eh_clonada = bool(voz_id) and not voz_valida(voz_id)
+    parametros_voz = parametros_sintese(db, account.id, voz_id)
 
     if not dados.perfil_pos_producao:
         # Streaming corta a cauda de latencia em blocos de fala mais longos (ver Plano B.4): o
@@ -2471,7 +2490,7 @@ def gerar_audio_fala(
                 voz_id,
                 tipo_bloco=dados.tipo,
                 tom=tom,
-                eh_clonada=eh_clonada,
+                **parametros_voz,
                 texto_anterior=dados.texto_anterior,
             )
             # puxa o primeiro pedaco AQUI, fora da StreamingResponse -- erro de conexao/rate-limit/
@@ -2486,7 +2505,7 @@ def gerar_audio_fala(
                 "Falha ao sintetizar audio (streaming): radialista_id=%s voz_id=%s eh_clonada=%s",
                 radialista_id,
                 voz_id,
-                eh_clonada,
+                parametros_voz["eh_clonada"],
             )
             raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Falha ao gerar audio da fala") from None
 
@@ -2502,7 +2521,7 @@ def gerar_audio_fala(
             voz_id,
             tipo_bloco=dados.tipo,
             tom=tom,
-            eh_clonada=eh_clonada,
+            **parametros_voz,
             texto_anterior=dados.texto_anterior,
         )
     except httpx.HTTPError:
@@ -2510,7 +2529,7 @@ def gerar_audio_fala(
             "Falha ao sintetizar audio: radialista_id=%s voz_id=%s eh_clonada=%s",
             radialista_id,
             voz_id,
-            eh_clonada,
+            parametros_voz["eh_clonada"],
         )
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Falha ao gerar audio da fala") from None
 
@@ -2535,9 +2554,17 @@ def radialista_no_ar(account: Account = Depends(get_current_account), db: Sessio
     decidir quem atende o WhatsApp (app/whatsapp/webhook.py::_radialista_no_ar), mas
     sem o fallback pro primeiro radialista: aqui, ninguem na escala = ninguem no ar."""
     configs = db.query(RadioConfig).filter_by(account_id=account.id, ativo=True).order_by(RadioConfig.id.asc()).all()
+    programas_por_config: dict[int, list[Programa]] = {config.id: [] for config in configs}
+    todos_programas = (
+        db.query(Programa).filter(Programa.radio_config_id.in_(programas_por_config.keys()), Programa.ativo.is_(True)).all()
+        if configs
+        else []
+    )
+    for programa in todos_programas:
+        programas_por_config[programa.radio_config_id].append(programa)
+
     for config in configs:
-        programas = db.query(Programa).filter_by(radio_config_id=config.id, ativo=True).all()
-        programa_atual = encontrar_programa_atual(programas, config.timezone)
+        programa_atual = encontrar_programa_atual(programas_por_config[config.id], config.timezone)
         if programa_atual is not None:
             return RadialistaNoArResponse(
                 no_ar=True,

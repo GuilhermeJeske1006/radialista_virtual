@@ -6,6 +6,7 @@ import { apiFetch, ApiError } from "../lib/api";
 import { permiteClonagemVoz } from "../lib/planos";
 import { Conta, Voz, VozClonada } from "../lib/types";
 import VozCloneModal from "./VozCloneModal";
+import VozConfigModal from "./VozConfigModal";
 
 type Props = {
   value: string | null;
@@ -21,6 +22,7 @@ export default function VoiceSelect({ value, onChange }: Props) {
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [nomeEdicao, setNomeEdicao] = useState("");
   const [erro, setErro] = useState("");
+  const [configVoz, setConfigVoz] = useState<string | null | undefined>(undefined);
 
   function carregarVozesClonadas() {
     apiFetch<VozClonada[]>("/tts/vozes-clonadas")
@@ -120,9 +122,10 @@ export default function VoiceSelect({ value, onChange }: Props) {
               ) : (
                 <div key={v.voz_id} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-fg/5">
                   <label className="flex flex-1 cursor-pointer items-center gap-2">
-                    <input type="radio" name="voz" checked={value === v.voz_id} onChange={() => onChange(v.voz_id)} />
-                    {v.nome}
+                    <input type="radio" name="voz" checked={value === v.voz_id} disabled={v.requer_verificacao} onChange={() => onChange(v.voz_id)} />
+                    {v.nome}{v.requer_verificacao && " · aguardando verificação"}
                   </label>
+                  {v.requer_verificacao && <button type="button" className="text-xs text-amber-text" onClick={() => setConfigVoz(v.voz_id)}>Verificar status</button>}
                   {v.preview_url && (
                     <audio controls preload="none" src={v.preview_url} className="h-8 w-40 shrink-0" />
                   )}
@@ -154,7 +157,7 @@ export default function VoiceSelect({ value, onChange }: Props) {
             {vozesCompartilhadas.map((v) => (
               <div key={v.voz_id} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-fg/5">
                 <label className="flex flex-1 cursor-pointer items-center gap-2">
-                  <input type="radio" name="voz" checked={value === v.voz_id} onChange={() => onChange(v.voz_id)} />
+                  <input type="radio" name="voz" checked={value === v.voz_id} disabled={v.requer_verificacao} onChange={() => onChange(v.voz_id)} />
                   {v.nome}
                 </label>
                 {v.preview_url && (
@@ -179,6 +182,8 @@ export default function VoiceSelect({ value, onChange }: Props) {
         ))}
       </div>
 
+      <button type="button" className="mt-2 text-xs text-amber-text" onClick={() => setConfigVoz(value)}>Ajustar voz selecionada</button>
+      {configVoz !== undefined && <VozConfigModal vozId={configVoz} onFechar={() => setConfigVoz(undefined)} onAtualizada={carregarVozesClonadas} />}
       {erro && <p className="mt-1.5 text-xs text-rust-text">{erro}</p>}
 
       <div className="mt-1.5">
@@ -207,7 +212,8 @@ export default function VoiceSelect({ value, onChange }: Props) {
           onFechar={() => setModalAberto(false)}
           onCriada={(voz) => {
             carregarVozesClonadas();
-            onChange(voz.voz_id);
+            if (!voz.requer_verificacao) onChange(voz.voz_id);
+            else setErro("Voz criada e aguardando verificação. Use Verificar status após concluir na ElevenLabs.");
             setModalAberto(false);
           }}
         />

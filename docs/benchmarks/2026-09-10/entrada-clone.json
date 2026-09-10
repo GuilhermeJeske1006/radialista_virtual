@@ -1,0 +1,41 @@
+{
+  "modo": "offline; banco e provedor simulados; decodificação WAV real",
+  "entradas": [
+    {
+      "caso": "silencio_21s",
+      "resultado": "aceito_pela_validacao_local",
+      "chamaria_provedor": true
+    },
+    {
+      "caso": "tom_senoidal_21s_sem_fala",
+      "resultado": "aceito_pela_validacao_local",
+      "chamaria_provedor": true
+    },
+    {
+      "caso": "silencio_5s_controle",
+      "resultado": "rejeitado_400",
+      "chamaria_provedor": false
+    }
+  ],
+  "sanitizacao": {
+    "entrada": "[muito feliz] Boa tarde! [surpreso] Olá! [áudio] Teste.",
+    "saida": "[muito feliz] Boa tarde!  Olá! [áudio] Teste."
+  },
+  "perfil_sem_jitter": {
+    "musica": {
+      "stability": 0.45000000000000007,
+      "style": 0.5,
+      "speed": 0.9800000000000001
+    },
+    "comentario": {
+      "stability": 0.67,
+      "style": 0.04999999999999999,
+      "speed": 0.8
+    },
+    "noticia": {
+      "stability": 0.7200000000000001,
+      "style": 0.0,
+      "speed": 0.78
+    }
+  }
+}

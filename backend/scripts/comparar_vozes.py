@@ -73,7 +73,6 @@ def comparar(pasta, voice_id=None):
     from app.postprod.client import processar_audio
     from app.postprod.mastering import finalizar_audio
     from app.tts import client as tts
-    from app.tts.voices import voz_valida
 
     voice_id = voice_id or settings.elevenlabs_voice_id
     if not tts.tts_habilitado(voice_id):
@@ -82,7 +81,8 @@ def comparar(pasta, voice_id=None):
     # Evita sobrescrever resultados de uma escuta anterior.
     if (pasta / "resultados.json").exists():
         raise SystemExit("A pasta ja contem resultados. Escolha outra pasta para esta comparacao.")
-    eh_clonada = not voz_valida(voice_id)
+    metadados = tts.obter_metadados_voz(voice_id) or {}
+    eh_clonada = metadados.get("categoria") == "cloned"
     registros = []
     modelo_original = settings.elevenlabs_model
     try:

@@ -8,6 +8,7 @@ Precisa rodar ANTES de qualquer import de app.* porque:
 """
 
 import os
+from types import SimpleNamespace
 
 os.environ["ANTHROPIC_API_KEY"] = "test-anthropic-key"
 os.environ["WUZAPI_USER_TOKEN"] = "test-wuzapi-user-token"
@@ -53,6 +54,14 @@ def _redis_limpo():
     redis_client.flushall()
     yield
     redis_client.flushall()
+
+
+@pytest.fixture(autouse=True)
+def _pesquisa_noticias_sem_rede(monkeypatch):
+    monkeypatch.setattr(
+        "app.llm.noticias._client.messages.create",
+        lambda **kwargs: SimpleNamespace(stop_reason="end_turn", content=[]),
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -140,3 +149,9 @@ def auth_headers(db_session):
         return {"Authorization": f"Bearer {criar_token(usuario.id)}"}
 
     return _headers
+
+
+@pytest.fixture(autouse=True)
+def _metadados_voz_sem_rede(monkeypatch):
+    """Metadados remotos são simulados; testes específicos podem sobrescrever."""
+    monkeypatch.setattr("app.tts.profiles.obter_metadados_voz", lambda voz_id: None)

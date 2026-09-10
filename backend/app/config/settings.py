@@ -23,7 +23,11 @@ class Settings(BaseSettings):
     cors_extra_origins: str = ""
 
     stripe_secret_key: str = ""
-    stripe_webhook_secret: str = ""
+    # Sem default de proposito: stripe.Webhook.construct_event verifica a assinatura
+    # calculando HMAC com esse valor como chave -- string vazia e' uma chave conhecida,
+    # entao um segredo vazio deixa QUALQUER payload forjavel (atacante so' calcula o HMAC
+    # com chave vazia). Ver app/billing/router.py::webhook_stripe.
+    stripe_webhook_secret: str
     stripe_price_id_starter: str = ""
     stripe_price_id_growth: str = ""
     stripe_price_id_professional: str = ""

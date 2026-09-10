@@ -1,12 +1,15 @@
 import io
+from pathlib import Path
 
 import httpx
 from pydub import AudioSegment
 
 
-def _audio_valido_bytes(duracao_ms=21000):
+def _audio_valido_bytes(duracao_ms=45000):
     buf = io.BytesIO()
-    AudioSegment.silent(duration=duracao_ms).export(buf, format="wav")
+    raw = (Path(__file__).parent / "fixtures/webrtcvad/test-audio.raw").read_bytes()
+    voz = AudioSegment(raw, sample_width=2, frame_rate=8000, channels=1)
+    (voz * (duracao_ms // len(voz) + 1))[:duracao_ms].export(buf, format="wav")
     return buf.getvalue()
 
 
@@ -63,7 +66,7 @@ def test_criar_voz_clonada_exige_plano_com_clonagem(client, account, auth_header
 def test_criar_voz_clonada_com_sucesso(client, account_factory, auth_headers, monkeypatch):
     account = account_factory(email="growth@a.com", plano="growth")
     monkeypatch.setattr("app.config.settings.settings.elevenlabs_api_key", "fake-key")
-    monkeypatch.setattr("app.tts.router.clonar_voz", lambda nome, conteudo, content_type, filename: "voz-nova-1")
+    monkeypatch.setattr("app.tts.router.clonar_voz", lambda nome, **kwargs: {"voice_id": "voz-nova-1", "requires_verification": False})
     monkeypatch.setattr("app.tts.router.obter_preview_url", lambda voz_id: "https://example.com/preview.mp3")
 
     arquivo = io.BytesIO(_audio_valido_bytes())
@@ -78,12 +81,64 @@ def test_criar_voz_clonada_com_sucesso(client, account_factory, auth_headers, mo
     assert corpo["voz_id"] == "voz-nova-1"
     assert corpo["nome"] == "Minha voz"
     assert corpo["preview_url"] == "https://example.com/preview.mp3"
+    assert corpo["qualidade"]["fala_segundos"] >= 20
+    assert corpo["categoria"] == "cloned"
+
+
+def test_silencio_nao_chama_provedor(client, account_factory, auth_headers, monkeypatch):
+    from unittest.mock import Mock
+    account = account_factory(plano="growth")
+    monkeypatch.setattr("app.config.settings.settings.elevenlabs_api_key", "fake-key")
+    provedor = Mock()
+    monkeypatch.setattr("app.tts.router.clonar_voz", provedor)
+    buf = io.BytesIO(); AudioSegment.silent(duration=60000).export(buf, format="wav")
+    r = client.post("/tts/vozes-clonadas", data={"nome": "Teste"}, files={"arquivo": ("silent.wav", buf.getvalue(), "audio/wav")}, headers=auth_headers(account.id))
+    assert r.status_code == 400
+    provedor.assert_not_called()
+
+
+def test_multiplas_amostras_e_verificacao_pendente(client, account_factory, auth_headers, monkeypatch):
+    account = account_factory(plano="growth")
+    monkeypatch.setattr("app.config.settings.settings.elevenlabs_api_key", "fake-key")
+    capturado = {}
+    def clone(nome, *, amostras):
+        capturado["amostras"] = amostras
+        return {"voice_id": "pendente", "requires_verification": True}
+    monkeypatch.setattr("app.tts.router.clonar_voz", clone)
+    audio = _audio_valido_bytes(22000)
+    files = [("arquivos", ("a.wav", audio, "audio/wav")), ("arquivos", ("b.wav", audio, "audio/wav"))]
+    r = client.post("/tts/vozes-clonadas", data={"nome": "Teste"}, files=files, headers=auth_headers(account.id))
+    assert r.status_code == 201, r.text
+    assert r.json()["requer_verificacao"] is True
+    assert r.json()["preview_url"] is None
+    assert [a[1] for a in capturado["amostras"]] == [audio, audio]
+    assert client.get("/tts/vozes-clonadas", headers=auth_headers(account.id)).json()[0]["requer_verificacao"] is True
+
+
+def test_analise_nao_cria_clone(client, account_factory, auth_headers, monkeypatch, db_session):
+    from unittest.mock import Mock
+    from app.models.voz_clonada import VozClonada
+    account = account_factory(plano="growth")
+    provedor = Mock(); monkeypatch.setattr("app.tts.router.clonar_voz", provedor)
+    r = client.post("/tts/analisar-voz", files={"arquivo": ("a.wav", _audio_valido_bytes(), "audio/wav")}, headers=auth_headers(account.id))
+    assert r.status_code == 200
+    assert r.json()["fala_segundos"] >= 20
+    assert db_session.query(VozClonada).count() == 0
+    provedor.assert_not_called()
+
+
+def test_limita_numero_e_total_de_arquivos(client, account_factory, auth_headers):
+    account = account_factory(plano="growth")
+    files = [("arquivos", (f"{i}.wav", b"a", "audio/wav")) for i in range(6)]
+    assert client.post("/tts/analisar-voz", files=files, headers=auth_headers(account.id)).status_code == 400
+    files = [("arquivos", (f"{i}.wav", b"x" * (8 * 1024 * 1024), "audio/wav")) for i in range(2)]
+    assert client.post("/tts/analisar-voz", files=files, headers=auth_headers(account.id)).status_code == 413
 
 
 def test_criar_voz_clonada_audio_curto_demais(client, account_factory, auth_headers, monkeypatch):
     account = account_factory(email="growth2@a.com", plano="growth")
     monkeypatch.setattr("app.config.settings.settings.elevenlabs_api_key", "fake-key")
-    monkeypatch.setattr("app.tts.router.clonar_voz", lambda nome, conteudo, content_type, filename: "voz-nova-1")
+    monkeypatch.setattr("app.tts.router.clonar_voz", lambda nome, **kwargs: {"voice_id": "voz-nova-1", "requires_verification": False})
 
     arquivo = io.BytesIO(_audio_valido_bytes(duracao_ms=5000))
     resposta = client.post(
@@ -112,7 +167,7 @@ def test_criar_voz_clonada_falha_na_elevenlabs_devolve_502(client, account_facto
     account = account_factory(email="growth@a.com", plano="growth")
     monkeypatch.setattr("app.config.settings.settings.elevenlabs_api_key", "fake-key")
 
-    def _falha(nome, conteudo, content_type, filename):
+    def _falha(nome, **kwargs):
         raise httpx.HTTPStatusError("erro", request=None, response=httpx.Response(500, text="erro"))
 
     monkeypatch.setattr("app.tts.router.clonar_voz", _falha)
@@ -129,7 +184,7 @@ def test_criar_voz_clonada_falha_na_elevenlabs_devolve_502(client, account_facto
 def test_excluir_voz_clonada(client, account_factory, auth_headers, monkeypatch, db_session):
     account = account_factory(email="growth@a.com", plano="growth")
     monkeypatch.setattr("app.config.settings.settings.elevenlabs_api_key", "fake-key")
-    monkeypatch.setattr("app.tts.router.clonar_voz", lambda nome, conteudo, content_type, filename: "voz-nova-1")
+    monkeypatch.setattr("app.tts.router.clonar_voz", lambda nome, **kwargs: {"voice_id": "voz-nova-1", "requires_verification": False})
     monkeypatch.setattr("app.tts.router.excluir_voz_clonada", lambda voz_id: None)
     monkeypatch.setattr("app.tts.router.obter_preview_url", lambda voz_id: None)
 
@@ -156,7 +211,7 @@ def test_excluir_voz_clonada_inexistente_falha(client, account, auth_headers):
 def test_renomear_voz_clonada(client, account_factory, auth_headers, monkeypatch):
     account = account_factory(email="growth3@a.com", plano="growth")
     monkeypatch.setattr("app.config.settings.settings.elevenlabs_api_key", "fake-key")
-    monkeypatch.setattr("app.tts.router.clonar_voz", lambda nome, conteudo, content_type, filename: "voz-nova-1")
+    monkeypatch.setattr("app.tts.router.clonar_voz", lambda nome, **kwargs: {"voice_id": "voz-nova-1", "requires_verification": False})
     monkeypatch.setattr("app.tts.router.obter_preview_url", lambda voz_id: None)
     renomeacoes = []
     monkeypatch.setattr("app.tts.router.renomear_voz", lambda voz_id, nome: renomeacoes.append((voz_id, nome)))
@@ -182,7 +237,7 @@ def test_renomear_voz_clonada(client, account_factory, auth_headers, monkeypatch
 def test_renomear_voz_clonada_nome_vazio_falha(client, account_factory, auth_headers, monkeypatch):
     account = account_factory(email="growth4@a.com", plano="growth")
     monkeypatch.setattr("app.config.settings.settings.elevenlabs_api_key", "fake-key")
-    monkeypatch.setattr("app.tts.router.clonar_voz", lambda nome, conteudo, content_type, filename: "voz-nova-1")
+    monkeypatch.setattr("app.tts.router.clonar_voz", lambda nome, **kwargs: {"voice_id": "voz-nova-1", "requires_verification": False})
     monkeypatch.setattr("app.tts.router.obter_preview_url", lambda voz_id: None)
 
     arquivo = io.BytesIO(_audio_valido_bytes())
@@ -212,7 +267,7 @@ def test_renomear_voz_clonada_de_outra_conta_falha(client, account_factory, auth
     dono = account_factory(email="growth5@a.com", plano="growth")
     outro = account_factory(email="growth6@a.com", plano="growth")
     monkeypatch.setattr("app.config.settings.settings.elevenlabs_api_key", "fake-key")
-    monkeypatch.setattr("app.tts.router.clonar_voz", lambda nome, conteudo, content_type, filename: "voz-nova-1")
+    monkeypatch.setattr("app.tts.router.clonar_voz", lambda nome, **kwargs: {"voice_id": "voz-nova-1", "requires_verification": False})
     monkeypatch.setattr("app.tts.router.obter_preview_url", lambda voz_id: None)
 
     arquivo = io.BytesIO(_audio_valido_bytes())

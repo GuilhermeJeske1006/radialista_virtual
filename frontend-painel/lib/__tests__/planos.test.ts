@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { limiteRadialistasPorPrograma, permiteClonagemVoz, formatarReais, PLANOS } from "../planos";
+import { limiteRadialistasPorPrograma, permiteClonagemVoz, formatarReais, labelBandeira, PLANOS } from "../planos";
 
 describe("limiteRadialistasPorPrograma", () => {
   it("devolve o limite do plano informado", () => {
@@ -31,6 +31,17 @@ describe("formatarReais", () => {
   it("formata numero no padrao pt-BR sem casas decimais", () => {
     expect(formatarReais(1000)).toBe("1.000");
     expect(formatarReais(399)).toBe("399");
+  });
+});
+
+describe("labelBandeira", () => {
+  it("traduz bandeiras conhecidas", () => {
+    expect(labelBandeira("visa")).toBe("Visa");
+    expect(labelBandeira("mastercard")).toBe("Mastercard");
+  });
+
+  it("devolve a propria bandeira quando desconhecida", () => {
+    expect(labelBandeira("cabal")).toBe("cabal");
   });
 });
 

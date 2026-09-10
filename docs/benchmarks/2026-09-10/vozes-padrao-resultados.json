@@ -1,0 +1,476 @@
+{
+  "modelo": "eleven_v3",
+  "itens": [
+    {
+      "fonte": "say_luciana",
+      "caso": "noticia",
+      "arquivo": "say-noticia.mp3",
+      "medidas": {
+        "lufs": -15.94,
+        "true_peak_dbtp": -3.78
+      }
+    },
+    {
+      "fonte": "say_luciana",
+      "caso": "musica",
+      "arquivo": "say-musica.mp3",
+      "medidas": {
+        "lufs": -16.02,
+        "true_peak_dbtp": -4.37
+      }
+    },
+    {
+      "fonte": "say_luciana",
+      "caso": "comentario",
+      "arquivo": "say-comentario.mp3",
+      "medidas": {
+        "lufs": -16.1,
+        "true_peak_dbtp": -3.86
+      }
+    },
+    {
+      "voz": "paulo",
+      "caso": "noticia",
+      "variante": "atual",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 8.737,
+      "arquivo": "paulo-noticia-atual.mp3",
+      "medidas": {
+        "lufs": -13.74,
+        "true_peak_dbtp": -0.5
+      },
+      "voice_settings_enviado": {
+        "stability": 0.5014983448614204,
+        "style": 0.24480156697187058,
+        "speed": 0.8893629416091171
+      },
+      "ok": true
+    },
+    {
+      "voz": "paulo",
+      "caso": "noticia",
+      "variante": "oficial",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 6.631,
+      "arquivo": "paulo-noticia-oficial.mp3",
+      "medidas": {
+        "lufs": -13.63,
+        "true_peak_dbtp": -0.91
+      },
+      "voice_settings_enviado": {
+        "stability": 0.8,
+        "style": 0.0
+      },
+      "ok": true
+    },
+    {
+      "voz": "paulo",
+      "caso": "musica",
+      "variante": "atual",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 6.604,
+      "arquivo": "paulo-musica-atual.mp3",
+      "medidas": {
+        "lufs": -13.46,
+        "true_peak_dbtp": -0.41
+      },
+      "voice_settings_enviado": {
+        "stability": 0.283109013415395,
+        "style": 0.6234021972349993,
+        "speed": 1.050558775989075
+      },
+      "ok": true
+    },
+    {
+      "voz": "paulo",
+      "caso": "musica",
+      "variante": "oficial",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 5.225,
+      "arquivo": "paulo-musica-oficial.mp3",
+      "medidas": {
+        "lufs": -13.7,
+        "true_peak_dbtp": -0.45
+      },
+      "voice_settings_enviado": {
+        "stability": 0.4,
+        "style": 0.3
+      },
+      "ok": true
+    },
+    {
+      "voz": "paulo",
+      "caso": "comentario",
+      "variante": "atual",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 6.368,
+      "arquivo": "paulo-comentario-atual.mp3",
+      "medidas": {
+        "lufs": -14.44,
+        "true_peak_dbtp": -0.48
+      },
+      "voice_settings_enviado": {
+        "stability": 0.5081386766091782,
+        "style": 0.22276984201459304,
+        "speed": 0.8730107794426517
+      },
+      "ok": true
+    },
+    {
+      "voz": "paulo",
+      "caso": "comentario",
+      "variante": "oficial",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 4.722,
+      "arquivo": "paulo-comentario-oficial.mp3",
+      "medidas": {
+        "lufs": -13.84,
+        "true_peak_dbtp": -0.6
+      },
+      "voice_settings_enviado": {
+        "stability": 0.7,
+        "style": 0.0
+      },
+      "ok": true
+    },
+    {
+      "voz": "yasmin",
+      "caso": "noticia",
+      "variante": "atual",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 7.841,
+      "arquivo": "yasmin-noticia-atual.mp3",
+      "medidas": {
+        "lufs": -17.79,
+        "true_peak_dbtp": -0.65
+      },
+      "voice_settings_enviado": {
+        "stability": 0.506519804958089,
+        "style": 0.22293080522974812,
+        "speed": 0.9109194080542714
+      },
+      "ok": true
+    },
+    {
+      "voz": "yasmin",
+      "caso": "noticia",
+      "variante": "oficial",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 7.288,
+      "arquivo": "yasmin-noticia-oficial.mp3",
+      "medidas": {
+        "lufs": -17.37,
+        "true_peak_dbtp": -0.39
+      },
+      "voice_settings_enviado": {
+        "stability": 0.8,
+        "style": 0.0
+      },
+      "ok": true
+    },
+    {
+      "voz": "yasmin",
+      "caso": "musica",
+      "variante": "atual",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 5.441,
+      "arquivo": "yasmin-musica-atual.mp3",
+      "medidas": {
+        "lufs": -17.91,
+        "true_peak_dbtp": -0.94
+      },
+      "voice_settings_enviado": {
+        "stability": 0.32995588689818606,
+        "style": 0.6421489223089353,
+        "speed": 1.0634712160012008
+      },
+      "ok": true
+    },
+    {
+      "voz": "yasmin",
+      "caso": "musica",
+      "variante": "oficial",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 5.664,
+      "arquivo": "yasmin-musica-oficial.mp3",
+      "medidas": {
+        "lufs": -18.23,
+        "true_peak_dbtp": -1.27
+      },
+      "voice_settings_enviado": {
+        "stability": 0.4,
+        "style": 0.3
+      },
+      "ok": true
+    },
+    {
+      "voz": "yasmin",
+      "caso": "comentario",
+      "variante": "atual",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 6.514,
+      "arquivo": "yasmin-comentario-atual.mp3",
+      "medidas": {
+        "lufs": -18.18,
+        "true_peak_dbtp": -2.16
+      },
+      "voice_settings_enviado": {
+        "stability": 0.5063693664166636,
+        "style": 0.20434374243877934,
+        "speed": 0.8806969635062273
+      },
+      "ok": true
+    },
+    {
+      "voz": "yasmin",
+      "caso": "comentario",
+      "variante": "oficial",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 5.896,
+      "arquivo": "yasmin-comentario-oficial.mp3",
+      "medidas": {
+        "lufs": -17.36,
+        "true_peak_dbtp": -0.88
+      },
+      "voice_settings_enviado": {
+        "stability": 0.7,
+        "style": 0.0
+      },
+      "ok": true
+    },
+    {
+      "voz": "will",
+      "caso": "noticia",
+      "variante": "atual",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 12.391,
+      "arquivo": "will-noticia-atual.mp3",
+      "medidas": {
+        "lufs": -18.62,
+        "true_peak_dbtp": -1.77
+      },
+      "voice_settings_enviado": {
+        "stability": 0.4982350359004127,
+        "style": 0.2757544035189257,
+        "speed": 0.903056488762853
+      },
+      "ok": true
+    },
+    {
+      "voz": "will",
+      "caso": "noticia",
+      "variante": "oficial",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 6.462,
+      "arquivo": "will-noticia-oficial.mp3",
+      "medidas": {
+        "lufs": -17.51,
+        "true_peak_dbtp": -1.08
+      },
+      "voice_settings_enviado": {
+        "stability": 0.8,
+        "style": 0.0
+      },
+      "ok": true
+    },
+    {
+      "voz": "will",
+      "caso": "musica",
+      "variante": "atual",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 5.723,
+      "arquivo": "will-musica-atual.mp3",
+      "medidas": {
+        "lufs": -17.52,
+        "true_peak_dbtp": -0.73
+      },
+      "voice_settings_enviado": {
+        "stability": 0.2824498609233244,
+        "style": 0.6519971608613221,
+        "speed": 1.0470382161796996
+      },
+      "ok": true
+    },
+    {
+      "voz": "will",
+      "caso": "musica",
+      "variante": "oficial",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 5.095,
+      "arquivo": "will-musica-oficial.mp3",
+      "medidas": {
+        "lufs": -16.78,
+        "true_peak_dbtp": -0.9
+      },
+      "voice_settings_enviado": {
+        "stability": 0.4,
+        "style": 0.3
+      },
+      "ok": true
+    },
+    {
+      "voz": "will",
+      "caso": "comentario",
+      "variante": "atual",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 6.424,
+      "arquivo": "will-comentario-atual.mp3",
+      "medidas": {
+        "lufs": -18.42,
+        "true_peak_dbtp": -1.63
+      },
+      "voice_settings_enviado": {
+        "stability": 0.5353642501224196,
+        "style": 0.20075257999067564,
+        "speed": 0.8943909305836116
+      },
+      "ok": true
+    },
+    {
+      "voz": "will",
+      "caso": "comentario",
+      "variante": "oficial",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 6.239,
+      "arquivo": "will-comentario-oficial.mp3",
+      "medidas": {
+        "lufs": -18.05,
+        "true_peak_dbtp": -2.04
+      },
+      "voice_settings_enviado": {
+        "stability": 0.7,
+        "style": 0.0
+      },
+      "ok": true
+    },
+    {
+      "voz": "scheila",
+      "caso": "noticia",
+      "variante": "atual",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 11.573,
+      "arquivo": "scheila-noticia-atual.mp3",
+      "medidas": {
+        "lufs": -16.13,
+        "true_peak_dbtp": -0.58
+      },
+      "voice_settings_enviado": {
+        "stability": 0.47623179018584294,
+        "style": 0.2573052484857176,
+        "speed": 0.9080725586716015
+      },
+      "ok": true
+    },
+    {
+      "voz": "scheila",
+      "caso": "noticia",
+      "variante": "oficial",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 6.694,
+      "arquivo": "scheila-noticia-oficial.mp3",
+      "medidas": {
+        "lufs": -16.25,
+        "true_peak_dbtp": -1.03
+      },
+      "voice_settings_enviado": {
+        "stability": 0.8,
+        "style": 0.0
+      },
+      "ok": true
+    },
+    {
+      "voz": "scheila",
+      "caso": "musica",
+      "variante": "atual",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 5.13,
+      "arquivo": "scheila-musica-atual.mp3",
+      "medidas": {
+        "lufs": -16.25,
+        "true_peak_dbtp": -0.69
+      },
+      "voice_settings_enviado": {
+        "stability": 0.323813876527948,
+        "style": 0.624893701602644,
+        "speed": 1.0546754485439394
+      },
+      "ok": true
+    },
+    {
+      "voz": "scheila",
+      "caso": "musica",
+      "variante": "oficial",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 5.283,
+      "arquivo": "scheila-musica-oficial.mp3",
+      "medidas": {
+        "lufs": -16.51,
+        "true_peak_dbtp": -0.91
+      },
+      "voice_settings_enviado": {
+        "stability": 0.4,
+        "style": 0.3
+      },
+      "ok": true
+    },
+    {
+      "voz": "scheila",
+      "caso": "comentario",
+      "variante": "atual",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 6.014,
+      "arquivo": "scheila-comentario-atual.mp3",
+      "medidas": {
+        "lufs": -17.78,
+        "true_peak_dbtp": -0.64
+      },
+      "voice_settings_enviado": {
+        "stability": 0.5302020905318611,
+        "style": 0.1745984277394943,
+        "speed": 0.8794816841870491
+      },
+      "ok": true
+    },
+    {
+      "voz": "scheila",
+      "caso": "comentario",
+      "variante": "oficial",
+      "modelo": "eleven_v3",
+      "status": 200,
+      "sintese_segundos": 5.542,
+      "arquivo": "scheila-comentario-oficial.mp3",
+      "medidas": {
+        "lufs": -17.6,
+        "true_peak_dbtp": -0.49
+      },
+      "voice_settings_enviado": {
+        "stability": 0.7,
+        "style": 0.0
+      },
+      "ok": true
+    }
+  ]
+}

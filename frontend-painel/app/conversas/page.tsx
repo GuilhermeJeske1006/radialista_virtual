@@ -361,9 +361,13 @@ export default function ConversasPage() {
       </div>
       {erroExport && <p className="text-sm text-rust-text mb-4">{erroExport}</p>}
 
-      <div className="flex gap-4 h-130">
+      <div className="flex flex-col md:flex-row gap-4 h-130">
         {/* Lista de conversas, tipo lista de chats do WhatsApp */}
-        <div className="w-72 shrink-0 bg-surface rounded-2xl border border-border-strong shadow-theme-xs flex flex-col overflow-hidden">
+        <div
+          className={`w-full md:w-72 shrink-0 bg-surface rounded-2xl border border-border-strong shadow-theme-xs flex-col overflow-hidden ${
+            telefoneSelecionado ? "hidden md:flex" : "flex"
+          }`}
+        >
           <div className="flex-1 overflow-y-auto divide-y divide-border-strong">
             {carregandoConversas ? (
               <p className="flex items-center gap-2 text-sm text-fg/65 p-4">
@@ -427,12 +431,24 @@ export default function ConversasPage() {
         </div>
 
         {/* Thread da conversa selecionada, tipo tela de chat do WhatsApp */}
-        <div className="flex-1 bg-surface rounded-2xl border border-border-strong shadow-theme-xs flex flex-col overflow-hidden">
+        <div
+          className={`flex-1 bg-surface rounded-2xl border border-border-strong shadow-theme-xs flex-col overflow-hidden ${
+            telefoneSelecionado ? "flex" : "hidden md:flex"
+          }`}
+        >
           {!telefoneSelecionado ? (
             <p className="text-sm text-fg/65 m-auto">Selecione uma conversa para ver as mensagens.</p>
           ) : (
             <>
               <div className="p-3 border-b border-border-strong flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setTelefoneSelecionado(null)}
+                  className="md:hidden shrink-0 text-fg/65 hover:text-fg"
+                  aria-label="Voltar pra lista de conversas"
+                >
+                  ←
+                </button>
                 <Avatar telefone={telefoneSelecionado} nome={nomeSelecionado} tamanho={40} />
                 <div>
                   <p className="text-sm font-medium text-fg">{nomeSelecionado || telefoneSelecionado}</p>

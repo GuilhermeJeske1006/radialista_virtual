@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import ConfirmDialog from "./ConfirmDialog";
+import CheckoutModal from "./CheckoutModal";
 import VoiceSelect from "./VoiceSelect";
 import TagInput from "./TagInput";
 import { apiFetch, ApiError } from "../lib/api";
@@ -15,6 +16,15 @@ import { PRECO_AGENTE_ADICIONAL, formatarReais } from "../lib/planos";
 const inputClass =
   "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20";
 const labelClass = "block text-sm font-medium text-fg/80 mb-1.5";
+
+// Fusos horários do Brasil pós-2019 (sem horário de verão) -- ver Radialista.timezone,
+// usado por useLiveEngine pra decidir se o programa está no ar.
+const TIMEZONES_BRASIL = [
+  { value: "America/Noronha", label: "Fernando de Noronha (UTC-2)" },
+  { value: "America/Sao_Paulo", label: "Brasília (UTC-3)" },
+  { value: "America/Manaus", label: "Manaus/Cuiabá (UTC-4)" },
+  { value: "America/Rio_Branco", label: "Acre (UTC-5)" },
+];
 
 function semCamposSistema(r: Radialista) {
   const { id, ativo, ...dados } = r;
@@ -52,8 +62,7 @@ export default function EditarRadialistaForm({
   const [confirmandoExclusaoRadialista, setConfirmandoExclusaoRadialista] = useState(false);
   const [programaParaExcluir, setProgramaParaExcluir] = useState<Programa | null>(null);
   const [mensagemLimiteAgentes, setMensagemLimiteAgentes] = useState("");
-  const [comprandoAgenteExtra, setComprandoAgenteExtra] = useState(false);
-  const [erroCompraAgenteExtra, setErroCompraAgenteExtra] = useState("");
+  const [checkoutAgenteExtraAberto, setCheckoutAgenteExtraAberto] = useState(false);
 
   // Depois que o POST de criacao roda (dentro de salvar()), guarda o id criado aqui --
   // radialistaId (prop) continua null enquanto o pai (pagina/modal) nao navegar/atualizar,
@@ -118,18 +127,6 @@ export default function EditarRadialistaForm({
       }
     } finally {
       setSalvando(false);
-    }
-  }
-
-  async function comprarAgenteExtra() {
-    setComprandoAgenteExtra(true);
-    setErroCompraAgenteExtra("");
-    try {
-      const { url } = await apiFetch<{ url: string }>("/billing/agentes-extras/checkout", { method: "POST" });
-      window.location.href = url;
-    } catch (err) {
-      setErroCompraAgenteExtra(err instanceof ApiError ? err.message : "Erro ao iniciar compra");
-      setComprandoAgenteExtra(false);
     }
   }
 
@@ -222,6 +219,20 @@ export default function EditarRadialistaForm({
               <label className={labelClass}>Voz</label>
               <VoiceSelect value={config.voz_id} onChange={(vozId) => setConfig({ ...config, voz_id: vozId })} />
             </div>
+          </div>
+          <div>
+            <label className={labelClass}>Fuso horário</label>
+            <select
+              className={inputClass}
+              value={config.timezone}
+              onChange={(e) => setConfig({ ...config, timezone: e.target.value })}
+            >
+              {TIMEZONES_BRASIL.map((tz) => (
+                <option key={tz.value} value={tz.value}>
+                  {tz.label}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className={labelClass}>Personalidade</label>
@@ -359,7 +370,7 @@ export default function EditarRadialistaForm({
       {mensagemLimiteAgentes && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4"
-          onClick={() => !comprandoAgenteExtra && setMensagemLimiteAgentes("")}
+          onClick={() => setMensagemLimiteAgentes("")}
         >
           <div
             className="w-full max-w-sm rounded-2xl border border-border-strong bg-surface p-6 shadow-theme-xs"
@@ -372,13 +383,11 @@ export default function EditarRadialistaForm({
               <span className="font-semibold text-fg">R$ {formatarReais(PRECO_AGENTE_ADICIONAL)}/mês</span>, sem
               trocar de plano — ele entra no ar assim que o pagamento confirmar.
             </p>
-            {erroCompraAgenteExtra && <p className="text-sm text-rust-text mb-3">{erroCompraAgenteExtra}</p>}
             <div className="flex justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setMensagemLimiteAgentes("")}
-                disabled={comprandoAgenteExtra}
-                className="rounded-lg px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg disabled:opacity-60"
+                className="rounded-lg px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
               >
                 Fechar
               </button>
@@ -390,21 +399,27 @@ export default function EditarRadialistaForm({
               </Link>
               <button
                 type="button"
-                onClick={comprarAgenteExtra}
-                disabled={comprandoAgenteExtra}
-                className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60"
+                onClick={() => setCheckoutAgenteExtraAberto(true)}
+                className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600"
               >
-                {comprandoAgenteExtra ? (
-                  <>
-                    <LocufySpin size={14} /> Redirecionando...
-                  </>
-                ) : (
-                  "Adicionar agente extra"
-                )}
+                Adicionar agente extra
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {checkoutAgenteExtraAberto && (
+        <CheckoutModal
+          open
+          endpoint="/billing/agentes-extras/checkout"
+          onClose={() => setCheckoutAgenteExtraAberto(false)}
+          onSuccess={() => {
+            setCheckoutAgenteExtraAberto(false);
+            setMensagemLimiteAgentes("");
+            setMensagem("Agente extra ativado. Salve de novo pra concluir.");
+          }}
+        />
       )}
 
       <ConfirmDialog

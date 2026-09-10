@@ -3,7 +3,7 @@
 // + HTMLMediaElement real pra fechar o ciclo de reproducao -- fora de escopo aqui; a validacao
 // desses fluxos ficou por conta dos testes ao vivo manuais desta sessao (backend real + browser).
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { programaNoAr } from "../useLiveEngine";
+import { programaNoAr, segundosParaInicio } from "../useLiveEngine";
 import { PROGRAMA_VAZIO, Programa } from "../../lib/types";
 
 // 2026-09-08 = terca-feira, 2026-09-12 = sabado (ver comentario abaixo) -- confirmado via
@@ -112,5 +112,45 @@ describe("programaNoAr", () => {
     // 12:00 UTC de sabado -- fora da janela 22h-02h
     vi.setSystemTime(new Date(SABADO_10H_UTC));
     expect(programaNoAr(p, "UTC")).toBe(false);
+  });
+});
+
+describe("segundosParaInicio", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("da a contagem regressiva ate horario_inicio no dia certo", () => {
+    vi.setSystemTime(new Date(SABADO_10H_UTC)); // 10:00 UTC
+    const p = programa({ ativo: true, dias_semana: [5], horario_inicio: "10:01:30", horario_fim: "13:00:00" });
+    expect(segundosParaInicio(p, "UTC")).toBe(90);
+  });
+
+  it("null quando ja passou do horario_inicio (mesmo ainda dentro da janela do programa)", () => {
+    vi.setSystemTime(new Date(SABADO_10H_UTC));
+    const p = programa({ ativo: true, dias_semana: [5], horario_inicio: "07:00:00", horario_fim: "13:00:00" });
+    expect(segundosParaInicio(p, "UTC")).toBe(null);
+  });
+
+  it("null quando o programa esta inativo", () => {
+    vi.setSystemTime(new Date(SABADO_10H_UTC));
+    const p = programa({ ativo: false, dias_semana: [5], horario_inicio: "10:05:00", horario_fim: "13:00:00" });
+    expect(segundosParaInicio(p, "UTC")).toBe(null);
+  });
+
+  it("null fora do dia da semana configurado", () => {
+    vi.setSystemTime(new Date(TERCA_12H_UTC));
+    const p = programa({ ativo: true, dias_semana: [5], horario_inicio: "12:05:00", horario_fim: "13:00:00" });
+    expect(segundosParaInicio(p, "UTC")).toBe(null);
+  });
+
+  it("data_especifica de outro dia da null mesmo com horario_inicio ainda por vir hoje", () => {
+    vi.setSystemTime(new Date(TERCA_12H_UTC));
+    const p = programa({ ativo: true, dias_semana: [], data_especifica: "2026-09-09", horario_inicio: "12:05:00", horario_fim: "13:00:00" });
+    expect(segundosParaInicio(p, "UTC")).toBe(null);
   });
 });

@@ -8,7 +8,7 @@ from collections.abc import Iterator
 import httpx
 
 from app.config.settings import settings
-from app.numeros import substituir_valores_monetarios
+from app.numeros import normalizar_texto_fala
 
 logger = logging.getLogger("radialista.tts")
 
@@ -104,7 +104,7 @@ _TAGS_V3_EMOCAO = {"excited", "calm", "laughs", "sighs", "whispers", "sarcastic"
 # modulo a partir de "......" (ver _PAUSA_TROCA_ASSUNTO).
 _TAGS_V3_PERMITIDAS = _TAGS_V3_EMOCAO | {"pause"}
 
-_TAG_INLINE_RE = re.compile(r"\[([a-zA-Z_]+)\]")
+_TAG_INLINE_RE = re.compile(r"\[([^\[\]]*)\]")
 
 
 def _sanitizar_tags_v3(texto: str) -> str:
@@ -112,7 +112,13 @@ def _sanitizar_tags_v3(texto: str) -> str:
     mandar pro eleven_v3 -- rede de seguranca contra o LLM inventar tag fora da lista permitida
     pelo prompt, ou deixar passar quando o texto nem chega a rodar nesse modelo.
     """
-    return _TAG_INLINE_RE.sub(lambda m: m.group(0) if m.group(1).lower() in _TAGS_V3_PERMITIDAS else "", texto)
+    # Processa também colchetes aninhados. Não deixa instruções fora da lista
+    # serem pronunciadas; texto entre colchetes é reservado a direção vocal.
+    while True:
+        novo = _TAG_INLINE_RE.sub(lambda m: f"[{m.group(1).strip().lower()}]" if m.group(1).strip().lower() in _TAGS_V3_PERMITIDAS else "", texto)
+        if novo == texto:
+            return novo
+        texto = novo
 
 
 def _tem_tag_emocao_v3(texto: str) -> bool:
@@ -152,6 +158,13 @@ _SIMILARITY_BOOST_CLONE = 0.8
 # o proximo passo se o delta maior nao resolver, mas achataria essa diferenca entre blocos.
 _AJUSTE_SPEED_CLONADA = -0.08
 _AJUSTE_CLONADA = {"stability": 0.15, "style": -0.15}
+
+# Medido em docs/benchmarks/2026-09-10/vozes-padrao-catalogo.md: com o mesmo voice_settings,
+# Paulo sai 13-21% mais rapido (palavras/minuto) que as outras 3 vozes do catalogo fixo
+# (Will, Yasmin, Scheila), sobretudo em musica/comentario (ate 282 wpm, acima da faixa
+# natural de radio de ~150-190 wpm). Multiplicador (nao delta fixo) pra escalar proporcionalmente
+# em qualquer tipo de bloco/tom, em vez de achatar so' os blocos mais rapidos.
+_AJUSTE_SPEED_MULTIPLICADOR_POR_VOZ = {"Qrdut83w0Cr152Yb4Xn3": 0.85}  # Paulo
 
 # tipo de bloco/tom fixam sempre o mesmo voice_settings -- em bloco recorrente (ex.: varias
 # "musica" numa transmissao) isso saia identico take a take, cara de robo lendo script. Medido
@@ -197,7 +210,7 @@ def _categoria_tipo_bloco(tipo_bloco: str) -> str:
     return normalizado
 
 
-def _construir_voice_settings(tipo_bloco: str | None, tom: str | None, modelo: str, eh_clonada: bool) -> dict:
+def _construir_voice_settings(tipo_bloco: str | None, tom: str | None, modelo: str, eh_clonada: bool, voice_id: str | None = None) -> dict:
     if modelo == "eleven_flash_v2_5":
         return _aplicar_jitter(dict(_VOICE_SETTINGS_FLASH))
 
@@ -210,6 +223,8 @@ def _construir_voice_settings(tipo_bloco: str | None, tom: str | None, modelo: s
         voice_settings["speed"] = voice_settings["speed"] + _AJUSTE_SPEED_CLONADA
         for chave, delta in _AJUSTE_CLONADA.items():
             voice_settings[chave] = voice_settings[chave] + delta
+
+    voice_settings["speed"] = voice_settings["speed"] * _AJUSTE_SPEED_MULTIPLICADOR_POR_VOZ.get(voice_id or "", 1.0)
 
     voice_settings["stability"] = max(0.0, min(1.0, voice_settings["stability"]))
     voice_settings["style"] = max(0.0, min(1.0, voice_settings["style"]))
@@ -231,6 +246,10 @@ def _preparar_sintese(
     tom: str | None,
     eh_clonada: bool,
     texto_anterior: str | None,
+    modelo: str | None = None,
+    perfil: str = "atual",
+    pronuncias: dict[str, str] | None = None,
+    voice_id: str | None = None,
 ) -> tuple[dict, dict]:
     """Headers e payload compartilhados entre sintetizar_audio (buffered) e
     sintetizar_audio_stream (streaming) -- so' o endpoint e a forma de ler a resposta mudam
@@ -239,29 +258,37 @@ def _preparar_sintese(
         "xi-api-key": settings.elevenlabs_api_key,
         "Content-Type": "application/json",
     }
-    modelo = settings.elevenlabs_model
-    voice_settings = _construir_voice_settings(tipo_bloco, tom, modelo, eh_clonada)
+    modelo = modelo or settings.elevenlabs_model
+    voice_settings = _construir_voice_settings(tipo_bloco, tom, modelo, eh_clonada, voice_id)
+    if perfil == "natural":
+        voice_settings = {"stability": 0.5, "style": 0.0, "speed": 1.0}
+        if modelo != "eleven_v3":
+            voice_settings.update(similarity_boost=0.8 if eh_clonada else 0.75, use_speaker_boost=True)
 
     # "R$ 19,90" etc -- so' aparece em texto que nunca passou pelo LLM (ver Patrocinador.texto em
     # app.live.router, conteudo fixo), entao a instrucao de prompt "escreva numero por extenso"
     # nao alcanca esse caso. Roda pra qualquer modelo, nao so' v3 -- algarismo em portugues sai
     # errado em qualquer sintetizador.
-    texto_tts = substituir_valores_monetarios(texto)
+    texto_tts = normalizar_texto_fala(texto, pronuncias)
     if modelo == "eleven_v3":
         texto_tts = _PAUSA_TROCA_ASSUNTO.sub(" [pause] ", texto_tts)
         texto_tts = _sanitizar_tags_v3(texto_tts)
         texto_tts = re.sub(r" {2,}", " ", texto_tts).strip()
-        if not _tem_tag_emocao_v3(texto_tts):
+        if perfil != "natural" and not _tem_tag_emocao_v3(texto_tts):
             tag = _TAG_POR_TOM.get(tom or "")
             if tag:
                 texto_tts = f"{tag} {texto_tts}"
+    else:
+        # Tags vindas do roteiro v3 não podem vazar para vozes que usam v2/Flash.
+        texto_tts = _TAG_INLINE_RE.sub("", _sanitizar_tags_v3(texto_tts)).strip()
 
     payload = {
         "text": texto_tts,
         "model_id": modelo,
         "voice_settings": voice_settings,
-        "language_code": _LANGUAGE_CODE,
     }
+    if modelo != "eleven_multilingual_v2":
+        payload["language_code"] = _LANGUAGE_CODE
     # previous_text da 400 (unsupported_model) no eleven_v3 -- ElevenLabs ainda nao suporta esse
     # campo nesse modelo. So manda quando o modelo realmente aceita.
     if texto_anterior and modelo != "eleven_v3":
@@ -279,11 +306,15 @@ def sintetizar_audio(
     texto_anterior: str | None = None,
     timeout_segundos: float = _TTS_TIMEOUT_SEGUNDOS,
     max_tentativas: int = _TTS_MAX_TENTATIVAS,
+    modelo: str | None = None,
+    perfil: str = "atual",
+    pronuncias: dict[str, str] | None = None,
+    formato: str = "mp3_44100_128",
 ) -> bytes:
     """Gera audio (mp3) a partir de texto via ElevenLabs. Lanca httpx.HTTPStatusError em falha.
 
-    eh_clonada indica se voice_id e' uma voz clonada da conta (app.models.voz_clonada.VozClonada,
-    ver app.tts.voices.voz_valida_para_conta) em vez de uma voz do catalogo fixo -- afeta o
+    eh_clonada indica a categoria instantânea 'cloned' confirmada no provedor,
+    resolvida em app.tts.profiles. Voz profissional não recebe esses deltas -- afeta o
     similarity_boost e os ajustes finos de prosodia usados (ver _SIMILARITY_BOOST_CLONE acima).
 
     texto_anterior e' o texto da fala imediatamente anterior (mesmo locutor), repassado como
@@ -300,8 +331,11 @@ def sintetizar_audio(
     lenta na ElevenLabs estourava o timeout do frontend antes mesmo do backend responder com
     audio_status="falhou", perdendo a fala inteira (nao so' o audio) pro fallback local generico.
     """
-    url = _ELEVENLABS_URL.format(voice_id=voice_id or settings.elevenlabs_voice_id)
-    headers, payload = _preparar_sintese(texto, tipo_bloco, tom, eh_clonada, texto_anterior)
+    voice_id = voice_id or settings.elevenlabs_voice_id
+    url = _ELEVENLABS_URL.format(voice_id=voice_id)
+    headers, payload = _preparar_sintese(texto, tipo_bloco, tom, eh_clonada, texto_anterior, modelo, perfil, pronuncias, voice_id)
+    if formato != "mp3_44100_128":
+        url += f"?output_format={formato}"
 
     # O ao vivo nao pode ficar preso meio minuto numa unica fala. O frontend ja prepara o
     # proximo bloco em paralelo; se este provedor nao responder em tempo de radio, o bloco
@@ -328,6 +362,10 @@ def sintetizar_audio_stream(
     tom: str | None = None,
     eh_clonada: bool = False,
     texto_anterior: str | None = None,
+    modelo: str | None = None,
+    perfil: str = "atual",
+    pronuncias: dict[str, str] | None = None,
+    formato: str = "mp3_44100_128",
 ) -> Iterator[bytes]:
     """Mesma sintese de sintetizar_audio, via endpoint de streaming da ElevenLabs -- devolve os
     bytes do mp3 conforme chegam em vez de esperar o audio inteiro antes de responder, cortando a
@@ -339,8 +377,11 @@ def sintetizar_audio_stream(
     certo -- depois que os headers HTTP 200 ja foram enviados pro cliente nao da mais pra trocar
     o status code, entao esse e' o unico ponto em que o erro pode virar resposta de erro de verdade.
     """
-    url = _ELEVENLABS_STREAM_URL.format(voice_id=voice_id or settings.elevenlabs_voice_id)
-    headers, payload = _preparar_sintese(texto, tipo_bloco, tom, eh_clonada, texto_anterior)
+    voice_id = voice_id or settings.elevenlabs_voice_id
+    url = _ELEVENLABS_STREAM_URL.format(voice_id=voice_id)
+    headers, payload = _preparar_sintese(texto, tipo_bloco, tom, eh_clonada, texto_anterior, modelo, perfil, pronuncias, voice_id)
+    if formato != "mp3_44100_128":
+        url += f"?output_format={formato}"
 
     with httpx.Client(timeout=_TTS_TIMEOUT_SEGUNDOS) as client:
         for tentativa in range(1, _TTS_MAX_TENTATIVAS + 1):
@@ -364,20 +405,42 @@ def sintetizar_audio_stream(
                 return
 
 
-def clonar_voz(nome: str, audio_bytes: bytes, content_type: str, nome_arquivo: str) -> str:
+def clonar_voz(nome: str, audio_bytes: bytes = b"", content_type: str = "audio/mpeg", nome_arquivo: str = "amostra.mp3", *, amostras: list[tuple[str, bytes, str]] | None = None) -> dict:
     """Clona uma voz na ElevenLabs (Instant Voice Cloning) a partir de uma amostra de audio.
 
-    Devolve o voice_id criado. Lanca httpx.HTTPStatusError em falha (ex.: amostra curta demais,
+    Devolve voice_id e requires_verification. Lanca httpx.HTTPStatusError em falha (ex.: amostra curta demais,
     creditos de clonagem esgotados no plano ElevenLabs).
     """
     headers = {"xi-api-key": settings.elevenlabs_api_key}
-    files = {"files": (nome_arquivo, audio_bytes, content_type)}
+    files = [("files", amostra) for amostra in (amostras or [(nome_arquivo, audio_bytes, content_type)])]
     data = {"name": nome}
 
     with httpx.Client(timeout=60.0) as client:
         response = client.post(_ELEVENLABS_VOICES_URL, headers=headers, data=data, files=files)
         response.raise_for_status()
-        return response.json()["voice_id"]
+        dados = response.json()
+        return {"voice_id": dados["voice_id"], "requires_verification": bool(dados.get("requires_verification", False))}
+
+
+def obter_metadados_voz(voice_id: str) -> dict | None:
+    if not settings.elevenlabs_api_key:
+        return None
+    try:
+        with httpx.Client(timeout=3.0) as client:
+            response = client.get(_ELEVENLABS_VOICE_URL.format(voice_id=voice_id), headers={"xi-api-key": settings.elevenlabs_api_key})
+            response.raise_for_status()
+            dados = response.json()
+            verificacao = dados.get("voice_verification") or {}
+            pendente = verificacao.get("requires_verification")
+            if verificacao.get("is_verified") is True:
+                pendente = False
+            return {"categoria": dados.get("category", "desconhecida"),
+                    "idioma": (dados.get("labels") or {}).get("language"),
+                    "sotaque": (dados.get("labels") or {}).get("accent"),
+                    "requer_verificacao": dados.get("requires_verification", pendente)}
+    except (httpx.HTTPError, ValueError):
+        logger.warning("Não foi possível consultar metadados da voz")
+        return None
 
 
 def obter_preview_url(voice_id: str) -> str | None:

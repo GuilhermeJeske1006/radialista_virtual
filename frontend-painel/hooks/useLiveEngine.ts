@@ -26,6 +26,10 @@ declare global {
 }
 
 const INTERVALO_PROGRAMA_MS = 0;
+// Folga pro 1o bloco (busca de noticia + geracao + TTS, ver noticias.py no backend) terminar
+// de preparar ANTES do horario_inicio real do programa agendado -- coberta com folga em cima
+// do timeout de 75s do proprio fetch (ver apiFetchComTimeout em prepararTexto).
+const ANTECEDENCIA_PREPARO_SEGUNDOS = 90;
 
 type HistoricoFonte = { tipo: string; fala: string; musicas?: MusicaBloco[] };
 type ContextoPreparo = {
@@ -85,6 +89,23 @@ export function programaNoAr(programa: Programa, timezone: string): boolean {
     return false;
   }
   return dentroDaJanela(segundosDoDia, horarioParaSegundos(programa.horario_inicio), horarioParaSegundos(programa.horario_fim));
+}
+
+// Quanto falta (em segundos) pro horario_inicio de hoje, ou null se o programa nao entra
+// no ar hoje (inativo, dia da semana/data especifica nao bate) ou o horario ja passou --
+// so' cobre o "hoje" do proprio fuso do programa de proposito (ver ANTECEDENCIA_PREPARO_SEGUNDOS
+// abaixo): programa que comeca logo depois da meia-noite nao pre-aquece na virada do dia
+// anterior, mesma limitacao que o disparo automatico (verificarHorarioAgendado) sempre teve.
+export function segundosParaInicio(programa: Programa, timezone: string): number | null {
+  if (!programa.ativo) return null;
+  const { diaSemana, dataIso, segundosDoDia } = agoraNoFuso(timezone);
+  if (programa.data_especifica) {
+    if (programa.data_especifica !== dataIso) return null;
+  } else if (programa.dias_semana.length > 0 && !programa.dias_semana.includes(diaSemana)) {
+    return null;
+  }
+  const restante = horarioParaSegundos(programa.horario_inicio) - segundosDoDia;
+  return restante > 0 ? restante : null;
 }
 
 function escolher(lista: string[], fallback: string) {
@@ -180,6 +201,9 @@ export function useLiveEngine() {
   const programaTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const transicaoRef = useRef<AbortController | null>(null);
   const ultimoDisparoAutomaticoRef = useRef<string | null>(null);
+  // chave (programaId-data) do programa agendado ja pre-aquecido (ver ANTECEDENCIA_PREPARO_SEGUNDOS
+  // abaixo) -- evita rechamar preencher() a cada tick de 15s do watchdog pro mesmo programa.
+  const preAquecidoAgendadoRef = useRef<string | null>(null);
   // true so' quando a transmissao atual foi disparada pelo watchdog de horario agendado
   // (verificarHorarioAgendado), nao pelo clique manual em "Comecar transmissao" -- usado pra
   // limitar o watchdog de corte pontual (verificarFimPontual) a esse caso. Sem essa distincao,
@@ -293,19 +317,33 @@ export function useLiveEngine() {
     const radialista = radialistas.find((r) => r.id === opcao.radialistaId);
     if (!radialista) return;
 
-    pausarPrograma();
-    falasProgramaRef.current = [];
-    setFalasPrograma([]);
-    totalFalasRef.current = 0;
-    setTotalFalas(0);
-    ultimoIdRef.current = null;
+    // Mesmo programa/radialista ja em pre-aquecimento (ver ANTECEDENCIA_PREPARO_SEGUNDOS no
+    // watchdog de agendamento abaixo): NAO reseta nem descarta a fila, senao o 1o bloco que
+    // ja estava sendo preparado (busca de noticia + geracao + TTS, pode levar dezenas de
+    // segundos) e jogado fora bem na hora que o programa entraria no ar com ele pronto.
+    const jaPreAquecendoEsteMesmo =
+      programaIdRef.current === opcao.id && radialistaIdRef.current === radialista.id && filaPreparoRef.current !== null;
 
-    radialistaIdRef.current = radialista.id;
-    setRadialistaId(radialista.id);
-    setRadialistaAtualId(radialista.id);
+    if (!jaPreAquecendoEsteMesmo) {
+      pausarPrograma();
+      falasProgramaRef.current = [];
+      setFalasPrograma([]);
+      totalFalasRef.current = 0;
+      setTotalFalas(0);
+      ultimoIdRef.current = null;
 
-    programaIdRef.current = opcao.id;
-    setProgramaId(opcao.id);
+      radialistaIdRef.current = radialista.id;
+      setRadialistaId(radialista.id);
+      setRadialistaAtualId(radialista.id);
+
+      programaIdRef.current = opcao.id;
+      setProgramaId(opcao.id);
+    }
+
+    // Comeca a preparar o 1o bloco (texto + audio) desde ja, mesmo antes de "Comecar
+    // transmissao": quando o operador clicar (ou o horario agendado disparar), o locutor
+    // ja sobe no ar sabendo o que falar em vez de ficar mudo enquanto o bloco e' gerado.
+    obterFilaPreparo().preencher();
 
     if (iniciarAutomaticamente) iniciarPrograma(true);
   }
@@ -775,7 +813,8 @@ export function useLiveEngine() {
             ultima_fala: ultimaFalaAtual,
           }),
         },
-        45_000
+        // Inclui apuração jornalística antes da locução; o áudio segue preparado em paralelo.
+        75_000
       );
       audioBase64 = audio_base64;
       audioStatus = audio_status;
@@ -1262,13 +1301,31 @@ export function useLiveEngine() {
         const radialista = radialistas.find((r) => r.id === p.radialistaId);
         return radialista ? programaNoAr(p, radialista.timezone) : false;
       });
-      if (!atual) return;
+      if (atual) {
+        const chave = `${atual.id}-${new Date().toDateString()}`;
+        if (ultimoDisparoAutomaticoRef.current === chave) return;
 
-      const chave = `${atual.id}-${new Date().toDateString()}`;
-      if (ultimoDisparoAutomaticoRef.current === chave) return;
+        ultimoDisparoAutomaticoRef.current = chave;
+        selecionarPrograma(atual, true);
+        return;
+      }
 
-      ultimoDisparoAutomaticoRef.current = chave;
-      selecionarPrograma(atual, true);
+      // Nenhum programa no ar ainda: pre-aquece o proximo a entrar dentro de
+      // ANTECEDENCIA_PREPARO_SEGUNDOS, pra quando o horario chegar (bloco acima) o 1o bloco
+      // ja estar pronto (ver preencher()/jaPreAquecendoEsteMesmo em selecionarPrograma).
+      const proximo = programasTodos.find((p) => {
+        const radialista = radialistas.find((r) => r.id === p.radialistaId);
+        if (!radialista) return false;
+        const restante = segundosParaInicio(p, radialista.timezone);
+        return restante !== null && restante <= ANTECEDENCIA_PREPARO_SEGUNDOS;
+      });
+      if (!proximo) return;
+
+      const chaveProximo = `${proximo.id}-${new Date().toDateString()}`;
+      if (preAquecidoAgendadoRef.current === chaveProximo) return;
+
+      preAquecidoAgendadoRef.current = chaveProximo;
+      selecionarPrograma(proximo);
     }
 
     verificarHorarioAgendado();

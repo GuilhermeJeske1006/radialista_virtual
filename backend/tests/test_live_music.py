@@ -192,6 +192,32 @@ def test_buscar_musica_ao_vivo_de_canal_qualquer_e_rejeitado(monkeypatch):
     assert buscar_musica("minha musica") is None
 
 
+def test_buscar_musica_exigir_canal_oficial_rejeita_canal_qualquer(monkeypatch):
+    """Com exigir_canal_oficial=True, canal que nao e' selo/VEVO/"- Topic" nunca vence, mesmo
+    sem nenhum outro problema (sem bloqueado, duracao valida, titulo limpo) -- bloqueio duro,
+    ao contrario do resto da funcao que so' prioriza canal oficial (ver
+    test_buscar_musica_prioriza_canal_oficial_topic)."""
+    monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
+    itens = [_item("id1", "Minha Musica - Artista", "Canal De Fã Qualquer")]
+    monkeypatch.setattr("app.live.music._buscar_itens", lambda query: itens)
+    monkeypatch.setattr("app.live.music._buscar_duracoes", lambda ids: {})
+
+    assert buscar_musica("minha musica", exigir_canal_oficial=True) is None
+
+
+def test_buscar_musica_exigir_canal_oficial_aceita_topic_e_vevo(monkeypatch):
+    monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
+    itens = [
+        _item("id1", "Minha Musica - Artista", "Canal De Fã Qualquer"),
+        _item("id2", "Minha Musica - Artista", "Artista - Topic"),
+    ]
+    monkeypatch.setattr("app.live.music._buscar_itens", lambda query: itens)
+    monkeypatch.setattr("app.live.music._buscar_duracoes", lambda ids: {})
+
+    resultado = buscar_musica("minha musica", exigir_canal_oficial=True)
+    assert resultado.video_id == "id2"
+
+
 def test_buscar_musica_ao_vivo_de_canal_oficial_e_aceito(monkeypatch):
     """Ao vivo publicado por canal oficial (selo/VEVO/"- Topic") e' aceitavel -- grande
     produtora do mercado, sinal de qualidade mesmo sem ser a faixa de estudio."""

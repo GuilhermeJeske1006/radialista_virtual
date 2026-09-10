@@ -109,6 +109,27 @@ export type VozClonada = {
   nome: string;
   voz_id: string;
   preview_url?: string | null;
+  categoria?: string;
+  requer_verificacao?: boolean;
+  qualidade?: QualidadeVoz | null;
+};
+
+export type QualidadeVoz = {
+  duracao_segundos: number;
+  fala_segundos: number;
+  clipping_percentual: number;
+  avisos: string[];
+};
+
+export type ConfiguracaoVoz = {
+  modelo: string | null;
+  perfil: "atual" | "natural";
+  formato: "mp3_44100_128" | "mp3_44100_192";
+  pronuncias: Record<string, string>;
+  categoria: string;
+  idioma: string | null;
+  sotaque: string | null;
+  requer_verificacao: boolean;
 };
 
 export type Programa = {
@@ -140,12 +161,21 @@ export type Programa = {
   musica_fundo_escolhida: string;
 
   assuntos_ao_vivo: string[];
+  quadros_fixos: Record<string, string[]>;
+  feriados_municipais: FeriadoMunicipal[];
   tipos_noticias: string[];
   fontes_noticias: string[];
 
   pode_pesquisar: boolean;
   fontes_pesquisa: string[];
   instrucoes_pesquisa: string;
+};
+
+// Feriado municipal cadastrado manualmente (ver backend app/config/router.py::FeriadoMunicipal
+// e app/models/programa.py::Programa.feriados_municipais) -- data no formato "MM-DD".
+export type FeriadoMunicipal = {
+  data: string;
+  nome: string;
 };
 
 export const PROGRAMA_VAZIO: Omit<Programa, "id" | "radio_config_id"> = {
@@ -176,6 +206,8 @@ export const PROGRAMA_VAZIO: Omit<Programa, "id" | "radio_config_id"> = {
   musica_fundo_escolhida: "",
 
   assuntos_ao_vivo: [],
+  quadros_fixos: {},
+  feriados_municipais: [],
   tipos_noticias: [],
   fontes_noticias: [],
 
@@ -209,6 +241,8 @@ export function normalizarPrograma(p: Programa): Programa {
     musicas_permitidas: p.musicas_permitidas ?? [],
     musicas_bloqueadas: p.musicas_bloqueadas ?? [],
     assuntos_ao_vivo: p.assuntos_ao_vivo ?? [],
+    quadros_fixos: p.quadros_fixos ?? {},
+    feriados_municipais: p.feriados_municipais ?? [],
     tipos_noticias: p.tipos_noticias ?? [],
     fontes_noticias: p.fontes_noticias ?? [],
     fontes_pesquisa: p.fontes_pesquisa ?? [],

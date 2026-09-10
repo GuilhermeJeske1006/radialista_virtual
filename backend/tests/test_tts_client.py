@@ -276,10 +276,7 @@ def test_sintetizar_audio_v3_sem_tag_inline_mantem_tag_por_tom(monkeypatch):
     assert payload["text"].startswith("[calm]")
 
 
-def test_sintetizar_audio_v2_nao_sanitiza_tags(monkeypatch):
-    """Sanitizacao de tag e' regra especifica do eleven_v3 (ver prompt condicional em
-    app.live.router) -- fora dele, o texto nem deveria trazer tag, mas nao ha' motivo pra
-    tocar no texto de um modelo que nunca recebeu essa instrucao."""
+def test_sintetizar_audio_v2_remove_tags_do_roteiro_v3(monkeypatch):
     _habilitar_elevenlabs(monkeypatch)
     monkeypatch.setattr(tts_client.settings, "elevenlabs_model", "eleven_multilingual_v2")
     fake = _FakeClient([_FakeResponse(status_code=200, content=b"mp3-data")])
@@ -287,7 +284,7 @@ def test_sintetizar_audio_v2_nao_sanitiza_tags(monkeypatch):
 
     tts_client.sintetizar_audio("[surpreso] Ola ouvintes.")
     payload = fake.chamadas[0][2]["json"]
-    assert "[surpreso]" in payload["text"]
+    assert "[surpreso]" not in payload["text"]
 
 
 def test_sintetizar_audio_converte_valor_monetario_por_extenso(monkeypatch):
@@ -392,7 +389,54 @@ def test_clonar_voz_devolve_voice_id(monkeypatch):
     monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
 
     voice_id = tts_client.clonar_voz("Minha voz", b"audio", "audio/mpeg", "amostra.mp3")
-    assert voice_id == "novo-id"
+    assert voice_id == {"voice_id": "novo-id", "requires_verification": False}
+
+
+def test_clone_multiplos_arquivos_preserva_verificacao(monkeypatch):
+    fake = _FakeClient([_FakeResponse(json_data={"voice_id": "id", "requires_verification": True})])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+    amostras = [("a.wav", b"one", "audio/wav"), ("b.m4a", b"two", "audio/mp4")]
+    assert tts_client.clonar_voz("Voz", amostras=amostras)["requires_verification"] is True
+    assert fake.chamadas[0][2]["files"] == [("files", a) for a in amostras]
+
+
+@pytest.mark.parametrize("texto,esperado", [
+    ("[muito feliz] Olá [áudio]", " Olá "),
+    ("[ CALM ] Olá", "[calm] Olá"),
+    ("[tag [outra]] Olá", " Olá"),
+])
+def test_tags_espacos_acentos_e_aninhamento(texto, esperado):
+    assert tts_client._sanitizar_tags_v3(texto) == esperado
+
+
+@pytest.mark.parametrize("streaming", [False, True])
+def test_modelo_e_perfil_por_voz_no_payload(monkeypatch, streaming):
+    _habilitar_elevenlabs(monkeypatch)
+    monkeypatch.setattr(tts_client.settings, "elevenlabs_model", "eleven_v3")
+    fake = _FakeStreamClient([_FakeStreamResponse()]) if streaming else _FakeClient([_FakeResponse()])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+    kwargs = dict(modelo="eleven_multilingual_v2", perfil="natural", pronuncias={"Locufy": "Locufai"}, formato="mp3_44100_192", texto_anterior="Antes.")
+    if streaming:
+        list(tts_client.sintetizar_audio_stream("[calm] Locufy às 14:30", **kwargs))
+    else:
+        tts_client.sintetizar_audio("[calm] Locufy às 14:30", **kwargs)
+    payload = fake.chamadas[0][2]["json"]
+    assert payload["model_id"] == "eleven_multilingual_v2"
+    assert payload["voice_settings"]["speed"] == 1
+    assert payload["voice_settings"]["stability"] == 0.5
+    assert "Locufai às catorze horas e trinta" in payload["text"]
+    assert "[calm]" not in payload["text"]
+    assert "output_format=mp3_44100_192" in fake.chamadas[0][1]
+    assert payload["previous_text"] == "Antes."
+    assert tts_client.settings.elevenlabs_model == "eleven_v3"
+
+
+def test_perfil_natural_v3_nao_tem_jitter_nem_calm_automatico():
+    _, a = tts_client._preparar_sintese("Olá", "comentario", "calmo", True, None, "eleven_v3", "natural")
+    _, b = tts_client._preparar_sintese("Olá", "comentario", "calmo", True, None, "eleven_v3", "natural")
+    assert a == b
+    assert a["text"] == "Olá"
+    assert a["voice_settings"] == {"stability": 0.5, "style": 0, "speed": 1}
 
 
 def test_obter_preview_url_sem_api_key(monkeypatch):
@@ -456,3 +500,9 @@ def test_excluir_voz_clonada_chama_delete(monkeypatch):
 
     tts_client.excluir_voz_clonada("voz-1")
     assert fake.chamadas[0][0] == "delete"
+
+
+@pytest.mark.parametrize('modelo,idioma', [('eleven_v3', 'pt'), ('eleven_flash_v2_5', 'pt'), ('eleven_multilingual_v2', None)])
+def test_idioma_somente_em_modelos_compativeis(modelo, idioma):
+    _, payload = tts_client._preparar_sintese('Olá!', None, None, False, None, modelo=modelo)
+    assert payload.get('language_code') == idioma

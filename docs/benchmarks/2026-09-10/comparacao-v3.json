@@ -1,0 +1,417 @@
+{
+  "modelo": "eleven_v3",
+  "repeticoes": 2,
+  "referencia_humana": false,
+  "sinteses": [
+    {
+      "caso": "musica",
+      "variante": "estabilidade_fixa",
+      "repeticao": 1,
+      "payload": {
+        "text": "Boa tarde pra você que está acompanhando a nossa programação! O Marcos pediu uma música que combina com esse fim de tarde. Daqui a pouco tem mais participação dos ouvintes, mas agora é hora de aumentar um pouquinho o volume e aproveitar o som.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.48521003756428915,
+          "speed": 0.9699111669239281
+        },
+        "language_code": "pt",
+        "seed": 20260910
+      },
+      "status": 200,
+      "sintese_segundos": 5.687,
+      "duracao_segundos": 12.56,
+      "sample_rate": 44100,
+      "palavras_por_minuto": 210.2,
+      "medidas": {
+        "normalizado": {
+          "lufs": -16.28,
+          "true_peak_dbtp": -2.26
+        },
+        "radio_fm": {
+          "lufs": -16.26,
+          "true_peak_dbtp": -2.24
+        }
+      },
+      "normalizado": "musica-estabilidade_fixa-1-normalizado.mp3",
+      "radio_fm": "musica-estabilidade_fixa-1-radio_fm.mp3",
+      "ok": true
+    },
+    {
+      "caso": "musica",
+      "variante": "atual",
+      "repeticao": 1,
+      "payload": {
+        "text": "Boa tarde pra você que está acompanhando a nossa programação! O Marcos pediu uma música que combina com esse fim de tarde. Daqui a pouco tem mais participação dos ouvintes, mas agora é hora de aumentar um pouquinho o volume e aproveitar o som.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.47291972240137997,
+          "style": 0.48521003756428915,
+          "speed": 0.9699111669239281
+        },
+        "language_code": "pt",
+        "seed": 20260910
+      },
+      "status": 200,
+      "sintese_segundos": 6.183,
+      "duracao_segundos": 12.56,
+      "sample_rate": 44100,
+      "palavras_por_minuto": 210.2,
+      "medidas": {
+        "normalizado": {
+          "lufs": -16.31,
+          "true_peak_dbtp": -2.26
+        },
+        "radio_fm": {
+          "lufs": -16.26,
+          "true_peak_dbtp": -2.24
+        }
+      },
+      "normalizado": "musica-atual-1-normalizado.mp3",
+      "radio_fm": "musica-atual-1-radio_fm.mp3",
+      "ok": true
+    },
+    {
+      "caso": "musica",
+      "variante": "perfil_neutro",
+      "repeticao": 1,
+      "payload": {
+        "text": "Boa tarde pra você que está acompanhando a nossa programação! O Marcos pediu uma música que combina com esse fim de tarde. Daqui a pouco tem mais participação dos ouvintes, mas agora é hora de aumentar um pouquinho o volume e aproveitar o som.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "seed": 20260910
+      },
+      "status": 200,
+      "sintese_segundos": 6.201,
+      "duracao_segundos": 12.56,
+      "sample_rate": 44100,
+      "palavras_por_minuto": 210.2,
+      "medidas": {
+        "normalizado": {
+          "lufs": -16.27,
+          "true_peak_dbtp": -2.26
+        },
+        "radio_fm": {
+          "lufs": -16.25,
+          "true_peak_dbtp": -2.25
+        }
+      },
+      "normalizado": "musica-perfil_neutro-1-normalizado.mp3",
+      "radio_fm": "musica-perfil_neutro-1-radio_fm.mp3",
+      "ok": true
+    },
+    {
+      "caso": "comentario",
+      "variante": "atual",
+      "repeticao": 1,
+      "payload": {
+        "text": "[calm] Tem música que faz a gente lembrar de uma pessoa, de uma viagem, ou daquele fim de tarde sem pressa. Às vezes, bastam os primeiros acordes pra memória voltar inteira. Se aconteceu com você, conta pra gente. É bom dividir essas histórias enquanto a próxima canção chega por aqui.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.6929197224013799,
+          "style": 0.03521003756428916,
+          "speed": 0.789911166923928
+        },
+        "language_code": "pt",
+        "seed": 20260910
+      },
+      "status": 200,
+      "sintese_segundos": 7.664,
+      "duracao_segundos": 15.76,
+      "sample_rate": 44100,
+      "palavras_por_minuto": 186.5,
+      "medidas": {
+        "normalizado": {
+          "lufs": -16.32,
+          "true_peak_dbtp": -2.23
+        },
+        "radio_fm": {
+          "lufs": -16.19,
+          "true_peak_dbtp": -2.23
+        }
+      },
+      "normalizado": "comentario-atual-1-normalizado.mp3",
+      "radio_fm": "comentario-atual-1-radio_fm.mp3",
+      "ok": true
+    },
+    {
+      "caso": "comentario",
+      "variante": "perfil_neutro",
+      "repeticao": 1,
+      "payload": {
+        "text": "Tem música que faz a gente lembrar de uma pessoa, de uma viagem, ou daquele fim de tarde sem pressa. Às vezes, bastam os primeiros acordes pra memória voltar inteira. Se aconteceu com você, conta pra gente. É bom dividir essas histórias enquanto a próxima canção chega por aqui.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "seed": 20260910
+      },
+      "status": 200,
+      "sintese_segundos": 6.893,
+      "duracao_segundos": 17.04,
+      "sample_rate": 44100,
+      "palavras_por_minuto": 172.5,
+      "medidas": {
+        "normalizado": {
+          "lufs": -16.32,
+          "true_peak_dbtp": -2.24
+        },
+        "radio_fm": {
+          "lufs": -16.22,
+          "true_peak_dbtp": -2.26
+        }
+      },
+      "normalizado": "comentario-perfil_neutro-1-normalizado.mp3",
+      "radio_fm": "comentario-perfil_neutro-1-radio_fm.mp3",
+      "ok": true
+    },
+    {
+      "caso": "comentario",
+      "variante": "estabilidade_fixa",
+      "repeticao": 1,
+      "payload": {
+        "text": "[calm] Tem música que faz a gente lembrar de uma pessoa, de uma viagem, ou daquele fim de tarde sem pressa. Às vezes, bastam os primeiros acordes pra memória voltar inteira. Se aconteceu com você, conta pra gente. É bom dividir essas histórias enquanto a próxima canção chega por aqui.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.03521003756428916,
+          "speed": 0.789911166923928
+        },
+        "language_code": "pt",
+        "seed": 20260910
+      },
+      "status": 200,
+      "sintese_segundos": 10.387,
+      "duracao_segundos": 16.24,
+      "sample_rate": 44100,
+      "palavras_por_minuto": 181.0,
+      "medidas": {
+        "normalizado": {
+          "lufs": -16.28,
+          "true_peak_dbtp": -2.23
+        },
+        "radio_fm": {
+          "lufs": -16.21,
+          "true_peak_dbtp": -2.23
+        }
+      },
+      "normalizado": "comentario-estabilidade_fixa-1-normalizado.mp3",
+      "radio_fm": "comentario-estabilidade_fixa-1-radio_fm.mp3",
+      "ok": true
+    },
+    {
+      "caso": "musica",
+      "variante": "atual",
+      "repeticao": 2,
+      "payload": {
+        "text": "Boa tarde pra você que está acompanhando a nossa programação! O Marcos pediu uma música que combina com esse fim de tarde. Daqui a pouco tem mais participação dos ouvintes, mas agora é hora de aumentar um pouquinho o volume e aproveitar o som.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.468535449923675,
+          "style": 0.49172923863617035,
+          "speed": 0.9784573205324213
+        },
+        "language_code": "pt",
+        "seed": 20260911
+      },
+      "status": 200,
+      "sintese_segundos": 6.806,
+      "duracao_segundos": 13.44,
+      "sample_rate": 44100,
+      "palavras_por_minuto": 196.4,
+      "medidas": {
+        "normalizado": {
+          "lufs": -16.4,
+          "true_peak_dbtp": -2.22
+        },
+        "radio_fm": {
+          "lufs": -16.32,
+          "true_peak_dbtp": -2.22
+        }
+      },
+      "normalizado": "musica-atual-2-normalizado.mp3",
+      "radio_fm": "musica-atual-2-radio_fm.mp3",
+      "ok": true
+    },
+    {
+      "caso": "musica",
+      "variante": "estabilidade_fixa",
+      "repeticao": 2,
+      "payload": {
+        "text": "Boa tarde pra você que está acompanhando a nossa programação! O Marcos pediu uma música que combina com esse fim de tarde. Daqui a pouco tem mais participação dos ouvintes, mas agora é hora de aumentar um pouquinho o volume e aproveitar o som.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.49172923863617035,
+          "speed": 0.9784573205324213
+        },
+        "language_code": "pt",
+        "seed": 20260911
+      },
+      "status": 200,
+      "sintese_segundos": 6.376,
+      "duracao_segundos": 13.2,
+      "sample_rate": 44100,
+      "palavras_por_minuto": 200.0,
+      "medidas": {
+        "normalizado": {
+          "lufs": -16.38,
+          "true_peak_dbtp": -2.26
+        },
+        "radio_fm": {
+          "lufs": -16.32,
+          "true_peak_dbtp": -2.24
+        }
+      },
+      "normalizado": "musica-estabilidade_fixa-2-normalizado.mp3",
+      "radio_fm": "musica-estabilidade_fixa-2-radio_fm.mp3",
+      "ok": true
+    },
+    {
+      "caso": "musica",
+      "variante": "perfil_neutro",
+      "repeticao": 2,
+      "payload": {
+        "text": "Boa tarde pra você que está acompanhando a nossa programação! O Marcos pediu uma música que combina com esse fim de tarde. Daqui a pouco tem mais participação dos ouvintes, mas agora é hora de aumentar um pouquinho o volume e aproveitar o som.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "seed": 20260911
+      },
+      "status": 200,
+      "sintese_segundos": 7.14,
+      "duracao_segundos": 13.2,
+      "sample_rate": 44100,
+      "palavras_por_minuto": 200.0,
+      "medidas": {
+        "normalizado": {
+          "lufs": -16.36,
+          "true_peak_dbtp": -2.24
+        },
+        "radio_fm": {
+          "lufs": -16.29,
+          "true_peak_dbtp": -2.26
+        }
+      },
+      "normalizado": "musica-perfil_neutro-2-normalizado.mp3",
+      "radio_fm": "musica-perfil_neutro-2-radio_fm.mp3",
+      "ok": true
+    },
+    {
+      "caso": "comentario",
+      "variante": "estabilidade_fixa",
+      "repeticao": 2,
+      "payload": {
+        "text": "[calm] Tem música que faz a gente lembrar de uma pessoa, de uma viagem, ou daquele fim de tarde sem pressa. Às vezes, bastam os primeiros acordes pra memória voltar inteira. Se aconteceu com você, conta pra gente. É bom dividir essas histórias enquanto a próxima canção chega por aqui.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.041729238636170354,
+          "speed": 0.7984573205324212
+        },
+        "language_code": "pt",
+        "seed": 20260911
+      },
+      "status": 200,
+      "sintese_segundos": 8.756,
+      "duracao_segundos": 16.88,
+      "sample_rate": 44100,
+      "palavras_por_minuto": 174.2,
+      "medidas": {
+        "normalizado": {
+          "lufs": -16.28,
+          "true_peak_dbtp": -2.25
+        },
+        "radio_fm": {
+          "lufs": -16.19,
+          "true_peak_dbtp": -2.26
+        }
+      },
+      "normalizado": "comentario-estabilidade_fixa-2-normalizado.mp3",
+      "radio_fm": "comentario-estabilidade_fixa-2-radio_fm.mp3",
+      "ok": true
+    },
+    {
+      "caso": "comentario",
+      "variante": "atual",
+      "repeticao": 2,
+      "payload": {
+        "text": "[calm] Tem música que faz a gente lembrar de uma pessoa, de uma viagem, ou daquele fim de tarde sem pressa. Às vezes, bastam os primeiros acordes pra memória voltar inteira. Se aconteceu com você, conta pra gente. É bom dividir essas histórias enquanto a próxima canção chega por aqui.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.688535449923675,
+          "style": 0.041729238636170354,
+          "speed": 0.7984573205324212
+        },
+        "language_code": "pt",
+        "seed": 20260911
+      },
+      "status": 200,
+      "sintese_segundos": 8.587,
+      "duracao_segundos": 16.88,
+      "sample_rate": 44100,
+      "palavras_por_minuto": 174.2,
+      "medidas": {
+        "normalizado": {
+          "lufs": -16.27,
+          "true_peak_dbtp": -2.24
+        },
+        "radio_fm": {
+          "lufs": -16.17,
+          "true_peak_dbtp": -2.26
+        }
+      },
+      "normalizado": "comentario-atual-2-normalizado.mp3",
+      "radio_fm": "comentario-atual-2-radio_fm.mp3",
+      "ok": true
+    },
+    {
+      "caso": "comentario",
+      "variante": "perfil_neutro",
+      "repeticao": 2,
+      "payload": {
+        "text": "Tem música que faz a gente lembrar de uma pessoa, de uma viagem, ou daquele fim de tarde sem pressa. Às vezes, bastam os primeiros acordes pra memória voltar inteira. Se aconteceu com você, conta pra gente. É bom dividir essas histórias enquanto a próxima canção chega por aqui.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "seed": 20260911
+      },
+      "status": 200,
+      "sintese_segundos": 7.397,
+      "duracao_segundos": 16.32,
+      "sample_rate": 44100,
+      "palavras_por_minuto": 180.1,
+      "medidas": {
+        "normalizado": {
+          "lufs": -16.29,
+          "true_peak_dbtp": -2.25
+        },
+        "radio_fm": {
+          "lufs": -16.21,
+          "true_peak_dbtp": -2.26
+        }
+      },
+      "normalizado": "comentario-perfil_neutro-2-normalizado.mp3",
+      "radio_fm": "comentario-perfil_neutro-2-radio_fm.mp3",
+      "ok": true
+    }
+  ],
+  "categoria_provedor": "professional",
+  "eh_clonada_no_app": true
+}

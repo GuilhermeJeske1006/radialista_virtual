@@ -170,6 +170,33 @@ export default function PlaylistCentral({
                     )}
                   </div>
                   <p className={`text-sm leading-6 ${index === 0 ? "font-medium" : ""}`}>{fala.fala}</p>
+                  {fala.pesquisa_noticias && (
+                    <div className="mt-2 text-xs text-fg/65">
+                      {fala.pesquisa_noticias.status === "ok" ? (
+                        <details>
+                          <summary className="cursor-pointer text-teal-text">
+                            Fontes consultadas ({fala.pesquisa_noticias.fontes.length})
+                            {fala.pesquisa_noticias.consultado_em && ` · ${formatarHora(fala.pesquisa_noticias.consultado_em)}`}
+                          </summary>
+                          <ul className="mt-2 space-y-1">
+                            {fala.pesquisa_noticias.fontes.map((fonte) => (
+                              <li key={fonte.url}>
+                                <a href={fonte.url} target="_blank" rel="noopener noreferrer" className="underline break-words">
+                                  {fonte.titulo}
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        </details>
+                      ) : fala.pesquisa_noticias.status === "desabilitada" ? (
+                        <p>Pesquisa desativada. Ative “Pode pesquisar” na edição do programa para buscar notícias.</p>
+                      ) : fala.pesquisa_noticias.status === "indisponivel" ? (
+                        <p>Não foi possível consultar as fontes neste bloco.</p>
+                      ) : fala.pesquisa_noticias.status === "sem_resultados" ? (
+                        <p>A busca não encontrou notícias recentes com fontes para esta pauta.</p>
+                      ) : null}
+                    </div>
+                  )}
                 </article>
               ))}
             </div>

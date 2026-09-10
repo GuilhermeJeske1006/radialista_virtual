@@ -26,6 +26,11 @@ _CAMPOS_RADIALISTA_JSON = (
 )
 
 _REGRAS_COMUNS = [
+    "Para programas jornalísticos, boletins e comentários sobre atualidades, habilite pode_pesquisar=true "
+    "e inclua blocos 'noticia' na estrutura. Preencha tipos_noticias com editorias concretas e "
+    "fontes_noticias com domínios ou URLs reais dos veículos (não invente portais locais). "
+    "Use instrucoes_pesquisa para priorizar notícias recentes da cidade/região, conferir datas e "
+    "atribuir os fatos às fontes. Notícias não devem virar apenas curiosidades ou efemérides.",
     "Use perfil_programacao='musical_companhia' quando o pedido for um programa predominantemente "
     "musical, com poucas intervenções de companhia. Nesse formato use ia_pode_adicionar_blocos=false "
     "e estrutura_blocos=['musica','musica','identificacao','musica','musica','retomada']; a abertura "
@@ -135,7 +140,7 @@ def _linha_roster_existente(roster_existente: list[dict] | None) -> str | None:
         linhas.append(" -- ".join(partes))
     if not linhas:
         return None
-    texto = "\n".join(f"- {l}" for l in linhas)
+    texto = "\n".join(f"- {linha}" for linha in linhas)
     return (
         f"Radialistas e programas que ja existem nessa radio:\n{texto}\n"
         "NAO repita nome, personalidade nem estilo de programa iguais aos de cima -- crie algo "

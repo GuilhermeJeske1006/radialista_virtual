@@ -54,11 +54,15 @@ def descricao_voz(voz_id: str | None) -> str | None:
     return f"{voz['nome']}, voz {voz['genero']}, {voz['descricao']}" if voz else None
 
 
-def voz_valida_para_conta(db: Session, account_id: int, voz_id: str) -> bool:
+def voz_valida_para_conta(db: Session, account_id: int, voz_id: str, incluir_pendente: bool = False) -> bool:
     """Valida um voz_id do catalogo fixo, uma voz clonada (app/models/voz_clonada.py)
     pertencente a essa conta, ou uma voz clonada marcada como compartilhada (disponivel
     pra qualquer conta escolher, embora so a conta que criou possa renomear/excluir).
     """
+    from app.models.perfil_voz import MetadadosVoz
+    meta = db.get(MetadadosVoz, voz_id)
+    if not incluir_pendente and meta and meta.requer_verificacao:
+        return False
     if voz_valida(voz_id):
         return True
 

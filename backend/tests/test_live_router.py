@@ -8,6 +8,7 @@ from freezegun import freeze_time
 from app.live.music import MusicaEncontrada, _titulo_normalizado
 from app.live.router import (
     _aberturas_e_fechamentos,
+    _categoria_bloco,
     _escolher_query_musica,
     _primeira_frase,
     _registrar_fala_gerada,
@@ -49,6 +50,90 @@ def radialista_e_programa(db_session, account):
 
 def _url_proxima(radialista_id, programa_id):
     return f"/live/{radialista_id}/programas/{programa_id}/proxima"
+
+
+@pytest.mark.parametrize("bloco", [
+    "noticia_local", "noticia_brasil", "Notícia regional", "manchetes", "tempo_e_transito",
+    "previsao do tempo", "utilidade_publica", "agenda cultural", "boletim regional", "cotações",
+])
+def test_bloco_jornalistico_reconhecido_sem_classificacao_remota(monkeypatch, bloco):
+    def nao_classificar(*args):
+        raise AssertionError("Bloco jornalístico conhecido não precisa de classificação remota")
+    monkeypatch.setattr("app.live.router.classificar_categoria_bloco", nao_classificar)
+    assert _categoria_bloco(bloco) == "noticia"
+
+
+@freeze_time(AGORA_UTC)
+def test_bloco_jornalistico_explicito_com_pesquisa_desligada_informa_status(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    radialista, programa = radialista_e_programa
+    programa.estrutura_blocos = ["noticia_local"]
+    programa.ia_pode_adicionar_blocos = False
+    db_session.commit()
+    prompts = []
+    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Seguimos no ar.")
+    resposta = client.post(
+        _url_proxima(radialista.id, programa.id), json={"total_falas": 1, "incluir_audio": False},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["tipo"] == "noticia_local"
+    assert resposta.json()["pesquisa_noticias"]["status"] == "desabilitada"
+    assert "Não há notícias verificadas" in prompts[0]
+
+
+@pytest.mark.parametrize("dupla", [False, True])
+@freeze_time(AGORA_UTC)
+def test_noticia_pesquisada_chega_a_locucao_e_retorna_fontes(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch, dupla
+):
+    from app.llm.noticias import FonteNoticia, PesquisaNoticias
+
+    radialista, programa = radialista_e_programa
+    programa.pode_pesquisar = True
+    programa.estrutura_blocos = ["noticia"]
+    programa.ia_pode_adicionar_blocos = False
+    if dupla:
+        convidado = RadioConfig(account_id=account.id, nome_locutor="Maria")
+        db_session.add(convidado)
+        db_session.flush()
+        db_session.add(ProgramaRadialista(programa_id=programa.id, radio_config_id=convidado.id))
+    db_session.commit()
+
+    apuracao = PesquisaNoticias(
+        status="ok", texto="Prefeitura anunciou nova escola nesta segunda-feira.",
+        fontes=[FonteNoticia(titulo="Jornal da Cidade", url="https://jornal.example.com/escola")],
+        consultado_em=datetime.datetime.now(datetime.timezone.utc),
+    )
+    consultas = []
+    def pesquisar(p, a, **kwargs):
+        consultas.append((p.id, a.id, kwargs))
+        return apuracao
+    monkeypatch.setattr("app.live.router.pesquisar_noticias", pesquisar)
+    prompts = []
+    fala = "Segundo o Jornal da Cidade, a prefeitura anunciou uma nova escola."
+    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or fala)
+    monkeypatch.setattr(
+        "app.live.router.gerar_configuracao",
+        lambda system, msg: prompts.append(system) or json.dumps({"linhas": [
+            {"locutor": radialista.nome_locutor, "texto": fala},
+            {"locutor": "Maria", "texto": "A medida amplia o acesso à educação."},
+        ]}),
+    )
+    resposta = client.post(
+        _url_proxima(radialista.id, programa.id),
+        json={"historico": [], "total_falas": 1, "incluir_audio": False},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert len(consultas) == 1
+    assert consultas[0][:2] == (programa.id, account.id)
+    assert "APURAÇÃO JORNALÍSTICA" in prompts[0]
+    assert apuracao.texto in prompts[0]
+    assert "em vez de forçar a notícia pesada" not in prompts[0]
+    assert resposta.json()["pesquisa_noticias"]["fontes"][0]["url"] == apuracao.fontes[0].url
+    assert bool(resposta.json()["falas"]) == dupla
 
 
 @freeze_time(AGORA_UTC)
@@ -1911,12 +1996,10 @@ def test_formato_de_comentario_varia_entre_falas(
 
 
 @freeze_time(AGORA_UTC)
-def test_efemeride_instrucao_so_aparece_com_pesquisa_habilitada(
+def test_pesquisa_sem_resultados_nao_autoriza_efemeride_inventada(
     client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
 ):
-    """A.2: efeméride do dia so' e' oferecida como opcao quando pesquisa externa esta
-    habilitada -- mesma logica de confianca ja usada pra noticia (LLM confia no proprio
-    conhecimento, nunca busca de verdade, ver app.llm.client)."""
+    """Autorização para pesquisar não substitui uma fonte retornada pela busca."""
     radio_config, programa = radialista_e_programa
     programa.pode_pesquisar = True
     db_session.commit()
@@ -1932,8 +2015,9 @@ def test_efemeride_instrucao_so_aparece_com_pesquisa_habilitada(
         headers=auth_headers(account.id),
     )
     assert resposta.status_code == 200
-    assert "data histórica marcante" in prompts[0]
-    assert "NUNCA invente data" in prompts[0]
+    assert "data histórica marcante" not in prompts[0]
+    assert "Não há notícias verificadas" in prompts[0]
+    assert resposta.json()["pesquisa_noticias"]["status"] == "sem_resultados"
 
 
 @freeze_time(AGORA_UTC)
@@ -2723,3 +2807,57 @@ def test_musical_encerra_perto_do_fim_em_vez_de_iniciar_outra_musica(
     assert r.json()["tipo"] == "encerramento"
     assert r.json()["duracao_alvo_segundos"] == [10, 18]
     assert r.json()["video_id"] is None
+
+
+@freeze_time(AGORA_UTC)
+def test_preferencias_da_voz_chegam_aos_tres_caminhos_de_audio(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    from app.models.perfil_voz import ConfiguracaoVoz, MetadadosVoz
+    radialista, programa = radialista_e_programa
+    monkeypatch.setattr('app.tts.profiles.settings.elevenlabs_voice_id', 'padrao-pvc')
+    db_session.add_all([
+        MetadadosVoz(voz_id='padrao-pvc', categoria='professional'),
+        ConfiguracaoVoz(account_id=account.id, voz_id='padrao-pvc', modelo='eleven_multilingual_v2',
+                        perfil='natural', formato='mp3_44100_192', pronuncias={'Locufy': 'Locufai'}),
+    ])
+    db_session.commit()
+    chamadas = []
+    def sintetizar(*args, **kwargs):
+        chamadas.append(kwargs)
+        return b'audio'
+    monkeypatch.setattr('app.live.router.tts_habilitado', lambda *a: True)
+    monkeypatch.setattr('app.live.router.gerar_resposta', lambda *a, **kw: 'Boa tarde, ouvintes.')
+    monkeypatch.setattr('app.live.router.sintetizar_audio', sintetizar)
+    monkeypatch.setattr('app.live.router.sintetizar_audio_stream', lambda *a, **kw: iter([sintetizar(*a, **kw)]))
+    monkeypatch.setattr('app.live.router.processar_audio', lambda audio, perfil: audio)
+    monkeypatch.setattr('app.live.router.classificar_tom_fala', lambda *a: 'neutro')
+    headers = auth_headers(account.id)
+    resposta = client.post(_url_proxima(radialista.id, programa.id), json={'total_falas': 0}, headers=headers)
+    assert resposta.status_code == 200
+    assert resposta.json()['audio_status'] == 'pronto'
+    for extra in ({}, {'perfil_pos_producao': 'radio_fm'}):
+        resposta = client.post(f'/live/{radialista.id}/tts', json={'texto': 'Olá', **extra}, headers=headers)
+        assert resposta.status_code == 200
+        assert resposta.content == b'audio'
+    assert len(chamadas) == 3
+    for chamada in chamadas:
+        assert {k: chamada[k] for k in ('eh_clonada', 'modelo', 'perfil', 'formato', 'pronuncias')} == {
+            'eh_clonada': False, 'modelo': 'eleven_multilingual_v2', 'perfil': 'natural',
+            'formato': 'mp3_44100_192', 'pronuncias': {'Locufy': 'Locufai'},
+        }
+
+
+def test_voz_padrao_pendente_bloqueia_sintese(client, account, auth_headers, radialista_e_programa, db_session, monkeypatch):
+    from app.models.perfil_voz import MetadadosVoz
+    from unittest.mock import Mock
+    radialista, _ = radialista_e_programa
+    monkeypatch.setattr('app.tts.profiles.settings.elevenlabs_voice_id', 'padrao-pendente')
+    db_session.add(MetadadosVoz(voz_id='padrao-pendente', categoria='cloned', requer_verificacao=True))
+    db_session.commit()
+    monkeypatch.setattr('app.live.router.tts_habilitado', lambda *a: True)
+    sintetizar = Mock(side_effect=AssertionError('Não pode sintetizar voz pendente'))
+    monkeypatch.setattr('app.live.router.sintetizar_audio_stream', sintetizar)
+    resposta = client.post(f'/live/{radialista.id}/tts', json={'texto': 'Olá'}, headers=auth_headers(account.id))
+    assert resposta.status_code == 409
+    sintetizar.assert_not_called()

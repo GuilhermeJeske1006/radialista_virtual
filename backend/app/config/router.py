@@ -94,6 +94,11 @@ class TipoRadioResponse(BaseModel):
     label: str
 
 
+class FeriadoMunicipal(BaseModel):
+    data: str  # "MM-DD"
+    nome: str
+
+
 class ProgramaRequest(BaseModel):
     nome: str
     descricao: str = ""
@@ -121,6 +126,8 @@ class ProgramaRequest(BaseModel):
     musica_fundo_escolhida: str = ""
 
     assuntos_ao_vivo: list[str] = Field(default_factory=list)
+    quadros_fixos: dict[str, list[str]] = Field(default_factory=dict)
+    feriados_municipais: list[FeriadoMunicipal] = Field(default_factory=list)
     tipos_noticias: list[str] = Field(default_factory=list)
     fontes_noticias: list[str] = Field(default_factory=list)
 
@@ -533,6 +540,13 @@ def excluir_radialista(
     db.query(MensagemOuvinte).filter_by(radio_config_id=radialista.id).delete()
     db.query(InteractionLog).filter_by(radio_config_id=radialista.id).delete()
     db.query(FilaAoVivo).filter_by(radio_config_id=radialista.id).delete()
+    if programas_do_radialista:
+        db.query(MusicaHistorico).filter(MusicaHistorico.programa_id.in_(programas_do_radialista)).delete(
+            synchronize_session=False
+        )
+        db.query(TemaHistorico).filter(TemaHistorico.programa_id.in_(programas_do_radialista)).delete(
+            synchronize_session=False
+        )
     db.query(Programa).filter_by(radio_config_id=radialista.id).delete()
     db.delete(radialista)
     db.commit()

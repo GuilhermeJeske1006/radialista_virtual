@@ -16,6 +16,12 @@ export type MusicaBloco = {
 // quando o programa tem mais de um radialista, uma linha por participante que falou no bloco.
 export type FalaItem = { radio_config_id: number; nome_locutor: string; voz_id: string | null; texto: string };
 
+export type PesquisaNoticias = {
+  status: "nao_solicitada" | "desabilitada" | "ok" | "sem_resultados" | "indisponivel";
+  fontes: { titulo: string; url: string }[];
+  consultado_em: string | null;
+};
+
 export type ConfirmacaoPedido = {
   pedido_id?: number | null;
   pedido_token?: string | null;
@@ -24,6 +30,7 @@ export type ConfirmacaoPedido = {
 };
 
 export type ProgramSegment = ConfirmacaoPedido & {
+  pesquisa_noticias?: PesquisaNoticias | null;
   id: number;
   tipo: string;
   fala: string;
@@ -51,6 +58,7 @@ export type ProgramSegment = ConfirmacaoPedido & {
 };
 
 export type LiveProgramResponse = ConfirmacaoPedido & {
+  pesquisa_noticias?: PesquisaNoticias | null;
   tipo: string;
   fala: string;
   tom?: "calmo" | "neutro" | "energico" | null;

@@ -60,3 +60,25 @@ export function permiteClonagemVoz(planoId: string | null | undefined): boolean 
 export function formatarReais(valor: number) {
   return valor.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
 }
+
+// Espelha o retorno de GET /billing/cartao (ver stripe_client.obter_cartao_mais_recente).
+export type Cartao = {
+  bandeira: string;
+  final: string;
+  mes_expiracao: number;
+  ano_expiracao: number;
+};
+
+const BANDEIRA_LABEL: Record<string, string> = {
+  visa: "Visa",
+  mastercard: "Mastercard",
+  amex: "American Express",
+  elo: "Elo",
+  hipercard: "Hipercard",
+  diners: "Diners Club",
+  discover: "Discover",
+};
+
+export function labelBandeira(bandeira: string): string {
+  return BANDEIRA_LABEL[bandeira] ?? bandeira;
+}

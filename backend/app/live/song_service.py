@@ -176,6 +176,7 @@ def resolver_musica_catalogada(
                     titulos_tocados=titulos_tocados,
                     canais_recentes=canais_recentes,
                     preferir_cantada=True,
+                    exigir_canal_oficial=True,
                 )
                 if resultado is None:
                     logger.info("song_catalog youtube_resolution_miss musica_id=%s", musica_db.id)

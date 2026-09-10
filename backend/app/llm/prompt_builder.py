@@ -353,7 +353,14 @@ def montar_system_prompt(
 
     if programa.pode_pesquisar:
         fontes = ", ".join(programa.fontes_pesquisa) if programa.fontes_pesquisa else "fontes públicas confiáveis"
-        partes.append(f"Pesquisa externa habilitada. Pesquise somente em: {fontes}. {programa.instrucoes_pesquisa}")
+        partes.append(
+            f"Pesquisa externa habilitada. Fontes de pesquisa permitidas: {fontes}. "
+            "Na apuração jornalística, as fontes de notícias configuradas têm prioridade. "
+            f"{programa.instrucoes_pesquisa} "
+            "Notícias e fatos recentes só podem ser usados quando houver apuração com fontes "
+            "anexada ao contexto. A autorização para pesquisar não comprova que uma busca ocorreu; "
+            "sem apuração, não afirme que consultou portais nem use memória como notícia atual."
+        )
     else:
         partes.append("Pesquisa externa desabilitada. Não invente notícias, links, números ou fatos recentes.")
 

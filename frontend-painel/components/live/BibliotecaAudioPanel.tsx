@@ -19,7 +19,7 @@ type FormState = {
   cor: string;
   ordem: number;
   ativo: boolean;
-  arquivo: File | null;
+  arquivos: File[];
 };
 
 const FORM_VAZIO: FormState = {
@@ -29,7 +29,7 @@ const FORM_VAZIO: FormState = {
   cor: "",
   ordem: 0,
   ativo: true,
-  arquivo: null,
+  arquivos: [],
 };
 
 type Props = {
@@ -69,7 +69,7 @@ export default function BibliotecaAudioPanel({
       cor: item.cor ?? "",
       ordem: item.ordem,
       ativo: item.ativo,
-      arquivo: null,
+      arquivos: [],
     });
   }
 
@@ -80,18 +80,19 @@ export default function BibliotecaAudioPanel({
     setErro("");
 
     const dados = new FormData();
-    dados.set("nome", form.nome);
+    if (form.nome) dados.set("nome", form.nome);
     if (form.categoria_id !== null) dados.set("categoria_id", String(form.categoria_id));
     if (form.cor) dados.set("cor", form.cor);
     dados.set("ordem", String(form.ordem));
     dados.set("ativo", String(form.ativo));
-    if (form.arquivo) dados.set("arquivo", form.arquivo);
 
     try {
       if (form.id === null) {
-        if (!form.arquivo) throw new ApiError(400, "Selecione um arquivo de audio");
-        await apiFetchForm<BibliotecaAudioItem>("/biblioteca-audio", dados, "POST");
+        if (form.arquivos.length === 0) throw new ApiError(400, "Selecione ao menos um arquivo de audio");
+        form.arquivos.forEach((arquivo) => dados.append("arquivos", arquivo));
+        await apiFetchForm<BibliotecaAudioItem[]>("/biblioteca-audio", dados, "POST");
       } else {
+        if (form.arquivos[0]) dados.set("arquivo", form.arquivos[0]);
         await apiFetchForm<BibliotecaAudioItem>(`/biblioteca-audio/${form.id}`, dados, "PUT");
       }
       setForm(null);
@@ -178,10 +179,14 @@ export default function BibliotecaAudioPanel({
                     <button
                       type="button"
                       onClick={() => tocar(item)}
-                      className="shrink-0 text-amber-text hover:text-amber-dim"
-                      title="Tocar"
+                      className={`shrink-0 ${
+                        programaAtivo
+                          ? "text-rust-text hover:text-rust animate-pulse"
+                          : "text-amber-text hover:text-amber-dim"
+                      }`}
+                      title={programaAtivo ? "Inserir agora na transmissao ao vivo (corta o audio atual)" : "Tocar preview"}
                     >
-                      {tocandoId === item.id ? <LocufySpin size={14} /> : "▶"}
+                      {tocandoId === item.id ? <LocufySpin size={14} /> : programaAtivo ? "⏺" : "▶"}
                     </button>
                     <div className="min-w-0 flex-1">
                       <p className={`truncate ${item.ativo ? "text-fg" : "text-fg/65"}`}>{item.nome}</p>
@@ -220,12 +225,17 @@ export default function BibliotecaAudioPanel({
               <label className={labelClass}>Nome</label>
               <input
                 type="text"
-                required
+                required={form.id !== null || form.arquivos.length <= 1}
                 value={form.nome}
                 onChange={(e) => setForm({ ...form, nome: e.target.value })}
                 className={inputClass}
                 placeholder="Ex.: Vinheta de abertura"
               />
+              {form.id === null && form.arquivos.length > 1 && (
+                <p className="text-xs text-fg/65 mt-1.5">
+                  Vários arquivos selecionados: cada vinheta usa o nome do próprio arquivo.
+                </p>
+              )}
             </div>
             <div>
               <label className={labelClass}>Categoria</label>
@@ -269,15 +279,20 @@ export default function BibliotecaAudioPanel({
               </div>
             </div>
             <div>
-              <label className={labelClass}>Arquivo de áudio (mp3, m4a, wav ou ogg, até 15MB)</label>
+              <label className={labelClass}>
+                {form.id === null ? "Arquivos de áudio" : "Arquivo de áudio"} (mp3, m4a, wav ou ogg, até 15MB cada)
+              </label>
               <input
                 type="file"
+                multiple={form.id === null}
                 accept="audio/*,.mp3,.m4a,.wav,.ogg"
-                onChange={(e) => setForm({ ...form, arquivo: e.target.files?.[0] ?? null })}
+                onChange={(e) => setForm({ ...form, arquivos: Array.from(e.target.files ?? []) })}
                 className={inputClass}
               />
               <p className="text-xs text-fg/65 mt-1.5">
-                {form.id !== null ? "Deixe em branco pra manter o áudio atual." : "Obrigatório."}
+                {form.id !== null
+                  ? "Deixe em branco pra manter o áudio atual."
+                  : "Obrigatório. Selecione vários arquivos pra criar uma vinheta pra cada um."}
               </p>
             </div>
             {form.id !== null && (

@@ -6,10 +6,12 @@ import CheckoutModal from "../../components/CheckoutModal";
 import { apiFetch, ApiError } from "../../lib/api";
 import { LocufyLed, LocufySpin } from "../../components/LocufyLogo";
 import {
+  Cartao,
   PLANOS,
   PRECO_AGENTE_ADICIONAL,
   PRECO_EXCEDENTE_1000_MSG,
   formatarReais,
+  labelBandeira,
   permiteClonagemVoz,
 } from "../../lib/planos";
 import { Radialista } from "../../lib/types";
@@ -26,6 +28,7 @@ type StatusPlano = {
   mensagens_extras: number;
 };
 
+
 export default function BillingPage() {
   const [statusPlano, setStatusPlano] = useState<StatusPlano | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -41,12 +44,16 @@ export default function BillingPage() {
   const [abrindoPortal, setAbrindoPortal] = useState(false);
   const [erroPortal, setErroPortal] = useState("");
   const [checkoutPlanoId, setCheckoutPlanoId] = useState<string | null>(null);
+  const [cartao, setCartao] = useState<Cartao | null>(null);
 
   useEffect(() => {
     apiFetch<StatusPlano>("/billing/status")
       .then(setStatusPlano)
       .catch((err) => setErro(err instanceof ApiError ? err.message : "Erro ao carregar plano"))
       .finally(() => setCarregando(false));
+    apiFetch<{ cartao: Cartao | null }>("/billing/cartao")
+      .then((r) => setCartao(r.cartao))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -79,6 +86,9 @@ export default function BillingPage() {
   function repollStatus(tentativas = 5) {
     apiFetch<StatusPlano>("/billing/status")
       .then(setStatusPlano)
+      .catch(() => {});
+    apiFetch<{ cartao: Cartao | null }>("/billing/cartao")
+      .then((r) => setCartao(r.cartao))
       .catch(() => {});
     if (tentativas > 1) setTimeout(() => repollStatus(tentativas - 1), 1500);
   }
@@ -210,6 +220,15 @@ export default function BillingPage() {
               limite={statusPlano.mensagens_limite}
               className="mt-4"
             />
+
+            {cartao && (
+              <p className="mt-5 flex items-center gap-2 text-sm text-fg/70">
+                <span className="rounded-md border border-border-strong px-2 py-1 text-xs font-medium text-fg/80">
+                  {labelBandeira(cartao.bandeira)}
+                </span>
+                •••• {cartao.final} — vence em {String(cartao.mes_expiracao).padStart(2, "0")}/{cartao.ano_expiracao}
+              </p>
+            )}
 
             {ativo && (
               <>

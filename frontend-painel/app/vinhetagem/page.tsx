@@ -364,7 +364,7 @@ export default function VinhetagemPage() {
                 key={categoriaId ?? "sem-categoria"}
                 className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5"
               >
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-wrap items-center justify-between gap-y-2 mb-4">
                   <div className="flex items-center gap-2">
                     <h2 className="font-display text-base font-bold text-fg">{categoria.nome}</h2>
                     {categoria.tipo && (
@@ -373,7 +373,7 @@ export default function VinhetagemPage() {
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     {categoriaId !== null && categoria.tipo && (
                       <>
                         <button

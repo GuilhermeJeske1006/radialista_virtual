@@ -370,6 +370,7 @@ def buscar_musica(
     duracao_max_segundos: int = _DURACAO_MAX_SEGUNDOS,
     duracao_absoluta_max_segundos: int | None = _DURACAO_MAX_ABSOLUTA_SEGUNDOS,
     preferir_cantada: bool = False,
+    exigir_canal_oficial: bool = False,
 ) -> MusicaEncontrada | None:
     """Busca a musica priorizando versao de estudio; se nao achar, cai pra versao ao vivo.
 
@@ -397,6 +398,16 @@ def buscar_musica(
     False por padrao porque buscar_musica_fundo QUER instrumental (musica de fundo enquanto
     o locutor fala). Mesma logica de preferencia, nunca bloqueio duro: relaxa antes do
     genero (instrumental do genero certo ainda bate mais que vocal fora do genero).
+
+    exigir_canal_oficial e' BLOQUEIO DURO (nunca relaxa, ao contrario de todo o resto acima):
+    quando True, so' aceita resultado de canal oficial do artista/gravadora (ver
+    _eh_canal_oficial -- selo/VEVO ou o "- Topic" auto-gerado pelo YouTube pra faixa oficial),
+    nunca cai pra canal de fã/reupload/cover. Usado nos pedidos/sugestoes de UMA musica
+    especifica (ver resolver_musica_catalogada em app.live.song_service, e pedido_musica em
+    app.live.router) -- musica de fundo (buscar_musica_fundo) e busca generica por genero sem
+    faixa especifica continuam sem essa exigencia, risco de audio duvidoso la e' menor (ja
+    passa pelo blocklist de qualidade) e exigir canal oficial pra query generica travaria o
+    bloco sem musica com frequencia.
     """
     if not settings.youtube_api_key:
         return None
@@ -482,6 +493,11 @@ def buscar_musica(
                 continue
             if _eh_canal_oficial(canal) and not any(termo in texto for termo in bloqueados_lower):
                 return MusicaEncontrada(video_id=video_id, titulo=titulo, canal=canal, inicio_segundos=0)
+
+        if exigir_canal_oficial:
+            # Bloqueio duro: sem canal oficial na 1a passada, desiste (nunca cai pro 2o loop
+            # abaixo, que aceita qualquer canal como ultimo recurso).
+            return None
 
         for item in itens:
             titulo = item["snippet"]["title"]

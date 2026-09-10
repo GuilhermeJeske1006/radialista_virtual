@@ -42,6 +42,7 @@ const GROUPS: SidebarGroup[] = [
       {
         href: "/live",
         label: "Ao Vivo",
+        numeroSetup: 3,
         icon: (
           <path
             strokeLinecap="round"
@@ -64,7 +65,6 @@ const GROUPS: SidebarGroup[] = [
       {
         href: "/conversas",
         label: "Conversas",
-        numeroSetup: 3,
         icon: (
           <path
             strokeLinecap="round"
@@ -81,6 +81,7 @@ const GROUPS: SidebarGroup[] = [
       {
         href: "/radialista",
         label: "Radialistas",
+        numeroSetup: 1,
         icon: (
           <path
             strokeLinecap="round"
@@ -92,6 +93,7 @@ const GROUPS: SidebarGroup[] = [
       {
         href: "/programas",
         label: "Programas",
+        numeroSetup: 2,
         icon: (
           <path
             strokeLinecap="round"
@@ -185,6 +187,7 @@ function NavLink({
     <Link
       href={href}
       title={colapsada ? label : undefined}
+      aria-label={colapsada ? label : undefined}
       className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
         colapsada ? "justify-center" : ""
       } ${active ? "bg-amber/10 text-amber-text" : "text-fg/65 hover:bg-paper/5 hover:text-fg"}`}

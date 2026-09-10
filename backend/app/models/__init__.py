@@ -17,6 +17,7 @@ from app.models.super_admin import SuperAdmin
 from app.models.tema_historico import TemaHistorico
 from app.models.usuario import Usuario
 from app.models.voz_clonada import VozClonada
+from app.models.perfil_voz import ConfiguracaoVoz, MetadadosVoz
 
 __all__ = [
     "Account",
@@ -33,6 +34,8 @@ __all__ = [
     "PasswordResetToken",
     "Patrocinador",
     "VozClonada",
+    "ConfiguracaoVoz",
+    "MetadadosVoz",
     "CompraExcedente",
     "BibliotecaAudioItem",
     "CategoriaVinheta",

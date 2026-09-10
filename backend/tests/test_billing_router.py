@@ -20,7 +20,7 @@ def test_status_plano(client, account, auth_headers, db_session):
 def test_checkout_devolve_client_secret_da_sessao(client, account, auth_headers, monkeypatch):
     capturado = {}
 
-    def _fake_criar_sessao(acc, plano_id, db):
+    def _fake_criar_sessao(acc, plano_id, db, usar_cartao_salvo=False):
         capturado["plano_id"] = plano_id
         pi = SimpleNamespace(client_secret="cs_test_secret123")
         return SimpleNamespace(latest_invoice=SimpleNamespace(payment_intent=pi))
@@ -98,6 +98,28 @@ def test_portal_devolve_url_da_sessao(client, account_factory, auth_headers, mon
     assert resposta.json()["url"] == "https://billing.stripe.com/portal123"
 
 
+def test_cartao_sem_customer_id(client, account, auth_headers):
+    resposta = client.get("/billing/cartao", headers=auth_headers(account.id))
+    assert resposta.status_code == 200
+    assert resposta.json()["cartao"] is None
+
+
+def test_cartao_devolve_bandeira_e_ultimos_digitos(client, account_factory, auth_headers, monkeypatch):
+    account = account_factory(email="cartao@a.com", stripe_customer_id="cus_456")
+    monkeypatch.setattr(
+        "app.billing.router.obter_cartao_mais_recente",
+        lambda acc: {"bandeira": "visa", "final": "4242", "mes_expiracao": 12, "ano_expiracao": 2030},
+    )
+    resposta = client.get("/billing/cartao", headers=auth_headers(account.id))
+    assert resposta.status_code == 200
+    assert resposta.json()["cartao"] == {
+        "bandeira": "visa",
+        "final": "4242",
+        "mes_expiracao": 12,
+        "ano_expiracao": 2030,
+    }
+
+
 def test_checkout_agente_extra_exige_plano_ativo(client, account, auth_headers):
     assert account.plano_status != "ativo"
     resposta = client.post("/billing/agentes-extras/checkout", headers=auth_headers(account.id))
@@ -108,12 +130,64 @@ def test_checkout_agente_extra_com_plano_ativo(client, account_factory, auth_hea
     account = account_factory(email="ativo@a.com", plano_status="ativo")
     monkeypatch.setattr(
         "app.billing.router.criar_sessao_checkout_agente_extra",
-        lambda acc, db: SimpleNamespace(
+        lambda acc, db, usar_cartao_salvo=False: SimpleNamespace(
             latest_invoice=SimpleNamespace(payment_intent=SimpleNamespace(client_secret="cs_test_extra123"))
         ),
     )
     resposta = client.post("/billing/agentes-extras/checkout", headers=auth_headers(account.id))
     assert resposta.status_code == 200
+
+
+def test_checkout_usar_cartao_salvo_sem_cartao_devolve_400(client, account, auth_headers, monkeypatch):
+    from app.billing.stripe_client import CartaoSalvoNaoEncontrado
+
+    def _sem_cartao(acc, plano_id, db, usar_cartao_salvo=False):
+        raise CartaoSalvoNaoEncontrado()
+
+    monkeypatch.setattr("app.billing.router.criar_sessao_checkout", _sem_cartao)
+    resposta = client.post(
+        "/billing/checkout",
+        json={"plano_id": "growth", "usar_cartao_salvo": True},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 400
+
+
+def test_checkout_agente_extra_usa_cartao_salvo(client, account_factory, auth_headers, monkeypatch):
+    account = account_factory(email="cartaosalvo-extra@a.com", plano_status="ativo")
+    capturado = {}
+
+    def _fake(acc, db, usar_cartao_salvo=False):
+        capturado["usar_cartao_salvo"] = usar_cartao_salvo
+        pi = SimpleNamespace(client_secret="cs_reuso123")
+        return SimpleNamespace(latest_invoice=SimpleNamespace(payment_intent=pi))
+
+    monkeypatch.setattr("app.billing.router.criar_sessao_checkout_agente_extra", _fake)
+    resposta = client.post(
+        "/billing/agentes-extras/checkout",
+        json={"usar_cartao_salvo": True},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["client_secret"] == "cs_reuso123"
+    assert capturado["usar_cartao_salvo"] is True
+
+
+def test_checkout_excedente_usar_cartao_salvo_sem_cartao_devolve_400(client, account_factory, auth_headers, monkeypatch):
+    from app.billing.stripe_client import CartaoSalvoNaoEncontrado
+
+    account = account_factory(email="cartaosalvo-excedente@a.com", plano_status="ativo")
+
+    def _sem_cartao(acc, blocos, db, usar_cartao_salvo=False):
+        raise CartaoSalvoNaoEncontrado()
+
+    monkeypatch.setattr("app.billing.router.criar_sessao_checkout_excedente_mensagens", _sem_cartao)
+    resposta = client.post(
+        "/billing/excedente-mensagens/checkout",
+        json={"blocos": 1, "usar_cartao_salvo": True},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 400
 
 
 def test_checkout_excedente_mensagens_valida_blocos(client, account_factory, auth_headers):

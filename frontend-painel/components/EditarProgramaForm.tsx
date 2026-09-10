@@ -5,6 +5,8 @@ import Link from "next/link";
 import ConfirmDialog from "./ConfirmDialog";
 import TagInput from "./TagInput";
 import RoteiroBlocosEditor from "./RoteiroBlocosEditor";
+import QuadrosFixosInput from "./QuadrosFixosInput";
+import FeriadosMunicipaisInput from "./FeriadosMunicipaisInput";
 import RadialistasProgramaSection from "./RadialistasProgramaSection";
 import { apiFetch, ApiError } from "../lib/api";
 import {
@@ -499,6 +501,11 @@ export default function EditarProgramaForm({
           </div>
         )}
 
+        <QuadrosFixosInput
+          quadros={programa.quadros_fixos}
+          onChange={(quadros_fixos) => setPrograma({ ...programa, quadros_fixos })}
+        />
+
         <label className="inline-flex items-center gap-2 text-sm font-medium text-fg/80">
           <input
             type="checkbox"
@@ -627,11 +634,19 @@ export default function EditarProgramaForm({
               onChange={(tags) => setPrograma({ ...programa, tipos_noticias: tags })}
             />
             <TagInput
-              label="Fontes de notícias"
+              label="Fontes de notícias (domínios ou URLs)"
               tags={programa.fontes_noticias}
               onChange={(tags) => setPrograma({ ...programa, fontes_noticias: tags })}
             />
           </div>
+          <p className="mb-3 text-xs text-fg/60">
+            Para apresentar notícias, inclua um bloco de notícia no roteiro e ative “Pode pesquisar” abaixo.
+            Informe os sites dos veículos para restringir a busca às fontes desejadas.
+          </p>
+          <FeriadosMunicipaisInput
+            feriados={programa.feriados_municipais}
+            onChange={(feriados_municipais) => setPrograma({ ...programa, feriados_municipais })}
+          />
         </details>
 
         <hr className="border-border" />
@@ -651,6 +666,11 @@ export default function EditarProgramaForm({
             />
             Pode pesquisar
           </label>
+          <p className="mb-3 text-xs text-fg/60">
+            Busca notícias recentes antes dos blocos de notícia e comentário, usando a cidade e os temas do programa.
+            As fontes de notícias têm prioridade; se estiverem vazias, serão usadas as fontes de pesquisa.
+            Sem fontes cadastradas, a busca usa fontes públicas. Os links consultados aparecem no histórico do ao vivo.
+          </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
             <TagInput
               label="Onde pode pesquisar"
