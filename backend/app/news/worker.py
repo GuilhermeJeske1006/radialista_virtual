@@ -136,7 +136,7 @@ def coletar_fonte(db: Session, account: Account, fonte: FonteNoticia) -> int:
                 fonte_nome=fonte.nome,
                 fonte_tipo=fonte.tipo,
                 titulo=item.titulo,
-                resumo=item.resumo,
+                resumo=resultado.resumo or item.resumo,
                 url=item.url,
                 url_hash=url_hash,
                 publicado_em=item.publicado_em,

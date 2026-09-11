@@ -35,6 +35,7 @@ CATEGORIAS_NOTICIA = (
 class ResultadoCuradoria:
     categoria: str
     score: float
+    resumo: str = ""
     quando: str = ""
     onde: str = ""
     numeros: str = ""
@@ -52,6 +53,10 @@ _SYSTEM_PROMPT = (
     "em nenhuma específica).\n"
     "Dê um score de 0 a 100 de noticiabilidade pra rádio LOCAL: proximidade da cidade informada, "
     "impacto no dia a dia do ouvinte, atualidade. Notícia nacional sem gancho local pontua baixo.\n"
+    "Escreva um resumo curto (2 a 4 frases) só com o fato em si, na sua própria redação -- nunca "
+    "copie trecho do texto original. Corte qualquer chamada de audiência do site/portal de origem "
+    "(\"clique e siga\", \"assista\", \"saiba mais\", \"vídeos mais assistidos\", link pra "
+    "WhatsApp/rede social etc.): isso não é fato, é publicidade do veículo, não vai pro resumo.\n"
     "Extraia, só com o que estiver no texto (nunca invente): quando aconteceu, onde, números "
     "arredondados relevantes, pessoas/cargos citados, o impacto prático pro ouvinte, serviço "
     "(o que o ouvinte deve fazer, se houver), o próximo passo da apuração (se houver) e o que "
@@ -65,8 +70,8 @@ _SYSTEM_PROMPT = (
     "reempacotado -- sem nenhum fato noticioso próprio, específico e datável. Isso não é pauta, "
     "é chamada de audiência pro outro canal da fonte.\n"
     "Responda APENAS com um JSON compacto, sem markdown:\n"
-    '{"bloqueada": true|false, "categoria": "...", "score": 0, "quando": "", "onde": "", '
-    '"numeros": "", "pessoas": "", "impacto": "", "servico": "", "proximo_passo": "", '
+    '{"bloqueada": true|false, "categoria": "...", "score": 0, "resumo": "", "quando": "", '
+    '"onde": "", "numeros": "", "pessoas": "", "impacto": "", "servico": "", "proximo_passo": "", '
     '"ainda_nao_divulgado": ""}'
 )
 
@@ -109,6 +114,7 @@ def curar_item(item: ItemFeed, *, fonte_nome: str, fonte_tipo: str, cidade: str,
     return ResultadoCuradoria(
         categoria=categoria,
         score=score,
+        resumo=str(dados.get("resumo") or ""),
         quando=str(dados.get("quando") or ""),
         onde=str(dados.get("onde") or ""),
         numeros=str(dados.get("numeros") or ""),
