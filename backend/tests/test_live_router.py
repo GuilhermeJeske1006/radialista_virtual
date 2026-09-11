@@ -71,15 +71,6 @@ def test_bloco_de_manchete_reconhecido_como_escalada(monkeypatch, bloco):
     assert _categoria_bloco(bloco) == "escalada"
 
 
-@pytest.mark.parametrize("bloco", ["giro", "giro de noticias", "giro_rapido"])
-def test_bloco_de_giro_reconhecido_como_giro(monkeypatch, bloco):
-    monkeypatch.setattr(
-        "app.live.router.classificar_categoria_bloco",
-        lambda *a: (_ for _ in ()).throw(AssertionError("não precisa de classificação remota")),
-    )
-    assert _categoria_bloco(bloco) == "giro"
-
-
 @pytest.mark.parametrize("bloco", ["tempo_e_transito", "previsao do tempo", "utilidade_publica", "cotações"])
 def test_bloco_de_utilidade_publica_reconhecido_como_servico(monkeypatch, bloco):
     monkeypatch.setattr(
@@ -807,7 +798,15 @@ def test_historico_de_temas_injetado_no_proximo_comentario(
     client, account, auth_headers, radialista_e_programa, monkeypatch
 ):
     """Fase 2 do anti-repeticao: tema de comentario/noticia fica registrado na sessao inteira
-    (nao so nas ultimas falas do historico enviado pelo frontend) e volta pro prompt."""
+    (nao so nas ultimas falas do historico enviado pelo frontend).
+
+    O bloqueio "nao repita" continua so' pra noticia (ver Fase E do plano-assuntos.md): pra
+    comentario ele foi substituido pelo banco de assuntos + rotacao de eixo (ver
+    app.topics.pauta_conversa), que ACRESCENTA estoque em vez de so' proibir -- sem nenhum
+    Assunto casado nesta conta (fixture nao populou o pipeline), o comentario continua livre,
+    sem a instrucao subtrativa antiga. O historico de tema em si (Redis + TemaHistorico)
+    continua sendo registrado do mesmo jeito, so' a instrucao de prompt pra comentario que muda.
+    """
     radio_config, programa = radialista_e_programa
     monkeypatch.setattr("app.live.router.classificar_tema_fala", lambda texto: "transito na cidade")
 
@@ -830,8 +829,7 @@ def test_historico_de_temas_injetado_no_proximo_comentario(
         assert resposta.json()["tipo"] == "comentario"
 
     assert "transito na cidade" not in prompts[0]
-    assert "Temas de comentário/notícia já abordados nesta transmissão" in prompts[1]
-    assert "transito na cidade" in prompts[1]
+    assert "Temas de comentário/notícia já abordados nesta transmissão" not in prompts[1]
 
 
 @freeze_time(AGORA_UTC)
@@ -1901,10 +1899,12 @@ def test_musica_antiga_de_outro_programa_fora_da_janela_nao_e_evitada(
 def test_tema_de_outro_programa_e_injetado_no_prompt(
     client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
 ):
-    """Anti-repeticao cross-programa pro lado de assunto: tema comentado recentemente em OUTRO
-    programa da mesma radio entra na instrucao 'nao repita assunto' do prompt, mesmo o
-    historico de sessao (Redis) do programa atual estando vazio -- ver
-    _temas_recentes_da_radio em app.live.router."""
+    """Cross-programa pro lado de TemaHistorico (app.news.pauta/noticia): desde a Fase E do
+    plano-assuntos.md, o bloqueio duro 'nao repita assunto' que _temas_recentes_da_radio
+    alimentava passou a valer so' pra noticia -- pra comentario, o cruzamento entre programas da
+    mesma radio agora e' feito pelo lado do banco de assuntos (penalidade de score, nao bloqueio,
+    ver ADR item 3 e app.topics.pauta_conversa), coberto em tests/test_topics_pauta_conversa.py.
+    Aqui so' confirma que a instrucao antiga nao vaza mais pro prompt de comentario."""
     radio_config, programa = radialista_e_programa
     outro_programa = _outro_programa_mesma_radio(db_session, radio_config)
     agora = datetime.datetime.now(datetime.timezone.utc)
@@ -1930,7 +1930,7 @@ def test_tema_de_outro_programa_e_injetado_no_prompt(
     )
     assert resposta.status_code == 200
     assert resposta.json()["tipo"] == "comentario"
-    assert "eleicoes municipais" in prompts[0]
+    assert "Temas de comentário/notícia já abordados nesta transmissão" not in prompts[0]
 
 
 @freeze_time(AGORA_UTC)

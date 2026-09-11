@@ -45,11 +45,9 @@ def frase_proibida_em(texto: str) -> str | None:
     return None
 
 
-def tem_atribuicao(texto: str, fonte_nome: str = "") -> bool:
-    """Fonte citada pelo nome conta como atribuição mesmo sem os marcadores genéricos abaixo
-    (ex.: 'a Defesa Civil informou...' já bate em 'informou', mas 'segundo o boletim da
-    Prefeitura de Blumenau' só bate se o nome da fonte estiver na lista de checagem)."""
+def tem_atribuicao(texto: str) -> bool:
+    """Atribuição a quem informou o fato (autoridade/órgão citado na apuração, ex.: 'a Defesa
+    Civil informou...') -- nunca ao veículo/portal de onde a notícia foi coletada (ver
+    app.news.pauta, que não expõe mais Noticia.fonte_nome no prompt pra evitar isso)."""
     normalizado = texto.lower()
-    if fonte_nome and fonte_nome.lower() in normalizado:
-        return True
     return any(marcador in normalizado for marcador in MARCADORES_ATRIBUICAO)

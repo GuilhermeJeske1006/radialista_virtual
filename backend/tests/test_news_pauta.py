@@ -8,17 +8,13 @@ from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
 from app.news.pauta import (
     ANGULO_CORRECAO,
-    ANGULOS_NOTICIA,
     LIMIAR_SCORE_PLANTAO,
-    MAX_REPETICOES_POR_NOTICIA,
     correcao_pendente,
     montar_escalada,
-    montar_giro,
     montar_lauda,
     proxima_noticia,
     proxima_para_plantao,
     proximas_noticias,
-    proximas_para_giro,
 )
 
 
@@ -74,12 +70,12 @@ def test_sem_noticia_no_banco_devolve_none(db_session, account, programa):
     assert proxima_noticia(db_session, programa, account) is None
 
 
-def test_encontra_noticia_e_comeca_pelo_primeiro_angulo(db_session, account, programa):
+def test_encontra_noticia_com_angulo_fato(db_session, account, programa):
     noticia = _criar_noticia(db_session, account)
     pauta = proxima_noticia(db_session, programa, account)
     assert pauta is not None
     assert pauta.noticia_id == noticia.id
-    assert pauta.angulo == ANGULOS_NOTICIA[0]
+    assert pauta.angulo == "fato"
     assert pauta.aberturas_usadas == []
 
 
@@ -102,25 +98,14 @@ def test_tipos_noticias_configurado_filtra_por_categoria(db_session, account, pr
     assert proxima_noticia(db_session, programa, account) is None
 
 
-def test_apos_esgotar_todos_os_angulos_noticia_para_de_ser_pauta(db_session, account, programa):
+def test_noticia_ja_ao_ar_nao_volta_a_ser_pauta(db_session, account, programa):
     noticia = _criar_noticia(db_session, account)
-    for angulo in ANGULOS_NOTICIA:
-        db_session.add(NoticiaHistorico(programa_id=programa.id, noticia_id=noticia.id, angulo=angulo, fala=f"Fala no angulo {angulo}."))
+    db_session.add(NoticiaHistorico(programa_id=programa.id, noticia_id=noticia.id, angulo="fato", fala="Fala original."))
     db_session.commit()
-    assert len(ANGULOS_NOTICIA) == MAX_REPETICOES_POR_NOTICIA
     assert proxima_noticia(db_session, programa, account) is None
 
 
-def test_pauta_seguinte_pula_para_o_proximo_angulo_nao_usado(db_session, account, programa):
-    noticia = _criar_noticia(db_session, account)
-    db_session.add(NoticiaHistorico(programa_id=programa.id, noticia_id=noticia.id, angulo="fato", fala="Primeira fala sobre a rua."))
-    db_session.commit()
-    pauta = proxima_noticia(db_session, programa, account)
-    assert pauta.angulo == "impacto"
-    assert pauta.aberturas_usadas == ["Primeira fala sobre a rua."]
-
-
-def test_montar_lauda_inclui_fonte_angulo_e_servico():
+def test_montar_lauda_nao_cita_fonte_inclui_angulo_e_servico():
     from app.news.pauta import NoticiaPauta
 
     pauta = NoticiaPauta(
@@ -129,7 +114,7 @@ def test_montar_lauda_inclui_fonte_angulo_e_servico():
         angulo="servico", aberturas_usadas=[], detalhes={"servico": "Desvio pela Antonio da Veiga"},
     )
     texto = montar_lauda(pauta)
-    assert "Fonte: Prefeitura" in texto
+    assert "Prefeitura" not in texto
     assert "ÂNGULO DESTE BLOCO: SERVICO" in texto
     assert "Desvio pela Antonio da Veiga" in texto
 
@@ -141,19 +126,6 @@ def test_proximas_noticias_devolve_ate_o_limite_pedido(db_session, account, prog
     assert len(pautas) == 3
     # mais relevante (maior score) primeiro
     assert pautas[0].titulo == "Manchete 3"
-
-
-def test_proximas_para_giro_so_traz_noticia_ja_ao_ar(db_session, account, programa):
-    ja_ao_ar = _criar_noticia(db_session, account, titulo="Ja foi ao ar", url="https://x/1", url_hash="hash-1")
-    _criar_noticia(db_session, account, titulo="Inedita", url="https://x/2", url_hash="hash-2")
-    db_session.add(NoticiaHistorico(programa_id=programa.id, noticia_id=ja_ao_ar.id, angulo="fato", fala="Fala original."))
-    db_session.commit()
-
-    pautas = proximas_para_giro(db_session, programa, account, limite=5)
-
-    assert len(pautas) == 1
-    assert pautas[0].noticia_id == ja_ao_ar.id
-    assert pautas[0].angulo == "impacto"
 
 
 def test_proxima_para_plantao_exige_score_minimo(db_session, account, programa):
@@ -201,17 +173,15 @@ def test_correcao_pendente_nao_repete_apos_ja_corrigida(db_session, account, pro
     assert correcao_pendente(db_session, programa) is None
 
 
-def test_correcao_nao_consome_repeticao_normal_da_noticia(db_session, account, programa):
+def test_correcao_nao_conta_como_noticia_ja_ao_ar(db_session, account, programa):
     noticia = _criar_noticia(db_session, account)
-    for angulo in ANGULOS_NOTICIA[:-1]:
-        db_session.add(NoticiaHistorico(programa_id=programa.id, noticia_id=noticia.id, angulo=angulo, fala="x"))
     db_session.add(NoticiaHistorico(programa_id=programa.id, noticia_id=noticia.id, angulo=ANGULO_CORRECAO, fala="Correção no ar."))
     db_session.commit()
 
     pauta = proxima_noticia(db_session, programa, account)
 
     assert pauta is not None
-    assert pauta.angulo == ANGULOS_NOTICIA[-1]
+    assert pauta.angulo == "fato"
 
 
 def test_dose_pitada_prioriza_categoria_leve_sobre_hard_news_de_score_parecido(db_session, account, programa):
@@ -233,19 +203,9 @@ def test_montar_escalada_lista_manchetes_numeradas():
         NoticiaPauta(noticia_id=2, titulo="Fato B", resumo="", fonte_nome="Fonte B", fonte_tipo="imprensa", url="x", categoria="geral", publicado_em=_agora(), angulo="fato", aberturas_usadas=[]),
     ]
     texto = montar_escalada(pautas)
-    assert "1. Fato A -- fonte: Fonte A." in texto
-    assert "2. Fato B -- fonte: Fonte B." in texto
-
-
-def test_montar_giro_inclui_atualizacao_de_cada_pauta():
-    from app.news.pauta import NoticiaPauta
-
-    pautas = [
-        NoticiaPauta(noticia_id=1, titulo="Fato A", resumo="resumo A", fonte_nome="Fonte A", fonte_tipo="oficial", url="x", categoria="geral", publicado_em=_agora(), angulo="impacto", aberturas_usadas=[], detalhes={"proximo_passo": "novo boletim as 18h"}),
-    ]
-    texto = montar_giro(pautas)
-    assert "Fato A" in texto
-    assert "novo boletim as 18h" in texto
+    assert "1. Fato A" in texto
+    assert "2. Fato B" in texto
+    assert "fonte" not in texto.lower()
 
 
 def test_montar_lauda_correcao_prioriza_frase_de_correcao():

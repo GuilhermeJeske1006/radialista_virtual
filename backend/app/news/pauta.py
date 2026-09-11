@@ -3,9 +3,15 @@ pra virar pauta de um bloco de notícia do ao vivo, e monta o texto de "lauda" i
 prompt (ver Fase 2 do plano de jornalismo) -- o espelho de fato apurado que faltava pro
 locutor, no lugar da regra sem matéria-prima que existia antes.
 
-Também cobre a seleção pros blocos derivados (Fase 4: escalada, giro, plantão) e o protocolo de
+Também cobre a seleção pros blocos derivados (Fase 4: escalada, plantão) e o protocolo de
 correção no ar (Fase 7): tudo parte do mesmo pool de candidatos (ver `_candidatos`), só variando
-o filtro/recorte de cada chamador.
+o filtro/recorte de cada chamador. Cada notícia é contada uma única vez (nunca volta a ser pauta
+depois de ir ao ar) -- sem bloco GIRO nem rotação de ângulo (fato/impacto/serviço/reação/
+contexto), que existiam antes pra trazer a mesma notícia de volta em blocos diferentes.
+
+Também não cita o nome do veículo/portal de onde a notícia veio (ver montar_lauda/
+montar_escalada): isso é só apuração interna da redação (`Noticia.fonte_nome`), nunca vira
+"segundo o G1" no ar.
 """
 
 import dataclasses
@@ -20,17 +26,11 @@ from app.models.noticia import Noticia
 from app.models.noticia_historico import NoticiaHistorico
 from app.models.programa import Programa
 
-# Ordem de rotação de ângulo pra uma notícia que volta a ser pauta (ver Fase 6: repetir a
-# notícia é padrão no rádio real, repetir o lide é que não é).
-ANGULOS_NOTICIA = ("fato", "impacto", "servico", "reacao", "contexto")
+# Ângulo padrão de toda notícia comum (única aparição, ver docstring do módulo).
+_ANGULO_PADRAO = "fato"
 
-# Quantas vezes no máximo a mesma notícia pode voltar a ser pauta (esgotados os ângulos acima,
-# uma quinta rodada soaria disco riscado mesmo com o rádio real repetindo bastante). Uma
-# correção no ar (ângulo "correcao", ver `correcao_pendente`) não conta nesse limite.
-MAX_REPETICOES_POR_NOTICIA = len(ANGULOS_NOTICIA)
-
-# Ângulo especial: não faz parte da rotação normal (ver ANGULOS_NOTICIA), usado só quando a fonte
-# retifica uma pauta já ao ar (ver Fase 7 do plano de jornalismo, `correcao_pendente`).
+# Ângulo especial: usado só quando a fonte retifica uma pauta já ao ar (ver Fase 7 do plano de
+# jornalismo, `correcao_pendente`) -- a única forma de uma notícia voltar a ser pauta.
 ANGULO_CORRECAO = "correcao"
 
 # Score mínimo (0-100, ver app.news.curadoria) pra uma notícia concorrer a PLANTÃO -- sem isso
@@ -120,14 +120,13 @@ def _candidatos(
     programa: Programa,
     account: Account,
     *,
-    apenas_ja_ao_ar: bool = False,
     score_minimo: float = 0.0,
 ):
     """Gera, em ordem de relevância, toda notícia ativa da conta que ainda cabe como pauta pra
     este programa -- dentro da janela de validade da categoria, dentro dos tipos/tópicos
-    configurados, e que ainda não esgotou as repetições/ângulos (ver ANGULOS_NOTICIA). Base
-    comum de `proxima_noticia` (notícia comum), `proximas_noticias` (escalada), `
-    proximas_para_giro` (giro, só pauta já ao ar) e `proxima_para_plantao` (score mínimo)."""
+    configurados, e que ainda não foi ao ar neste programa (cada notícia conta uma única vez,
+    ver docstring do módulo). Base comum de `proxima_noticia` (notícia comum), `proximas_noticias`
+    (escalada) e `proxima_para_plantao` (score mínimo)."""
     agora = datetime.datetime.now(datetime.timezone.utc)
     tipos_noticias = programa.tipos_noticias or []
     topicos_proibidos = programa.topicos_proibidos or []
@@ -158,15 +157,9 @@ def _candidatos(
             .order_by(NoticiaHistorico.criado_em.desc())
             .all()
         )
-        if apenas_ja_ao_ar and not historico:
-            continue
-        # Correção (ver ANGULO_CORRECAO) não consome repetição normal da notícia.
-        historico_rotacao = [h for h in historico if h.angulo != ANGULO_CORRECAO]
-        if len(historico_rotacao) >= MAX_REPETICOES_POR_NOTICIA:
-            continue
-        angulos_usados = {h.angulo for h in historico_rotacao}
-        angulo = next((a for a in ANGULOS_NOTICIA if a not in angulos_usados), None)
-        if angulo is None:
+        # Já foi ao ar neste programa (correção não conta, ver ANGULO_CORRECAO) -- cada notícia
+        # é contada uma única vez, nunca mais volta a ser pauta (ver docstring do módulo).
+        if any(h.angulo != ANGULO_CORRECAO for h in historico):
             continue
 
         yield NoticiaPauta(
@@ -178,8 +171,8 @@ def _candidatos(
             url=noticia.url,
             categoria=noticia.categoria,
             publicado_em=publicado_em,
-            angulo=angulo,
-            aberturas_usadas=[_primeira_frase(h.fala) for h in historico_rotacao if h.fala.strip()],
+            angulo=_ANGULO_PADRAO,
+            aberturas_usadas=[],
             detalhes=noticia.detalhes or {},
         )
 
@@ -195,13 +188,6 @@ def proximas_noticias(db: Session, programa: Programa, account: Account, limite:
     """Várias pautas de uma vez, pro bloco ESCALADA (ver Fase 4 do plano de jornalismo) --
     manchetes de uma frase cada, sem repetir notícia entre si."""
     return list(itertools.islice(_candidatos(db, programa, account), limite))
-
-
-def proximas_para_giro(db: Session, programa: Programa, account: Account, limite: int = 2) -> list[NoticiaPauta]:
-    """Pautas que JÁ foram ao ar neste programa (têm NoticiaHistorico), pro bloco GIRO -- uma
-    atualização rápida do que já foi dado, nunca notícia inédita (essa entra por `noticia`/
-    `escalada` primeiro)."""
-    return list(itertools.islice(_candidatos(db, programa, account, apenas_ja_ao_ar=True), limite))
 
 
 def proxima_para_plantao(db: Session, programa: Programa, account: Account) -> NoticiaPauta | None:
@@ -257,16 +243,15 @@ def montar_lauda(pauta: NoticiaPauta) -> str:
         return (
             "CORREÇÃO PENDENTE -- prioridade sobre qualquer outro assunto deste bloco: a fonte "
             f"retificou uma informação já dada no ar. Fato original: {pauta.titulo}. Correção: "
-            f"{pauta.resumo}. Fonte: {pauta.fonte_nome}. Anuncie explicitamente que está corrigindo "
-            "uma informação dada antes (ex.: 'corrigindo uma informação que a gente deu há pouco...'), "
-            "sem se desculpar de forma exagerada nem esconder que houve mudança."
+            f"{pauta.resumo}. Anuncie explicitamente que está corrigindo uma informação dada antes "
+            "(ex.: 'corrigindo uma informação que a gente deu há pouco...'), sem se desculpar de "
+            "forma exagerada nem esconder que houve mudança."
         )
 
     detalhes = pauta.detalhes or {}
     linhas = [
         "PAUTA DESTE BLOCO (fato apurado -- use só o que está aqui, não acrescente nada):",
         f"- Fato: {pauta.titulo}",
-        f"- Fonte: {pauta.fonte_nome}",
         f"- Quando: {detalhes.get('quando') or pauta.publicado_em.strftime('%d/%m/%Y %H:%M')}",
     ]
     if detalhes.get("onde"):
@@ -303,14 +288,5 @@ def montar_escalada(pautas: list[NoticiaPauta]) -> str:
     """Bloco 'PAUTA DESTA ESCALADA' com várias manchetes de uma vez (ver Fase 4 do plano)."""
     linhas = ["PAUTA DESTA ESCALADA (fatos apurados -- uma manchete de uma frase pra cada, nessa ordem):"]
     for i, pauta in enumerate(pautas, start=1):
-        linhas.append(f"{i}. {pauta.titulo} -- fonte: {pauta.fonte_nome}.")
-    return "\n".join(linhas)
-
-
-def montar_giro(pautas: list[NoticiaPauta]) -> str:
-    """Bloco 'PAUTA DESTE GIRO' com atualização rápida de notícias já dadas (ver Fase 4)."""
-    linhas = ["PAUTA DESTE GIRO (atualização rápida -- lide novo pra cada, sem repetir a abertura já usada):"]
-    for i, pauta in enumerate(pautas, start=1):
-        detalhe = (pauta.detalhes or {}).get("proximo_passo") or pauta.resumo
-        linhas.append(f"{i}. {pauta.titulo} -- fonte: {pauta.fonte_nome}. Atualização/contexto: {detalhe}")
+        linhas.append(f"{i}. {pauta.titulo}")
     return "\n".join(linhas)

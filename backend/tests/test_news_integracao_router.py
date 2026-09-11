@@ -82,7 +82,7 @@ def test_bloco_noticia_usa_pauta_do_banco_em_vez_de_pesquisar_noticias(
 
     assert resposta.status_code == 200
     assert "PAUTA DESTE BLOCO" in prompts[0]
-    assert "Fonte: Defesa Civil" in prompts[0]
+    assert "Fonte:" not in prompts[0]
     assert "REDAÇÃO DE NOTÍCIA" in prompts[0]
     assert resposta.json()["fala"] == fala
 
@@ -178,18 +178,17 @@ def test_bloco_escalada_le_varias_manchetes_e_registra_historico_de_cada(
 
 
 @freeze_time(AGORA_UTC)
-def test_bloco_giro_so_atualiza_noticia_ja_ao_ar_no_programa(
+def test_bloco_noticia_nao_repete_noticia_ja_ao_ar_no_programa(
     client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
 ):
     radialista, programa = radialista_e_programa
     ja_ao_ar = _criar_noticia(db_session, account)
     db_session.add(NoticiaHistorico(programa_id=programa.id, noticia_id=ja_ao_ar.id, angulo="fato", fala="Fala original sobre a rua."))
     _criar_noticia(db_session, account, titulo="Inédita, nunca foi ao ar", url="https://exemplo.com/inedita", url_hash="hash-inedita")
-    programa.estrutura_blocos = ["giro"]
     db_session.commit()
 
     prompts = []
-    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Atualizando: a rua segue interditada.")
+    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Nova notícia sobre a cidade.")
 
     resposta = client.post(
         _url_proxima(radialista.id, programa.id),
@@ -198,9 +197,9 @@ def test_bloco_giro_so_atualiza_noticia_ja_ao_ar_no_programa(
     )
 
     assert resposta.status_code == 200
-    assert "PAUTA DESTE GIRO" in prompts[0]
-    assert "Rua São Paulo interditada" in prompts[0]
-    assert "Inédita, nunca foi ao ar" not in prompts[0]
+    assert "PAUTA DESTE BLOCO" in prompts[0]
+    assert "Inédita, nunca foi ao ar" in prompts[0]
+    assert "Rua São Paulo interditada" not in prompts[0]
 
 
 @freeze_time(AGORA_UTC)

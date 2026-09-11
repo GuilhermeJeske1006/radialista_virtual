@@ -15,8 +15,12 @@ def test_tem_atribuicao_com_marcador_generico():
     assert tem_atribuicao("A Defesa Civil informou que vinte casas foram atingidas.")
 
 
-def test_tem_atribuicao_com_nome_da_fonte_sem_marcador_generico():
-    assert tem_atribuicao("A Prefeitura de Blumenau soltou boletim às dez da manhã.", fonte_nome="Prefeitura de Blumenau")
+def test_tem_atribuicao_falso_so_com_nome_de_entidade_sem_marcador_generico():
+    # Citar um nome sozinho (ex.: nome do veículo/portal de onde a notícia foi apurada) não conta
+    # como atribuição -- precisa de um marcador genérico real (informou/confirmou/segundo/etc.),
+    # nunca da presença de um nome próprio qualquer no texto (ver app.news.pauta, que não expõe
+    # mais o nome do veículo no prompt).
+    assert not tem_atribuicao("A Prefeitura de Blumenau soltou boletim às dez da manhã.")
 
 
 def test_tem_atribuicao_falso_quando_informacao_solta():
