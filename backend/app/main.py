@@ -1,8 +1,10 @@
+import datetime
 import logging
 import logging.handlers
 import pathlib
 
 import sentry_sdk
+from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sentry_sdk.integrations.logging import LoggingIntegration
@@ -22,15 +24,19 @@ from app.db.database import Base, SessionLocal, engine
 from app.equipe.router import router as equipe_router
 from app.live.router import router as live_router
 from app.metrics.router import router as metrics_router
+from app.news.worker import executar as coletar_noticias
 from app.models import (  # noqa: F401 -- garante que as tabelas sejam registradas no metadata
     Account,
     BibliotecaAudioItem,
     CategoriaVinheta,
     ConviteUsuario,
     FilaAoVivo,
+    FonteNoticia,
     InteractionLog,
     Musica,
     MusicaHistorico,
+    Noticia,
+    NoticiaHistorico,
     Notificacao,
     PasswordResetToken,
     Patrocinador,
@@ -136,6 +142,7 @@ async def criar_tabelas():
     garantir_colunas_interaction_log()
     garantir_colunas_fila_ao_vivo()
     garantir_colunas_musica_historico()
+    garantir_colunas_noticia()
     garantir_colunas_patrocinador()
     garantir_colunas_voz_clonada()
     garantir_colunas_categoria_vinheta()
@@ -148,6 +155,44 @@ async def criar_tabelas():
     migrar_usuarios_de_account()
     garantir_colunas_password_reset_token()
     limpar_coluna_is_staff_legado()
+    iniciar_scheduler_noticias()
+
+
+# Coleta roda in-process (BackgroundScheduler, thread daemon) em vez de cron externo --
+# no free tier do Render nao tem Cron Job service, e o web service ja fica de pe pela
+# duracao normal do processo (ver app.news.worker.executar, pensado originalmente pra
+# `python -m app.news.worker` via agendador externo). Sujeito ao mesmo sleep por
+# inatividade do resto do free tier: sem trafego, o processo dorme e a coleta pausa junto.
+_scheduler_noticias = BackgroundScheduler(daemon=True)
+_INTERVALO_COLETA_NOTICIAS_MINUTOS = 10
+
+
+def _job_coletar_noticias():
+    try:
+        coletar_noticias()
+    except Exception:
+        logger.warning("Falha na rodada agendada de coleta de noticias", exc_info=True)
+
+
+def iniciar_scheduler_noticias():
+    if _scheduler_noticias.running:
+        return
+    _scheduler_noticias.add_job(
+        _job_coletar_noticias,
+        "interval",
+        minutes=_INTERVALO_COLETA_NOTICIAS_MINUTOS,
+        id="coleta_noticias",
+        next_run_time=datetime.datetime.now(),
+        coalesce=True,
+        max_instances=1,
+    )
+    _scheduler_noticias.start()
+
+
+@app.on_event("shutdown")
+async def parar_scheduler_noticias():
+    if _scheduler_noticias.running:
+        _scheduler_noticias.shutdown(wait=False)
 
 
 def garantir_colunas_radio_config():
@@ -228,12 +273,31 @@ def garantir_colunas_programa():
         "descricao": "VARCHAR DEFAULT '' NOT NULL",
         "quadros_fixos": "JSON DEFAULT '{}' NOT NULL",
         "feriados_municipais": "JSON DEFAULT '[]' NOT NULL",
+        "perfil": "VARCHAR DEFAULT 'musical' NOT NULL",
+        "dose_noticia": "VARCHAR DEFAULT 'jornalistica' NOT NULL",
     }
 
     with engine.begin() as conn:
         for nome, definicao in novas_colunas.items():
             if nome not in colunas:
                 conn.execute(text(f"ALTER TABLE programas ADD COLUMN {nome} {definicao}"))
+
+
+def garantir_colunas_noticia():
+    inspector = inspect(engine)
+    if "noticias" not in inspector.get_table_names():
+        return
+
+    colunas = {coluna["name"] for coluna in inspector.get_columns("noticias")}
+    novas_colunas = {
+        "retificada": "BOOLEAN DEFAULT FALSE NOT NULL",
+        "texto_retificacao": "VARCHAR DEFAULT '' NOT NULL",
+    }
+
+    with engine.begin() as conn:
+        for nome, definicao in novas_colunas.items():
+            if nome not in colunas:
+                conn.execute(text(f"ALTER TABLE noticias ADD COLUMN {nome} {definicao}"))
 
 
 # Colunas de conteudo (tom, topicos, mensagens, musicas, noticias, pesquisa) que

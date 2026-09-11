@@ -169,6 +169,12 @@ export type Programa = {
   pode_pesquisar: boolean;
   fontes_pesquisa: string[];
   instrucoes_pesquisa: string;
+
+  // Preset de criação e dosagem de notícia (ver backend app/models/programa.py::Programa) --
+  // "perfil" só orienta os campos preenchidos na criação, não trava nada em runtime; o usuário
+  // continua livre pra editar o resto do programa manualmente depois.
+  perfil?: "musical" | "jornalismo" | "esportivo" | "variedades" | "religioso" | "comunitario";
+  dose_noticia?: "nenhuma" | "pitada" | "equilibrada" | "jornalistica";
 };
 
 // Feriado municipal cadastrado manualmente (ver backend app/config/router.py::FeriadoMunicipal
@@ -215,6 +221,9 @@ export const PROGRAMA_VAZIO: Omit<Programa, "id" | "radio_config_id"> = {
   fontes_pesquisa: [],
   instrucoes_pesquisa:
     "Consultar apenas fontes permitidas, confirmar data da noticia e avisar quando nao houver certeza.",
+
+  perfil: "musical",
+  dose_noticia: "jornalistica",
 };
 
 // Vinculo de um radialista a um programa (dono ou co-apresentador), com papel e
@@ -246,6 +255,8 @@ export function normalizarPrograma(p: Programa): Programa {
     tipos_noticias: p.tipos_noticias ?? [],
     fontes_noticias: p.fontes_noticias ?? [],
     fontes_pesquisa: p.fontes_pesquisa ?? [],
+    perfil: p.perfil ?? "musical",
+    dose_noticia: p.dose_noticia ?? "jornalistica",
   };
 }
 
@@ -262,7 +273,19 @@ export const BLOCOS_PRESET: { value: string; label: string }[] = [
   { value: "musica", label: "Música" },
   { value: "comentario", label: "Comentário" },
   { value: "noticia", label: "Notícia" },
+  { value: "escalada", label: "Escalada (manchetes)" },
+  { value: "giro", label: "Giro de notícias" },
+  { value: "servico", label: "Serviço (trânsito/tempo)" },
+  { value: "plantao", label: "Plantão" },
+  { value: "reporter", label: "Notícia em dupla (repórter)" },
   { value: "chamada_ouvinte", label: "Chamada ao ouvinte" },
+];
+
+// Sequência sugerida pro perfil "jornalismo" (ver Fase 4 do plano de jornalismo) -- espelha
+// backend app/llm/config_generator.py; usada só como ponto de partida editável, igual
+// ROTEIRO_MUSICAL em lib/formatoPrograma.ts.
+export const ROTEIRO_JORNALISMO = [
+  "abertura", "escalada", "noticia", "noticia", "servico", "comentario", "chamada_ouvinte", "giro",
 ];
 
 const PATROCINADOR_BLOCO_RE = /^patrocinador:(\d+)$/;
@@ -290,6 +313,26 @@ export function rotuloBloco(
   }
   return BLOCOS_PRESET.find((b) => b.value === tipo)?.label ?? tipo;
 }
+
+// Fonte de apuração de notícia (feed RSS de órgão oficial/imprensa/assessoria) -- ver backend
+// app/models/fonte_noticia.py e app/config/router.py (CRUD /config/fontes-noticia). Sem
+// url_feed, a fonte fica de fora da coleta do worker (ver app/news/worker.py).
+export type FonteNoticia = {
+  id: number;
+  nome: string;
+  url_feed: string;
+  tipo: "oficial" | "imprensa" | "assessoria";
+  peso: number;
+  ativa: boolean;
+};
+
+export const FONTE_NOTICIA_VAZIA: Omit<FonteNoticia, "id"> = {
+  nome: "",
+  url_feed: "",
+  tipo: "imprensa",
+  peso: 1,
+  ativa: true,
+};
 
 export type Patrocinador = {
   id: number;

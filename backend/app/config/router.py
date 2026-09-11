@@ -13,12 +13,14 @@ from app.llm.config_generator import gerar_configuracao_ia, gerar_programa_ia
 from app.llm.tipos_radio import TIPOS_RADIO, tipo_radio_valido
 from app.models.account import Account
 from app.models.fila_ao_vivo import FilaAoVivo
+from app.models.fonte_noticia import FonteNoticia
 from app.models.interaction_log import InteractionLog
 from app.models.musica_historico import MusicaHistorico
 from app.models.programa import Programa
 from app.models.programa_radialista import ProgramaRadialista
 from app.models.radio_config import RadioConfig
 from app.models.tema_historico import TemaHistorico
+from app.news.seeds_fontes import criar_seeds_fontes
 from app.billing.limites import limite_agentes_efetivo, limite_radialistas_por_programa
 from app.tts.voices import voz_valida_para_conta
 
@@ -134,6 +136,12 @@ class ProgramaRequest(BaseModel):
     pode_pesquisar: bool = False
     fontes_pesquisa: list[str] = Field(default_factory=list)
     instrucoes_pesquisa: str = ""
+
+    # Ver Fase 4/5 do plano de jornalismo (app.models.programa.Programa) -- preset de criacao e
+    # dosagem de noticia, respectivamente. So preenchem campos/comportamento, o usuario continua
+    # livre pra editar o resto do programa manualmente depois.
+    perfil: Literal["musical", "jornalismo", "esportivo", "variedades", "religioso", "comunitario"] = "musical"
+    dose_noticia: Literal["nenhuma", "pitada", "equilibrada", "jornalistica"] = "jornalistica"
 
 
 class ProgramaResponse(ProgramaRequest):
@@ -773,4 +781,82 @@ def remover_radialista_programa(
     if vinculo is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vinculo nao encontrado")
     db.delete(vinculo)
+    db.commit()
+
+
+class FonteNoticiaRequest(BaseModel):
+    nome: str
+    url_feed: str = ""
+    tipo: Literal["oficial", "imprensa", "assessoria"] = "imprensa"
+    peso: float = 1.0
+    ativa: bool = True
+
+
+class FonteNoticiaResponse(FonteNoticiaRequest):
+    id: int
+
+    model_config = {"from_attributes": True}
+
+
+def _buscar_fonte_noticia(db: Session, account: Account, fonte_id: int) -> FonteNoticia:
+    fonte = db.query(FonteNoticia).filter_by(id=fonte_id, account_id=account.id).first()
+    if fonte is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fonte de notícia não encontrada")
+    return fonte
+
+
+@router.get("/fontes-noticia", response_model=list[FonteNoticiaResponse])
+def listar_fontes_noticia(account: Account = Depends(get_current_account), db: Session = Depends(get_db)):
+    return db.query(FonteNoticia).filter_by(account_id=account.id).order_by(FonteNoticia.id.asc()).all()
+
+
+@router.post("/fontes-noticia", response_model=FonteNoticiaResponse, status_code=status.HTTP_201_CREATED)
+def criar_fonte_noticia(
+    dados: FonteNoticiaRequest,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    fonte = FonteNoticia(account_id=account.id, **dados.model_dump())
+    db.add(fonte)
+    db.commit()
+    db.refresh(fonte)
+    logger.info("Fonte de notícia criada: id=%s account_id=%s", fonte.id, account.id)
+    return fonte
+
+
+@router.post(
+    "/fontes-noticia/seeds",
+    response_model=list[FonteNoticiaResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+def criar_fontes_noticia_seed(account: Account = Depends(get_current_account), db: Session = Depends(get_db)):
+    """Cria o conjunto padrão de fontes oficiais a partir da cidade da conta (ver
+    app.news.seeds_fontes) -- nasce sem URL de feed, cabe à rádio completar antes de entrar na
+    coleta do worker (ver app.news.worker)."""
+    return criar_seeds_fontes(db, account)
+
+
+@router.put("/fontes-noticia/{fonte_id}", response_model=FonteNoticiaResponse)
+def atualizar_fonte_noticia(
+    fonte_id: int,
+    dados: FonteNoticiaRequest,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    fonte = _buscar_fonte_noticia(db, account, fonte_id)
+    for campo, valor in dados.model_dump().items():
+        setattr(fonte, campo, valor)
+    db.commit()
+    db.refresh(fonte)
+    return fonte
+
+
+@router.delete("/fontes-noticia/{fonte_id}", status_code=status.HTTP_204_NO_CONTENT)
+def excluir_fonte_noticia(
+    fonte_id: int,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    fonte = _buscar_fonte_noticia(db, account, fonte_id)
+    db.delete(fonte)
     db.commit()

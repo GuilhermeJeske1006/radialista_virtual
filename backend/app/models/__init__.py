@@ -4,9 +4,12 @@ from app.models.categoria_vinheta import CategoriaVinheta
 from app.models.compra_excedente import CompraExcedente
 from app.models.convite_usuario import ConviteUsuario
 from app.models.fila_ao_vivo import FilaAoVivo
+from app.models.fonte_noticia import FonteNoticia
 from app.models.interaction_log import InteractionLog
 from app.models.musica import Musica
 from app.models.musica_historico import MusicaHistorico
+from app.models.noticia import Noticia
+from app.models.noticia_historico import NoticiaHistorico
 from app.models.notificacao import Notificacao
 from app.models.password_reset_token import PasswordResetToken
 from app.models.patrocinador import Patrocinador
@@ -41,6 +44,9 @@ __all__ = [
     "CategoriaVinheta",
     "SuperAdmin",
     "TemaHistorico",
+    "FonteNoticia",
+    "Noticia",
+    "NoticiaHistorico",
 ]
 
 from app.models.conversa_ouvinte import ConversaOuvinte

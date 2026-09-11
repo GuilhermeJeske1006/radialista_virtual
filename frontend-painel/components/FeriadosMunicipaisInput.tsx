@@ -60,7 +60,7 @@ export default function FeriadosMunicipaisInput({ feriados, onChange }: Props) {
           onChange={(e) => setData(e.target.value)}
           placeholder="MM-DD"
           maxLength={5}
-          className={`${inputClass} w-24 shrink-0`}
+          className={`${inputClass} !w-24 shrink-0`}
         />
         <input
           type="text"

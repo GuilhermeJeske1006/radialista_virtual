@@ -46,11 +46,24 @@ from app.models.account import Account
 from app.models.biblioteca_audio import BibliotecaAudioItem
 from app.models.fila_ao_vivo import FilaAoVivo
 from app.models.musica_historico import MusicaHistorico
+from app.models.noticia_historico import NoticiaHistorico
 from app.models.patrocinador import Patrocinador
 from app.models.programa import Programa
 from app.models.programa_radialista import ProgramaRadialista
 from app.models.radio_config import RadioConfig
 from app.models.tema_historico import TemaHistorico
+from app.news.pauta import (
+    NoticiaPauta,
+    correcao_pendente,
+    montar_escalada,
+    montar_giro,
+    montar_lauda,
+    proxima_noticia,
+    proxima_para_plantao,
+    proximas_noticias,
+    proximas_para_giro,
+)
+from app.news.validacao import frase_proibida_em, tem_atribuicao
 from app.postprod.client import processar_audio
 from pydub.exceptions import PydubException
 from app.tts.client import sintetizar_audio, sintetizar_audio_stream, tts_habilitado
@@ -355,6 +368,11 @@ _DESCRICAO_BLOCO = {
     "musica": "chamada de música: anuncia a faixa que vai tocar em seguida",
     "comentario": "comentário: fala mais pausada e reflexiva sobre um assunto permitido",
     "noticia": "notícia: fala mais serena e informativa sobre um fato permitido",
+    "escalada": "escalada: manchetes rápidas, uma frase cada, cartão de visitas do jornal",
+    "giro": "giro: atualização rápida de notícias já dadas, com lide novo em cada uma",
+    "servico": "serviço: utilidade pública (trânsito, tempo, prazo, telefone) direto ao ponto",
+    "plantao": "plantão: notícia urgente de alto impacto, corta o ritmo normal do programa",
+    "reporter": "notícia em dupla: âncora chama e repórter convidado dá o boletim",
     "chamada_ouvinte": "chamada ao ouvinte: convite ou recado, tom próximo e caloroso",
     "encerramento": "encerramento do programa: despedida final, agradece o ouvinte e fecha a transmissão",
 }
@@ -377,6 +395,26 @@ _PROSODIA_BLOCO = {
         "Este bloco é uma NOTÍCIA: tom mais sério e sereno, ritmo mais lento que o normal, "
         "pausas claras com vírgula e ponto final entre fato e comentário."
     ),
+    "escalada": (
+        "Este bloco é a ESCALADA: ritmo marcado e rápido, uma frase seca por manchete, sem "
+        "desenvolver nenhuma -- é o cartão de visitas do jornal, não a matéria em si."
+    ),
+    "giro": (
+        "Este bloco é o GIRO: ritmo ágil, tom informativo, uma atualização curta pra cada pauta, "
+        "sem repetir o que já foi dito antes."
+    ),
+    "servico": (
+        "Este bloco é SERVIÇO: direto ao ponto, tom prático e claro, como quem está lendo uma "
+        "informação útil que o ouvinte vai anotar."
+    ),
+    "plantao": (
+        "Este bloco é um PLANTÃO: corte o ritmo normal do programa, tom mais seco, direto e sério, "
+        "vá ao fato imediatamente, sem preâmbulo."
+    ),
+    "reporter": (
+        "Este bloco é NOTÍCIA EM DUPLA: tom sério e sereno como notícia comum, mas em diálogo -- "
+        "quem chama passa a palavra, quem recebe dá o boletim e fecha com um retorno curto."
+    ),
     "chamada_ouvinte": (
         "Este bloco é a CHAMADA AO OUVINTE: tom caloroso e próximo, ritmo normal a levemente mais rápido, "
         "acentue o nome do ouvinte quando houver."
@@ -386,6 +424,61 @@ _PROSODIA_BLOCO = {
         "feche com uma despedida clara, sem deixar no ar."
     ),
 }
+
+# Todo bloco derivado de apuração real (ver app.news.pauta) -- compartilham a mesma pauta/lauda,
+# redação e validação (Fase 3), só mudando prosódia e recorte editorial (Fase 4 do plano de
+# jornalismo). "noticia" continua sendo o nome genérico/default.
+_CATEGORIAS_NOTICIA_LIKE = ("noticia", "escalada", "giro", "servico", "plantao", "reporter")
+
+# Instrução extra por categoria, além das REGRAS DE REDAÇÃO comuns (ver abaixo) -- diferença de
+# recorte editorial entre escalada/giro/plantão e a notícia comum.
+_INSTRUCAO_EXTRA_CATEGORIA_NOTICIA = {
+    "escalada": (
+        "Leia como ESCALADA: cada manchete abaixo em uma frase só, ritmo marcado, sem desenvolver "
+        "nenhuma delas agora -- é o cartão de visitas do jornal, a matéria em si vem depois."
+    ),
+    "giro": (
+        "Leia como GIRO: atualização rápida das pautas abaixo, um lide novo pra cada uma, sem "
+        "repetir a abertura usada da última vez que cada uma foi ao ar."
+    ),
+    "servico": (
+        "Priorize o campo Serviço da pauta abaixo -- é a informação prática que o ouvinte precisa "
+        "anotar agora (desvio, prazo, telefone, horário)."
+    ),
+    "plantao": (
+        "PLANTÃO: esta notícia tem urgência/impacto acima do normal. Vá direto ao fato, sem os "
+        "recursos de fala natural do resto do programa."
+    ),
+    "reporter": (
+        "Formato de dupla: quem chama primeiro faz a cabeça (uma frase curta anunciando o boletim) "
+        "e passa a palavra pra quem dá a notícia; quem recebe faz o boletim seguindo a pauta e fecha "
+        "com um retorno curto pro primeiro (nota-pé), sem repetir a cabeça."
+    ),
+}
+
+# Redação radiofônica de verdade (ver Fase 3 do plano de jornalismo) -- sem isso, o locutor com
+# pauta real ainda escreve como quem nunca ouviu rádio: informação solta sem dono, incerteza
+# narrada como regra própria em vez de estado da apuração. Carregado em toda categoria de
+# _CATEGORIAS_NOTICIA_LIKE pra não poluir o prompt dos outros blocos (comentário já tem seu
+# próprio tom, mais livre).
+_REGRAS_REDACAO_NOTICIA = (
+    "REDAÇÃO DE NOTÍCIA -- obrigatório:\n"
+    "1. Primeira frase = o fato mais novo, uma ideia só, voz ativa, sujeito-verbo-objeto.\n"
+    "2. A atribuição vem ANTES do fato, sempre: \"Segundo a Defesa Civil, vinte casas foram "
+    "atingidas\" -- nunca a informação solta, nunca a fonte só no fim da frase.\n"
+    "3. Presente ou pretérito perfeito recente. Nunca \"havia sido\", nunca \"teria\".\n"
+    "4. Números arredondados e por extenso: \"quase três mil\", não \"dois mil oitocentos e "
+    "quarenta e sete\".\n"
+    "5. Cargo antes do nome: \"o secretário de Obras, Carlos Mendes\".\n"
+    "6. Carimbe a hora do dado quando ele puder mudar: \"esse é o número do boletim das dez horas\".\n"
+    "7. Diga o que o ouvinte precisa fazer, se houver serviço na pauta (desvio, telefone, prazo).\n"
+    "8. Feche com o próximo passo: quem está apurando, quando sai o próximo dado.\n"
+    "9. Quando faltar informação, relate o ESTADO DA APURAÇÃO como fato (\"a perícia ainda "
+    "trabalha no local\", \"a empresa foi procurada e não se manifestou até agora\"). NUNCA fale "
+    "das suas próprias regras, do que você pode ou não afirmar, nem prometa voltar com novidade.\n"
+    "10. Sem adjetivo de opinião, sem \"infelizmente\", sem \"que absurdo\", sem juízo sobre quem "
+    "aparece na notícia."
+)
 
 # Na rota integrada /proxima, classificar o tom com outra chamada ao LLM depois de o texto
 # estar pronto somava latencia sem mudar de forma confiavel a direcao editorial ja definida pelo
@@ -397,6 +490,11 @@ _TOM_SINTESE_POR_CATEGORIA = {
     "chamada_ouvinte": "energico",
     "comentario": "calmo",
     "noticia": "calmo",
+    "escalada": "energico",
+    "giro": "neutro",
+    "servico": "neutro",
+    "plantao": "energico",
+    "reporter": "calmo",
     "encerramento": "calmo",
 }
 
@@ -543,7 +641,7 @@ def _intervalo_transicao_ms(categoria_anterior: str | None, categoria_atual: str
     _proxima_variacao)."""
     if categoria_anterior is None:
         return _INTERVALO_TRANSICAO_PADRAO_MS
-    if "noticia" in (categoria_anterior, categoria_atual):
+    if categoria_anterior in _CATEGORIAS_NOTICIA_LIKE or categoria_atual in _CATEGORIAS_NOTICIA_LIKE:
         return random.randint(*_INTERVALO_TRANSICAO_NOTICIA_MS)
     if "musica" in (categoria_anterior, categoria_atual) and categoria_anterior != categoria_atual:
         return random.randint(*_INTERVALO_TRANSICAO_ANIMADA_MS)
@@ -556,7 +654,7 @@ def _pausa_antes_ms(anterior: str | None, atual: str) -> int:
         return 0
     if anterior == atual == "musica":
         return 0
-    if "noticia" in (anterior, atual):
+    if anterior in _CATEGORIAS_NOTICIA_LIKE or atual in _CATEGORIAS_NOTICIA_LIKE:
         return 800
     if "vinheta" in (anterior, atual) or "musica" in (anterior, atual):
         return 150
@@ -959,7 +1057,10 @@ _PATROCINADOR_RE = re.compile(r"^patrocinador:(\d+)$")
 _VINHETA_RE = re.compile(r"^vinheta:(\d+)$")
 
 # tipos de bloco com comportamento automatico (busca de musica, prosodia, fila do whatsapp).
-_TIPOS_COM_COMPORTAMENTO = ("musica", "noticia", "chamada_ouvinte", "abertura", "comentario", "encerramento")
+_TIPOS_COM_COMPORTAMENTO = (
+    "musica", "noticia", "escalada", "giro", "servico", "plantao", "reporter",
+    "chamada_ouvinte", "abertura", "comentario", "encerramento",
+)
 
 
 def _sem_acento(texto: str) -> str:
@@ -1005,11 +1106,14 @@ def _categoria_bloco(tipo: str) -> str:
     for base in _TIPOS_COM_COMPORTAMENTO:
         if normalizado == base or normalizado.startswith((f"{base} ", f"{base}_")):
             return base
+    if re.match(r"^manchetes?(?:\b|_)", normalizado.replace("_", " ")):
+        return "escalada"
     if re.match(
-        r"^(manchetes?|boletim|jornal|giro de noticias|tempo e transito|previsao (?:do )?tempo|"
-        r"utilidade publica|agenda cultural|cotacoes)(?:\b|_)",
+        r"^(tempo e transito|previsao (?:do )?tempo|utilidade publica|cotacoes)(?:\b|_)",
         normalizado.replace("_", " "),
     ):
+        return "servico"
+    if re.match(r"^(boletim|jornal|agenda cultural)(?:\b|_)", normalizado.replace("_", " ")):
         return "noticia"
     return _classificar_bloco_customizado(tipo, normalizado) or normalizado
 
@@ -1626,11 +1730,15 @@ def gerar_proxima_fala(
         tipo = "comentario"  # vinheta excluida/desativada -- nao trava o ao vivo
 
     categoria = _categoria_bloco(tipo)
-    if categoria == "noticia" and not (
-        programa.pode_pesquisar or programa.tipos_noticias or programa.fontes_noticias
-        or tipo in (programa.estrutura_blocos or [])
+    if categoria in _CATEGORIAS_NOTICIA_LIKE and (
+        getattr(programa, "dose_noticia", "jornalistica") == "nenhuma"
+        or not (
+            programa.pode_pesquisar or programa.tipos_noticias or programa.fontes_noticias
+            or tipo in (programa.estrutura_blocos or [])
+        )
     ):
-        # Sem fonte de noticia configurada: nao arrisca fala vaga/incerta, toca musica direto.
+        # Sem fonte de noticia configurada (ou dose_noticia="nenhuma", ver Fase 5 do plano de
+        # jornalismo): nao arrisca fala vaga/incerta, toca musica direto.
         tipo = "musica"
         categoria = "musica"
     historico = "\n".join(dados.historico[-6:]) or "Programa acabou de entrar no ar."
@@ -1876,7 +1984,7 @@ def gerar_proxima_fala(
         if ajuste_energia:
             system_prompt_linhas.append(ajuste_energia)
 
-    if categoria != "noticia" and not formato_musical:
+    if categoria not in _CATEGORIAS_NOTICIA_LIKE and not formato_musical:
         opcoes_fala_natural = [
             "um maneirismo no começo da frase (\"então\", \"olha só\", \"e aí\", \"pô\")",
             "uma autocorreção leve (\"quer dizer\", \"ou melhor\", \"deixa eu reformular\")",
@@ -1907,19 +2015,19 @@ def gerar_proxima_fala(
             + f"; ou {opcoes_fala_natural[-1]}. Nem toda fala precisa de um desses -- use só quando sair "
             "natural, muitas falas seguidas sem nenhum também é normal."
         )
-        if ultima_categoria == "noticia":
+        if ultima_categoria in _CATEGORIAS_NOTICIA_LIKE:
             system_prompt_linhas.append(
                 "Como o bloco anterior foi uma notícia, se usar algum desses recursos de fala natural agora, "
                 "mantenha contido -- nada de riso ou empolgação solta logo depois de assunto sério; prefira "
                 "algo como \"bom...\", \"então tá\" ou \"pois é\" em vez de ênfase animada."
             )
-    elif categoria == "noticia":
+    elif categoria in _CATEGORIAS_NOTICIA_LIKE:
         system_prompt_linhas.append(
             "Notícia pede tom sério e direto: nada de maneirismo, autocorreção encenada, repetição de ênfase "
             "ou hesitação nesse bloco."
         )
 
-    if not formato_musical and categoria != "noticia" and random.random() < _PROB_MUDANCA_DE_IDEIA:
+    if not formato_musical and categoria not in _CATEGORIAS_NOTICIA_LIKE and random.random() < _PROB_MUDANCA_DE_IDEIA:
         system_prompt_linhas.append(
             "Rara exceção pra esta fala: em vez de só reformular a mesma frase (autocorreção leve), você "
             "pode genuinamente mudar de ideia no meio dela -- começar afirmando ou elogiando algo e emendar "
@@ -1927,7 +2035,7 @@ def gerar_proxima_fala(
             "Use isso raro; a maioria das falas não precisa disso."
         )
 
-    if not formato_musical and categoria != "noticia" and random.random() < _PROB_IMPERFEICAO_GRAMATICAL:
+    if not formato_musical and categoria not in _CATEGORIAS_NOTICIA_LIKE and random.random() < _PROB_IMPERFEICAO_GRAMATICAL:
         system_prompt_linhas.append(
             "Rara exceção pra esta fala: pode soar com uma concordância um pouco mais coloquial e real, tipo "
             "preferir 'a gente vai' a 'nós vamos', ou uma frase que muda levemente de estrutura no meio como "
@@ -1935,7 +2043,7 @@ def gerar_proxima_fala(
             "entendimento."
         )
 
-    if settings.elevenlabs_model == "eleven_v3" and categoria != "noticia":
+    if settings.elevenlabs_model == "eleven_v3" and categoria not in _CATEGORIAS_NOTICIA_LIKE:
         system_prompt_linhas.append(
             "Você pode inserir tags de direção vocal no ponto exato da fala onde fazem sentido, "
             "escolhendo só entre: [excited], [calm], [laughs], [sighs], [whispers], [sarcastic]. Insira "
@@ -2051,12 +2159,62 @@ def gerar_proxima_fala(
         )
 
     pesquisa_noticias = None
-    if categoria in ("comentario", "noticia") and (programa.pode_pesquisar or categoria == "noticia"):
+    pauta_noticia: NoticiaPauta | None = None
+    pautas_noticia: list[NoticiaPauta] = []
+    correcao: NoticiaPauta | None = None
+    if categoria in _CATEGORIAS_NOTICIA_LIKE:
+        # Correção (ver Fase 7 do plano de jornalismo) tem prioridade sobre qualquer outra pauta,
+        # inclusive sobre o formato normal de escalada/giro -- corrigir o que já foi ao ar vale
+        # mais que continuar a sequência normal do bloco.
+        correcao = correcao_pendente(db, programa)
+        if correcao is not None:
+            pauta_noticia = correcao
+            pautas_noticia = [correcao]
+        elif categoria == "escalada":
+            pautas_noticia = proximas_noticias(db, programa, account, limite=3)
+        elif categoria == "giro":
+            pautas_noticia = proximas_para_giro(db, programa, account, limite=2)
+        elif categoria == "plantao":
+            pauta_noticia = proxima_para_plantao(db, programa, account)
+            pautas_noticia = [pauta_noticia] if pauta_noticia else []
+        else:
+            # noticia | servico | reporter: uma pauta só (ver app.news.pauta).
+            pauta_noticia = proxima_noticia(db, programa, account)
+            pautas_noticia = [pauta_noticia] if pauta_noticia else []
+        if len(pautas_noticia) == 1:
+            pauta_noticia = pautas_noticia[0]
+
+    # Pauta real vinda do worker de apuracao (ver app.news.worker/app.news.pauta) tem prioridade
+    # sobre a pesquisa via web_search: e' mais barata, mais fresca e ja' vem com os campos de
+    # lauda extraidos na curadoria. So' cai pra pesquisar_noticias quando nao ha nenhuma pauta
+    # disponivel (ver Fase 1/2 do plano de jornalismo).
+    deve_pesquisar = categoria in _CATEGORIAS_NOTICIA_LIKE or (categoria == "comentario" and programa.pode_pesquisar)
+    if not pautas_noticia and deve_pesquisar:
         pesquisa_noticias = pesquisar_noticias(
             programa, account, agora=agora_local,
             assunto=conteudo_quadro_fixo or (assunto_sugerido if categoria == "comentario" else tipo),
         )
         system_prompt_linhas.append(contexto_noticias(pesquisa_noticias, categoria=categoria))
+
+    if correcao is not None:
+        system_prompt_linhas.append(montar_lauda(pauta_noticia))
+    elif categoria == "escalada" and pautas_noticia:
+        system_prompt_linhas.append(montar_escalada(pautas_noticia))
+    elif categoria == "giro" and pautas_noticia:
+        system_prompt_linhas.append(montar_giro(pautas_noticia))
+    elif pauta_noticia is not None:
+        system_prompt_linhas.append(montar_lauda(pauta_noticia))
+
+    if categoria in _CATEGORIAS_NOTICIA_LIKE:
+        system_prompt_linhas.append(_REGRAS_REDACAO_NOTICIA)
+        # So' faz sentido instruir o recorte especifico (ex.: "esta noticia e' urgente", pro
+        # plantao) quando ha' de fato uma pauta -- sem isso, viraria afirmacao falsa sobre um
+        # fato que nao existe (ver fallback de pesquisar_noticias/contexto_noticias acima).
+        instrucao_extra_categoria = (
+            _INSTRUCAO_EXTRA_CATEGORIA_NOTICIA.get(categoria) if (pautas_noticia or correcao) else None
+        )
+        if instrucao_extra_categoria:
+            system_prompt_linhas.append(instrucao_extra_categoria)
 
     if categoria == "noticia" and "leve" in _perfil_editorial(agora_local.hour):
         system_prompt_linhas.append(
@@ -2269,9 +2427,22 @@ def gerar_proxima_fala(
     # nao entra em loop pra nao multiplicar custo/latencia por fala. historico_falas_categoria ja
     # foi buscado antes do prompt (ver aviso de abertura/fechamento acima), reaproveitado aqui.
     fala_parecida = _fala_semelhante_no_historico(fala, historico_falas_categoria)
-    if fala_parecida or excedeu_orcamento:
+    # Mesma rede de seguranca, agora pra redacao de noticia (ver Fase 3 do plano de jornalismo):
+    # locutor narrando a propria regra ("sem especular") em vez de noticiar, ou informacao sem
+    # fonte atribuida -- os dois erros mais frequentes mesmo com pauta real no prompt.
+    frase_proibida = frase_proibida_em(fala) if categoria in _CATEGORIAS_NOTICIA_LIKE else None
+    # Atribuição só é checada quando há UMA fonte central na pauta (noticia/servico/plantao/
+    # reporter/correção) -- escalada/giro citam várias fontes de uma vez, checagem por
+    # substring simples não se aplica bem a esse formato.
+    falta_atribuicao = (
+        categoria in _CATEGORIAS_NOTICIA_LIKE
+        and categoria not in ("escalada", "giro")
+        and (pauta_noticia is not None or (pesquisa_noticias is not None and pesquisa_noticias.status == "ok"))
+        and not tem_atribuicao(fala, pauta_noticia.fonte_nome if pauta_noticia is not None else "")
+    )
+    if fala_parecida or excedeu_orcamento or frase_proibida or falta_atribuicao:
         logger.info(
-            "Revisando fala por repetição ou duração: programa_id=%s tipo=%s", programa.id, tipo
+            "Revisando fala por repetição, duração ou redação de notícia: programa_id=%s tipo=%s", programa.id, tipo
         )
         prompt_retry = system_prompt + (
             "\n\nATENÇÃO: a fala que você ia gerar agora ficou muito parecida com esta fala anterior sua, "
@@ -2284,10 +2455,25 @@ def gerar_proxima_fala(
                 f"Reescreva com no máximo {limite_palavras} palavras, preservando os fatos e o pedido real. "
                 "Não corte frases nem nomes pela metade."
             )
+        if frase_proibida:
+            prompt_retry += (
+                f'\nA versão anterior usou a construção proibida "{frase_proibida}", narrando a própria '
+                "regra em vez de noticiar. Reescreva relatando o estado da apuração como fato (ver regra 9 "
+                "de REDAÇÃO DE NOTÍCIA), sem mencionar o que você pode ou não afirmar."
+            )
+        if falta_atribuicao and not frase_proibida:
+            prompt_retry += (
+                "\nA versão anterior não atribuiu a informação a nenhuma fonte. Reescreva citando a fonte "
+                "pelo nome ANTES do fato (ver regra 2 de REDAÇÃO DE NOTÍCIA, ex.: 'Segundo a Defesa Civil...')."
+            )
         falas_bloco, fala = _gerar_falas_bloco(prompt_retry)
         if limite_palavras is not None and contar_palavras(fala) > limite_palavras:
             logger.warning("live_orcamento_excedido programa_id=%s tipo=%s palavras=%s limite=%s",
                            programa.id, tipo, contar_palavras(fala), limite_palavras)
+        if categoria in _CATEGORIAS_NOTICIA_LIKE and frase_proibida_em(fala):
+            logger.warning("live_noticia_frase_proibida_apos_retry programa_id=%s tipo=%s", programa.id, tipo)
+        if falta_atribuicao and not tem_atribuicao(fala, pauta_noticia.fonte_nome if pauta_noticia is not None else ""):
+            logger.warning("live_noticia_sem_atribuicao_apos_retry programa_id=%s tipo=%s", programa.id, tipo)
 
     musicas_bloco: list[MusicaEncontrada] = []
     if categoria == "musica":
@@ -2302,6 +2488,18 @@ def gerar_proxima_fala(
 
     if categoria in ("comentario", "noticia") and fala.strip():
         _registrar_tema_em_background(programa.id, fala)
+
+    if categoria in _CATEGORIAS_NOTICIA_LIKE and pautas_noticia and fala.strip():
+        # Auditoria + base pro angulo/repeticao da proxima vez que cada uma dessas noticias
+        # concorrer a pauta de novo (ver app.news.pauta, ANGULOS_NOTICIA) -- escalada/giro
+        # registram uma linha por manchete lida, noticia/servico/plantao/reporter/correção
+        # registram só a sua.
+        for pauta_lida in pautas_noticia:
+            db.add(NoticiaHistorico(
+                programa_id=programa.id, noticia_id=pauta_lida.noticia_id,
+                angulo=pauta_lida.angulo, fala=fala,
+            ))
+        db.commit()
 
     if categoria == "abertura" and total_falas == 0 and fala.strip():
         fio_condutor_novo = classificar_fio_condutor(fala)

@@ -18,7 +18,9 @@ _CAMPOS_PROGRAMA_JSON = (
     '"ia_pode_adicionar_blocos": bool, "generos_musicais": [str], '
     '"musicas_permitidas": [str], "musicas_bloqueadas": [str], "criterios_busca_musicas": str, '
     '"assuntos_ao_vivo": [str], "tipos_noticias": [str], "fontes_noticias": [str], '
-    '"pode_pesquisar": bool, "fontes_pesquisa": [str], "instrucoes_pesquisa": str}'
+    '"pode_pesquisar": bool, "fontes_pesquisa": [str], "instrucoes_pesquisa": str, '
+    '"perfil": "musical" ou "jornalismo" ou "esportivo" ou "variedades" ou "religioso" ou '
+    '"comunitario", "dose_noticia": "nenhuma" ou "pitada" ou "equilibrada" ou "jornalistica"}'
 )
 
 _CAMPOS_RADIALISTA_JSON = (
@@ -31,6 +33,13 @@ _REGRAS_COMUNS = [
     "fontes_noticias com domínios ou URLs reais dos veículos (não invente portais locais). "
     "Use instrucoes_pesquisa para priorizar notícias recentes da cidade/região, conferir datas e "
     "atribuir os fatos às fontes. Notícias não devem virar apenas curiosidades ou efemérides.",
+    "perfil='jornalismo' é pra rádio majoritariamente noticiosa: use dose_noticia='jornalistica' e "
+    "estrutura_blocos podendo incluir, além de 'noticia', os blocos 'escalada' (manchetes rápidas de "
+    "abertura), 'giro' (atualização de notícias já dadas), 'servico' (trânsito/tempo/utilidade "
+    "pública) e 'plantao' (só pra notícia de urgência real). Pra qualquer outro perfil, notícia é "
+    "dosagem, não o programa inteiro: use dose_noticia='pitada' (programa musical com raríssima "
+    "menção a notícia) ou 'equilibrada' (alguma notícia, sem virar jornal), e só inclua bloco "
+    "'noticia'/'servico' na estrutura se isso realmente fizer sentido pro pedido do usuário.",
     "Use perfil_programacao='musical_companhia' quando o pedido for um programa predominantemente "
     "musical, com poucas intervenções de companhia. Nesse formato use ia_pode_adicionar_blocos=false "
     "e estrutura_blocos=['musica','musica','identificacao','musica','musica','retomada']; a abertura "
@@ -261,6 +270,10 @@ def _montar_system_prompt_programa(
     return "\n".join(linhas)
 
 
+_PERFIS_VALIDOS = ("musical", "jornalismo", "esportivo", "variedades", "religioso", "comunitario")
+_DOSES_NOTICIA_VALIDAS = ("nenhuma", "pitada", "equilibrada", "jornalistica")
+
+
 def _sanitizar_programa(programa: dict) -> dict:
     bloqueados = {termo.lower() for termo in TERMOS_SEMPRE_BLOQUEADOS}
     programa["topicos_permitidos"] = [
@@ -269,6 +282,10 @@ def _sanitizar_programa(programa: dict) -> dict:
     programa["generos_musicais"] = [
         t for t in (programa.get("generos_musicais") or []) if str(t).lower() not in bloqueados
     ]
+    if programa.get("perfil") not in _PERFIS_VALIDOS:
+        programa["perfil"] = "musical"
+    if programa.get("dose_noticia") not in _DOSES_NOTICIA_VALIDAS:
+        programa["dose_noticia"] = "jornalistica" if programa["perfil"] == "jornalismo" else "pitada"
     return programa
 
 

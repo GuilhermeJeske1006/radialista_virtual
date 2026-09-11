@@ -8,6 +8,7 @@ import RoteiroBlocosEditor from "./RoteiroBlocosEditor";
 import QuadrosFixosInput from "./QuadrosFixosInput";
 import FeriadosMunicipaisInput from "./FeriadosMunicipaisInput";
 import RadialistasProgramaSection from "./RadialistasProgramaSection";
+import FontesNoticiaSection from "./FontesNoticiaSection";
 import { apiFetch, ApiError } from "../lib/api";
 import {
   CategoriaVinheta,
@@ -17,6 +18,7 @@ import {
   Programa,
   PROGRAMA_VAZIO,
   RadioPerfil,
+  ROTEIRO_JORNALISMO,
   rotuloBloco,
   TipoRadio,
 } from "../lib/types";
@@ -424,6 +426,41 @@ export default function EditarProgramaForm({
         </div>
 
         <div>
+          <label htmlFor="perfil" className={labelClass}>Perfil do programa</label>
+          <select
+            id="perfil"
+            className={inputClass}
+            value={programa.perfil ?? "musical"}
+            onChange={(e) => setPrograma({ ...programa, perfil: e.target.value as Programa["perfil"] })}
+          >
+            <option value="musical">Musical</option>
+            <option value="jornalismo">Jornalismo</option>
+            <option value="esportivo">Esportivo</option>
+            <option value="variedades">Variedades</option>
+            <option value="religioso">Religioso</option>
+            <option value="comunitario">Comunitário</option>
+          </select>
+          <p className="mt-1 text-xs text-fg/60">
+            Orienta o preenchimento inicial (roteiro sugerido, dosagem de notícia) -- você continua
+            livre pra editar tudo manualmente depois.
+          </p>
+          {programa.perfil === "jornalismo" && (
+            <button
+              type="button"
+              className="mt-2 font-medium text-amber-text hover:text-amber-dim text-sm"
+              onClick={() => setPrograma({
+                ...programa,
+                estrutura_blocos: [...ROTEIRO_JORNALISMO],
+                dose_noticia: "jornalistica",
+                pode_pesquisar: true,
+              })}
+            >
+              Usar estrutura de jornalismo sugerida
+            </button>
+          )}
+        </div>
+
+        <div>
           <label htmlFor="perfil-programacao" className={labelClass}>Formato do programa</label>
           <select
             id="perfil-programacao"
@@ -634,15 +671,37 @@ export default function EditarProgramaForm({
               onChange={(tags) => setPrograma({ ...programa, tipos_noticias: tags })}
             />
             <TagInput
-              label="Fontes de notícias (domínios ou URLs)"
+              label="Fontes de notícias (domínios ou URLs, fallback de busca)"
               tags={programa.fontes_noticias}
               onChange={(tags) => setPrograma({ ...programa, fontes_noticias: tags })}
             />
+            <div>
+              <label htmlFor="dose-noticia" className={labelClass}>Dosagem de notícia</label>
+              <select
+                id="dose-noticia"
+                className={inputClass}
+                value={programa.dose_noticia ?? "jornalistica"}
+                onChange={(e) => setPrograma({ ...programa, dose_noticia: e.target.value as Programa["dose_noticia"] })}
+              >
+                <option value="nenhuma">Nenhuma -- sem notícia neste programa</option>
+                <option value="pitada">Pitada -- raríssima, prioriza serviço/agenda leve</option>
+                <option value="equilibrada">Equilibrada -- alguma notícia, sem virar jornal</option>
+                <option value="jornalistica">Jornalística -- sem restrição de pauta</option>
+              </select>
+            </div>
           </div>
           <p className="mb-3 text-xs text-fg/60">
-            Para apresentar notícias, inclua um bloco de notícia no roteiro e ative “Pode pesquisar” abaixo.
-            Informe os sites dos veículos para restringir a busca às fontes desejadas.
+            Para apresentar notícias, inclua um bloco de notícia/escalada/giro/serviço/plantão no
+            roteiro e ative “Pode pesquisar” abaixo. Notícia de verdade vem das fontes com feed RSS
+            cadastradas abaixo; sem pauta apurada, o sistema busca fontes indicadas aqui como
+            reforço.
           </p>
+          <div className="mb-4">
+            <label className={labelClass}>
+              Fontes de notícia (feed RSS, compartilhadas por toda a rádio -- não só este programa)
+            </label>
+            <FontesNoticiaSection />
+          </div>
           <FeriadosMunicipaisInput
             feriados={programa.feriados_municipais}
             onChange={(feriados_municipais) => setPrograma({ ...programa, feriados_municipais })}

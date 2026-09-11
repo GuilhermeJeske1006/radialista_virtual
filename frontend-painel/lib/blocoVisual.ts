@@ -4,7 +4,10 @@
 // tema (amber/teal/rust, ver app/globals.css); rust fica reservado pra acoes destrutivas.
 export type BlocoKind = "musica" | "insercao" | "fala" | "custom";
 
-const FALA_PRESETS = new Set(["abertura", "retomada", "identificacao", "comentario", "noticia", "chamada_ouvinte"]);
+const FALA_PRESETS = new Set([
+  "abertura", "retomada", "identificacao", "comentario", "noticia", "chamada_ouvinte",
+  "escalada", "giro", "servico", "plantao", "reporter",
+]);
 const VINHETA_RE = /^vinheta:\d+$/;
 const PATROCINADOR_RE = /^patrocinador:\d+$/;
 

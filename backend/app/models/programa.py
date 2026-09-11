@@ -88,6 +88,18 @@ class Programa(Base):
         default="Quando a pesquisa estiver habilitada, consulte apenas fontes permitidas e sinalize incertezas.",
     )
 
+    # Preset de criacao (ver Fase 4 do plano de jornalismo): musical | jornalismo | esportivo |
+    # variedades | religioso | comunitario. So preenche campos no momento da criacao -- nao trava
+    # nada em runtime, o usuario edita os campos normalmente depois (ver app.config.router).
+    perfil: Mapped[str] = mapped_column(String, default="musical")
+
+    # Dosagem de noticia (ver Fase 5 do plano de jornalismo) -- noticia nao e' so' do perfil
+    # "jornalismo": qualquer programa pode ter um pouco, regulado por aqui.
+    # nenhuma | pitada | equilibrada | jornalistica. Default "jornalistica" (sem restricao de
+    # categoria) preserva o comportamento anterior a esse campo existir -- "pitada", o default
+    # sugerido pro preset musical, so' se aplica a partir da criacao via esse preset.
+    dose_noticia: Mapped[str] = mapped_column(String, default="jornalistica")
+
     criado_em: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.datetime.now(datetime.timezone.utc)
     )

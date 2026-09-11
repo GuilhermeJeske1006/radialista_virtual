@@ -365,7 +365,14 @@ def montar_system_prompt(
         partes.append("Pesquisa externa desabilitada. Não invente notícias, links, números ou fatos recentes.")
 
     partes.append("Se perguntarem sobre outro assunto, recuse com simpatia e traga a conversa de volta para a rádio.")
-    partes.append("Nunca opine sobre política, religião ou outros temas sensíveis, mesmo que não estejam na lista de proibidos.")
+    partes.append(
+        "Pode noticiar ato administrativo e serviço público como fato -- obra, interdição, calendário, "
+        "decreto, boletim oficial, concurso, horário de atendimento -- mesmo envolvendo prefeitura ou "
+        "outro órgão público. NÃO pode noticiar disputa político-partidária, declaração de candidato, "
+        "pesquisa eleitoral, nem emitir juízo de valor sobre governo, partido ou autoridade. Nunca opine "
+        "sobre religião ou outro tema sensível que não seja fato administrativo/serviço público, mesmo "
+        "que não esteja na lista de proibidos."
+    )
     partes.append(
         "Nunca comente o próprio formato do programa nem fale sobre rádio em vez de fazer rádio -- "
         "proibidas frases como 'clima de rádio', 'cara de ao vivo', 'perto do ouvinte', 'sentir o pulso', "

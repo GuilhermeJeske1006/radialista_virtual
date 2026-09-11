@@ -160,7 +160,10 @@ _TOM_SYSTEM_PROMPT = (
 )
 
 
-_CATEGORIAS_BLOCO_VALIDAS = ("musica", "noticia", "chamada_ouvinte", "abertura", "comentario", "encerramento", "outro")
+_CATEGORIAS_BLOCO_VALIDAS = (
+    "musica", "noticia", "escalada", "giro", "servico", "plantao", "reporter",
+    "chamada_ouvinte", "abertura", "comentario", "encerramento", "outro",
+)
 
 _CATEGORIA_BLOCO_SYSTEM_PROMPT = (
     "Classifique o nome de um bloco de programacao de radio numa destas categorias, respondendo "
@@ -168,8 +171,14 @@ _CATEGORIA_BLOCO_SYSTEM_PROMPT = (
     "- musica: o bloco existe pra tocar uma faixa ou estilo musical, mesmo com nome de genero "
     "regional ou informal (ex.: 'Musica Vaneira', 'chamame e xote', 'bloco sertanejo raiz', "
     "'forro pé de serra', 'pagode do bom');\n"
-    "- noticia: bloco de notícias, manchetes, boletim, informe, atualidades, previsão do tempo, "
-    "trânsito, cotações, agenda cultural ou utilidade pública que exige fatos atuais;\n"
+    "- noticia: bloco de notícias/boletim/informe/agenda cultural que exige fatos atuais, sem se "
+    "encaixar melhor em escalada/giro/servico/plantao abaixo;\n"
+    "- escalada: manchetes rápidas de abertura do jornal, uma frase cada, sem desenvolver;\n"
+    "- giro: atualização rápida de notícias que já foram dadas antes no mesmo programa;\n"
+    "- servico: trânsito, previsão do tempo, cotações, utilidade pública -- informação prática e "
+    "direta, não uma matéria desenvolvida;\n"
+    "- plantao: notícia urgente e de alto impacto que interrompe o ritmo normal do programa;\n"
+    "- reporter: notícia apresentada em dupla (âncora chama, repórter convidado dá o boletim);\n"
     "- chamada_ouvinte: bloco de interacao com o ouvinte (recado, pedido, WhatsApp);\n"
     "- abertura: bloco de abertura/largada do programa;\n"
     "- comentario: bloco de comentario livre do locutor;\n"

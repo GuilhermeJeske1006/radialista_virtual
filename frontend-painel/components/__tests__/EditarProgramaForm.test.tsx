@@ -35,6 +35,7 @@ async function renderCriacao() {
     if (path === "/patrocinadores") return Promise.resolve([]);
     if (path === "/biblioteca-audio") return Promise.resolve([vinhetaFixture]);
     if (path === "/categorias-vinheta") return Promise.resolve([]);
+    if (path === "/config/fontes-noticia") return Promise.resolve([]);
     return Promise.resolve({});
   });
   render(<EditarProgramaForm programaId={null} radioConfigId={1} />);
@@ -73,4 +74,16 @@ it("permite selecionar o formato musical e aplicar seu roteiro sem comentários 
   expect(screen.getByLabelText("Formato do programa")).toHaveValue("musical_companhia");
   await userEvent.selectOptions(screen.getByLabelText("Formato do programa"), "padrao");
   expect(screen.getByRole("checkbox", { name: /IA pode inserir blocos extras/ })).toBeEnabled();
+});
+
+it("permite selecionar o perfil jornalismo e aplicar a estrutura sugerida", async () => {
+  await renderCriacao();
+  expect(screen.queryByRole("button", { name: "Usar estrutura de jornalismo sugerida" })).not.toBeInTheDocument();
+
+  await userEvent.selectOptions(screen.getByLabelText("Perfil do programa"), "jornalismo");
+  await userEvent.click(screen.getByRole("button", { name: "Usar estrutura de jornalismo sugerida" }));
+
+  expect(await screen.findByText("Escalada (manchetes)")).toBeInTheDocument();
+  expect(screen.getAllByText("Notícia").length).toBeGreaterThan(0);
+  expect(screen.getByText("Giro de notícias")).toBeInTheDocument();
 });

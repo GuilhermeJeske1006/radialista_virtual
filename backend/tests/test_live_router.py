@@ -53,14 +53,49 @@ def _url_proxima(radialista_id, programa_id):
 
 
 @pytest.mark.parametrize("bloco", [
-    "noticia_local", "noticia_brasil", "Notícia regional", "manchetes", "tempo_e_transito",
-    "previsao do tempo", "utilidade_publica", "agenda cultural", "boletim regional", "cotações",
+    "noticia_local", "noticia_brasil", "Notícia regional", "agenda cultural", "boletim regional",
 ])
 def test_bloco_jornalistico_reconhecido_sem_classificacao_remota(monkeypatch, bloco):
     def nao_classificar(*args):
         raise AssertionError("Bloco jornalístico conhecido não precisa de classificação remota")
     monkeypatch.setattr("app.live.router.classificar_categoria_bloco", nao_classificar)
     assert _categoria_bloco(bloco) == "noticia"
+
+
+@pytest.mark.parametrize("bloco", ["manchetes", "manchete", "Manchetes do dia"])
+def test_bloco_de_manchete_reconhecido_como_escalada(monkeypatch, bloco):
+    monkeypatch.setattr(
+        "app.live.router.classificar_categoria_bloco",
+        lambda *a: (_ for _ in ()).throw(AssertionError("não precisa de classificação remota")),
+    )
+    assert _categoria_bloco(bloco) == "escalada"
+
+
+@pytest.mark.parametrize("bloco", ["giro", "giro de noticias", "giro_rapido"])
+def test_bloco_de_giro_reconhecido_como_giro(monkeypatch, bloco):
+    monkeypatch.setattr(
+        "app.live.router.classificar_categoria_bloco",
+        lambda *a: (_ for _ in ()).throw(AssertionError("não precisa de classificação remota")),
+    )
+    assert _categoria_bloco(bloco) == "giro"
+
+
+@pytest.mark.parametrize("bloco", ["tempo_e_transito", "previsao do tempo", "utilidade_publica", "cotações"])
+def test_bloco_de_utilidade_publica_reconhecido_como_servico(monkeypatch, bloco):
+    monkeypatch.setattr(
+        "app.live.router.classificar_categoria_bloco",
+        lambda *a: (_ for _ in ()).throw(AssertionError("não precisa de classificação remota")),
+    )
+    assert _categoria_bloco(bloco) == "servico"
+
+
+@pytest.mark.parametrize("bloco", ["plantao", "plantao_urgente"])
+def test_bloco_de_plantao_reconhecido_como_plantao(monkeypatch, bloco):
+    monkeypatch.setattr(
+        "app.live.router.classificar_categoria_bloco",
+        lambda *a: (_ for _ in ()).throw(AssertionError("não precisa de classificação remota")),
+    )
+    assert _categoria_bloco(bloco) == "plantao"
 
 
 @freeze_time(AGORA_UTC)
