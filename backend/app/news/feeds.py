@@ -8,7 +8,9 @@ jornalismo, "apuracao e' assincrona, fala e' sincrona").
 import calendar
 import dataclasses
 import datetime
+import html
 import logging
+import re
 
 import feedparser
 import httpx
@@ -19,6 +21,17 @@ logger = logging.getLogger("radialista.news.feeds")
 
 _TIMEOUT_SEGUNDOS = 8.0
 _USER_AGENT = "LocufyNewsWorker/1.0 (+https://locufy.com)"
+
+_TAG_HTML_RE = re.compile(r"<[^>]+>")
+_ESPACOS_RE = re.compile(r"\s+")
+
+
+def _sem_html(texto: str) -> str:
+    """Muitos feeds (ex.: G1) mandam o resumo com marcacao HTML (<img>, <br>, entidade &amp;
+    etc.) -- sem limpar isso aqui, a tag vaza pro prompt do LLM (ver app.news.pauta.montar_lauda,
+    que usa Noticia.resumo cru) e pode ate' ser lida ao vivo pelo locutor."""
+    sem_tags = _TAG_HTML_RE.sub(" ", texto)
+    return _ESPACOS_RE.sub(" ", html.unescape(sem_tags)).strip()
 
 
 @dataclasses.dataclass
@@ -86,6 +99,6 @@ def ler_feed(fonte: FonteNoticia) -> list[ItemFeed]:
         url = (entrada.get("link") or "").strip()
         if not titulo or not url:
             continue
-        resumo = (entrada.get("summary") or entrada.get("description") or "").strip()
+        resumo = _sem_html(entrada.get("summary") or entrada.get("description") or "")
         itens.append(ItemFeed(titulo=titulo, resumo=resumo, url=url, publicado_em=_data_publicacao(entrada)))
     return itens
