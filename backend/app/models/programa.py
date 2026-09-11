@@ -100,6 +100,17 @@ class Programa(Base):
     # sugerido pro preset musical, so' se aplica a partir da criacao via esse preset.
     dose_noticia: Mapped[str] = mapped_column(String, default="jornalistica")
 
+    # Texto livre, mais rico que assuntos_ao_vivo: quem de fato ouve este programa (ver Fase H do
+    # plano-assuntos.md). Opcional -- app.topics.reserva deriva um briefing de publico a partir de
+    # horario/generos/tom/cidade/interacao quando este campo estiver vazio (ver ADR item 4), entao
+    # a ausencia dele nao trava a reserva estrategica, so' a deixa mais generica.
+    publico_alvo: Mapped[str] = mapped_column(String, default="")
+
+    # Quao informado e' o comentario livre: leve (papo, so' cai pro assunto quando render natural)
+    # | equilibrada | informado (prioriza assunto com fatos sobre papo sem pauta). Ver Fase H do
+    # plano-assuntos.md -- mesmo espirito de dose_noticia, mas pro banco de assuntos.
+    densidade_assunto: Mapped[str] = mapped_column(String, default="leve")
+
     criado_em: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.datetime.now(datetime.timezone.utc)
     )

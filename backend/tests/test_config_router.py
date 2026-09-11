@@ -1,4 +1,6 @@
 
+import datetime
+
 from app.tts.voices import VOZES_DISPONIVEIS
 
 
@@ -193,6 +195,35 @@ def test_atualizar_programa(client, account, auth_headers):
     assert resposta.json()["nome"] == "Programa Renomeado"
 
 
+def test_criar_programa_com_publico_alvo_e_densidade_assunto(client, account, auth_headers):
+    """Ver Fase A/H do plano-assuntos.md -- campos opcionais, default preserva comportamento
+    anterior a eles existirem (publico_alvo vazio, densidade_assunto 'leve')."""
+    radialista = _criar_radialista(client, auth_headers, account.id).json()
+
+    resposta_default = client.post(
+        f"/config/radialistas/{radialista['id']}/programas",
+        json=_programa_payload(nome="Programa Sem Publico Alvo"),
+        headers=auth_headers(account.id),
+    )
+    assert resposta_default.status_code == 201
+    assert resposta_default.json()["publico_alvo"] == ""
+    assert resposta_default.json()["densidade_assunto"] == "leve"
+
+    resposta = client.post(
+        f"/config/radialistas/{radialista['id']}/programas",
+        json=_programa_payload(
+            nome="Programa Com Publico Alvo",
+            horario_inicio="14:00:00", horario_fim="16:00:00",
+            publico_alvo="trabalhador rural que sai de casa as cinco",
+            densidade_assunto="informado",
+        ),
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 201
+    assert resposta.json()["publico_alvo"] == "trabalhador rural que sai de casa as cinco"
+    assert resposta.json()["densidade_assunto"] == "informado"
+
+
 def test_atualizar_programa_nao_conflita_consigo_mesmo(client, account, auth_headers):
     radialista = _criar_radialista(client, auth_headers, account.id).json()
     programa = client.post(
@@ -216,6 +247,41 @@ def test_excluir_programa(client, account, auth_headers):
         json=_programa_payload(),
         headers=auth_headers(account.id),
     ).json()
+
+    resposta = client.delete(f"/config/programas/{programa['id']}", headers=auth_headers(account.id))
+    assert resposta.status_code == 204
+
+
+def test_excluir_programa_com_assunto_casado_e_historico_de_noticia(client, account, auth_headers, db_session):
+    """Bug real achado testando o fluxo ao vivo do banco de assuntos (ver plano-assuntos.md):
+    AssuntoPrograma/NoticiaHistorico tem FK pra programas.id sem ON DELETE CASCADE -- excluir um
+    programa que ja' tem assunto casado ou historico de noticia estourava ForeignKeyViolation
+    (500) em vez de 204."""
+    from app.models.assunto import Assunto
+    from app.models.assunto_programa import AssuntoPrograma
+    from app.models.noticia import Noticia
+    from app.models.noticia_historico import NoticiaHistorico
+
+    radialista = _criar_radialista(client, auth_headers, account.id).json()
+    programa = client.post(
+        f"/config/radialistas/{radialista['id']}/programas",
+        json=_programa_payload(),
+        headers=auth_headers(account.id),
+    ).json()
+
+    assunto = Assunto(account_id=account.id, origem="reserva", titulo="X", gancho="Y", fatos=[], tags=[])
+    db_session.add(assunto)
+    db_session.flush()
+    db_session.add(AssuntoPrograma(assunto_id=assunto.id, programa_id=programa["id"], score=5.0, ponte="", eixos_sugeridos=[]))
+
+    noticia = Noticia(
+        account_id=account.id, fonte_nome="Fonte", titulo="Titulo", url="https://x.com/n", url_hash="hash-x",
+        publicado_em=datetime.datetime.now(datetime.timezone.utc),
+    )
+    db_session.add(noticia)
+    db_session.flush()
+    db_session.add(NoticiaHistorico(programa_id=programa["id"], noticia_id=noticia.id, angulo="fato", fala="fala"))
+    db_session.commit()
 
     resposta = client.delete(f"/config/programas/{programa['id']}", headers=auth_headers(account.id))
     assert resposta.status_code == 204

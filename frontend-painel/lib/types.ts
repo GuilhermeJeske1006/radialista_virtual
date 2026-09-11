@@ -175,6 +175,29 @@ export type Programa = {
   // continua livre pra editar o resto do programa manualmente depois.
   perfil?: "musical" | "jornalismo" | "esportivo" | "variedades" | "religioso" | "comunitario";
   dose_noticia?: "nenhuma" | "pitada" | "equilibrada" | "jornalistica";
+
+  // Ver Fase A/H do plano-assuntos.md (backend app/models/programa.py::Programa) -- ambos
+  // opcionais, alimentam o banco de assuntos (matcher/reserva). publico_alvo vazio = o sistema
+  // deriva um briefing observado (horário, gênero, cidade, pedido do público) em vez de travar.
+  publico_alvo?: string;
+  densidade_assunto?: "leve" | "equilibrada" | "informado";
+};
+
+// Um gancho de conversa ja' casado com este programa (ver backend app/topics/router.py) --
+// "Pauta do dia": visibilidade/controle editorial sobre o que o pipeline preparou (ver
+// app/topics/matcher.py) pro bloco de comentário deste programa.
+export type AssuntoPauta = {
+  id: number; // id do casamento (AssuntoPrograma) -- usar pra fixar/descartar.
+  assunto_id: number;
+  titulo: string;
+  gancho: string;
+  fatos: string[];
+  tags: string[];
+  origem: string;
+  score: number;
+  ponte: string;
+  eixos_sugeridos: string[];
+  validade_ate: string | null;
 };
 
 // Feriado municipal cadastrado manualmente (ver backend app/config/router.py::FeriadoMunicipal
@@ -224,6 +247,8 @@ export const PROGRAMA_VAZIO: Omit<Programa, "id" | "radio_config_id"> = {
 
   perfil: "musical",
   dose_noticia: "jornalistica",
+  publico_alvo: "",
+  densidade_assunto: "leve",
 };
 
 // Vinculo de um radialista a um programa (dono ou co-apresentador), com papel e
@@ -257,6 +282,8 @@ export function normalizarPrograma(p: Programa): Programa {
     fontes_pesquisa: p.fontes_pesquisa ?? [],
     perfil: p.perfil ?? "musical",
     dose_noticia: p.dose_noticia ?? "jornalistica",
+    publico_alvo: p.publico_alvo ?? "",
+    densidade_assunto: p.densidade_assunto ?? "leve",
   };
 }
 

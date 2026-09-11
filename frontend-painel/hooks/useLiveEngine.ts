@@ -26,6 +26,10 @@ declare global {
 }
 
 const INTERVALO_PROGRAMA_MS = 0;
+// Falha inesperada ao preparar um bloco (ver catch em gerarProximaFala) não pode matar a
+// transmissão antes do horario_fim -- so' espera um pouco (nao martela o backend quebrado a
+// cada tick) e tenta de novo, com a musica de fundo tocando sozinha nesse meio-tempo.
+const INTERVALO_RETENTATIVA_FALHA_MS = 5_000;
 // Folga pro 1o bloco (busca de noticia + geracao + TTS, ver noticias.py no backend) terminar
 // de preparar ANTES do horario_inicio real do programa agendado -- coberta com folga em cima
 // do timeout de 75s do proprio fetch (ver apiFetchComTimeout em prepararTexto).
@@ -989,9 +993,20 @@ export function useLiveEngine() {
     try {
       preparado = await obterFilaPreparo().retirar();
     } catch {
+      // Fila quebrou (excecao inesperada, nao os fallbacks normais de texto/audio, que ja nao
+      // chegam aqui -- ver prepararTexto/prepararAudio). NAO chama pausarPrograma(): isso
+      // pararia a musica de fundo e encerraria a transmissao antes do horario_fim. Descarta a
+      // fila (poisoned, ver FilaPreparo.contexto) e tenta de novo daqui a pouco, com a cama
+      // musical tocando sozinha nesse meio-tempo -- so' o watchdog de horario_fim ou uma pausa
+      // manual devem de fato terminar a transmissao mais cedo.
       if (execucaoAtualRef.current === minhaExecucao) {
-        pausarPrograma();
-        setErro("Não foi possível preparar a sequência. Inicie a transmissão novamente.");
+        gerandoFalaRef.current = false;
+        setGerandoFala(false);
+        descartarPreparo();
+        setErro("Não foi possível preparar o próximo bloco. Mantendo música de fundo; tentando novamente.");
+        if (programaAtivoRef.current) {
+          programaTimerRef.current = setTimeout(() => gerarProximaFala(), INTERVALO_RETENTATIVA_FALHA_MS);
+        }
       }
       return;
     }

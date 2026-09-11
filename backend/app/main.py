@@ -52,6 +52,7 @@ from app.notificacoes.router import router as notificacoes_router
 from app.onboarding.router import router as onboarding_router
 from app.patrocinadores.router import router as patrocinadores_router
 from app.suporte.router import router as suporte_router
+from app.topics.router import router as topics_router
 from app.tts.router import router as tts_router
 from app.whatsapp.webhook import router as whatsapp_router
 from app.whatsapp.gestao import router as ouvintes_router
@@ -125,6 +126,7 @@ app.include_router(billing_router)
 app.include_router(live_router)
 app.include_router(tts_router)
 app.include_router(patrocinadores_router)
+app.include_router(topics_router)
 app.include_router(biblioteca_audio_router)
 app.include_router(categorias_vinheta_router)
 app.include_router(suporte_router)
@@ -275,6 +277,8 @@ def garantir_colunas_programa():
         "feriados_municipais": "JSON DEFAULT '[]' NOT NULL",
         "perfil": "VARCHAR DEFAULT 'musical' NOT NULL",
         "dose_noticia": "VARCHAR DEFAULT 'jornalistica' NOT NULL",
+        "publico_alvo": "VARCHAR DEFAULT '' NOT NULL",
+        "densidade_assunto": "VARCHAR DEFAULT 'leve' NOT NULL",
     }
 
     with engine.begin() as conn:

@@ -1,4 +1,6 @@
 from app.models.account import Account
+from app.models.assunto import Assunto
+from app.models.assunto_programa import AssuntoPrograma
 from app.models.biblioteca_audio import BibliotecaAudioItem
 from app.models.categoria_vinheta import CategoriaVinheta
 from app.models.compra_excedente import CompraExcedente
@@ -47,6 +49,8 @@ __all__ = [
     "FonteNoticia",
     "Noticia",
     "NoticiaHistorico",
+    "Assunto",
+    "AssuntoPrograma",
 ]
 
 from app.models.conversa_ouvinte import ConversaOuvinte

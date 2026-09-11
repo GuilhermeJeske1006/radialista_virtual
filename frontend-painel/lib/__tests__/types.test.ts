@@ -44,4 +44,15 @@ describe("normalizarPrograma", () => {
     };
     expect(normalizarPrograma(programa).topicos_permitidos).toEqual(["musica", "esportes"]);
   });
+
+  it("preenche publico_alvo/densidade_assunto ausentes com o default (ver plano-assuntos.md)", () => {
+    const { publico_alvo, densidade_assunto, ...semCampos } = {
+      ...PROGRAMA_VAZIO,
+      id: 1,
+      radio_config_id: 1,
+    } as Programa;
+    const normalizado = normalizarPrograma(semCampos as Programa);
+    expect(normalizado.publico_alvo).toBe("");
+    expect(normalizado.densidade_assunto).toBe("leve");
+  });
 });

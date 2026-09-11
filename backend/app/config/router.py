@@ -12,10 +12,12 @@ from app.guardrails.http_rate_limit import limite_excedido
 from app.llm.config_generator import gerar_configuracao_ia, gerar_programa_ia
 from app.llm.tipos_radio import TIPOS_RADIO, tipo_radio_valido
 from app.models.account import Account
+from app.models.assunto_programa import AssuntoPrograma
 from app.models.fila_ao_vivo import FilaAoVivo
 from app.models.fonte_noticia import FonteNoticia
 from app.models.interaction_log import InteractionLog
 from app.models.musica_historico import MusicaHistorico
+from app.models.noticia_historico import NoticiaHistorico
 from app.models.programa import Programa
 from app.models.programa_radialista import ProgramaRadialista
 from app.models.radio_config import RadioConfig
@@ -142,6 +144,13 @@ class ProgramaRequest(BaseModel):
     # livre pra editar o resto do programa manualmente depois.
     perfil: Literal["musical", "jornalismo", "esportivo", "variedades", "religioso", "comunitario"] = "musical"
     dose_noticia: Literal["nenhuma", "pitada", "equilibrada", "jornalistica"] = "jornalistica"
+
+    # Ver Fase A/H do plano-assuntos.md (app.models.programa.Programa) -- publico_alvo opcional
+    # alimenta o matcher/reserva do banco de assuntos (deriva um briefing observado quando vazio,
+    # ver app.topics.reserva); densidade_assunto regula quao informado o comentario livre deve
+    # ser, mesmo espirito de dose_noticia.
+    publico_alvo: str = ""
+    densidade_assunto: Literal["leve", "equilibrada", "informado"] = "leve"
 
 
 class ProgramaResponse(ProgramaRequest):
@@ -694,6 +703,12 @@ def excluir_programa(
     db.query(ProgramaRadialista).filter_by(programa_id=programa.id).delete()
     db.query(MusicaHistorico).filter_by(programa_id=programa.id).delete()
     db.query(TemaHistorico).filter_by(programa_id=programa.id).delete()
+    # FK pra programas.id sem ON DELETE CASCADE (ver app.models.noticia_historico/
+    # assunto_programa) -- sem isso o DELETE de baixo estoura ForeignKeyViolation em qualquer
+    # programa que ja' tenha historico de noticia ou assunto casado (achado testando o fluxo
+    # ao vivo do banco de assuntos, ver plano-assuntos.md).
+    db.query(NoticiaHistorico).filter_by(programa_id=programa.id).delete()
+    db.query(AssuntoPrograma).filter_by(programa_id=programa.id).delete()
     db.delete(programa)
     db.commit()
     logger.info("Programa excluido: id=%s account_id=%s", programa_id, account.id)

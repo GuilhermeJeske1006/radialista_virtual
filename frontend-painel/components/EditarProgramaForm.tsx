@@ -9,6 +9,7 @@ import QuadrosFixosInput from "./QuadrosFixosInput";
 import FeriadosMunicipaisInput from "./FeriadosMunicipaisInput";
 import RadialistasProgramaSection from "./RadialistasProgramaSection";
 import FontesNoticiaSection from "./FontesNoticiaSection";
+import PautaDoDiaSection from "./PautaDoDiaSection";
 import { apiFetch, ApiError } from "../lib/api";
 import {
   CategoriaVinheta,
@@ -659,6 +660,21 @@ export default function EditarProgramaForm({
             </span>
             <span className="text-fg/40 transition-transform group-open:rotate-90">›</span>
           </summary>
+          <div className="sm:col-span-2 mb-3">
+            <label className={labelClass}>O que rende conversa aqui</label>
+            <textarea
+              className={inputClass}
+              rows={2}
+              placeholder="Ex.: trabalhador rural que sai de casa às cinco, ouve rádio indo pro serviço"
+              value={programa.publico_alvo ?? ""}
+              onChange={(e) => setPrograma({ ...programa, publico_alvo: e.target.value })}
+            />
+            <p className="mt-1 text-xs text-fg/60">
+              Texto livre descrevendo quem de fato ouve este programa -- alimenta o banco de
+              assuntos (ver Pauta do dia mais abaixo). Opcional: vazio, o sistema deriva um
+              briefing a partir de horário, gênero musical, cidade e pedido do público.
+            </p>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 mt-3">
             <TagInput
               label="Assuntos do ao vivo"
@@ -689,6 +705,19 @@ export default function EditarProgramaForm({
                 <option value="jornalistica">Jornalística -- sem restrição de pauta</option>
               </select>
             </div>
+            <div>
+              <label htmlFor="densidade-assunto" className={labelClass}>Densidade do assunto</label>
+              <select
+                id="densidade-assunto"
+                className={inputClass}
+                value={programa.densidade_assunto ?? "leve"}
+                onChange={(e) => setPrograma({ ...programa, densidade_assunto: e.target.value as Programa["densidade_assunto"] })}
+              >
+                <option value="leve">Leve -- papo solto, só usa a pauta quando render natural</option>
+                <option value="equilibrada">Equilibrada -- alterna papo livre e assunto com fato</option>
+                <option value="informado">Informado -- prioriza assunto com fato sobre papo sem pauta</option>
+              </select>
+            </div>
           </div>
           <p className="mb-3 text-xs text-fg/60">
             Para apresentar notícias, inclua um bloco de notícia/escalada/giro/serviço/plantão no
@@ -706,6 +735,12 @@ export default function EditarProgramaForm({
             feriados={programa.feriados_municipais}
             onChange={(feriados_municipais) => setPrograma({ ...programa, feriados_municipais })}
           />
+          {!criando && idEfetivo !== null && (
+            <div className="mt-4">
+              <h4 className="mb-2 font-mono text-xs uppercase tracking-wide text-amber-text">Pauta do dia</h4>
+              <PautaDoDiaSection programaId={idEfetivo} />
+            </div>
+          )}
         </details>
 
         <hr className="border-border" />

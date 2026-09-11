@@ -19,6 +19,7 @@ from app.models.fonte_noticia import FonteNoticia
 from app.models.noticia import Noticia
 from app.news.curadoria import curar_item
 from app.news.feeds import ler_feed
+from app.topics.pipeline import executar_para_conta as executar_pipeline_assuntos
 
 logger = logging.getLogger("radialista.news.worker")
 
@@ -188,6 +189,16 @@ def executar() -> None:
                     logger.info("news_worker_coleta account_id=%s novas=%s", account.id, novas)
             except Exception:
                 logger.warning("Falha ao coletar conta no worker de notícias: account_id=%s", account.id, exc_info=True)
+                db.rollback()
+
+            try:
+                # Banco de assuntos (ver plano-assuntos.md): derivacao + casamento + reserva,
+                # sempre depois da coleta desta conta -- consome a Noticia que acabou de entrar
+                # (ver app.topics.pipeline). Falha aqui nunca derruba a coleta de noticia em si,
+                # que ja' rodou e commitou acima.
+                executar_pipeline_assuntos(db, account)
+            except Exception:
+                logger.warning("Falha no pipeline de assuntos: account_id=%s", account.id, exc_info=True)
                 db.rollback()
     finally:
         db.close()
