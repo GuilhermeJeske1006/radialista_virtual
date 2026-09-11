@@ -24,7 +24,7 @@ def test_curar_item_extrai_categoria_score_e_lauda(monkeypatch):
         '"servico": "desvio pela Antonio da Veiga", "proximo_passo": "novo boletim as 17h", '
         '"ainda_nao_divulgado": ""}'
     )
-    monkeypatch.setattr("app.news.curadoria.gerar_classificacao", lambda system, msg: resposta_json)
+    monkeypatch.setattr("app.news.curadoria.gerar_classificacao", lambda system, msg, **_: resposta_json)
 
     resultado = curar_item(_item(), fonte_nome="Prefeitura", fonte_tipo="oficial", cidade="Blumenau", peso_fonte=1.0)
 
@@ -37,7 +37,7 @@ def test_curar_item_extrai_categoria_score_e_lauda(monkeypatch):
 
 def test_curar_item_aplica_peso_da_fonte_no_score(monkeypatch):
     resposta_json = '{"bloqueada": false, "categoria": "geral", "score": 40}'
-    monkeypatch.setattr("app.news.curadoria.gerar_classificacao", lambda system, msg: resposta_json)
+    monkeypatch.setattr("app.news.curadoria.gerar_classificacao", lambda system, msg, **_: resposta_json)
 
     resultado = curar_item(_item(), fonte_nome="Assessoria", fonte_tipo="assessoria", cidade="Blumenau", peso_fonte=0.5)
 
@@ -46,7 +46,7 @@ def test_curar_item_aplica_peso_da_fonte_no_score(monkeypatch):
 
 def test_curar_item_respeita_bloqueio_do_llm_por_disputa_partidaria(monkeypatch):
     resposta_json = '{"bloqueada": true, "categoria": "geral", "score": 50}'
-    monkeypatch.setattr("app.news.curadoria.gerar_classificacao", lambda system, msg: resposta_json)
+    monkeypatch.setattr("app.news.curadoria.gerar_classificacao", lambda system, msg, **_: resposta_json)
 
     resultado = curar_item(_item(titulo="Candidato ataca adversario em debate"), fonte_nome="Portal", fonte_tipo="imprensa", cidade="Blumenau")
 
@@ -55,7 +55,7 @@ def test_curar_item_respeita_bloqueio_do_llm_por_disputa_partidaria(monkeypatch)
 
 def test_curar_item_categoria_invalida_do_llm_cai_para_geral(monkeypatch):
     resposta_json = '{"bloqueada": false, "categoria": "categoria-que-nao-existe", "score": 60}'
-    monkeypatch.setattr("app.news.curadoria.gerar_classificacao", lambda system, msg: resposta_json)
+    monkeypatch.setattr("app.news.curadoria.gerar_classificacao", lambda system, msg, **_: resposta_json)
 
     resultado = curar_item(_item(), fonte_nome="Portal", fonte_tipo="imprensa", cidade="Blumenau")
 
@@ -73,7 +73,7 @@ def test_curar_item_falha_do_llm_descarta_por_seguranca(monkeypatch):
 
 
 def test_curar_item_resposta_nao_json_descarta_por_seguranca(monkeypatch):
-    monkeypatch.setattr("app.news.curadoria.gerar_classificacao", lambda system, msg: "isso nao e json")
+    monkeypatch.setattr("app.news.curadoria.gerar_classificacao", lambda system, msg, **_: "isso nao e json")
 
     resultado = curar_item(_item(), fonte_nome="Portal", fonte_tipo="imprensa", cidade="Blumenau")
 

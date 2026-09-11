@@ -74,11 +74,17 @@ def gerar_resposta_chat(system_prompt: str, historico: list[dict[str, str]]) -> 
     return "Desculpa, não consegui gerar uma resposta agora. Tenta de novo em instantes."
 
 
-def gerar_classificacao(system_prompt: str, mensagem_usuario: str) -> str:
-    """Chamada enxuta ao LLM pra classificacao de intencao (nao gera resposta pro usuario)."""
+def gerar_classificacao(system_prompt: str, mensagem_usuario: str, max_tokens: int = 128) -> str:
+    """Chamada enxuta ao LLM pra classificacao de intencao (nao gera resposta pro usuario).
+
+    Default de 128 tokens serve classificacao simples (categoria/intencao unica). Chamador com
+    JSON de saida mais rico -- ver app.news.curadoria.curar_item, que preenche ~9 campos --
+    precisa passar um valor maior, senao a resposta trunca no meio de uma string e vira
+    JSONDecodeError toda vez (visto em producao: 100% dos itens de feed falhando a curadoria).
+    """
     response = _client.messages.create(
         model=CLASSIFICATION_MODEL,
-        max_tokens=128,
+        max_tokens=max_tokens,
         system=system_prompt,
         messages=[{"role": "user", "content": mensagem_usuario}],
     )

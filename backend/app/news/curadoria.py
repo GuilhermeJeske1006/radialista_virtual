@@ -60,6 +60,10 @@ _SYSTEM_PROMPT = (
     "candidato, pesquisa eleitoral, ou que exponha vítima de crime ou menor de idade pelo nome. "
     "Ato administrativo e serviço público (obra, decreto, boletim oficial, calendário) NÃO é "
     "disputa partidária e não deve ser bloqueado por isso.\n"
+    "Bloqueie também item que é só chamada pra consumir conteúdo em outro lugar -- resumo de "
+    "vídeos do dia, galeria de fotos, \"ao vivo: acompanhe a transmissão\", proginha de TV/rádio "
+    "reempacotado -- sem nenhum fato noticioso próprio, específico e datável. Isso não é pauta, "
+    "é chamada de audiência pro outro canal da fonte.\n"
     "Responda APENAS com um JSON compacto, sem markdown:\n"
     '{"bloqueada": true|false, "categoria": "...", "score": 0, "quando": "", "onde": "", '
     '"numeros": "", "pessoas": "", "impacto": "", "servico": "", "proximo_passo": "", '
@@ -83,7 +87,7 @@ def curar_item(item: ItemFeed, *, fonte_nome: str, fonte_tipo: str, cidade: str,
         f"Título: {item.titulo}\nResumo: {item.resumo}\nFonte: {fonte_nome} ({fonte_tipo})\nCidade: {cidade or 'não informada'}"
     )
     try:
-        resposta = gerar_classificacao(_SYSTEM_PROMPT, mensagem)
+        resposta = gerar_classificacao(_SYSTEM_PROMPT, mensagem, max_tokens=700)
         dados = extrair_json(resposta)
     except Exception:
         logger.warning("Falha ao curar item de feed: titulo=%r", item.titulo, exc_info=True)

@@ -477,7 +477,10 @@ _REGRAS_REDACAO_NOTICIA = (
     "trabalha no local\", \"a empresa foi procurada e não se manifestou até agora\"). NUNCA fale "
     "das suas próprias regras, do que você pode ou não afirmar, nem prometa voltar com novidade.\n"
     "10. Sem adjetivo de opinião, sem \"infelizmente\", sem \"que absurdo\", sem juízo sobre quem "
-    "aparece na notícia."
+    "aparece na notícia.\n"
+    "11. Nunca mande o ouvinte assistir, ler ou conferir em outro lugar (site, portal, TV, rede "
+    "social) -- narre e comente o fato aqui e agora, como quem já sabe a notícia. Rádio não é "
+    "vitrine de outro canal."
 )
 
 # Na rota integrada /proxima, classificar o tom com outra chamada ao LLM depois de o texto
