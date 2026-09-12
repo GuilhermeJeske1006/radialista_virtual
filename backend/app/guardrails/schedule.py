@@ -42,6 +42,27 @@ def encontrar_programa_atual(programas: list[Programa], timezone: str) -> Progra
     return None
 
 
+def segundos_ate_inicio_hoje(programa: Programa, timezone: str) -> int | None:
+    """Segundos entre agora e o horario_inicio de hoje, ou None se o programa nao
+    tem ocorrencia hoje (dia da semana/data especifica nao bate) ou esta inativo.
+    Pode vir negativo quando o horario_inicio de hoje ja passou -- quem usa decide
+    a janela que aceita (ver app.live.prewarm, que so' aceita 0-90s de antecedencia)."""
+    if not programa.ativo:
+        return None
+
+    agora = datetime.datetime.now(ZoneInfo(timezone))
+    hoje = agora.date()
+
+    if programa.data_especifica is not None:
+        if hoje != programa.data_especifica:
+            return None
+    elif programa.dias_semana and hoje.weekday() not in programa.dias_semana:
+        return None
+
+    inicio = datetime.datetime.combine(hoje, programa.horario_inicio, tzinfo=agora.tzinfo)
+    return int((inicio - agora).total_seconds())
+
+
 def minutos_restantes(programa: Programa, timezone: str) -> int:
     """Quantos minutos faltam ate' o horario_fim do programa, a partir de agora.
 

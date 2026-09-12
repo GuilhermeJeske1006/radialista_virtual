@@ -48,6 +48,10 @@ type TextoPreparado = {
   audioBase64?: string | null;
   audioStatus?: LiveProgramResponse["audio_status"];
   audioErro?: string | null;
+  // Preenchido so' quando o texto veio do preparo antecipado do backend (ver GET .../preparo e
+  // app.live.prewarm) e o bloco e' dialogo multi-voz -- audio de cada linha ja sintetizado,
+  // alinhado por indice com segmento.falas, pra' prepararAudio nao precisar buscar de novo.
+  audiosFalasBase64?: (string | null)[] | null;
 };
 
 const DIAS_SEMANA_ORDEM = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -420,6 +424,10 @@ export function useLiveEngine() {
       if (audioUrl) {
         const audio = new Audio(audioUrl);
         audio.volume = 0;
+        // volume=0 sozinho nao basta pra passar pela politica de autoplay do navegador (ela
+        // olha o atributo `muted`, nao o volume) -- mesmo truque ja usado nos players do
+        // YouTube (mute:1 ate PLAYING) pra sobreviver ao inicio agendado sem gesto do usuario.
+        audio.muted = true;
         audioFalaRef.current = audio;
         let fadeSaidaTimeout: ReturnType<typeof setTimeout> | null = null;
         const limparFadeSaida = () => {
@@ -437,6 +445,11 @@ export function useLiveEngine() {
           },
           { once: true }
         );
+        // audio.play() pode rejeitar (autoplay bloqueado pelo navegador, sobretudo em inicio
+        // agendado sem gesto do usuario) ou onerror pode disparar depois -- sem sinalizar isso,
+        // o texto da fala ja fica gravado no historico (adicionarFala roda antes/independente
+        // disso) e some em silencio, dando a impressao de "texto tocou, voz nao".
+        let falhouReproducao = false;
         await new Promise<void>((resolve) => {
           audio.onended = () => {
             if (audio.ended) aoConcluir?.();
@@ -444,17 +457,26 @@ export function useLiveEngine() {
             resolve();
           };
           audio.onerror = () => {
+            falhouReproducao = true;
             limparFadeSaida();
             resolve();
           };
           audio
             .play()
-            .then(() => fadeVolumeAudioElemento(audio, FADE_BORDA_FALA_MS, 1))
+            .then(() => {
+              audio.muted = false;
+              fadeVolumeAudioElemento(audio, FADE_BORDA_FALA_MS, 1);
+            })
             .catch(() => {
+              falhouReproducao = true;
               limparFadeSaida();
               resolve();
             });
         });
+        if (falhouReproducao) {
+          setErro("Falha ao reproduzir o audio da fala (bloqueio do navegador ou erro de midia); texto ficou sem voz.");
+          setFalhasAudioConsecutivas((n) => n + 1);
+        }
         URL.revokeObjectURL(audioUrl);
         if (audioFalaRef.current === audio) {
           audioFalaRef.current = null;
@@ -532,6 +554,21 @@ export function useLiveEngine() {
     }, duracaoMs / passos);
   }
 
+  // YT.Player.destroy() remove o iframe do DOM e nao devolve a div original com o id --
+  // sem recriar a div antes do proximo `new YT.Player(id, ...)`, o construtor nao acha alvo
+  // nenhum e falha em silencio (sem onReady/onError), travando ate o timeout de seguranca.
+  // Acontece sempre que dois videos tocam em sequencia no mesmo player (bloco com chamada +
+  // audio intermediario + musica, por ex.), porque o segundo tocarMusica reusa o mesmo id.
+  function garantirContainerYoutube(id: string) {
+    if (typeof document === "undefined") return;
+    if (document.getElementById(id)) return;
+    const raiz = document.getElementById("yt-players-root");
+    if (!raiz) return;
+    const div = document.createElement("div");
+    div.id = id;
+    raiz.appendChild(div);
+  }
+
   function duckMusicaFundo(baixo: boolean) {
     if (!bgProntoRef.current || !bgPlayerRef.current) return;
     fadeVolumeYoutube(bgPlayerRef.current, bgFadeIntervalRef, baixo ? VOLUME_FUNDO_BAIXO : VOLUME_FUNDO_NORMAL, baixo ? FADE_DUCK_ENTRADA_MS : FADE_DUCK_MS);
@@ -581,6 +618,7 @@ export function useLiveEngine() {
     if (!window.YT || !window.YT.Player || !programaAtivoRef.current) return;
 
     pararMusicaFundo();
+    garantirContainerYoutube("yt-bg-player");
     bgPlayerRef.current = new window.YT.Player("yt-bg-player", {
       height: "0",
       width: "0",
@@ -697,6 +735,7 @@ export function useLiveEngine() {
           musicPlayerRef.current = null;
         }
 
+        garantirContainerYoutube("yt-live-player");
         musicPlayerRef.current = new window.YT.Player("yt-live-player", {
           height: "0",
           width: "0",
@@ -801,6 +840,35 @@ export function useLiveEngine() {
     let audioBase64: string | null | undefined;
     let audioStatus: LiveProgramResponse["audio_status"];
     let audioErro: string | null | undefined;
+    let audiosFalasBase64: (string | null)[] | null | undefined;
+
+    // Primeiro bloco da sessao (historico vazio): tenta usar o preparo antecipado que o backend
+    // ja' fez em segundo plano uns segundos antes do horario_inicio (ver GET .../preparo e
+    // app.live.prewarm) -- poupa a espera de LLM+TTS bem na hora que o programa deve comecar,
+    // que e' justamente o que atrasa um inicio agendado sem essa antecedencia. Preparo
+    // indisponivel (ninguem preparou a tempo) ou qualquer erro de rede cai no /proxima normal
+    // logo abaixo, sem diferenca de comportamento.
+    if (totalFalasAtual === 0) {
+      try {
+        const preparo = await apiFetch<
+          { disponivel: boolean; audios_falas_base64?: (string | null)[] } & Partial<LiveProgramResponse>
+        >(`/live/${contexto.radialistaId}/programas/${contexto.programaId}/preparo`);
+        if (preparo.disponivel) {
+          const { disponivel: _disponivel, audio_base64, audio_status, audio_erro, audios_falas_base64, ...resposta } = preparo;
+          if (ativa()) setErro("");
+          return {
+            segmento: { ...(resposta as LiveProgramResponse), origem: "ia" },
+            audioBase64: audio_base64,
+            audioStatus: audio_status,
+            audioErro: audio_erro,
+            audiosFalasBase64: audios_falas_base64 ?? null,
+          };
+        }
+      } catch {
+        // preparo indisponivel/erro de rede -- nao e' uma falha real, so' segue pro fluxo normal.
+      }
+    }
+
     try {
       const { audio_base64, audio_status, audio_erro, ...resposta } = await apiFetchComTimeout<LiveProgramResponse>(
         `/live/${contexto.radialistaId}/programas/${contexto.programaId}/proxima`,
@@ -847,7 +915,7 @@ export function useLiveEngine() {
 
   // Só fica pronto após baixar a voz ou vinheta e concluir o tratamento Rádio FM.
   async function prepararAudio(texto: TextoPreparado, contexto: ContextoPreparo, ativa: () => boolean): Promise<SegmentoPreparado> {
-    const { segmento, audioBase64, audioStatus, audioErro } = texto;
+    const { segmento, audioBase64, audioStatus, audioErro, audiosFalasBase64 } = texto;
     const ultimaFalaAtual = contexto.ultimaFala;
 
     // dialogo multi-voz (mais de um radialista no programa): busca um audio por linha,
@@ -859,6 +927,13 @@ export function useLiveEngine() {
       const audiosFalas = await Promise.all(
         segmento.falas.map(async (linha, indice): Promise<AudioFala> => {
           const textoAnterior = indice > 0 ? segmento.falas![indice - 1].texto : ultimaFalaAtual;
+          // ja veio pronto do preparo antecipado (ver prepararTexto) -- poupa o /tts por linha.
+          const prontoAntecipado = audiosFalasBase64?.[indice];
+          if (prontoAntecipado) {
+            const bytes = Uint8Array.from(atob(prontoAntecipado), (c) => c.charCodeAt(0));
+            const blob = new Blob([bytes], { type: "audio/mpeg" });
+            return { url: URL.createObjectURL(blob), blob };
+          }
           try {
             const blob = await apiFetchBlobComTimeout(`/live/${contexto.radialistaId}/tts`, {
               method: "POST",

@@ -1107,6 +1107,8 @@ def _categoria_bloco(tipo: str) -> str:
         return normalizado
     if normalizado in ("retomada", "identificacao"):
         return "abertura"
+    if normalizado == "giro":
+        return "noticia"
     for base in _TIPOS_COM_COMPORTAMENTO:
         if normalizado == base or normalizado.startswith((f"{base} ", f"{base}_")):
             return base
@@ -2651,6 +2653,31 @@ def gerar_proxima_fala(
         audio_erro=audio_erro,
         tom=tom_fala,
     )
+
+
+@router.get("/{radialista_id}/programas/{programa_id}/preparo")
+def buscar_preparo_antecipado(
+    radialista_id: int,
+    programa_id: int,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Devolve a primeira fala (+ audio) pre-gerada pelo prewarm em background (ver
+    app.live.prewarm), quando o horario_inicio do programa chegou dentro da janela de
+    antecedencia -- permite ao painel comecar tocando na hora exata, sem esperar LLM+TTS,
+    mesmo se a aba so' foi aberta agora. Uso unico: consumir_preparo_antecipado ja apaga a
+    chave, entao um retry aqui sempre cai no caminho normal de /proxima."""
+    # import local pra evitar ciclo: app.live.prewarm importa gerar_proxima_fala/gerar_audio_fala
+    # deste modulo (reusa a logica de verdade em vez de duplicar), entao nao da pra importar
+    # prewarm no topo daqui.
+    from app.live.prewarm import consumir_preparo_antecipado
+
+    radialista = _buscar_radialista(db, account, radialista_id)
+    _buscar_programa(db, radialista, programa_id)
+    preparo = consumir_preparo_antecipado(programa_id)
+    if preparo is None:
+        return {"disponivel": False}
+    return {"disponivel": True, **preparo}
 
 
 @router.get("/{radialista_id}/programas/{programa_id}/musica-fundo", response_model=MusicaFundoResponse)

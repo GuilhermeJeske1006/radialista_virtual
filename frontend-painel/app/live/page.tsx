@@ -60,8 +60,10 @@ export default function LivePage() {
 
   return (
     <AppShell title="Ao Vivo" maxWidthClassName="max-w-[1600px]">
-      <div id="yt-live-player" className="pointer-events-none fixed left-[-9999px] top-0 h-px w-px overflow-hidden" />
-      <div id="yt-bg-player" className="pointer-events-none fixed left-[-9999px] top-0 h-px w-px overflow-hidden" />
+      <div id="yt-players-root" className="pointer-events-none fixed left-[-9999px] top-0 h-px w-px overflow-hidden">
+        <div id="yt-live-player" />
+        <div id="yt-bg-player" />
+      </div>
 
       {engine.falhasAudioConsecutivas >= LIMIAR_ALERTA_FALHA_AUDIO && (
         <div className="mb-4 rounded-lg border border-rust bg-rust/10 px-4 py-3">

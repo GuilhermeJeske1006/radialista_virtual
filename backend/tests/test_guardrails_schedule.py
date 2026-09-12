@@ -2,7 +2,12 @@ import datetime
 
 from freezegun import freeze_time
 
-from app.guardrails.schedule import encontrar_programa_atual, minutos_restantes, programa_no_ar
+from app.guardrails.schedule import (
+    encontrar_programa_atual,
+    minutos_restantes,
+    programa_no_ar,
+    segundos_ate_inicio_hoje,
+)
 from app.models.programa import Programa
 
 TZ = "America/Sao_Paulo"
@@ -132,3 +137,36 @@ def test_programa_avulso_continua_apos_meia_noite():
     assert programa_no_ar(programa, TZ)
     programa.data_especifica = datetime.date(2026, 8, 11)
     assert not programa_no_ar(programa, TZ)
+
+
+@freeze_time(AGORA_UTC)
+def test_segundos_ate_inicio_hoje_programa_inativo_e_none():
+    programa = _programa(ativo=False, horario_inicio=datetime.time(12, 1, 30))
+    assert segundos_ate_inicio_hoje(programa, TZ) is None
+
+
+@freeze_time(AGORA_UTC)
+def test_segundos_ate_inicio_hoje_dias_semana_nao_bate_e_none():
+    # agora local e' segunda (weekday 0)
+    programa = _programa(dias_semana=[1, 2, 3], horario_inicio=datetime.time(12, 1, 30))
+    assert segundos_ate_inicio_hoje(programa, TZ) is None
+
+
+@freeze_time(AGORA_UTC)
+def test_segundos_ate_inicio_hoje_data_especifica_diferente_e_none():
+    programa = _programa(data_especifica=datetime.date(2026, 8, 11), horario_inicio=datetime.time(12, 1, 30))
+    assert segundos_ate_inicio_hoje(programa, TZ) is None
+
+
+@freeze_time(AGORA_UTC)
+def test_segundos_ate_inicio_hoje_calcula_diferenca_futura():
+    # agora local e' 12:00:00, inicio 12:01:30 -> 90s
+    programa = _programa(horario_inicio=datetime.time(12, 1, 30))
+    assert segundos_ate_inicio_hoje(programa, TZ) == 90
+
+
+@freeze_time(AGORA_UTC)
+def test_segundos_ate_inicio_hoje_negativo_quando_ja_passou():
+    # agora local e' 12:00:00, inicio 11:00:00 -> -3600
+    programa = _programa(horario_inicio=datetime.time(11, 0, 0))
+    assert segundos_ate_inicio_hoje(programa, TZ) == -3600

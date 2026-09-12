@@ -14,6 +14,11 @@ from app.weather.client import obter_clima_atual
 # Mesmo TTL de sessao ao vivo usado em app/live/router.py::_TTL_SESSAO_AO_VIVO.
 _TTL_SESSAO_AO_VIVO = 6 * 60 * 60
 
+# Clima/tempo nao passa pelo pipeline de assunto (Assunto/espelho/temas_usados) -- e' injetado
+# direto em toda fala por _contexto_atual, entao sem um cooldown proprio aqui o locutor comenta
+# o mesmo clima em blocos seguidos (unico dado sem guarda de repeticao nenhuma).
+_TTL_CLIMA_MENCIONADO = 45 * 60
+
 
 def _proxima_variacao(programa_id: int, chave: str, opcoes: list[str]) -> str:
     """Round-robin persistido no Redis por programa, mesmo primitivo de
@@ -135,12 +140,21 @@ def _contexto_atual(radialista: RadioConfig, account: Account, programa: Program
 
     clima = obter_clima_atual(account.cidade)
     if clima:
-        texto += (
-            f" Clima atual em {account.cidade}: {_clima_por_extenso(clima)}. Se for comentar o clima, "
-            "prefira um comentário com tom regional de quem é dali (o calor típico daqui, a friagem que desce "
-            "da serra, etc.) em vez de só citar o número -- só se tiver algo real configurado sobre o lugar "
-            "pra apoiar isso, senão comente de forma genérica mesmo."
-        )
+        redis_key = f"clima_mencionado:{programa.id}"
+        if redis_client.get(redis_key):
+            texto += (
+                f" Clima atual em {account.cidade}: {_clima_por_extenso(clima)} (uso interno, pra você se situar). "
+                "Você já comentou o tempo/clima há pouco nesta transmissão -- NÃO repita esse assunto de novo "
+                "agora, só se o ouvinte perguntar diretamente sobre o clima."
+            )
+        else:
+            texto += (
+                f" Clima atual em {account.cidade}: {_clima_por_extenso(clima)}. Se for comentar o clima, "
+                "prefira um comentário com tom regional de quem é dali (o calor típico daqui, a friagem que desce "
+                "da serra, etc.) em vez de só citar o número -- só se tiver algo real configurado sobre o lugar "
+                "pra apoiar isso, senão comente de forma genérica mesmo."
+            )
+            redis_client.set(redis_key, "1", nx=True, ex=_TTL_CLIMA_MENCIONADO)
 
     if account.cidade:
         texto += (

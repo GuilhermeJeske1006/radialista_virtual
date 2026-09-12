@@ -22,6 +22,7 @@ from app.config.router import router as config_router
 from app.config.settings import settings
 from app.db.database import Base, SessionLocal, engine
 from app.equipe.router import router as equipe_router
+from app.live.prewarm import executar_tick as preparar_falas_antecipadas
 from app.live.router import router as live_router
 from app.metrics.router import router as metrics_router
 from app.news.worker import executar as coletar_noticias
@@ -158,6 +159,7 @@ async def criar_tabelas():
     garantir_colunas_password_reset_token()
     limpar_coluna_is_staff_legado()
     iniciar_scheduler_noticias()
+    iniciar_scheduler_prewarm()
 
 
 # Coleta roda in-process (BackgroundScheduler, thread daemon) em vez de cron externo --
@@ -189,6 +191,35 @@ def iniciar_scheduler_noticias():
         max_instances=1,
     )
     _scheduler_noticias.start()
+
+
+# Job separado do de noticias (job proprio, mesma instancia de scheduler) porque roda MUITO mais
+# frequente -- a janela de pre-geracao (ver app.live.prewarm) e' de so' 90s antes do
+# horario_inicio, um intervalo de minutos (como o de noticias) deixaria passar a janela na
+# maioria das vezes. Mesma ressalva do free tier do Render: sem trafego nenhum no web service,
+# o processo dorme e este job para junto -- pontualidade so' e' garantida enquanto ele esta' de pe.
+_INTERVALO_PREWARM_SEGUNDOS = 20
+
+
+def _job_preparar_falas_antecipadas():
+    try:
+        preparar_falas_antecipadas()
+    except Exception:
+        logger.warning("Falha na rodada de preparo antecipado de fala", exc_info=True)
+
+
+def iniciar_scheduler_prewarm():
+    if not _scheduler_noticias.get_job("prewarm_primeira_fala"):
+        _scheduler_noticias.add_job(
+            _job_preparar_falas_antecipadas,
+            "interval",
+            seconds=_INTERVALO_PREWARM_SEGUNDOS,
+            id="prewarm_primeira_fala",
+            coalesce=True,
+            max_instances=1,
+        )
+    if not _scheduler_noticias.running:
+        _scheduler_noticias.start()
 
 
 @app.on_event("shutdown")
