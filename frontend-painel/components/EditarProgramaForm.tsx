@@ -18,6 +18,7 @@ import {
   Patrocinador,
   Programa,
   PROGRAMA_VAZIO,
+  ProgramaIAPreview,
   RadioPerfil,
   ROTEIRO_JORNALISMO,
   rotuloBloco,
@@ -76,6 +77,9 @@ export default function EditarProgramaForm({
   const [erroIA, setErroIA] = useState("");
   const [tipoRadioConta, setTipoRadioConta] = useState("");
   const [tiposRadio, setTiposRadio] = useState<TipoRadio[]>([]);
+  const [avisosIA, setAvisosIA] = useState<string[]>([]);
+  const [instrucaoAjuste, setInstrucaoAjuste] = useState("");
+  const [ajustandoIA, setAjustandoIA] = useState(false);
 
   useEffect(() => {
     apiFetch<RadioPerfil>("/config/radio")
@@ -156,19 +160,58 @@ export default function EditarProgramaForm({
     setGerandoIA(true);
     setErroIA("");
     try {
-      const criado = await apiFetch<Programa>(`/config/radialistas/${radioConfigId}/programas/gerar-ia`, {
-        method: "POST",
-        body: JSON.stringify({ descricao: descricaoIA.trim() }),
-      });
-      setIdCriado(criado.id);
-      setPrograma(normalizarPrograma(criado));
+      const preview = await apiFetch<ProgramaIAPreview>(
+        `/config/radialistas/${radioConfigId}/programas/gerar-ia/preview`,
+        { method: "POST", body: JSON.stringify({ descricao: descricaoIA.trim() }) }
+      );
+      // Nada foi gravado ainda (ver Fase 2 do plano de melhoria) -- so preenche o formulario de
+      // criacao com a proposta; o programa so' e' criado de verdade quando o usuario clicar em
+      // "Salvar" mais abaixo, ja' com os ajustes que ele fizer na revisao.
+      setPrograma(
+        normalizarPrograma({
+          id: 0,
+          radio_config_id: radioConfigId,
+          ...PROGRAMA_VAZIO,
+          ...preview.programa,
+        })
+      );
       setIaAberto(false);
-      setMensagem("Programa gerado com IA -- revise e ajuste o que quiser antes de salvar.");
-      onSalvo?.(criado);
+      setAvisosIA(preview.avisos);
+      setMensagem(
+        preview.campos_corrigidos.length > 0
+          ? `Programa gerado com IA -- os campos ${preview.campos_corrigidos.join(", ")} vieram com erro e usaram um valor padrão, revise-os. Nada foi salvo ainda.`
+          : "Programa gerado com IA -- revise e ajuste o que quiser, depois clique em Salvar."
+      );
     } catch (err) {
       setErroIA(err instanceof ApiError ? err.message : "Erro ao gerar programa com IA");
     } finally {
       setGerandoIA(false);
+    }
+  }
+
+  async function ajustarComIA() {
+    if (!programa || !instrucaoAjuste.trim()) return;
+    setAjustandoIA(true);
+    setErroIA("");
+    try {
+      const preview = await apiFetch<ProgramaIAPreview>("/config/programas/gerar-ia/ajustar", {
+        method: "POST",
+        body: JSON.stringify({ instrucao: instrucaoAjuste.trim(), programa: semCamposSistema(programa) }),
+      });
+      // Ver Fase 7 do plano de melhoria -- ajuste tambem nao grava nada; so' atualiza o
+      // formulario, o "Salvar" abaixo (criacao ou edicao) e' que persiste de verdade.
+      setPrograma({ ...programa, ...normalizarPrograma({ ...programa, ...preview.programa }) });
+      setAvisosIA(preview.avisos);
+      setInstrucaoAjuste("");
+      setMensagem(
+        preview.campos_corrigidos.length > 0
+          ? `Ajuste aplicado -- os campos ${preview.campos_corrigidos.join(", ")} vieram com erro e usaram um valor padrão, revise-os. Nada foi salvo ainda.`
+          : "Ajuste aplicado -- revise e clique em Salvar pra confirmar."
+      );
+    } catch (err) {
+      setErroIA(err instanceof ApiError ? err.message : "Erro ao ajustar com IA");
+    } finally {
+      setAjustandoIA(false);
     }
   }
 
@@ -278,6 +321,25 @@ export default function EditarProgramaForm({
         </div>
       )}
 
+      <div className="mb-4 flex flex-wrap gap-2">
+        <input
+          type="text"
+          value={instrucaoAjuste}
+          onChange={(e) => setInstrucaoAjuste(e.target.value)}
+          disabled={ajustandoIA}
+          placeholder="Ajustar com IA -- ex.: mais sério, tira o bloco de notícia, começa às seis"
+          className="flex-1 min-w-[220px] rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20 disabled:opacity-60"
+        />
+        <button
+          type="button"
+          onClick={ajustarComIA}
+          disabled={ajustandoIA || !instrucaoAjuste.trim()}
+          className="rounded-lg border border-border-strong px-3 py-2 text-sm font-medium text-fg hover:bg-paper/10 disabled:opacity-60"
+        >
+          {ajustandoIA ? "Ajustando..." : "Ajustar"}
+        </button>
+      </div>
+
       {erro && (
         <div className="mb-4">
           <p className="text-sm text-rust-text">{erro}</p>
@@ -290,6 +352,13 @@ export default function EditarProgramaForm({
         </div>
       )}
       {mensagem && <p className="text-sm text-teal-text mb-4">{mensagem}</p>}
+      {avisosIA.length > 0 && (
+        <ul className="text-xs font-medium text-rust-text bg-rust/10 rounded-lg px-3 py-2 mb-4 list-disc list-inside space-y-0.5">
+          {avisosIA.map((aviso, i) => (
+            <li key={i}>{aviso}</li>
+          ))}
+        </ul>
+      )}
 
       <form onSubmit={salvar} className="space-y-4">
         <h3 className="font-mono text-xs uppercase tracking-wide text-amber-text">No ar</h3>

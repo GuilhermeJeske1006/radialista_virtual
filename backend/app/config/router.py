@@ -8,13 +8,23 @@ from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_account
 from app.db.database import get_db
-from app.guardrails.http_rate_limit import limite_excedido
-from app.llm.config_generator import gerar_configuracao_ia, gerar_programa_ia
+from app.guardrails.http_rate_limit import limite_atingido, registrar_consumo
+from app.llm.config_generator import (
+    ajustar_configuracao_ia,
+    ajustar_programa_ia,
+    gerar_configuracao_ia,
+    gerar_persona_ia,
+    gerar_programa_ia,
+    programas_existentes_do_roster,
+    reparar_configuracao_ia,
+    reparar_programa_ia,
+)
 from app.llm.tipos_radio import TIPOS_RADIO, tipo_radio_valido
 from app.models.account import Account
 from app.models.assunto_programa import AssuntoPrograma
 from app.models.fila_ao_vivo import FilaAoVivo
 from app.models.fonte_noticia import FonteNoticia
+from app.models.geracao_ia import GeracaoIA
 from app.models.interaction_log import InteractionLog
 from app.models.musica_historico import MusicaHistorico
 from app.models.noticia_historico import NoticiaHistorico
@@ -183,6 +193,63 @@ class ConfiguracaoIAResponse(BaseModel):
     programa: ProgramaResponse
 
 
+class ConfiguracaoIAPreviewResponse(BaseModel):
+    """Proposta de radialista+programa gerada via IA, ainda NAO gravada (ver Fase 2 do plano de
+    melhoria) -- pra criar de verdade, revise/ajuste e poste em /config/radialistas e depois
+    /config/radialistas/{id}/programas com o payload final."""
+
+    radialista: RadialistaRequest
+    programa: ProgramaRequest
+    campos_corrigidos: list[str] = Field(default_factory=list)
+    avisos: list[str] = Field(default_factory=list)
+    # Id do registro em GeracaoIA (ver Fase 10 do plano de melhoria) -- devolva no
+    # POST /gerar-ia/commit (campo geracao_id) pra fechar o loop de aprendizado.
+    geracao_id: int | None = None
+
+
+class ProgramaIAPreviewResponse(BaseModel):
+    programa: ProgramaRequest
+    campos_corrigidos: list[str] = Field(default_factory=list)
+    avisos: list[str] = Field(default_factory=list)
+    geracao_id: int | None = None
+
+
+_DEFAULTS_CAMPOS_OBRIGATORIOS = {
+    "nome": "Programa sem nome",
+    "tom": "neutro",
+    "horario_inicio": "08:00:00",
+    "horario_fim": "09:00:00",
+    "nome_locutor": "Locutor sem nome",
+}
+
+
+def _construir_com_defaults(modelo_cls: type[BaseModel], dados: dict) -> tuple[BaseModel, list[str]]:
+    """Tenta validar `dados` contra `modelo_cls`; pra cada campo que falhar, aplica um default
+    seguro (campo obrigatorio) ou remove a chave (campo opcional, cai no default do proprio
+    schema) e tenta de novo -- em vez de derrubar a proposta inteira por causa de UM campo
+    quebrado (ver Fase 6 do plano: proposta parcial em vez de 502-em-qualquer-coisa). Devolve o
+    modelo ja valido + a lista dos campos que precisaram de correcao, pra marcar na revisao."""
+    dados = dict(dados)
+    corrigidos: list[str] = []
+    while True:
+        try:
+            return modelo_cls(**dados), corrigidos
+        except ValidationError as exc:
+            algum_novo = False
+            for erro in exc.errors():
+                campo = str(erro["loc"][0]) if erro["loc"] else None
+                if not campo or campo in corrigidos:
+                    continue
+                if campo in _DEFAULTS_CAMPOS_OBRIGATORIOS:
+                    dados[campo] = _DEFAULTS_CAMPOS_OBRIGATORIOS[campo]
+                else:
+                    dados.pop(campo, None)
+                corrigidos.append(campo)
+                algum_novo = True
+            if not algum_novo:
+                raise
+
+
 def _resumo_horario(programa: Programa) -> dict:
     """Horario + dias de um programa, resumidos pro contexto de geracao via IA -- sem isso a
     IA nao tem como propor um horario que nao colida com o que ja existe (ver
@@ -208,7 +275,12 @@ def _montar_roster_existente(db: Session, account: Account) -> list[dict]:
     for radialista, programa in linhas:
         entrada = roster.setdefault(
             radialista.id,
-            {"nome_locutor": radialista.nome_locutor, "personalidade": radialista.personalidade, "programas": []},
+            {
+                "nome_locutor": radialista.nome_locutor,
+                "personalidade": radialista.personalidade,
+                "voz_id": radialista.voz_id,
+                "programas": [],
+            },
         )
         if programa is not None:
             entrada["programas"].append({"nome": programa.nome, "tom": programa.tom, **_resumo_horario(programa)})
@@ -285,6 +357,31 @@ def _horarios_conflitam(inicio_a, fim_a, inicio_b, fim_b) -> bool:
     return inicio_a < fim_b and inicio_b < fim_a
 
 
+def _conflitos_horario(
+    db: Session,
+    account_id: int,
+    dados: "ProgramaRequest",
+    programa_id: int | None = None,
+) -> list[tuple[Programa, RadioConfig]]:
+    """Lista (sem levantar excecao) os programas da conta que colidem em horario com `dados` --
+    usado tanto por _validar_conflito_horario (que levanta 409 no primeiro) quanto pelos avisos
+    de coerencia da tela de preview (ver Fase 5 do plano de melhoria), onde conflito e' reportado
+    pro usuario decidir, nao motivo pra falhar a geracao inteira."""
+    query = (
+        db.query(Programa, RadioConfig)
+        .join(RadioConfig, Programa.radio_config_id == RadioConfig.id)
+        .filter(RadioConfig.account_id == account_id)
+    )
+    if programa_id is not None:
+        query = query.filter(Programa.id != programa_id)
+    return [
+        (outro, radialista_outro)
+        for outro, radialista_outro in query.all()
+        if _ocorrencias_conflitam(dados, outro)
+        and _horarios_conflitam(dados.horario_inicio, dados.horario_fim, outro.horario_inicio, outro.horario_fim)
+    ]
+
+
 def _validar_conflito_horario(
     db: Session,
     account_id: int,
@@ -296,24 +393,92 @@ def _validar_conflito_horario(
     mesmo horario). Por isso o conflito e checado contra TODOS os programas da conta,
     nao so os do mesmo radialista.
     """
-    query = (
-        db.query(Programa, RadioConfig)
-        .join(RadioConfig, Programa.radio_config_id == RadioConfig.id)
-        .filter(RadioConfig.account_id == account_id)
+    conflitos = _conflitos_horario(db, account_id, dados, programa_id)
+    if conflitos:
+        outro, radialista_outro = conflitos[0]
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"Horario conflita com o programa '{outro.nome}' de {radialista_outro.nome_locutor} "
+                f"({outro.horario_inicio}-{outro.horario_fim})"
+            ),
+        )
+
+
+_BLOCOS_MUSICA = {"musica"}
+_BLOCOS_NOTICIA = {"noticia", "escalada", "giro", "servico", "plantao", "reporter"}
+
+
+def _registrar_geracao(
+    db: Session, account: Account, tipo: str, descricao: str, contexto_usado: dict, proposta: dict
+) -> int:
+    """Loop de aprendizado (ver Fase 10 do plano de melhoria): registra toda geracao/refinamento
+    via IA -- o que foi proposto (e' comparado depois, se o cliente commitar, com o que ele de
+    fato editou/aceitou em _marcar_geracao_aceita) pra apontar que campos a IA erra
+    sistematicamente, e alimentar os exemplos de prompt (ver app.llm.exemplos_config) com
+    configuracoes reais em vez de exemplos escritos a mao."""
+    registro = GeracaoIA(
+        account_id=account.id,
+        tipo=tipo,
+        descricao=descricao,
+        contexto_usado=contexto_usado,
+        proposta=proposta,
     )
-    if programa_id is not None:
-        query = query.filter(Programa.id != programa_id)
-    for outro, radialista_outro in query.all():
-        if _ocorrencias_conflitam(dados, outro) and _horarios_conflitam(
-            dados.horario_inicio, dados.horario_fim, outro.horario_inicio, outro.horario_fim
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=(
-                    f"Horario conflita com o programa '{outro.nome}' de {radialista_outro.nome_locutor} "
-                    f"({outro.horario_inicio}-{outro.horario_fim})"
-                ),
-            )
+    db.add(registro)
+    db.commit()
+    db.refresh(registro)
+    return registro.id
+
+
+def _marcar_geracao_aceita(db: Session, account: Account, geracao_id: int | None, proposta_final: dict) -> None:
+    """Marca uma geracao (ver _registrar_geracao) como aceita/commitada, com o payload final que
+    o cliente de fato confirmou -- no-op se geracao_id nao foi informado (fluxo antigo/direto)
+    ou nao pertence a essa conta."""
+    if geracao_id is None:
+        return
+    registro = db.query(GeracaoIA).filter_by(id=geracao_id, account_id=account.id).first()
+    if registro is None:
+        return
+    registro.aceita = True
+    registro.proposta_final = proposta_final
+    db.commit()
+
+
+def _avisos_coerencia(
+    db: Session,
+    account: Account,
+    programa_dados: "ProgramaRequest",
+    radialista_dados: "RadialistaRequest | None" = None,
+    roster_existente: list[dict] | None = None,
+) -> list[str]:
+    """Avisos NAO bloqueantes sobre a proposta gerada via IA, pra destacar na tela de revisao
+    do preview (ver Fase 5 do plano de melhoria). Ao contrario da sanitizacao/defaults (Fase 6),
+    aqui o dado nao esta errado o bastante pra corrigir sozinho -- so' merece uma segunda olhada
+    do cliente antes de confirmar."""
+    avisos: list[str] = []
+
+    for outro, radialista_outro in _conflitos_horario(db, account.id, programa_dados):
+        avisos.append(
+            f"Horário conflita com '{outro.nome}' de {radialista_outro.nome_locutor} "
+            f"({outro.horario_inicio}-{outro.horario_fim})."
+        )
+
+    blocos = {b.strip().lower() for b in programa_dados.estrutura_blocos}
+    if programa_dados.generos_musicais and not (blocos & _BLOCOS_MUSICA):
+        avisos.append("Tem gêneros musicais definidos mas nenhum bloco de música na estrutura.")
+    if programa_dados.tipos_noticias and not (blocos & _BLOCOS_NOTICIA):
+        avisos.append(
+            "Tem tipos de notícia definidos mas nenhum bloco de notícia/escalada/giro/serviço/"
+            "plantão na estrutura."
+        )
+
+    if radialista_dados is not None and radialista_dados.voz_id:
+        for radialista in roster_existente or []:
+            if radialista.get("voz_id") == radialista_dados.voz_id:
+                avisos.append(f"A voz escolhida já é usada por '{radialista.get('nome_locutor')}' nessa conta.")
+                break
+
+    return avisos
 
 
 def _validar_limite_agentes(db: Session, account: Account) -> None:
@@ -362,12 +527,28 @@ def _resposta_vinculo_radialista(
     )
 
 
+_CHAVE_LIMITE_GERACAO = "gerar_config_ia"
+_LIMITE_GERACAO_IA = 5
+_JANELA_LIMITE_GERACAO_IA = 3600
+
+
 def _validar_limite_geracao_ia(account: Account) -> None:
-    if limite_excedido(f"gerar_config_ia:{account.id}", limite=5, janela_segundos=3600):
+    """So VERIFICA o limite, sem consumir cota -- chame antes de tentar a geracao. Cota so' e'
+    de fato consumida em _registrar_geracao_ia, depois que o LLM responde com sucesso (ver Fase
+    2/6 do plano de melhoria: uma tentativa que falha no LLM nao pode queimar cota do cliente)."""
+    if limite_atingido(
+        f"{_CHAVE_LIMITE_GERACAO}:{account.id}", limite=_LIMITE_GERACAO_IA, janela_segundos=_JANELA_LIMITE_GERACAO_IA
+    ):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Limite de geracoes por IA atingido. Tenta de novo daqui a pouco.",
         )
+
+
+def _registrar_geracao_ia(account: Account) -> None:
+    """Consome uma unidade da cota de geracao via IA -- chame so depois que o LLM respondeu
+    com sucesso (ver _validar_limite_geracao_ia)."""
+    registrar_consumo(f"{_CHAVE_LIMITE_GERACAO}:{account.id}", janela_segundos=_JANELA_LIMITE_GERACAO_IA)
 
 
 @router.get("/tipos-radio", response_model=list[TipoRadioResponse])
@@ -440,14 +621,12 @@ def gerar_radialista_ia(
             detail="Escolha um tipo de radio ou descreva o programa",
         )
 
+    # falha rapido, sem gastar LLM nem cota de geracao, se o plano ja esta no limite de agentes
+    # e a conta nao tem placeholder pra reaproveitar (_commitar_radialista_gerado confere de
+    # novo depois -- essa checagem aqui e' so' pra nao desperdicar a chamada).
     radialistas_da_conta = db.query(RadioConfig).filter_by(account_id=account.id).all()
-    radialista_placeholder = (
-        radialistas_da_conta[0]
-        if len(radialistas_da_conta) == 1 and radialistas_da_conta[0].voz_id is None
-        else None
-    )
-
-    if radialista_placeholder is None:
+    tem_placeholder = len(radialistas_da_conta) == 1 and radialistas_da_conta[0].voz_id is None
+    if not tem_placeholder:
         _validar_limite_agentes(db, account)
     _validar_limite_geracao_ia(account)
 
@@ -460,16 +639,54 @@ def gerar_radialista_ia(
         dados_radialista, dados_programa = gerar_configuracao_ia(
             dados.descricao, account.tipo_radio, account, roster_existente
         )
-        radialista_dados = RadialistaRequest(**dados_radialista)
-        programa_dados = ProgramaRequest(**dados_programa)
-    except (ValueError, ValidationError):
+    except ValueError:
         logger.exception("Falha ao gerar radialista+programa via IA: account_id=%s", account.id)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Nao foi possivel gerar a configuracao agora. Tenta de novo em instantes.",
         )
+    _registrar_geracao_ia(account)  # LLM respondeu -- so agora a tentativa consome cota
 
+    try:
+        radialista_dados = RadialistaRequest(**dados_radialista)
+        programa_dados = ProgramaRequest(**dados_programa)
+    except ValidationError as exc:
+        try:
+            dados_radialista, dados_programa = reparar_configuracao_ia(
+                account.tipo_radio, account, roster_existente, dados_radialista, dados_programa, exc.errors()
+            )
+            radialista_dados = RadialistaRequest(**dados_radialista)
+            programa_dados = ProgramaRequest(**dados_programa)
+        except (ValueError, ValidationError):
+            logger.exception("Reparo de radialista+programa tambem falhou: account_id=%s", account.id)
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Nao foi possivel gerar a configuracao agora. Tenta de novo em instantes.",
+            )
+
+    return _commitar_radialista_gerado(db, account, radialista_dados, programa_dados)
+
+
+def _commitar_radialista_gerado(
+    db: Session, account: Account, radialista_dados: "RadialistaRequest", programa_dados: "ProgramaRequest"
+) -> "ConfiguracaoIAResponse":
+    """Grava radialista+programa (ja validados) no banco -- usado tanto pelo endpoint atomico
+    gerar_radialista_ia (gera e grava numa tacada so) quanto por commitar_radialista_ia_gerado
+    (grava a proposta que o cliente revisou/ajustou na tela de preview, ver Fase 2 do plano).
+
+    Excecao: se a conta tem exatamente um radialista sem voz definida (placeholder do
+    cadastro), PREENCHE esse radialista/programa em vez de criar um novo -- sem isso toda conta
+    nova (1 agente) bateria o limite de agentes nessa primeira geracao."""
     _validar_voz(db, account, radialista_dados.voz_id)
+
+    radialistas_da_conta = db.query(RadioConfig).filter_by(account_id=account.id).all()
+    radialista_placeholder = (
+        radialistas_da_conta[0]
+        if len(radialistas_da_conta) == 1 and radialistas_da_conta[0].voz_id is None
+        else None
+    )
+    if radialista_placeholder is None:
+        _validar_limite_agentes(db, account)
 
     if radialista_placeholder is not None:
         radialista = radialista_placeholder
@@ -504,13 +721,214 @@ def gerar_radialista_ia(
     db.refresh(programa)
 
     logger.info(
-        "Radialista+programa gerados via IA: radialista_id=%s programa_id=%s account_id=%s reaproveitado=%s",
+        "Radialista+programa gravados: radialista_id=%s programa_id=%s account_id=%s reaproveitado=%s",
         radialista.id,
         programa.id,
         account.id,
         radialista_placeholder is not None,
     )
     return ConfiguracaoIAResponse(radialista=radialista, programa=programa)
+
+
+@router.post("/radialistas/gerar-ia/preview", response_model=ConfiguracaoIAPreviewResponse)
+def gerar_radialista_ia_preview(
+    dados: GerarConfiguracaoIARequest,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Gera radialista+programa via IA SEM gravar nada no banco e SEM consumir slot de agente
+    do plano (ver Fase 2 do plano de melhoria) -- so depois de revisar/ajustar a proposta e'
+    que o cliente commita via POST /config/radialistas + POST .../{id}/programas. Uma geracao
+    ruim aqui nao vira lixo no banco nem queima o slot pago de agente.
+
+    Campo com erro de validacao vira default marcado em campos_corrigidos em vez de derrubar a
+    proposta inteira (ver Fase 6) -- so' depois de uma tentativa de reparo via LLM falhar."""
+    if not account.tipo_radio and not dados.descricao.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Escolha um tipo de radio ou descreva o programa",
+        )
+
+    _validar_limite_geracao_ia(account)
+    roster_existente = _montar_roster_existente(db, account)
+
+    try:
+        dados_radialista, dados_programa = gerar_configuracao_ia(
+            dados.descricao, account.tipo_radio, account, roster_existente
+        )
+    except ValueError:
+        logger.exception("Falha ao gerar preview de radialista+programa via IA: account_id=%s", account.id)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Nao foi possivel gerar a configuracao agora. Tenta de novo em instantes.",
+        )
+    _registrar_geracao_ia(account)
+
+    try:
+        radialista_dados = RadialistaRequest(**dados_radialista)
+        programa_dados = ProgramaRequest(**dados_programa)
+        campos_corrigidos: list[str] = []
+    except ValidationError as exc:
+        try:
+            dados_radialista, dados_programa = reparar_configuracao_ia(
+                account.tipo_radio, account, roster_existente, dados_radialista, dados_programa, exc.errors()
+            )
+        except ValueError:
+            logger.warning("Reparo de preview radialista+programa falhou -- caindo pra defaults", exc_info=True)
+        radialista_dados, corrigidos_r = _construir_com_defaults(RadialistaRequest, dados_radialista)
+        programa_dados, corrigidos_p = _construir_com_defaults(ProgramaRequest, dados_programa)
+        campos_corrigidos = corrigidos_r + corrigidos_p
+
+    avisos = _avisos_coerencia(db, account, programa_dados, radialista_dados, roster_existente)
+    geracao_id = _registrar_geracao(
+        db,
+        account,
+        "radialista",
+        dados.descricao,
+        {"tipo_radio": account.tipo_radio, "qtd_radialistas_existentes": len(roster_existente)},
+        {
+            "radialista": radialista_dados.model_dump(mode="json"),
+            "programa": programa_dados.model_dump(mode="json"),
+        },
+    )
+    return ConfiguracaoIAPreviewResponse(
+        radialista=radialista_dados,
+        programa=programa_dados,
+        campos_corrigidos=campos_corrigidos,
+        avisos=avisos,
+        geracao_id=geracao_id,
+    )
+
+
+class ConfiguracaoIACommitRequest(BaseModel):
+    radialista: RadialistaRequest
+    programa: ProgramaRequest
+    # Id devolvido pelo preview (ver ConfiguracaoIAPreviewResponse.geracao_id) -- opcional, fecha
+    # o loop de aprendizado (Fase 10) marcando a geracao como aceita com o payload final.
+    geracao_id: int | None = None
+
+
+@router.post(
+    "/radialistas/gerar-ia/commit",
+    response_model=ConfiguracaoIAResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def commitar_radialista_ia(
+    dados: ConfiguracaoIACommitRequest,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Grava o radialista+programa que o cliente revisou/ajustou depois de um POST em
+    /radialistas/gerar-ia/preview (ver Fase 2 do plano de melhoria) -- sem chamar o LLM de novo,
+    so aplica a mesma logica de reaproveitamento de placeholder e limite de agentes do endpoint
+    atomico gerar_radialista_ia."""
+    resultado = _commitar_radialista_gerado(db, account, dados.radialista, dados.programa)
+    _marcar_geracao_aceita(
+        db,
+        account,
+        dados.geracao_id,
+        {
+            "radialista": resultado.radialista.model_dump(mode="json"),
+            "programa": resultado.programa.model_dump(mode="json"),
+        },
+    )
+    return resultado
+
+
+class RefinarConfiguracaoIARequest(BaseModel):
+    """Corpo do refinamento parcial da tela de revisao (ver Fase 7 do plano de melhoria):
+    escopo='persona' regenera so' nome/personalidade/voz mantendo o programa; escopo='programa'
+    regenera so' o programa mantendo a persona; escopo='ajuste' aplica `instrucao` (texto livre)
+    em cima do par atual. `radialista`/`programa` sao sempre o estado ATUAL da tela de revisao
+    (ja pode ter sido editado a mao), nunca a proposta original."""
+
+    descricao: str = ""
+    escopo: Literal["persona", "programa", "ajuste"]
+    instrucao: str = ""
+    radialista: RadialistaRequest
+    programa: ProgramaRequest
+
+
+@router.post("/radialistas/gerar-ia/refinar", response_model=ConfiguracaoIAPreviewResponse)
+def refinar_radialista_ia_preview(
+    dados: RefinarConfiguracaoIARequest,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Refinamento parcial da proposta ainda em revisao (ver Fase 7) -- mais barato e preciso
+    que "gerar tudo de novo": troca so' a persona, so' o programa, ou aplica um ajuste em texto
+    livre sobre o que ja esta na tela. Nada e' gravado aqui (mesma garantia do preview)."""
+    _validar_limite_geracao_ia(account)
+    roster_existente = _montar_roster_existente(db, account)
+
+    try:
+        if dados.escopo == "persona":
+            dados_radialista = gerar_persona_ia(dados.descricao, account.tipo_radio, account, roster_existente)
+            dados_programa = dados.programa.model_dump(mode="json")
+        elif dados.escopo == "programa":
+            programas_existentes = programas_existentes_do_roster(roster_existente)
+            dados_radialista = dados.radialista.model_dump(mode="json")
+            dados_programa = gerar_programa_ia(
+                dados.descricao,
+                dados.radialista.nome_locutor,
+                dados.radialista.personalidade,
+                account.tipo_radio,
+                account,
+                dados.radialista.voz_id,
+                programas_existentes,
+            )
+        else:
+            dados_radialista, dados_programa = ajustar_configuracao_ia(
+                dados.instrucao,
+                dados.radialista.model_dump(mode="json"),
+                dados.programa.model_dump(mode="json"),
+                account.tipo_radio,
+                account,
+            )
+    except ValueError:
+        logger.exception("Falha ao refinar radialista+programa via IA: account_id=%s escopo=%s", account.id, dados.escopo)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Nao foi possivel gerar a configuracao agora. Tenta de novo em instantes.",
+        )
+    _registrar_geracao_ia(account)
+
+    try:
+        radialista_dados = RadialistaRequest(**dados_radialista)
+        programa_dados = ProgramaRequest(**dados_programa)
+        campos_corrigidos: list[str] = []
+    except ValidationError as exc:
+        try:
+            dados_radialista, dados_programa = reparar_configuracao_ia(
+                account.tipo_radio, account, roster_existente, dados_radialista, dados_programa, exc.errors()
+            )
+            radialista_dados = RadialistaRequest(**dados_radialista)
+            programa_dados = ProgramaRequest(**dados_programa)
+        except (ValueError, ValidationError):
+            logger.warning("Reparo de refinamento falhou -- caindo pra defaults", exc_info=True)
+        radialista_dados, corrigidos_r = _construir_com_defaults(RadialistaRequest, dados_radialista)
+        programa_dados, corrigidos_p = _construir_com_defaults(ProgramaRequest, dados_programa)
+        campos_corrigidos = corrigidos_r + corrigidos_p
+
+    avisos = _avisos_coerencia(db, account, programa_dados, radialista_dados, roster_existente)
+    geracao_id = _registrar_geracao(
+        db,
+        account,
+        "refinamento",
+        dados.instrucao or dados.descricao,
+        {"escopo": dados.escopo},
+        {
+            "radialista": radialista_dados.model_dump(mode="json"),
+            "programa": programa_dados.model_dump(mode="json"),
+        },
+    )
+    return ConfiguracaoIAPreviewResponse(
+        radialista=radialista_dados,
+        programa=programa_dados,
+        campos_corrigidos=campos_corrigidos,
+        avisos=avisos,
+        geracao_id=geracao_id,
+    )
 
 
 @router.get("/radialistas/{radialista_id}", response_model=RadialistaResponse)
@@ -639,13 +1057,35 @@ def gerar_programa_ia_endpoint(
             radialista.voz_id,
             programas_existentes,
         )
-        programa_dados = ProgramaRequest(**dados_programa)
-    except (ValueError, ValidationError):
+    except ValueError:
         logger.exception("Falha ao gerar programa via IA: radialista_id=%s", radialista_id)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Nao foi possivel gerar a configuracao agora. Tenta de novo em instantes.",
         )
+    _registrar_geracao_ia(account)
+
+    try:
+        programa_dados = ProgramaRequest(**dados_programa)
+    except ValidationError as exc:
+        try:
+            dados_programa = reparar_programa_ia(
+                radialista.nome_locutor,
+                radialista.personalidade,
+                account.tipo_radio,
+                account,
+                radialista.voz_id,
+                programas_existentes,
+                dados_programa,
+                exc.errors(),
+            )
+            programa_dados = ProgramaRequest(**dados_programa)
+        except (ValueError, ValidationError):
+            logger.exception("Reparo de programa via IA tambem falhou: radialista_id=%s", radialista_id)
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Nao foi possivel gerar a configuracao agora. Tenta de novo em instantes.",
+            )
 
     _validar_conflito_horario(db, account.id, programa_dados)
     programa = Programa(radio_config_id=radialista.id, **programa_dados.model_dump())
@@ -654,6 +1094,131 @@ def gerar_programa_ia_endpoint(
     db.refresh(programa)
     logger.info("Programa gerado via IA: id=%s radialista_id=%s", programa.id, radialista.id)
     return programa
+
+
+@router.post(
+    "/radialistas/{radialista_id}/programas/gerar-ia/preview",
+    response_model=ProgramaIAPreviewResponse,
+)
+def gerar_programa_ia_preview(
+    radialista_id: int,
+    dados: GerarConfiguracaoIARequest,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Como gerar_radialista_ia_preview, mas pra um programa novo de um radialista ja existente
+    -- gera SEM gravar, quem chama commita via POST /config/radialistas/{id}/programas depois
+    de revisar (ver Fase 2 do plano de melhoria)."""
+    if not account.tipo_radio and not dados.descricao.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Escolha um tipo de radio ou descreva o programa",
+        )
+    radialista = _buscar_radialista(db, account, radialista_id)
+    _validar_limite_geracao_ia(account)
+
+    programas_existentes = _montar_programas_existentes(db, account, radialista)
+
+    try:
+        dados_programa = gerar_programa_ia(
+            dados.descricao,
+            radialista.nome_locutor,
+            radialista.personalidade,
+            account.tipo_radio,
+            account,
+            radialista.voz_id,
+            programas_existentes,
+        )
+    except ValueError:
+        logger.exception("Falha ao gerar preview de programa via IA: radialista_id=%s", radialista_id)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Nao foi possivel gerar a configuracao agora. Tenta de novo em instantes.",
+        )
+    _registrar_geracao_ia(account)
+
+    try:
+        programa_dados = ProgramaRequest(**dados_programa)
+        campos_corrigidos: list[str] = []
+    except ValidationError as exc:
+        try:
+            dados_programa = reparar_programa_ia(
+                radialista.nome_locutor,
+                radialista.personalidade,
+                account.tipo_radio,
+                account,
+                radialista.voz_id,
+                programas_existentes,
+                dados_programa,
+                exc.errors(),
+            )
+        except ValueError:
+            logger.warning("Reparo de preview de programa falhou -- caindo pra defaults", exc_info=True)
+        programa_dados, campos_corrigidos = _construir_com_defaults(ProgramaRequest, dados_programa)
+
+    avisos = _avisos_coerencia(db, account, programa_dados)
+    geracao_id = _registrar_geracao(
+        db,
+        account,
+        "programa",
+        dados.descricao,
+        {"tipo_radio": account.tipo_radio, "radialista_id": radialista_id},
+        {"programa": programa_dados.model_dump(mode="json")},
+    )
+    return ProgramaIAPreviewResponse(
+        programa=programa_dados, campos_corrigidos=campos_corrigidos, avisos=avisos, geracao_id=geracao_id
+    )
+
+
+class AjustarProgramaIARequest(BaseModel):
+    instrucao: str
+    programa: ProgramaRequest
+
+
+@router.post("/programas/gerar-ia/ajustar", response_model=ProgramaIAPreviewResponse)
+def ajustar_programa_ia_preview(
+    dados: AjustarProgramaIARequest,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Aplica um ajuste em texto livre (ex.: "mais serio", "tira o bloco de noticia") sobre um
+    programa que ja esta na tela (gerado por IA ou nao, novo ou ja existente -- ver Fase 7 do
+    plano de melhoria). Nao grava nada; quem chama salva via POST/PUT normal depois."""
+    if not dados.instrucao.strip():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Descreva o ajuste que voce quer")
+
+    _validar_limite_geracao_ia(account)
+    try:
+        dados_programa = ajustar_programa_ia(
+            dados.instrucao, dados.programa.model_dump(mode="json"), account.tipo_radio, account
+        )
+    except ValueError:
+        logger.exception("Falha ao ajustar programa via IA: account_id=%s", account.id)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Nao foi possivel aplicar o ajuste agora. Tenta de novo em instantes.",
+        )
+    _registrar_geracao_ia(account)
+
+    try:
+        programa_dados = ProgramaRequest(**dados_programa)
+        campos_corrigidos: list[str] = []
+    except ValidationError:
+        logger.warning("Ajuste de programa devolveu campo invalido -- caindo pra defaults", exc_info=True)
+        programa_dados, campos_corrigidos = _construir_com_defaults(ProgramaRequest, dados_programa)
+
+    avisos = _avisos_coerencia(db, account, programa_dados)
+    geracao_id = _registrar_geracao(
+        db,
+        account,
+        "refinamento",
+        dados.instrucao,
+        {"escopo": "ajuste"},
+        {"programa": programa_dados.model_dump(mode="json")},
+    )
+    return ProgramaIAPreviewResponse(
+        programa=programa_dados, campos_corrigidos=campos_corrigidos, avisos=avisos, geracao_id=geracao_id
+    )
 
 
 @router.get("/programas/{programa_id}", response_model=ProgramaResponse)

@@ -12,7 +12,7 @@ TIPOS_RADIO: list[dict] = [
         "contexto_prompt": (
             "Radio de perfil sertanejo (raiz e universitario). Generos: sertanejo raiz, "
             "sertanejo universitario, modao. Tom caloroso, regional, proximo do ouvinte do "
-            "interior. Blocos comuns: recado/dedicatoria ao ouvinte, chamada de musica, "
+            "interior. Blocos comuns: chamada_ouvinte (recado/dedicatoria), musica, "
             "comentario sobre o dia a dia da roca/cidade pequena."
         ),
         "exemplos": (
@@ -71,7 +71,7 @@ TIPOS_RADIO: list[dict] = [
         "contexto_prompt": (
             "Radio popular de variedades, 'radio de cidade'. Mix de generos: sertanejo, pagode, "
             "forro, pop nacional. Tom caloroso e acessivel, publico familiar amplo (todas as "
-            "idades). Blocos variados: musica, recado, noticia local, humor leve."
+            "idades). Blocos variados: musica, chamada_ouvinte, noticia local, humor leve."
         ),
         "exemplos": (
             "Ex. de artistas/generos concretos: sertanejo raiz, Thiaguinho e pagode romantico, "

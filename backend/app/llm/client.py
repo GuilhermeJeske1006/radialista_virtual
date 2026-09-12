@@ -135,12 +135,16 @@ def gerar_configuracao(system_prompt: str, mensagem_usuario: str) -> str:
     """Chamada ao LLM pra gerar configuracao estruturada (JSON) de radialista/programa.
 
     Usa mais max_tokens que gerar_classificacao pois o JSON de saida e rico (dezenas de campos).
+    effort='high' (diferente de gerar_resposta/gerar_resposta_chat, que ficam em 'low') porque
+    essa e' uma chamada rara (no maximo 5/hora por conta, ver _validar_limite_geracao_ia) que
+    define horas de programacao de uma vez -- o oposto do caso de uso de latencia/volume que
+    justifica 'low' nas outras chamadas.
     """
     response = _client.messages.create(
         model=MODEL,
         max_tokens=4096,
         thinking={"type": "disabled"},
-        output_config={"effort": "low"},
+        output_config={"effort": "high"},
         system=system_prompt,
         messages=[{"role": "user", "content": mensagem_usuario}],
     )

@@ -251,6 +251,27 @@ export const PROGRAMA_VAZIO: Omit<Programa, "id" | "radio_config_id"> = {
   densidade_assunto: "leve",
 };
 
+// Proposta de radialista+programa gerada via IA, ainda NAO gravada -- ver backend
+// app/config/router.py POST /radialistas/gerar-ia/preview (Fase 2 do plano de melhoria).
+// campos_corrigidos lista campos que vieram com erro de validacao e caíram pra um default
+// seguro (o reparo via LLM falhou) -- vale destacar pro usuario revisar antes de confirmar.
+export type ConfiguracaoIAPreview = {
+  radialista: Omit<Radialista, "id" | "ativo">;
+  programa: Omit<Programa, "id" | "radio_config_id">;
+  campos_corrigidos: string[];
+  avisos: string[];
+  // Id do registro de loop de aprendizado (ver Fase 10 do plano de melhoria) -- devolva em
+  // POST /gerar-ia/commit (campo geracao_id) pra fechar o loop.
+  geracao_id: number | null;
+};
+
+export type ProgramaIAPreview = {
+  programa: Omit<Programa, "id" | "radio_config_id">;
+  campos_corrigidos: string[];
+  avisos: string[];
+  geracao_id: number | null;
+};
+
 // Vinculo de um radialista a um programa (dono ou co-apresentador), com papel e
 // comportamento proprios do programa -- ver backend/app/models/programa_radialista.py.
 export type RadialistaPrograma = {

@@ -7,6 +7,7 @@ from app.models.compra_excedente import CompraExcedente
 from app.models.convite_usuario import ConviteUsuario
 from app.models.fila_ao_vivo import FilaAoVivo
 from app.models.fonte_noticia import FonteNoticia
+from app.models.geracao_ia import GeracaoIA
 from app.models.interaction_log import InteractionLog
 from app.models.musica import Musica
 from app.models.musica_historico import MusicaHistorico
@@ -51,6 +52,7 @@ __all__ = [
     "NoticiaHistorico",
     "Assunto",
     "AssuntoPrograma",
+    "GeracaoIA",
 ]
 
 from app.models.conversa_ouvinte import ConversaOuvinte
