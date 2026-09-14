@@ -427,6 +427,13 @@ export function useLiveEngine() {
     setEstagioAtual("fala");
     try {
       if (audioUrl) {
+        // Rede de seguranca: se por qualquer motivo o audio da chamada anterior nao foi
+        // pausado (ver comentario abaixo sobre onerror/timeout), garante aqui que ele nao
+        // continua tocando por baixo do novo -- sem isso a fala nova soa "por cima" da anterior.
+        if (audioFalaRef.current) {
+          try { audioFalaRef.current.pause(); } catch { /* ignora falha ao pausar audio anterior */ }
+          audioFalaRef.current = null;
+        }
         const audio = new Audio(audioUrl);
         audio.volume = 0;
         // volume=0 sozinho nao basta pra passar pela politica de autoplay do navegador (ela
@@ -462,11 +469,19 @@ export function useLiveEngine() {
           audio.muted = false;
           fadeVolumeAudioElemento(audio, FADE_BORDA_FALA_MS, 1);
         };
+        // onended (fim natural) ja' significa que o audio parou sozinho -- mas onerror/timeout
+        // NAO garantem isso: o elemento pode continuar tocando de verdade por baixo enquanto o
+        // programa ja' segue pro proximo bloco, soando como uma fala "por cima" da outra. Toda
+        // saida que nao seja onended precisa pausar explicitamente antes de liberar a Promise.
+        const pararEFinalizar = (finalizar: () => void) => {
+          try { audio.pause(); } catch { /* ignora falha ao pausar */ }
+          finalizar();
+        };
         await new Promise<void>((resolve) => {
           let timeoutSeguranca: ReturnType<typeof setTimeout> | null = setTimeout(() => {
             falhouReproducao = true;
             limparFadeSaida();
-            resolve();
+            pararEFinalizar(resolve);
           }, TIMEOUT_SEGURANCA_FALA_MS);
           const finalizar = () => {
             if (timeoutSeguranca) {
@@ -483,7 +498,7 @@ export function useLiveEngine() {
           audio.onerror = () => {
             falhouReproducao = true;
             limparFadeSaida();
-            finalizar();
+            pararEFinalizar(finalizar);
           };
           // desmuta so' quando o evento "playing" confirma que ja esta' tocando de verdade --
           // a Promise de play() resolvida so' significa que o PEDIDO foi aceito, nao que o
@@ -495,7 +510,7 @@ export function useLiveEngine() {
           audio.play().catch(() => {
             falhouReproducao = true;
             limparFadeSaida();
-            finalizar();
+            pararEFinalizar(finalizar);
           });
         });
         if (falhouReproducao) {

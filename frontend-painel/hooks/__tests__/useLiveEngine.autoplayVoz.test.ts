@@ -27,11 +27,12 @@ class AudioTeste {
   volume = 0;
   muted = false;
   ended = false;
+  paused = true;
   addEventListener(evento: string, cb: () => void) {
     (this.ouvintes[evento] ??= []).push(cb);
   }
-  play = vi.fn(() => Promise.resolve());
-  pause() {}
+  play = vi.fn(() => { this.paused = false; return Promise.resolve(); });
+  pause() { this.paused = true; }
   constructor(public src: string) { players.push(this); }
   disparar(evento: string) {
     this.ouvintes[evento]?.forEach((cb) => cb());
@@ -108,4 +109,20 @@ it("bloqueio silencioso (sem playing/ended/error) não trava a transmissão pra 
 
   expect(result.current.falhasAudioConsecutivas).toBeGreaterThan(0);
   expect(result.current.erro).toMatch(/Falha ao reproduzir/);
+  // sem pausar explicitamente aqui, o audio antigo continuaria tocando por baixo do
+  // próximo bloco -- é exatamente isso que soa como "uma fala por cima da outra".
+  expect(players[0].paused).toBe(true);
+});
+
+it("onerror pausa o audio explicitamente, sem deixar ele tocando por baixo do próximo bloco", async () => {
+  mocks.proxima.mockResolvedValueOnce(segmento("Primeira")).mockResolvedValueOnce(segmento("Segunda"));
+  mocks.tts.mockResolvedValueOnce(new Blob(["primeira"])).mockResolvedValueOnce(new Blob(["segunda"]));
+  await iniciar();
+
+  expect(players).toHaveLength(1);
+  expect(players[0].paused).toBe(false);
+
+  await act(async () => { players[0].errar(); });
+
+  expect(players[0].paused).toBe(true);
 });
