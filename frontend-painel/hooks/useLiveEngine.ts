@@ -393,6 +393,11 @@ export function useLiveEngine() {
   // no início e no fim de cada mp3 isolado, que e' um problema separado (defeito de edicao, nao
   // de entonacao) e esse sim da pra corrigir do lado do audio.
   const FADE_BORDA_FALA_MS = 80;
+  // Rede de seguranca pro play() da fala: sem isso, um bloqueio silencioso do navegador que
+  // nunca dispara "playing" nem "error" nem "ended" trava a transmissao inteira nesse bloco pra
+  // sempre (nada mais desbloqueia a Promise em reproduzirAudioPreparado). Bem acima de qualquer
+  // fala real (ver ORCAMENTOS em app.live.formato, maior meta e' ~65s de abertura).
+  const TIMEOUT_SEGURANCA_FALA_MS = 3 * 60 * 1000;
 
   function fadeVolumeAudioElemento(audio: HTMLAudioElement, duracaoMs: number, alvo: number) {
     const inicio = audio.volume;
@@ -450,28 +455,48 @@ export function useLiveEngine() {
         // o texto da fala ja fica gravado no historico (adicionarFala roda antes/independente
         // disso) e some em silencio, dando a impressao de "texto tocou, voz nao".
         let falhouReproducao = false;
+        let desmutado = false;
+        const desmutarQuandoComecarDeVerdade = () => {
+          if (desmutado) return;
+          desmutado = true;
+          audio.muted = false;
+          fadeVolumeAudioElemento(audio, FADE_BORDA_FALA_MS, 1);
+        };
         await new Promise<void>((resolve) => {
+          let timeoutSeguranca: ReturnType<typeof setTimeout> | null = setTimeout(() => {
+            falhouReproducao = true;
+            limparFadeSaida();
+            resolve();
+          }, TIMEOUT_SEGURANCA_FALA_MS);
+          const finalizar = () => {
+            if (timeoutSeguranca) {
+              clearTimeout(timeoutSeguranca);
+              timeoutSeguranca = null;
+            }
+            resolve();
+          };
           audio.onended = () => {
             if (audio.ended) aoConcluir?.();
             limparFadeSaida();
-            resolve();
+            finalizar();
           };
           audio.onerror = () => {
             falhouReproducao = true;
             limparFadeSaida();
-            resolve();
+            finalizar();
           };
-          audio
-            .play()
-            .then(() => {
-              audio.muted = false;
-              fadeVolumeAudioElemento(audio, FADE_BORDA_FALA_MS, 1);
-            })
-            .catch(() => {
-              falhouReproducao = true;
-              limparFadeSaida();
-              resolve();
-            });
+          // desmuta so' quando o evento "playing" confirma que ja esta' tocando de verdade --
+          // a Promise de play() resolvida so' significa que o PEDIDO foi aceito, nao que o
+          // audio ja esta' renderizando frame nenhum. Desmutar nesse momento (como a versao
+          // anterior fazia) faz o Chrome cancelar o autoplay de volta pra pausado quando nao
+          // houve gesto do usuario -- mesma armadilha ja documentada em tocarMusica pros
+          // players do YouTube (so' desmuta no PlayerState.PLAYING, nunca antes).
+          audio.addEventListener("playing", desmutarQuandoComecarDeVerdade, { once: true });
+          audio.play().catch(() => {
+            falhouReproducao = true;
+            limparFadeSaida();
+            finalizar();
+          });
         });
         if (falhouReproducao) {
           setErro("Falha ao reproduzir o audio da fala (bloqueio do navegador ou erro de midia); texto ficou sem voz.");
