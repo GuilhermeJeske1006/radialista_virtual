@@ -63,7 +63,7 @@ class Settings(BaseSettings):
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: str = ""
-    smtp_from: str = "Radialista Virtual <no-reply@radialista.app>"
+    smtp_from: str = "Locufy <no-reply@locufybr.com>"
 
     # Monitoramento de erros (sentry.io) -- deixe vazio pra desativar (dev local).
     sentry_dsn: str = ""

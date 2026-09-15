@@ -7,6 +7,105 @@ from app.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
+# Paleta do manual da marca (rebrand-locufy.sh) -- fundo e superfícies do Azul
+# Estúdio Profissional, acento no meio do gradiente do logo, laranja para
+# alerta/destrutivo. Fontes ficam no stack padrão do sistema: cliente de
+# e-mail não carrega a Sama Latin/Gotham Rounded licenciadas do painel.
+_BG = "#131c2e"
+_SURFACE = "#1b263b"
+_SURFACE_2 = "#24334f"
+_BORDER = "rgba(255,255,255,0.14)"
+_TEXT = "#ffffff"
+_TEXT_MUTED = "rgba(255,255,255,0.72)"
+_TEXT_FAINT = "rgba(255,255,255,0.45)"
+_ACENTO = "#3167e7"
+_LARANJA = "#ff8c00"
+_GRAFITE = "#18181a"
+_FONTE = "-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"
+
+# Logotipo horizontal branco oficial (frontend-painel/public/Logos) -- o mesmo
+# arquivo usado na landing page sobre fundo escuro/gradiente. Proporção
+# original 4213x1908; e-mail não carrega SVG/currentColor do painel, então
+# usamos o PNG publicado pelo próprio frontend em vez de redesenhar a marca.
+_LOGO_LARGURA = 148
+_LOGO_ALTURA = 67
+
+
+def _botao_html(label: str, href: str, tom: str = "acento") -> str:
+    cor_bg, cor_texto = (_LARANJA, _GRAFITE) if tom == "laranja" else (_ACENTO, "#ffffff")
+    return f"""\
+<table role="presentation" cellpadding="0" cellspacing="0">
+  <tr>
+    <td style="border-radius:999px;background-color:{cor_bg};">
+      <a href="{href}" style="display:inline-block;padding:13px 28px;font-size:14px;font-weight:600;color:{cor_texto};text-decoration:none;">
+        {html.escape(label)}
+      </a>
+    </td>
+  </tr>
+</table>"""
+
+
+def _caixa_destaque_html(titulo: str, itens: list[str]) -> str:
+    linhas = "<br>".join(f"&bull; {html.escape(item)}" for item in itens)
+    return f"""\
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;width:100%;background-color:{_SURFACE_2};border-radius:14px;">
+  <tr>
+    <td style="padding:18px 22px;font-size:14px;line-height:1.8;color:{_TEXT_MUTED};">
+      <strong style="color:{_TEXT};">{html.escape(titulo)}</strong><br>
+      {linhas}
+    </td>
+  </tr>
+</table>"""
+
+
+def _email_shell(corpo_html: str, preheader: str = "") -> str:
+    """Moldura compartilhada por todo e-mail transacional: banda com o
+    gradiente do logo no topo (único lugar do e-mail onde o roxo puro entra,
+    igual à regra da sidebar) e cartão escuro do Azul Estúdio por baixo."""
+    preheader_html = (
+        f'<div style="display:none;max-height:0;overflow:hidden;opacity:0;">{html.escape(preheader)}</div>'
+        if preheader
+        else ""
+    )
+    return f"""\
+<!doctype html>
+<html lang="pt-BR">
+  <body style="margin:0;padding:0;background-color:{_BG};font-family:{_FONTE};">
+    {preheader_html}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:{_BG};padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background-color:{_SURFACE};border-radius:24px;overflow:hidden;border:1px solid {_BORDER};">
+            <tr>
+              <td style="background-color:{_ACENTO};background-image:linear-gradient(110deg,#631bf6 0%,#3167e7 52%,#00b4d8 100%);padding:26px 32px;">
+                <img src="{settings.frontend_url}/Logos/Logo_Locufy_Logotipo_Horizontal_01.png" width="{_LOGO_LARGURA}" height="{_LOGO_ALTURA}" alt="Locufy" style="display:block;border:0;outline:none;">
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:32px;">
+                {corpo_html}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+"""
+
+
+def _paragrafo(texto: str) -> str:
+    return f'<p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:{_TEXT_MUTED};">{texto}</p>'
+
+
+def _titulo(texto: str) -> str:
+    return f'<h1 style="margin:0 0 16px;font-size:20px;font-weight:600;color:{_TEXT};">{texto}</h1>'
+
+
+def _rodape(texto: str) -> str:
+    return f'<p style="margin:24px 0 0;font-size:12px;line-height:1.6;color:{_TEXT_FAINT};">{html.escape(texto)}</p>'
+
 
 def enviar_email_redefinicao_senha(email: str, token: str) -> bool:
     link = f"{settings.frontend_url}/redefinir-senha?token={token}"
@@ -22,7 +121,7 @@ def enviar_email_redefinicao_senha(email: str, token: str) -> bool:
         return True
 
     mensagem = EmailMessage()
-    mensagem["Subject"] = "Redefinir sua senha - Radialista Virtual"
+    mensagem["Subject"] = "Redefinir sua senha - Locufy"
     mensagem["From"] = settings.smtp_from
     mensagem["To"] = email
     mensagem.set_content(
@@ -30,6 +129,14 @@ def enviar_email_redefinicao_senha(email: str, token: str) -> bool:
         f"Clique no link abaixo para criar uma nova senha (valido por 30 minutos):\n{link}\n\n"
         "Se voce nao pediu isso, pode ignorar este e-mail."
     )
+    corpo = (
+        _titulo("Redefinir sua senha")
+        + _paragrafo("Recebemos um pedido para redefinir sua senha.")
+        + _paragrafo("Clique no botão abaixo para criar uma nova senha. O link vale por 30 minutos.")
+        + _botao_html("Criar nova senha", link)
+        + _rodape("Se você não pediu isso, pode ignorar este e-mail.")
+    )
+    mensagem.add_alternative(_email_shell(corpo, preheader="Crie uma nova senha em até 30 minutos."), subtype="html")
 
     try:
         with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10) as smtp:
@@ -45,65 +152,6 @@ def enviar_email_redefinicao_senha(email: str, token: str) -> bool:
         return False
 
 
-def _layout_boas_vindas(nome: str, link: str) -> str:
-    nome_seguro = html.escape(nome or "")
-    return f"""\
-<!doctype html>
-<html lang="pt-BR">
-  <body style="margin:0;padding:0;background-color:#f3ede0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3ede0;padding:32px 16px;">
-      <tr>
-        <td align="center">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background-color:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e8ddc6;">
-            <tr>
-              <td style="background-color:#e8a33d;padding:28px 32px;">
-                <span style="font-size:18px;font-weight:700;color:#15130f;letter-spacing:.2px;">Radialista Virtual</span>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:32px;">
-                <h1 style="margin:0 0 16px;font-size:20px;color:#15130f;">Ola, {nome_seguro}!</h1>
-                <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#3a3628;">
-                  Sua conta no Radialista Virtual foi criada com sucesso.
-                </p>
-                <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#3a3628;">
-                  O Radialista Virtual e o seu radialista digital: ele monta a programacao, narra
-                  as chamadas ao vivo com voz sintetizada e escolhe as musicas de acordo com o
-                  estilo e o horario configurados para sua radio.
-                </p>
-                <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px;width:100%;background-color:#f8f3e6;border-radius:10px;">
-                  <tr>
-                    <td style="padding:16px 20px;font-size:14px;line-height:1.8;color:#3a3628;">
-                      <strong style="color:#15130f;">Proximos passos</strong><br>
-                      &bull; Configure sua radio (nome, estilo musical e horarios)<br>
-                      &bull; Cadastre os programas e defina os horarios de cada um<br>
-                      &bull; Convide sua equipe, se precisar de mais de um usuario
-                    </td>
-                  </tr>
-                </table>
-                <table role="presentation" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td style="border-radius:10px;background-color:#e8a33d;">
-                      <a href="{link}" style="display:inline-block;padding:12px 24px;font-size:14px;font-weight:600;color:#15130f;text-decoration:none;">
-                        Acessar o painel
-                      </a>
-                    </td>
-                  </tr>
-                </table>
-                <p style="margin:24px 0 0;font-size:12px;line-height:1.6;color:#8a8471;">
-                  Qualquer duvida, e so responder este e-mail.
-                </p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>
-"""
-
-
 def enviar_email_boas_vindas(email: str, nome: str) -> bool:
     link = f"{settings.frontend_url}/painel"
 
@@ -112,14 +160,16 @@ def enviar_email_boas_vindas(email: str, nome: str) -> bool:
         logger.info("SMTP nao configurado. E-mail de boas-vindas para %s (nome=%s)", email, nome)
         return True
 
+    nome_seguro = html.escape(nome or "")
+
     mensagem = EmailMessage()
-    mensagem["Subject"] = "Bem-vindo ao Radialista Virtual"
+    mensagem["Subject"] = "Bem-vindo ao Locufy"
     mensagem["From"] = settings.smtp_from
     mensagem["To"] = email
     mensagem.set_content(
         f"Ola, {nome}!\n\n"
-        "Sua conta no Radialista Virtual foi criada com sucesso.\n\n"
-        "O Radialista Virtual e o seu radialista digital: ele monta a programacao, "
+        "Sua conta no Locufy foi criada com sucesso.\n\n"
+        "O Locufy e o seu radialista digital: ele monta a programacao, "
         "narra as chamadas ao vivo com voz sintetizada e escolhe as musicas de acordo "
         "com o estilo e o horario configurados para sua radio.\n\n"
         "Proximos passos:\n"
@@ -129,7 +179,26 @@ def enviar_email_boas_vindas(email: str, nome: str) -> bool:
         f"Acesse o painel para comecar:\n{link}\n\n"
         "Qualquer duvida, e so responder este e-mail."
     )
-    mensagem.add_alternative(_layout_boas_vindas(nome, link), subtype="html")
+    corpo = (
+        _titulo(f"Olá, {nome_seguro}!")
+        + _paragrafo("Sua conta no Locufy foi criada com sucesso.")
+        + _paragrafo(
+            "O Locufy é o seu radialista digital: ele monta a programação, narra as "
+            "chamadas ao vivo com voz sintetizada e escolhe as músicas de acordo com o "
+            "estilo e o horário configurados para sua rádio."
+        )
+        + _caixa_destaque_html(
+            "Próximos passos",
+            [
+                "Configure sua rádio (nome, estilo musical e horários)",
+                "Cadastre os programas e defina os horários de cada um",
+                "Convide sua equipe, se precisar de mais de um usuário",
+            ],
+        )
+        + _botao_html("Acessar o painel", link)
+        + _rodape("Qualquer dúvida, é só responder este e-mail.")
+    )
+    mensagem.add_alternative(_email_shell(corpo, preheader="Sua conta foi criada. Vamos configurar sua rádio."), subtype="html")
 
     try:
         with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10) as smtp:
@@ -151,16 +220,31 @@ def enviar_email_alerta_desconexao(email: str, nome: str) -> bool:
         logger.info("SMTP nao configurado. Alerta de desconexao do WhatsApp para %s", email)
         return True
 
+    nome_seguro = html.escape(nome or "")
+
     mensagem = EmailMessage()
-    mensagem["Subject"] = "WhatsApp desconectado - Radialista Virtual"
+    mensagem["Subject"] = "WhatsApp desconectado - Locufy"
     mensagem["From"] = settings.smtp_from
     mensagem["To"] = email
     mensagem.set_content(
         f"Ola, {nome}!\n\n"
-        "O WhatsApp da sua radio caiu e o Radialista Virtual parou de atender os ouvintes ate a "
+        "O WhatsApp da sua radio caiu e o Locufy parou de atender os ouvintes ate a "
         "sessao voltar.\n\n"
         f"Acesse o painel e reconecte escaneando o QR Code novamente:\n{link}\n\n"
         "Assim que a sessao voltar, o atendimento volta a funcionar sozinho."
+    )
+    corpo = (
+        _titulo(f"Olá, {nome_seguro}!")
+        + _paragrafo(
+            "O WhatsApp da sua rádio caiu e o Locufy parou de atender os ouvintes até a "
+            "sessão voltar."
+        )
+        + _paragrafo("Acesse o painel e reconecte escaneando o QR Code novamente.")
+        + _botao_html("Reconectar WhatsApp", link, tom="laranja")
+        + _rodape("Assim que a sessão voltar, o atendimento volta a funcionar sozinho.")
+    )
+    mensagem.add_alternative(
+        _email_shell(corpo, preheader="O WhatsApp da sua rádio caiu. Reconecte pelo painel."), subtype="html"
     )
 
     try:
@@ -181,11 +265,22 @@ def enviar_email_notificacao(email: str, nome: str, titulo: str, mensagem: str) 
         logger.info("SMTP nao configurado. Notificacao '%s' para %s: %s", titulo, email, mensagem)
         return True
 
+    nome_seguro = html.escape(nome or "")
+    titulo_seguro = html.escape(titulo or "")
+    mensagem_segura = html.escape(mensagem or "")
+
     email_msg = EmailMessage()
-    email_msg["Subject"] = f"{titulo} - Radialista Virtual"
+    email_msg["Subject"] = f"{titulo} - Locufy"
     email_msg["From"] = settings.smtp_from
     email_msg["To"] = email
     email_msg.set_content(f"Ola, {nome}!\n\n{mensagem}\n\nAcesse o painel para mais detalhes:\n{settings.frontend_url}")
+    corpo = (
+        _titulo(f"Olá, {nome_seguro}!")
+        + _paragrafo(f"<strong style=\"color:{_TEXT};\">{titulo_seguro}</strong>")
+        + _paragrafo(mensagem_segura)
+        + _botao_html("Acessar o painel", settings.frontend_url)
+    )
+    email_msg.add_alternative(_email_shell(corpo, preheader=titulo_seguro), subtype="html")
 
     try:
         with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10) as smtp:
@@ -211,14 +306,26 @@ def enviar_email_convite(email: str, token: str, nome_radio: str) -> bool:
         logger.info("SMTP nao configurado. Link de convite para %s: %s", email, link)
         return True
 
+    nome_radio_seguro = html.escape(nome_radio or "uma rádio")
+
     mensagem = EmailMessage()
-    mensagem["Subject"] = f"Convite para {nome_radio or 'a radio'} - Radialista Virtual"
+    mensagem["Subject"] = f"Convite para {nome_radio or 'a radio'} - Locufy"
     mensagem["From"] = settings.smtp_from
     mensagem["To"] = email
     mensagem.set_content(
-        f"Voce foi convidado para fazer parte da equipe de {nome_radio or 'uma radio'} no Radialista Virtual.\n\n"
+        f"Voce foi convidado para fazer parte da equipe de {nome_radio or 'uma radio'} no Locufy.\n\n"
         f"Clique no link abaixo para criar sua senha e ativar sua conta:\n{link}\n\n"
         "Se voce nao esperava este convite, pode ignorar este e-mail."
+    )
+    corpo = (
+        _titulo("Você foi convidado")
+        + _paragrafo(f"Você foi convidado para fazer parte da equipe de <strong style=\"color:{_TEXT};\">{nome_radio_seguro}</strong> no Locufy.")
+        + _paragrafo("Clique no botão abaixo para criar sua senha e ativar sua conta.")
+        + _botao_html("Ativar minha conta", link)
+        + _rodape("Se você não esperava este convite, pode ignorar este e-mail.")
+    )
+    mensagem.add_alternative(
+        _email_shell(corpo, preheader=f"Você foi convidado para {nome_radio_seguro} no Locufy."), subtype="html"
     )
 
     try:
