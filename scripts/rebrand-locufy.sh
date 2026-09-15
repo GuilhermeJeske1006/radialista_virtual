@@ -75,12 +75,24 @@ fi
 #    · bg-paper/5 → bg-fg/5: overlays de hover passam a funcionar nos dois temas.
 # ─────────────────────────────────────────────────────────────────────────────
 log "renomeando tokens em app/, components/, lib/"
-mapfile -t ARQUIVOS < <(find app components lib -type f \
+ARQUIVOS=()
+while IFS= read -r arquivo; do
+  ARQUIVOS+=("$arquivo")
+done < <(find app components lib -type f \
   \( -name '*.ts' -o -name '*.tsx' -o -name '*.css' -o -name '*.js' \) \
   -not -path '*/node_modules/*')
 
 perl -pi -e '
   s/\bamber-dim\b/roxo-dim/g;
+  s/\btext-amber-text\b/text-roxo-claro/g;
+  s/\btext-rust-text\b/text-laranja/g;
+  s/\btext-teal-text\b/text-ciano/g;
+  s/--color-amber-text\b/--color-roxo-claro/g;
+  s/--color-rust-text\b/--color-laranja/g;
+  s/--color-teal-text\b/--color-ciano/g;
+  s/--locufy-amber-text\b/--locufy-roxo-claro/g;
+  s/--locufy-rust-text\b/--locufy-laranja/g;
+  s/--locufy-teal-text\b/--locufy-ciano/g;
   s/--color-amber\b/--color-roxo-claro/g;
   s/\btext-amber\b/text-roxo-claro/g;
   s/\bborder-amber\b/border-roxo-claro/g;
