@@ -106,7 +106,7 @@ export default function NotificationBell() {
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <span className="font-display text-sm font-bold text-fg">Notificações</span>
             {notificacoes.some((n) => !n.lida) && (
-              <button type="button" onClick={marcarTodasLidas} className="text-xs text-roxo-claro hover:underline">
+              <button type="button" onClick={marcarTodasLidas} className="text-xs text-acento-claro hover:underline">
                 Marcar todas como lidas
               </button>
             )}

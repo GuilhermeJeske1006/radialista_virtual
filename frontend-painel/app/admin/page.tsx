@@ -16,7 +16,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_CLASSE: Record<string, string> = {
-  trial: "bg-roxo/10 text-roxo-claro",
+  trial: "bg-acento/10 text-acento-claro",
   ativo: "bg-ciano/10 text-ciano",
   inadimplente: "bg-laranja/10 text-laranja",
   cancelado: "bg-branco text-fg/65",
@@ -72,7 +72,7 @@ export default function AdminPage() {
 
         {overview && (
           <div className="grid sm:grid-cols-2 gap-3">
-            <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+            <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
               <h2 className="font-display text-sm font-bold text-fg mb-3">Empresas por status</h2>
               <div className="space-y-2">
                 {Object.entries(overview.por_status).map(([status, total]) => (
@@ -85,7 +85,7 @@ export default function AdminPage() {
                 ))}
               </div>
             </div>
-            <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+            <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
               <h2 className="font-display text-sm font-bold text-fg mb-3">Contas ativas por plano</h2>
               <div className="space-y-2">
                 {Object.entries(overview.por_plano).map(([plano, total]) => (
@@ -102,7 +102,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+        <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
             <h2 className="font-display text-base font-bold text-fg">Empresas</h2>
             <form
@@ -118,7 +118,7 @@ export default function AdminPage() {
                 placeholder="Buscar por nome da rádio..."
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                className="rounded-lg border border-border-strong bg-bg px-3 py-1.5 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
+                className="rounded-xl border border-border-strong bg-bg px-3 py-1.5 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
               />
               <select
                 aria-label="Filtrar por status"
@@ -127,7 +127,7 @@ export default function AdminPage() {
                   setPagina(1);
                   setStatusFiltro(e.target.value);
                 }}
-                className="rounded-lg border border-border-strong bg-bg px-2.5 py-1.5 text-sm text-fg"
+                className="rounded-xl border border-border-strong bg-bg px-2.5 py-1.5 text-sm text-fg"
               >
                 <option value="">Todos os status</option>
                 {Object.entries(STATUS_LABEL).map(([valor, label]) => (
@@ -138,7 +138,7 @@ export default function AdminPage() {
               </select>
               <button
                 type="submit"
-                className="rounded-lg border border-border-strong px-3 py-1.5 text-sm font-medium text-fg hover:bg-fg/5"
+                className="rounded-xl border border-border-strong px-3 py-1.5 text-sm font-medium text-fg hover:bg-fg/5"
               >
                 Buscar
               </button>
@@ -167,7 +167,7 @@ export default function AdminPage() {
                   {empresas?.empresas.map((empresa) => (
                     <tr key={empresa.id} className="border-b border-border last:border-0 hover:bg-fg/5">
                       <td className="py-2.5 pr-3">
-                        <Link href={`/admin/empresas/${empresa.id}`} className="font-medium text-fg hover:text-roxo-claro">
+                        <Link href={`/admin/empresas/${empresa.id}`} className="font-medium text-fg hover:text-acento-claro">
                           {empresa.nome_radio || `Empresa #${empresa.id}`}
                         </Link>
                       </td>
@@ -224,7 +224,7 @@ export default function AdminPage() {
 
 function MetricaCard({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
-    <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-4">
+    <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-4">
       <p className="text-xs text-fg/65 mb-1">{rotulo}</p>
       <p className="font-display text-xl font-bold text-fg">{valor}</p>
     </div>

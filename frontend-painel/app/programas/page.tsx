@@ -86,7 +86,7 @@ export default function ProgramasPage() {
           type="button"
           onClick={aoClicarNovoPrograma}
           disabled={radialistas.length === 0}
-          className="shrink-0 self-start rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+          className="shrink-0 self-start rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
         >
           + Novo programa
         </button>
@@ -99,7 +99,7 @@ export default function ProgramasPage() {
           <LocufySpin size={16} /> Carregando...
         </p>
       ) : programas.length === 0 ? (
-        <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+        <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
           <p className="text-sm text-fg/65">
             {radialistas.length === 0
               ? "Crie um radialista primeiro para poder cadastrar programas."
@@ -111,14 +111,14 @@ export default function ProgramasPage() {
           {programas.map((p) => (
             <div
               key={p.id}
-              className="flex flex-wrap items-center justify-between gap-2 bg-surface rounded-2xl border border-border-strong shadow-theme-xs px-4 py-3"
+              className="flex flex-wrap items-center justify-between gap-2 bg-surface rounded-3xl border border-border-strong shadow-theme-xs px-4 py-3"
             >
               <button
                 type="button"
                 onClick={() => setModal({ radialistaId: p.radialista.id, programaId: p.id })}
                 className="min-w-0 text-left"
               >
-                <p className={`text-sm font-medium ${p.ativo ? "text-fg" : "text-fg/65"} hover:text-roxo-claro`}>
+                <p className={`text-sm font-medium ${p.ativo ? "text-fg" : "text-fg/65"} hover:text-acento-claro`}>
                   {p.nome}
                   {!p.ativo && <span className="ml-2 text-xs font-medium text-fg/65">(pausado)</span>}
                 </p>
@@ -131,7 +131,7 @@ export default function ProgramasPage() {
                 <button
                   type="button"
                   onClick={() => setModal({ radialistaId: p.radialista.id, programaId: p.id })}
-                  className="text-xs font-medium text-roxo-claro hover:text-roxo-dim"
+                  className="text-xs font-medium text-acento-claro hover:text-acento-dim"
                 >
                   Editar
                 </button>
@@ -154,7 +154,7 @@ export default function ProgramasPage() {
           onClick={() => setEscolhendoRadialista(false)}
         >
           <div
-            className="w-full max-w-sm rounded-2xl border border-border-strong bg-surface p-6 shadow-theme-xs"
+            className="w-full max-w-sm rounded-3xl border border-border-strong bg-surface p-6 shadow-theme-xs"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="font-display text-base font-bold text-fg mb-4">Para qual radialista?</h2>
@@ -167,7 +167,7 @@ export default function ProgramasPage() {
                     setEscolhendoRadialista(false);
                     setModal({ radialistaId: r.id, programaId: null });
                   }}
-                  className="w-full text-left rounded-lg border border-border-strong px-3 py-2.5 text-sm font-medium text-fg hover:border-roxo-claro/40"
+                  className="w-full text-left rounded-xl border border-border-strong px-3 py-2.5 text-sm font-medium text-fg hover:border-acento-claro/40"
                 >
                   {r.nome_locutor || `Radialista #${r.id}`}
                 </button>
@@ -177,7 +177,7 @@ export default function ProgramasPage() {
               <button
                 type="button"
                 onClick={() => setEscolhendoRadialista(false)}
-                className="rounded-lg px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
+                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
               >
                 Cancelar
               </button>

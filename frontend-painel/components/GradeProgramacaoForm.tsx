@@ -82,7 +82,7 @@ export default function GradeProgramacaoForm({ programaId }: Props) {
   }
 
   return (
-    <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+    <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
       <h2 className="font-display text-lg font-bold text-fg mb-1">Roteiro do programa · {programa.nome}</h2>
       <p className="text-sm text-fg/65 mb-5">
         Arraste vinhetas, propagandas e blocos automáticos da paleta pra sequência (ou clique pra adicionar no
@@ -106,14 +106,14 @@ export default function GradeProgramacaoForm({ programaId }: Props) {
         type="button"
         onClick={salvar}
         disabled={salvando}
-        className="mt-4 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60"
+        className="mt-4 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60"
       >
         {salvando ? "Salvando..." : "Salvar programação"}
       </button>
 
       <hr className="border-border my-5" />
       <section>
-        <h3 className="font-mono text-xs uppercase tracking-wide text-roxo-claro mb-2">Elenco do programa</h3>
+        <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro mb-2">Elenco do programa</h3>
         <p className="text-xs text-fg/65 mb-2">
           Quem participa do diálogo -- o motor já monta a conversa entre todos automaticamente, sem precisar
           apontar radialista por bloco.

@@ -5,7 +5,7 @@
   --font-display: var(--font-locufy-display), var(--font-locufy-sans), sans-serif;
   --font-mono: var(--font-plex-mono), monospace;
 
-  /* papéis que mudam com o tema: valores lá embaixo, em :root e [data-theme] */
+  /* papéis que mudam com o tema — valores em :root e [data-theme] abaixo */
   --color-bg: var(--locufy-bg);
   --color-surface: var(--locufy-surface);
   --color-surface-2: var(--locufy-surface-2);
@@ -13,69 +13,73 @@
   --color-border: var(--locufy-border);
   --color-border-strong: var(--locufy-border-strong);
 
-  /* Paleta do manual — hex exatos, iguais nos dois temas.
-     roxo puxado pro azul-índigo do logotipo (era #631bf6, violeta puro). */
-  --color-roxo: #4338ec;    /* Roxo Frequência Digital (azul-índigo)  */
-  --color-ciano-puro: #00b4d8; /* Ciano Transmissão        */
-  --color-azul: #1b263b;    /* Azul Estúdio Profissional   */
-  --color-laranja-puro: #ff8c00; /* Laranja Vibração Humana */
-  --color-grafite: #18181a; /* Preto Cabine Acústica       */
-  --color-branco: #ffffff;  /* Branco Clareza de Voz       */
-  --color-cinza: #6c707b;   /* Cinza Frequência Neutra     */
+  /* Paleta do manual — hex exatos */
+  --color-roxo: #631bf6;         /* Roxo Frequência Digital — início do gradiente */
+  --color-ciano-puro: #00b4d8;   /* Ciano Transmissão — fim do gradiente          */
+  --color-azul: #1b263b;         /* Azul Estúdio Profissional — base da interface */
+  --color-grafite: #18181a;      /* Preto Cabine Acústica                         */
+  --color-branco: #ffffff;       /* Branco Clareza de Voz                         */
+  --color-cinza: #6c707b;        /* Cinza Frequência Neutra                       */
+  --color-laranja-puro: #ff8c00; /* Laranja Vibração Humana                       */
 
-  /* texto/ícone em cima de fundo roxo — o roxo é escuro, então é sempre branco */
+  /* Azul de ação: ponto médio exato do gradiente #631BF6 → #00B4D8. É a cor que
+     o logo mostra na maior parte da faixa, e o que a interface usa para tudo
+     que é clicável. */
+  --color-acento: #3167e7;
   --color-on-brand: #ffffff;
 
-  /* variantes legíveis: usadas em texto, ícone e borda, onde o hex puro
-     não alcança contraste suficiente contra o fundo do tema ativo */
-  --color-roxo-claro: var(--locufy-roxo-claro);
-  --color-roxo-dim: var(--locufy-roxo-dim);
+  /* variantes legíveis — texto, ícone e borda, onde o sólido não alcança
+     contraste contra o fundo do tema ativo */
+  --color-acento-claro: var(--locufy-acento-claro);
+  --color-acento-dim: var(--locufy-acento-dim);
   --color-ciano: var(--locufy-ciano);
   --color-laranja: var(--locufy-laranja);
 
   /* rampa brand-*: bg-brand-500 / text-brand-600 / focus:ring-brand-500 que já
-     existem na aplicação passam a render o roxo da marca sem tocar no markup */
-  --color-brand-25: #f2f1fe;
-  --color-brand-50: #e3e1fd;
-  --color-brand-100: #c7c3fb;
-  --color-brand-200: #a29cf7;
-  --color-brand-300: #7f76f2;
-  --color-brand-400: #5c4fec;
-  --color-brand-500: #4338ec;
-  --color-brand-600: #3529c7;
-  --color-brand-700: #2a20a3;
-  --color-brand-800: #201880;
-  --color-brand-900: #171260;
+     existem na aplicação passam a render o azul da marca sem tocar no markup */
+  --color-brand-25: #eff4ff;
+  --color-brand-50: #dfe9fe;
+  --color-brand-100: #c2d4fc;
+  --color-brand-200: #9bb6f8;
+  --color-brand-300: #6d93f3;
+  --color-brand-400: #4a79ee;
+  --color-brand-500: #3167e7;
+  --color-brand-600: #2352c7;
+  --color-brand-700: #1c40a0;
+  --color-brand-800: #17337d;
+  --color-brand-900: #12275e;
 
-  --shadow-theme-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.28);
-  --shadow-theme-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.36), 0 1px 2px 0 rgba(0, 0, 0, 0.22);
+  --shadow-theme-xs: 0 1px 2px 0 rgba(8, 14, 26, 0.32);
+  --shadow-theme-sm: 0 1px 3px 0 rgba(8, 14, 26, 0.4), 0 1px 2px 0 rgba(8, 14, 26, 0.24);
 }
 
-/* tema escuro (padrão): cabine acústica em azul estúdio, não mais preto neutro */
+/* Tema escuro (padrão): estúdio azul. Fundo é o Azul Estúdio rebaixado, painéis
+   sobem para o #1B263B exato do manual — hierarquia por profundidade, sem
+   precisar de borda em tudo. */
 :root {
-  --locufy-bg: #111a2c;
-  --locufy-surface: #16223a;
-  --locufy-surface-2: #1e2b46;
+  --locufy-bg: #131c2e;
+  --locufy-surface: #1b263b;
+  --locufy-surface-2: #24334f;
   --locufy-fg: #ffffff;
-  --locufy-border: rgba(160, 185, 255, 0.14);
-  --locufy-border-strong: rgba(160, 185, 255, 0.26);
+  --locufy-border: rgba(255, 255, 255, 0.12);
+  --locufy-border-strong: rgba(255, 255, 255, 0.22);
 
-  --locufy-roxo-claro: #8c93ff;
-  --locufy-roxo-dim: #c7cbff;
+  --locufy-acento-claro: #6ba6ff;
+  --locufy-acento-dim: #a8c8ff;
   --locufy-ciano: #00b4d8;
   --locufy-laranja: #ff8c00;
 }
 
 [data-theme="light"] {
-  --locufy-bg: #f7f9fd;
-  --locufy-surface: #eef2fa;
-  --locufy-surface-2: #e2e8f7;
-  --locufy-fg: #18181a;
-  --locufy-border: rgba(27, 38, 59, 0.1);
+  --locufy-bg: #ffffff;
+  --locufy-surface: #f5f8fc;
+  --locufy-surface-2: #e8eef7;
+  --locufy-fg: #1b263b;
+  --locufy-border: rgba(27, 38, 59, 0.12);
   --locufy-border-strong: rgba(27, 38, 59, 0.2);
 
-  --locufy-roxo-claro: #3a2fd6;
-  --locufy-roxo-dim: #2a2199;
+  --locufy-acento-claro: #1e4fd8;
+  --locufy-acento-dim: #12358f;
   --locufy-ciano: #0085a3;
   --locufy-laranja: #c96a00;
 
@@ -83,8 +87,43 @@
   --shadow-theme-sm: 0 1px 3px 0 rgba(27, 38, 59, 0.12), 0 1px 2px 0 rgba(27, 38, 59, 0.08);
 }
 
+/* O gradiente do logo. Aparece uma vez por tela, atrás do lockup ou em uma
+   superfície de marca — nunca como decoração de cartão. É o único lugar da
+   interface onde o roxo puro entra. */
+.bg-locufy-gradient {
+  background-image: linear-gradient(110deg, #631bf6 0%, #3167e7 52%, #00b4d8 100%);
+}
+
+.text-locufy-gradient {
+  background-image: linear-gradient(110deg, #631bf6 0%, #3167e7 52%, #00b4d8 100%);
+  background-clip: text;
+  color: transparent;
+}
+
+/* Troca de arte por tema: usado pelo lockup horizontal oficial na sidebar, que
+   vem pré-renderizado em uma cor só (branco ou grafite) e não pode herdar cor
+   como um SVG em currentColor. */
+.locufy-so-escuro {
+  display: block;
+}
+.locufy-so-claro {
+  display: none;
+}
+[data-theme="light"] .locufy-so-escuro {
+  display: none;
+}
+[data-theme="light"] .locufy-so-claro {
+  display: block;
+}
+
+/* Foco visível e consistente, em pílula, sem depender de cada componente. */
+:focus-visible {
+  outline: 2px solid var(--color-acento-claro);
+  outline-offset: 2px;
+}
+
 ::selection {
-  background: var(--color-roxo);
+  background: var(--color-acento);
   color: var(--color-on-brand);
 }
 
@@ -100,4 +139,14 @@
 ::-webkit-scrollbar-thumb {
   background: var(--color-border-strong);
   border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

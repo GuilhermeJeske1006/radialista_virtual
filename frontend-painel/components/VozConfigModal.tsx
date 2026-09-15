@@ -51,14 +51,14 @@ export default function VozConfigModal({ vozId, onFechar, onAtualizada }: { vozI
     finally { setOcupado(false); }
   }
 
-  const campo = "mt-1 block w-full rounded-lg border border-border-strong bg-bg p-2 text-sm";
+  const campo = "mt-1 block w-full rounded-xl border border-border-strong bg-bg p-2 text-sm";
   return <Modal open onClose={() => { if (!ocupado) onFechar(); }} title="Ajustar voz" maxWidthClassName="max-w-xl">
     <div role="dialog" aria-label="Ajustar voz" aria-modal="true" className="space-y-4">
       {!config && !erro && <p role="status">Carregando…</p>}
       {config && <>
         <p className="text-sm text-fg/65">Tipo: {({ professional: "profissional", cloned: "clonagem instantânea", premade: "catálogo", generated: "criada por descrição" } as Record<string, string>)[config.categoria] ?? "não confirmado"}{config.idioma ? ` · ${config.idioma}` : ""}{config.sotaque ? ` · ${config.sotaque}` : ""}</p>
-        {config.requer_verificacao && <p role="status" className="text-sm text-roxo-claro">Voz aguardando verificação. Conclua a verificação na ElevenLabs e atualize o status aqui.</p>}
-        <button type="button" onClick={atualizar} disabled={ocupado} className="text-sm text-roxo-claro disabled:opacity-50">Atualizar status da voz</button>
+        {config.requer_verificacao && <p role="status" className="text-sm text-acento-claro">Voz aguardando verificação. Conclua a verificação na ElevenLabs e atualize o status aqui.</p>}
+        <button type="button" onClick={atualizar} disabled={ocupado} className="text-sm text-acento-claro disabled:opacity-50">Atualizar status da voz</button>
         <label className="block text-sm">Modelo de voz
           <select className={campo} value={config.modelo ?? ""} disabled={ocupado} onChange={(e) => setConfig({ ...config, modelo: e.target.value || null })}>
             <option value="">Padrão do servidor</option><option value="eleven_v3">Eleven v3 · expressivo</option><option value="eleven_multilingual_v2">Multilingual v2 · consistente</option><option value="eleven_flash_v2_5">Flash v2.5 · geração rápida</option>
@@ -79,7 +79,7 @@ export default function VozConfigModal({ vozId, onFechar, onAtualizada }: { vozI
         </label>
         <p className="text-xs text-fg/65">Até 30 termos, um por linha: termo = pronúncia. As substituições valem só para o áudio desta voz e desta conta. Ouça e compare antes de escolher a interpretação; a neutra é uma alternativa de teste.</p>
         <p className="text-xs text-fg/65">As mudanças valem para novas gerações. Reinicie o ao vivo para descartar áudios já preparados.</p>
-        <button type="button" onClick={salvar} disabled={ocupado} className="rounded-lg bg-roxo px-4 py-2 text-sm text-on-brand disabled:opacity-50">{ocupado ? "Aguarde…" : "Salvar ajustes"}</button>
+        <button type="button" onClick={salvar} disabled={ocupado} className="rounded-xl bg-acento px-4 py-2 text-sm text-on-brand disabled:opacity-50">{ocupado ? "Aguarde…" : "Salvar ajustes"}</button>
       </>}
       {erro && <p role="alert" className="text-sm text-laranja">{erro}</p>}
     </div>

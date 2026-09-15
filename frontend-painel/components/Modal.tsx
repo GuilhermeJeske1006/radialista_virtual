@@ -31,25 +31,27 @@ export default function Modal({ open, onClose, title, children, maxWidthClassNam
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:p-8"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-azul/70 p-4 backdrop-blur-sm sm:p-8"
       onClick={onClose}
     >
       <div
-        className={`my-auto w-full ${maxWidthClassName} rounded-2xl border border-border-strong bg-surface shadow-theme-xs`}
+        className={`my-auto w-full ${maxWidthClassName} overflow-hidden rounded-3xl border border-border-strong bg-surface shadow-theme-sm`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h2 className="font-display text-base font-bold text-fg">{title}</h2>
+        <div className="flex items-center justify-between gap-4 px-6 pt-5 pb-4">
+          <h2 className="font-display text-lg font-semibold text-fg">{title}</h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Fechar"
-            className="rounded-lg p-1 text-fg/65 hover:bg-fg/10 hover:text-fg"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-fg/50 hover:bg-fg/5 hover:text-fg transition-colors"
           >
-            ✕
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" className="h-4 w-4">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
           </button>
         </div>
-        <div className="max-h-[calc(100vh-9rem)] overflow-y-auto p-6">{children}</div>
+        <div className="max-h-[calc(100vh-9rem)] overflow-y-auto px-6 pb-6">{children}</div>
       </div>
     </div>
   );

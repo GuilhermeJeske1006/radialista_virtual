@@ -88,7 +88,7 @@ export default function PautaDoDiaSection({ programaId }: PautaDoDiaSectionProps
 
       <div className="space-y-2">
         {(pauta ?? []).map((item) => (
-          <div key={item.id} className="rounded-lg border border-border-strong p-3 space-y-1.5">
+          <div key={item.id} className="rounded-xl border border-border-strong p-3 space-y-1.5">
             <div className="flex items-start justify-between gap-2">
               <div>
                 <span className="mr-2 rounded-full border border-border-strong px-2 py-0.5 text-[10px] uppercase tracking-wide text-fg/60">
@@ -105,7 +105,7 @@ export default function PautaDoDiaSection({ programaId }: PautaDoDiaSectionProps
                 type="button"
                 onClick={() => fixar(item.id)}
                 disabled={processandoId === item.id}
-                className="text-xs font-medium text-roxo-claro hover:text-roxo-dim disabled:opacity-60"
+                className="text-xs font-medium text-acento-claro hover:text-acento-dim disabled:opacity-60"
               >
                 Fixar
               </button>

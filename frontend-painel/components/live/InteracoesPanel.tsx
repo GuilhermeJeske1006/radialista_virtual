@@ -68,7 +68,7 @@ export default function InteracoesPanel({ radialistaId, nomeLocutor, pulso, onNo
   }, [radialistaId]);
 
   return (
-    <section className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6 flex flex-col">
+    <section className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6 flex flex-col">
       <div className="flex items-center justify-between mb-4 shrink-0">
         <h2 className="font-display text-base font-bold text-fg flex items-center gap-2">
           Conversas
@@ -103,7 +103,7 @@ export default function InteracoesPanel({ radialistaId, nomeLocutor, pulso, onNo
 
               {it.resposta && (
                 <div className="text-sm text-fg/85">
-                  <span className="font-medium text-roxo-claro">{nomeLocutor}: </span>
+                  <span className="font-medium text-acento-claro">{nomeLocutor}: </span>
                   {it.resposta}
                 </div>
               )}

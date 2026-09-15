@@ -187,7 +187,7 @@ export default function RoteiroBlocosEditor({
           <div
             {...dropHandlers(0)}
             className={`rounded-xl border border-dashed p-6 text-center text-sm text-fg/65 ${
-              indiceArrastandoSobre === 0 ? "border-roxo-claro/60 bg-roxo/5" : "border-border-strong"
+              indiceArrastandoSobre === 0 ? "border-acento-claro/60 bg-acento/5" : "border-border-strong"
             }`}
           >
             Sequência vazia -- o ao vivo usa o roteiro padrão (abertura, música, comentário, notícia, chamada ao
@@ -205,7 +205,7 @@ export default function RoteiroBlocosEditor({
                   onDragStart={(e) => iniciarArraste(e, { origem: "sequencia", indice: i }, "move")}
                   {...dropHandlers(i)}
                   className={`flex items-center gap-3 rounded-xl border px-4 py-3 cursor-grab active:cursor-grabbing ${
-                    indiceArrastandoSobre === i ? "border-roxo-claro/60 bg-roxo/5" : `${cor.borda} bg-bg`
+                    indiceArrastandoSobre === i ? "border-acento-claro/60 bg-acento/5" : `${cor.borda} bg-bg`
                   }`}
                 >
                   <span className={`h-2 w-2 shrink-0 rounded-full ${cor.dot}`} />
@@ -220,7 +220,7 @@ export default function RoteiroBlocosEditor({
                       type="button"
                       onClick={() => mover(i, -1)}
                       disabled={i === 0}
-                      className="text-roxo-claro/70 hover:text-roxo-claro leading-none px-1 disabled:opacity-25"
+                      className="text-acento-claro/70 hover:text-acento-claro leading-none px-1 disabled:opacity-25"
                       title="Mover pra cima"
                     >
                       ‹
@@ -229,7 +229,7 @@ export default function RoteiroBlocosEditor({
                       type="button"
                       onClick={() => mover(i, 1)}
                       disabled={i === blocos.length - 1}
-                      className="text-roxo-claro/70 hover:text-roxo-claro leading-none px-1 disabled:opacity-25"
+                      className="text-acento-claro/70 hover:text-acento-claro leading-none px-1 disabled:opacity-25"
                       title="Mover pra baixo"
                     >
                       ›
@@ -237,7 +237,7 @@ export default function RoteiroBlocosEditor({
                     <button
                       type="button"
                       onClick={() => remover(i)}
-                      className="text-roxo-claro/70 hover:text-roxo-claro leading-none text-base px-1"
+                      className="text-acento-claro/70 hover:text-acento-claro leading-none text-base px-1"
                       title="Remover"
                     >
                       ×
@@ -248,8 +248,8 @@ export default function RoteiroBlocosEditor({
             })}
             <li
               {...dropHandlers(blocos.length)}
-              className={`rounded-lg border border-dashed px-4 py-2 text-center text-xs text-fg/65 ${
-                indiceArrastandoSobre === blocos.length ? "border-roxo-claro/60 bg-roxo/5" : "border-border"
+              className={`rounded-xl border border-dashed px-4 py-2 text-center text-xs text-fg/65 ${
+                indiceArrastandoSobre === blocos.length ? "border-acento-claro/60 bg-acento/5" : "border-border"
               }`}
             >
               soltar aqui adiciona no fim
@@ -269,12 +269,12 @@ export default function RoteiroBlocosEditor({
               }
             }}
             placeholder="Bloco personalizado e pressione Enter"
-            className="flex-1 min-w-0 rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
+            className="flex-1 min-w-0 rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
           />
           <button
             type="button"
             onClick={() => adicionar(texto)}
-            className="rounded-lg border border-border-strong px-3 py-2 text-sm font-medium text-fg/80 hover:bg-fg/5"
+            className="rounded-xl border border-border-strong px-3 py-2 text-sm font-medium text-fg/80 hover:bg-fg/5"
           >
             Adicionar
           </button>
@@ -312,7 +312,7 @@ export default function RoteiroBlocosEditor({
             value={filtroPaleta}
             onChange={(e) => setFiltroPaleta(e.target.value)}
             placeholder="Buscar na paleta..."
-            className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
+            className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
           />
         </div>
 
@@ -320,7 +320,7 @@ export default function RoteiroBlocosEditor({
 
         {presetsFiltrados.length > 0 && (
           <section>
-            <h3 className="font-mono text-xs uppercase tracking-wide text-roxo-claro mb-2">Blocos automáticos</h3>
+            <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro mb-2">Blocos automáticos</h3>
             <div className="grid grid-cols-2 gap-1.5">
               {presetsFiltrados.map((preset) => {
                 const cor = corDoBloco(preset.value);
@@ -331,7 +331,7 @@ export default function RoteiroBlocosEditor({
                     draggable
                     onDragStart={(e) => iniciarArraste(e, { origem: "novo", valor: preset.value }, "copy")}
                     onClick={() => adicionar(preset.value)}
-                    className={`cursor-grab active:cursor-grabbing flex items-center gap-1.5 text-left rounded-lg border px-3 py-2 text-sm hover:border-roxo-claro/40 hover:bg-fg/5 ${cor.borda}`}
+                    className={`cursor-grab active:cursor-grabbing flex items-center gap-1.5 text-left rounded-xl border px-3 py-2 text-sm hover:border-acento-claro/40 hover:bg-fg/5 ${cor.borda}`}
                   >
                     <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${cor.dot}`} />+ {preset.label}
                   </button>
@@ -343,7 +343,7 @@ export default function RoteiroBlocosEditor({
 
         {vinhetasFiltradas.length > 0 && (
           <section>
-            <h3 className="font-mono text-xs uppercase tracking-wide text-roxo-claro mb-2">Vinhetas</h3>
+            <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro mb-2">Vinhetas</h3>
             <div className="space-y-3">
               {agruparPorCategoria(vinhetasFiltradas, categoriasVinheta).map(([categoria, itens]) => (
                 <div key={categoria.id ?? "sem-categoria-vinheta"}>
@@ -360,12 +360,12 @@ export default function RoteiroBlocosEditor({
                           data-testid={`vinheta-paleta-${v.id}`}
                           draggable
                           onDragStart={(e) => iniciarArraste(e, { origem: "novo", valor: `vinheta:${v.id}` }, "copy")}
-                          className={`cursor-grab active:cursor-grabbing flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm hover:border-roxo-claro/40 hover:bg-fg/5 ${cor.borda}`}
+                          className={`cursor-grab active:cursor-grabbing flex items-center gap-2 rounded-xl border px-2.5 py-1.5 text-sm hover:border-acento-claro/40 hover:bg-fg/5 ${cor.borda}`}
                         >
                           <button
                             type="button"
                             onClick={(e) => tocarPreview(v, e)}
-                            className="shrink-0 text-roxo-claro hover:text-roxo-dim"
+                            className="shrink-0 text-acento-claro hover:text-acento-dim"
                             title="Ouvir"
                           >
                             {carregandoId === v.id ? (
@@ -396,14 +396,14 @@ export default function RoteiroBlocosEditor({
 
         {vinhetas.length === 0 && !filtro && (
           <section>
-            <h3 className="font-mono text-xs uppercase tracking-wide text-roxo-claro mb-2">Vinhetas</h3>
+            <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro mb-2">Vinhetas</h3>
             <p className="text-xs text-fg/65">Nenhuma vinheta cadastrada. Suba em /vinhetagem.</p>
           </section>
         )}
 
         {patrocinadoresFiltrados.length > 0 && (
           <section>
-            <h3 className="font-mono text-xs uppercase tracking-wide text-roxo-claro mb-2">Propagandas</h3>
+            <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro mb-2">Propagandas</h3>
             <div className="space-y-3">
               {agruparPorCategoria(patrocinadoresFiltrados, categoriasPropaganda).map(([categoria, itens]) => (
                 <div key={categoria.id ?? "sem-categoria-propaganda"}>
@@ -420,7 +420,7 @@ export default function RoteiroBlocosEditor({
                           draggable
                           onDragStart={(e) => iniciarArraste(e, { origem: "novo", valor: `patrocinador:${p.id}` }, "copy")}
                           onClick={() => adicionar(`patrocinador:${p.id}`)}
-                          className={`cursor-grab active:cursor-grabbing flex items-center gap-1.5 w-full text-left rounded-lg border px-3 py-2 text-sm hover:border-roxo-claro/40 hover:bg-fg/5 ${cor.borda}`}
+                          className={`cursor-grab active:cursor-grabbing flex items-center gap-1.5 w-full text-left rounded-xl border px-3 py-2 text-sm hover:border-acento-claro/40 hover:bg-fg/5 ${cor.borda}`}
                         >
                           <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${cor.dot}`} />
                           <span className="truncate">{p.nome}</span>
@@ -436,7 +436,7 @@ export default function RoteiroBlocosEditor({
 
         {patrocinadores.filter((p) => p.ativo).length === 0 && !filtro && (
           <section>
-            <h3 className="font-mono text-xs uppercase tracking-wide text-roxo-claro mb-2">Propagandas</h3>
+            <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro mb-2">Propagandas</h3>
             <p className="text-xs text-fg/65">Nenhuma propaganda cadastrada. Cadastre em /vinhetagem.</p>
           </section>
         )}

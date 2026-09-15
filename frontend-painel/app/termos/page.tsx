@@ -33,7 +33,7 @@ export default function TermosPage() {
               Estes Termos de Uso regem o acesso e uso da Locufy (locufy.com), plataforma que permite
               a uma rádio criar e operar um radialista virtual assistido por inteligência artificial.
               Ao criar uma conta ou usar o serviço, você concorda com estes Termos e com a nossa{" "}
-              <Link href="/privacidade" className="text-roxo-claro hover:text-roxo-dim">
+              <Link href="/privacidade" className="text-acento-claro hover:text-acento-dim">
                 Política de Privacidade
               </Link>
               . Se você não concorda, não utilize a Locufy.
@@ -149,7 +149,7 @@ export default function TermosPage() {
               Claude), ElevenLabs (síntese e clonagem de voz), WuzAPI (integração com WhatsApp),
               Stripe (cobrança), AWS (armazenamento de arquivos) e Sentry (monitoramento de erros).
               Veja detalhes na nossa{" "}
-              <Link href="/privacidade" className="text-roxo-claro hover:text-roxo-dim">
+              <Link href="/privacidade" className="text-acento-claro hover:text-acento-dim">
                 Política de Privacidade
               </Link>
               .
@@ -242,7 +242,7 @@ export default function TermosPage() {
           <section>
             <h2 className="font-display text-lg font-semibold text-fg mb-2">20. Contato</h2>
             <p>
-              Dúvidas sobre estes Termos: <a href="mailto:contato@locufy.com" className="text-roxo-claro hover:text-roxo-dim">contato@locufy.com</a>.
+              Dúvidas sobre estes Termos: <a href="mailto:contato@locufy.com" className="text-acento-claro hover:text-acento-dim">contato@locufy.com</a>.
             </p>
           </section>
         </div>

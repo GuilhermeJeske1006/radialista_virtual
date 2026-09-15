@@ -9,7 +9,7 @@ import { CategoriaVinheta } from "../../lib/types";
 import { LocufySpin } from "../LocufyLogo";
 
 const inputClass =
-  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20";
+  "w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20";
 const labelClass = "block text-sm font-medium text-fg/80 mb-1.5";
 
 type FormState = {
@@ -139,13 +139,13 @@ export default function BibliotecaAudioPanel({
   }
 
   return (
-    <section className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">
+    <section className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5">
       <div className="flex items-center justify-between mb-1">
         <h2 className="font-display text-base font-bold text-fg">Biblioteca</h2>
         <button
           type="button"
           onClick={abrirNovo}
-          className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-on-brand hover:bg-brand-600"
+          className="rounded-xl bg-brand-500 px-3 py-1.5 text-xs font-medium text-on-brand hover:bg-brand-600"
         >
           + Áudio
         </button>
@@ -174,7 +174,7 @@ export default function BibliotecaAudioPanel({
                 {itensDaCategoria.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-sm"
+                    className="flex items-center gap-2 rounded-xl border border-border px-2.5 py-1.5 text-sm"
                   >
                     <button
                       type="button"
@@ -182,7 +182,7 @@ export default function BibliotecaAudioPanel({
                       className={`shrink-0 ${
                         programaAtivo
                           ? "text-laranja hover:text-laranja animate-pulse"
-                          : "text-roxo-claro hover:text-roxo-dim"
+                          : "text-acento-claro hover:text-acento-dim"
                       }`}
                       title={programaAtivo ? "Inserir agora na transmissao ao vivo (corta o audio atual)" : "Tocar preview"}
                     >
@@ -198,7 +198,7 @@ export default function BibliotecaAudioPanel({
                       type="button"
                       onClick={() => abrirEdicao(item)}
                       title="Editar"
-                      className="shrink-0 flex h-6 w-6 items-center justify-center rounded-md text-roxo-claro hover:bg-roxo/10"
+                      className="shrink-0 flex h-6 w-6 items-center justify-center rounded-md text-acento-claro hover:bg-acento/10"
                     >
                       ✎
                     </button>
@@ -265,7 +265,7 @@ export default function BibliotecaAudioPanel({
                   type="color"
                   value={form.cor || "#e8a33d"}
                   onChange={(e) => setForm({ ...form, cor: e.target.value })}
-                  className="h-10 w-full rounded-lg border border-border-strong bg-bg"
+                  className="h-10 w-full rounded-xl border border-border-strong bg-bg"
                 />
               </div>
               <div>
@@ -309,14 +309,14 @@ export default function BibliotecaAudioPanel({
               <button
                 type="button"
                 onClick={() => setForm(null)}
-                className="rounded-lg px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
+                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={salvando}
-                className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60"
+                className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60"
               >
                 {salvando ? "Salvando..." : "Salvar"}
               </button>

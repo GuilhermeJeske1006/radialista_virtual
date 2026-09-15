@@ -31,7 +31,7 @@ import { CORES_BLOCO, kindDoBloco } from "../lib/blocoVisual";
 import { LocufySpin } from "./LocufyLogo";
 
 const inputClass =
-  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20";
+  "w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20";
 const labelClass = "block text-sm font-medium text-fg/80 mb-1.5";
 
 function semCamposSistema(p: Programa) {
@@ -240,7 +240,7 @@ export default function EditarProgramaForm({
   }
 
   return (
-    <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+    <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
       <div className="flex items-center justify-between mb-5">
         <h2 className="font-display text-base font-bold text-fg">{criando ? "Novo programa" : "Editar programa"}</h2>
         {!criando && (
@@ -255,7 +255,7 @@ export default function EditarProgramaForm({
       </div>
 
       {criando && radioConfigId && (
-        <div className="mb-4 rounded-xl border border-roxo-claro/30 bg-roxo/5 p-4">
+        <div className="mb-4 rounded-xl border border-acento-claro/30 bg-acento/5 p-4">
           {!iaAberto ? (
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm text-fg/70">Prefere começar com um rascunho pronto?</p>
@@ -266,7 +266,7 @@ export default function EditarProgramaForm({
                   setDescricaoIA("");
                   setIaAberto(true);
                 }}
-                className="shrink-0 text-sm font-medium text-roxo-claro hover:text-roxo-dim"
+                className="shrink-0 text-sm font-medium text-acento-claro hover:text-acento-dim"
               >
                 ✨ Gerar com IA
               </button>
@@ -278,13 +278,13 @@ export default function EditarProgramaForm({
                 músicas e todo o resto -- depois é só revisar e ajustar.
               </p>
               {tipoRadioConta ? (
-                <p className="text-xs font-medium text-roxo-claro bg-roxo/10 rounded-lg px-3 py-2 mb-3">
+                <p className="text-xs font-medium text-acento-claro bg-acento/10 rounded-xl px-3 py-2 mb-3">
                   Baseado no perfil: {labelTipoRadioConta ?? tipoRadioConta}
                 </p>
               ) : (
-                <p className="text-xs text-fg/65 bg-fg/5 rounded-lg px-3 py-2 mb-3">
+                <p className="text-xs text-fg/65 bg-fg/5 rounded-xl px-3 py-2 mb-3">
                   Nenhum tipo de rádio configurado -- a IA vai depender só da descrição.{" "}
-                  <Link href="/configuracoes" className="font-medium text-roxo-claro hover:underline">
+                  <Link href="/configuracoes" className="font-medium text-acento-claro hover:underline">
                     Configurar tipo de rádio →
                   </Link>
                 </p>
@@ -303,7 +303,7 @@ export default function EditarProgramaForm({
                   type="button"
                   onClick={() => setIaAberto(false)}
                   disabled={gerandoIA}
-                  className="rounded-lg px-4 py-2 text-sm font-medium text-fg/60 hover:text-fg disabled:opacity-60"
+                  className="rounded-xl px-4 py-2 text-sm font-medium text-fg/60 hover:text-fg disabled:opacity-60"
                 >
                   Cancelar
                 </button>
@@ -311,7 +311,7 @@ export default function EditarProgramaForm({
                   type="button"
                   onClick={gerarComIA}
                   disabled={gerandoIA || (!descricaoIA.trim() && !tipoRadioConta)}
-                  className="rounded-lg bg-roxo px-4 py-2 text-sm font-medium text-on-brand hover:bg-roxo/90 disabled:opacity-60"
+                  className="rounded-xl bg-acento px-4 py-2 text-sm font-medium text-on-brand hover:bg-acento/90 disabled:opacity-60"
                 >
                   {gerandoIA ? "Gerando..." : "Gerar"}
                 </button>
@@ -328,13 +328,13 @@ export default function EditarProgramaForm({
           onChange={(e) => setInstrucaoAjuste(e.target.value)}
           disabled={ajustandoIA}
           placeholder="Ajustar com IA -- ex.: mais sério, tira o bloco de notícia, começa às seis"
-          className="flex-1 min-w-[220px] rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20 disabled:opacity-60"
+          className="flex-1 min-w-[220px] rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20 disabled:opacity-60"
         />
         <button
           type="button"
           onClick={ajustarComIA}
           disabled={ajustandoIA || !instrucaoAjuste.trim()}
-          className="rounded-lg border border-border-strong px-3 py-2 text-sm font-medium text-fg hover:bg-fg/10 disabled:opacity-60"
+          className="rounded-xl border border-border-strong px-3 py-2 text-sm font-medium text-fg hover:bg-fg/10 disabled:opacity-60"
         >
           {ajustandoIA ? "Ajustando..." : "Ajustar"}
         </button>
@@ -353,7 +353,7 @@ export default function EditarProgramaForm({
       )}
       {mensagem && <p className="text-sm text-ciano mb-4">{mensagem}</p>}
       {avisosIA.length > 0 && (
-        <ul className="text-xs font-medium text-laranja bg-laranja/10 rounded-lg px-3 py-2 mb-4 list-disc list-inside space-y-0.5">
+        <ul className="text-xs font-medium text-laranja bg-laranja/10 rounded-xl px-3 py-2 mb-4 list-disc list-inside space-y-0.5">
           {avisosIA.map((aviso, i) => (
             <li key={i}>{aviso}</li>
           ))}
@@ -361,7 +361,7 @@ export default function EditarProgramaForm({
       )}
 
       <form onSubmit={salvar} className="space-y-4">
-        <h3 className="font-mono text-xs uppercase tracking-wide text-roxo-claro">No ar</h3>
+        <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro">No ar</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className={labelClass}>Nome do programa</label>
@@ -470,7 +470,7 @@ export default function EditarProgramaForm({
             type="checkbox"
             checked={programa.ativo}
             onChange={(e) => setPrograma({ ...programa, ativo: e.target.checked })}
-            className="h-4 w-4 rounded border-border-strong bg-bg text-roxo-claro focus:ring-roxo-claro/40"
+            className="h-4 w-4 rounded border-border-strong bg-bg text-acento-claro focus:ring-acento-claro/40"
           />
           Programa ativo
         </label>
@@ -478,18 +478,18 @@ export default function EditarProgramaForm({
         {!criando && idEfetivo !== null && (
           <>
             <hr className="border-border" />
-            <h3 className="font-mono text-xs uppercase tracking-wide text-roxo-claro">Radialistas</h3>
+            <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro">Radialistas</h3>
             <RadialistasProgramaSection programaId={idEfetivo} />
           </>
         )}
 
         <hr className="border-border" />
         <div className="flex items-center justify-between gap-2">
-          <h3 className="font-mono text-xs uppercase tracking-wide text-roxo-claro">Roteiro do programa</h3>
+          <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro">Roteiro do programa</h3>
           <Link
             href="/vinhetagem"
             target="_blank"
-            className="text-xs font-medium text-roxo-claro hover:text-roxo-dim"
+            className="text-xs font-medium text-acento-claro hover:text-acento-dim"
           >
             Gerenciar vinhetagem ↗
           </Link>
@@ -517,7 +517,7 @@ export default function EditarProgramaForm({
           {programa.perfil === "jornalismo" && (
             <button
               type="button"
-              className="mt-2 font-medium text-roxo-claro hover:text-roxo-dim text-sm"
+              className="mt-2 font-medium text-acento-claro hover:text-acento-dim text-sm"
               onClick={() => setPrograma({
                 ...programa,
                 estrutura_blocos: [...ROTEIRO_JORNALISMO],
@@ -553,7 +553,7 @@ export default function EditarProgramaForm({
               </p>
               <button
                 type="button"
-                className="font-medium text-roxo-claro hover:text-roxo-dim"
+                className="font-medium text-acento-claro hover:text-acento-dim"
                 onClick={() => setPrograma({
                   ...programa,
                   estrutura_blocos: [...ROTEIRO_MUSICAL],
@@ -583,7 +583,7 @@ export default function EditarProgramaForm({
                   const cor = CORES_BLOCO[kindDoBloco(bloco)];
                   return (
                     <li key={`${bloco}-${i}`} className="flex items-center gap-1.5">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-roxo/10 text-roxo-claro border border-roxo-claro/25 px-2.5 py-0.5 text-sm">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-acento/10 text-acento-claro border border-acento-claro/25 px-2.5 py-0.5 text-sm">
                         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${cor.dot}`} />
                         {rotuloBloco(bloco, Object.fromEntries(patrocinadores.map((p) => [p.id, p.nome])))}
                       </span>
@@ -601,7 +601,7 @@ export default function EditarProgramaForm({
             )}
             <Link
               href={`/radialista/${programa.radio_config_id}/programas/${idEfetivo}/grade`}
-              className="inline-flex items-center gap-1 text-sm font-medium text-roxo-claro hover:text-roxo-dim"
+              className="inline-flex items-center gap-1 text-sm font-medium text-acento-claro hover:text-acento-dim"
             >
               {programa.estrutura_blocos.length > 0 ? "Editar sequência do programa" : "Montar sequência do programa"} ↗
             </Link>
@@ -619,7 +619,7 @@ export default function EditarProgramaForm({
             checked={programa.perfil_programacao !== "musical_companhia" && programa.ia_pode_adicionar_blocos}
             disabled={programa.perfil_programacao === "musical_companhia"}
             onChange={(e) => setPrograma({ ...programa, ia_pode_adicionar_blocos: e.target.checked })}
-            className="h-4 w-4 rounded border-border-strong bg-bg text-roxo-claro focus:ring-roxo-claro/40"
+            className="h-4 w-4 rounded border-border-strong bg-bg text-acento-claro focus:ring-acento-claro/40"
           />
           {programa.perfil_programacao === "musical_companhia"
             ? "O formato musical segue a sequência sem inserir comentários extras"
@@ -627,7 +627,7 @@ export default function EditarProgramaForm({
         </label>
 
         <hr className="border-border" />
-        <h3 className="font-mono text-xs uppercase tracking-wide text-roxo-claro">Persona e conteúdo</h3>
+        <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro">Persona e conteúdo</h3>
         <div>
           <label className={labelClass}>Tom de voz</label>
           <textarea
@@ -677,7 +677,7 @@ export default function EditarProgramaForm({
         <hr className="border-border" />
         <details className="group">
           <summary className="flex items-center justify-between cursor-pointer list-none py-1 [&::-webkit-details-marker]:hidden">
-            <span className="font-mono text-xs uppercase tracking-wide text-roxo-claro">
+            <span className="font-mono text-xs uppercase tracking-wide text-acento-claro">
               Músicas <span className="text-fg/40 normal-case font-sans">-- opcional, ajusta o que a IA toca</span>
             </span>
             <span className="text-fg/40 transition-transform group-open:rotate-90">›</span>
@@ -724,7 +724,7 @@ export default function EditarProgramaForm({
         <hr className="border-border" />
         <details className="group">
           <summary className="flex items-center justify-between cursor-pointer list-none py-1 [&::-webkit-details-marker]:hidden">
-            <span className="font-mono text-xs uppercase tracking-wide text-roxo-claro">
+            <span className="font-mono text-xs uppercase tracking-wide text-acento-claro">
               Assuntos e notícias <span className="text-fg/40 normal-case font-sans">-- opcional</span>
             </span>
             <span className="text-fg/40 transition-transform group-open:rotate-90">›</span>
@@ -806,7 +806,7 @@ export default function EditarProgramaForm({
           />
           {!criando && idEfetivo !== null && (
             <div className="mt-4">
-              <h4 className="mb-2 font-mono text-xs uppercase tracking-wide text-roxo-claro">Pauta do dia</h4>
+              <h4 className="mb-2 font-mono text-xs uppercase tracking-wide text-acento-claro">Pauta do dia</h4>
               <PautaDoDiaSection programaId={idEfetivo} />
             </div>
           )}
@@ -815,7 +815,7 @@ export default function EditarProgramaForm({
         <hr className="border-border" />
         <details className="group">
           <summary className="flex items-center justify-between cursor-pointer list-none py-1 [&::-webkit-details-marker]:hidden">
-            <span className="font-mono text-xs uppercase tracking-wide text-roxo-claro">
+            <span className="font-mono text-xs uppercase tracking-wide text-acento-claro">
               Pesquisa externa <span className="text-fg/40 normal-case font-sans">-- opcional</span>
             </span>
             <span className="text-fg/40 transition-transform group-open:rotate-90">›</span>
@@ -825,7 +825,7 @@ export default function EditarProgramaForm({
               type="checkbox"
               checked={programa.pode_pesquisar}
               onChange={(e) => setPrograma({ ...programa, pode_pesquisar: e.target.checked })}
-              className="h-4 w-4 rounded border-border-strong bg-bg text-roxo-claro focus:ring-roxo-claro/40"
+              className="h-4 w-4 rounded border-border-strong bg-bg text-acento-claro focus:ring-acento-claro/40"
             />
             Pode pesquisar
           </label>
@@ -857,7 +857,7 @@ export default function EditarProgramaForm({
           <button
             type="submit"
             disabled={salvando}
-            className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {salvando ? "Salvando..." : "Salvar"}
           </button>

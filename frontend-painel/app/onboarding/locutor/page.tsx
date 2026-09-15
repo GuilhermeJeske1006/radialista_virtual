@@ -87,7 +87,7 @@ export default function LocutorOnboardingPage() {
   if (jaConfigurado && !criado) {
     return (
       <AppShell title="Seu primeiro locutor" maxWidthClassName="max-w-lg">
-        <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+        <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
           <h2 className="font-display text-base font-bold text-fg mb-1">Seu locutor já está pronto</h2>
           <p className="text-sm text-fg/65 mb-5">
             Você já configurou um locutor com voz definida. Continue pra conectar o WhatsApp, ou ajuste a
@@ -96,13 +96,13 @@ export default function LocutorOnboardingPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <Link
               href="/onboarding"
-              className="flex-1 text-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600"
+              className="flex-1 text-center rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600"
             >
               Continuar →
             </Link>
             <Link
               href="/radialista"
-              className="flex-1 text-center rounded-lg border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/5"
+              className="flex-1 text-center rounded-xl border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/5"
             >
               Ver radialistas
             </Link>
@@ -115,7 +115,7 @@ export default function LocutorOnboardingPage() {
   if (criado) {
     return (
       <AppShell title="Locutor criado" maxWidthClassName="max-w-lg">
-        <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+        <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
           <div className="flex items-center gap-2 mb-4">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ciano text-on-brand">
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
@@ -163,13 +163,13 @@ export default function LocutorOnboardingPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <Link
               href="/onboarding"
-              className="flex-1 text-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600"
+              className="flex-1 text-center rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600"
             >
               Está bom, continuar →
             </Link>
             <Link
               href={`/radialista/${criado.radialista.id}`}
-              className="flex-1 text-center rounded-lg border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/5"
+              className="flex-1 text-center rounded-xl border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/5"
             >
               Personalizar tudo
             </Link>
@@ -181,7 +181,7 @@ export default function LocutorOnboardingPage() {
 
   return (
     <AppShell title="Seu primeiro locutor" maxWidthClassName="max-w-lg">
-      <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+      <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
         <h2 className="font-display text-lg font-bold text-fg mb-1">Vamos criar seu primeiro locutor</h2>
         <p className="text-sm text-fg/65 mb-5">
           {tipoRadioConta
@@ -189,7 +189,7 @@ export default function LocutorOnboardingPage() {
             : "Descreva sua rádio (ou pule direto) e a IA já prepara um locutor e um programa prontos."}
         </p>
 
-        <div className="rounded-xl border border-roxo-claro/30 bg-roxo/5 p-4 mb-4">
+        <div className="rounded-xl border border-acento-claro/30 bg-acento/5 p-4 mb-4">
           <p className="text-sm font-medium text-fg mb-1">✨ Gerar automaticamente</p>
           <p className="text-xs text-fg/65 mb-3">Nome, voz e programa prontos em segundos. Você revisa e ajusta o que quiser depois.</p>
           <textarea
@@ -198,7 +198,7 @@ export default function LocutorOnboardingPage() {
             disabled={gerando}
             rows={3}
             placeholder="Descrição (opcional). Ex: programa de manhã, animado, com bloco de recado ao ouvinte"
-            className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2.5 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:ring-2 focus:ring-roxo-claro/40 disabled:opacity-60 mb-3"
+            className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2.5 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:ring-2 focus:ring-acento-claro/40 disabled:opacity-60 mb-3"
           />
           {erro && <p className="text-sm text-laranja mb-3">{erro}</p>}
           {precisaUpgrade && (
@@ -214,7 +214,7 @@ export default function LocutorOnboardingPage() {
             type="button"
             onClick={gerar}
             disabled={gerando}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-roxo px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-roxo/90 disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-acento px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-acento/90 disabled:opacity-60"
           >
             {gerando ? (
               <>

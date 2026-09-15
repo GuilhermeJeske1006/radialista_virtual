@@ -52,7 +52,7 @@ export default function SuporteChat() {
         type="button"
         onClick={() => setAberto(true)}
         title="Suporte"
-        className="fixed bottom-24 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-roxo text-on-brand shadow-lg hover:bg-roxo/90"
+        className="fixed bottom-24 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-acento text-on-brand shadow-lg hover:bg-acento/90"
       >
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
           <path
@@ -66,7 +66,7 @@ export default function SuporteChat() {
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-40 flex h-[32rem] w-96 max-w-[calc(100vw-2.5rem)] flex-col rounded-2xl border border-border-strong bg-surface shadow-lg">
+    <div className="fixed bottom-5 right-5 z-40 flex h-[32rem] w-96 max-w-[calc(100vw-2.5rem)] flex-col rounded-3xl border border-border-strong bg-surface shadow-lg">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <span className="font-display text-sm font-bold text-fg">Suporte Locufy</span>
         <button type="button" onClick={() => setAberto(false)} className="text-fg/50 hover:text-fg" title="Fechar">
@@ -81,7 +81,7 @@ export default function SuporteChat() {
           <div
             key={i}
             className={`max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed ${
-              m.role === "user" ? "ml-auto bg-roxo/15 text-fg" : "bg-fg/5 text-fg/85"
+              m.role === "user" ? "ml-auto bg-acento/15 text-fg" : "bg-fg/5 text-fg/85"
             }`}
           >
             {m.content}
@@ -103,12 +103,12 @@ export default function SuporteChat() {
           onChange={(e) => setTexto(e.target.value)}
           disabled={enviando}
           placeholder="Digite sua dúvida..."
-          className="flex-1 rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/50 focus:outline-none focus:ring-2 focus:ring-roxo-claro/30 disabled:opacity-60"
+          className="flex-1 rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/50 focus:outline-none focus:ring-2 focus:ring-acento-claro/30 disabled:opacity-60"
         />
         <button
           type="submit"
           disabled={enviando || !texto.trim()}
-          className="rounded-lg bg-roxo px-3 py-2 text-sm font-medium text-on-brand hover:bg-roxo/90 disabled:opacity-60"
+          className="rounded-xl bg-acento px-3 py-2 text-sm font-medium text-on-brand hover:bg-acento/90 disabled:opacity-60"
         >
           Enviar
         </button>

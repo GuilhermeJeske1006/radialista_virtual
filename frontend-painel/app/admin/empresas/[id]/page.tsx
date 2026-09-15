@@ -18,7 +18,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const inputClass =
-  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20";
+  "w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20";
 
 function formatarData(iso: string): string {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
@@ -97,7 +97,7 @@ export default function AdminEmpresaDetalhePage() {
 
   return (
     <AdminShell title={empresa.nome_radio || `Empresa #${empresa.id}`} maxWidthClassName="max-w-3xl">
-      <Link href="/admin" className="text-sm text-roxo-claro hover:underline mb-4 inline-block">
+      <Link href="/admin" className="text-sm text-acento-claro hover:underline mb-4 inline-block">
         ← Todas as empresas
       </Link>
 
@@ -105,7 +105,7 @@ export default function AdminEmpresaDetalhePage() {
         {erro && <p className="text-sm text-laranja">{erro}</p>}
         {mensagem && <p className="text-sm text-ciano">{mensagem}</p>}
 
-        <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+        <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
           <h2 className="font-display text-base font-bold text-fg mb-4">Dados da rádio</h2>
           <dl className="grid sm:grid-cols-2 gap-3 text-sm">
             <Campo rotulo="Slogan" valor={empresa.slogan || "—"} />
@@ -119,7 +119,7 @@ export default function AdminEmpresaDetalhePage() {
           </dl>
         </div>
 
-        <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+        <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
           <h2 className="font-display text-base font-bold text-fg mb-1">Plano e assinatura</h2>
           <p className="text-sm text-fg/65 mb-4">
             Mudar aqui altera só o registro local — não mexe na assinatura do Stripe. Use pra correções manuais.
@@ -159,18 +159,18 @@ export default function AdminEmpresaDetalhePage() {
               type="button"
               disabled={!houveMudanca || salvando}
               onClick={() => setConfirmando(true)}
-              className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               Salvar alterações
             </button>
           </div>
         </div>
 
-        <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+        <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
           <h2 className="font-display text-base font-bold text-fg mb-4">Usuários</h2>
           <div className="space-y-2">
             {empresa.usuarios.map((usuario) => (
-              <div key={usuario.id} className="flex items-center justify-between gap-3 rounded-lg border border-border px-4 py-3">
+              <div key={usuario.id} className="flex items-center justify-between gap-3 rounded-xl border border-border px-4 py-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-fg truncate">{usuario.nome || usuario.email}</p>
                   <p className="text-xs text-fg/65 truncate">{usuario.email}</p>

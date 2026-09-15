@@ -61,11 +61,11 @@ export default function ProgramaSelector({
     .toUpperCase();
 
   return (
-    <section className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5 sm:p-6">
+    <section className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div className="flex min-w-0 flex-1 gap-3.5">
           {programaSelecionado && (
-            <div className="hidden sm:flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-roxo to-laranja font-display text-base font-bold text-on-brand">
+            <div className="hidden sm:flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-acento to-laranja font-display text-base font-bold text-on-brand">
               {iniciais}
             </div>
           )}
@@ -85,7 +85,7 @@ export default function ProgramaSelector({
             <div className="mt-3.5 flex flex-col gap-2 sm:flex-row sm:items-center">
               <select
                 aria-label="Selecionar programa"
-                className="w-full sm:max-w-sm rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
+                className="w-full sm:max-w-sm rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
                 value={programaId ?? ""}
                 disabled={carregandoProgramas || programaAtivo}
                 onChange={(e) => {
@@ -121,7 +121,7 @@ export default function ProgramaSelector({
                   type="button"
                   onClick={onIniciar}
                   disabled={!programaId || gerandoFala}
-                  className="rounded-lg bg-laranja px-4 py-2.5 text-sm font-medium text-fg hover:bg-laranja/90 disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
+                  className="rounded-xl bg-laranja px-4 py-2.5 text-sm font-medium text-fg hover:bg-laranja/90 disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
                 >
                   Comecar transmissao
                 </button>
@@ -129,7 +129,7 @@ export default function ProgramaSelector({
                 <button
                   type="button"
                   onClick={onPausar}
-                  className="rounded-lg border border-border-strong bg-fg/5 px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/10 shrink-0"
+                  className="rounded-xl border border-border-strong bg-fg/5 px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/10 shrink-0"
                 >
                   Pausar transmissao
                 </button>
@@ -141,7 +141,7 @@ export default function ProgramaSelector({
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto shrink-0">
           <span
             className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
-              aoVivoAtivo ? "bg-ciano/10 text-ciano" : "bg-roxo/10 text-roxo-claro"
+              aoVivoAtivo ? "bg-ciano/10 text-ciano" : "bg-acento/10 text-acento-claro"
             }`}
           >
             {aoVivoAtivo ? "Agente online" : "Aguardando conexao"}
@@ -149,7 +149,7 @@ export default function ProgramaSelector({
           {programaSelecionado && (
             <span
               className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                programaSelecionadoNoAr ? "bg-ciano/10 text-ciano" : "bg-roxo/10 text-roxo-claro"
+                programaSelecionadoNoAr ? "bg-ciano/10 text-ciano" : "bg-acento/10 text-acento-claro"
               }`}
               title="Horario programado deste programa, independente de a transmissao estar ligada"
             >
@@ -181,14 +181,14 @@ export default function ProgramaSelector({
             <button
               type="button"
               onClick={() => onEditarRadialista(programaSelecionado.radialistaId)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-roxo-claro/25 bg-roxo/10 px-3 py-1.5 text-xs font-semibold text-roxo-claro hover:bg-roxo/20"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-acento-claro/25 bg-acento/10 px-3 py-1.5 text-xs font-semibold text-acento-claro hover:bg-acento/20"
             >
               ✎ Editar radialista
             </button>
             <button
               type="button"
               onClick={() => onEditarPrograma(programaSelecionado.radialistaId, programaSelecionado.id)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-roxo-claro/25 bg-roxo/10 px-3 py-1.5 text-xs font-semibold text-roxo-claro hover:bg-roxo/20"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-acento-claro/25 bg-acento/10 px-3 py-1.5 text-xs font-semibold text-acento-claro hover:bg-acento/20"
             >
               ✎ Editar programa
             </button>

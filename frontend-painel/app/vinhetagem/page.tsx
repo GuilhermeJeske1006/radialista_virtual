@@ -12,7 +12,7 @@ import { CategoriaVinheta, Patrocinador, Radialista } from "../../lib/types";
 import { LocufySpin } from "../../components/LocufyLogo";
 
 const inputClass =
-  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20";
+  "w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20";
 const labelClass = "block text-sm font-medium text-fg/80 mb-1.5";
 
 type FormCategoria = { id: number | null; nome: string; tipo: "biblioteca" | "propaganda" };
@@ -297,7 +297,7 @@ export default function VinhetagemPage() {
         <p className="text-sm text-fg/65 max-w-2xl">
           Crie categorias (cada uma já marcada como biblioteca ou propaganda) e adicione as inserções dentro de cada
           uma -- o tipo é sempre o da categoria escolhida. Vinhetas de biblioteca aparecem como botões no cartwall do{" "}
-          <Link href="/live" className="text-roxo-claro underline hover:text-roxo-dim">
+          <Link href="/live" className="text-acento-claro underline hover:text-acento-dim">
             Ao Vivo
           </Link>
           ; propagandas entram nos blocos &quot;Chamada ao ouvinte&quot; da programação de cada radialista.
@@ -306,7 +306,7 @@ export default function VinhetagemPage() {
           <button
             type="button"
             onClick={() => setFormCategoria({ id: null, nome: "", tipo: "biblioteca" })}
-            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-on-brand hover:bg-brand-600"
+            className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-on-brand hover:bg-brand-600"
           >
             + Categoria
           </button>
@@ -320,7 +320,7 @@ export default function VinhetagemPage() {
           <LocufySpin size={16} /> Carregando...
         </p>
       ) : categorias.length === 0 && vinhetas.length === 0 && propagandas.length === 0 ? (
-        <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+        <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
           <p className="text-sm text-fg/65">
             Nada cadastrado ainda. Comece criando uma categoria (ex.: &quot;Vinhetas&quot;, &quot;Comerciais&quot;) e
             depois adicione inserções dentro dela.
@@ -362,7 +362,7 @@ export default function VinhetagemPage() {
             return (
               <section
                 key={categoriaId ?? "sem-categoria"}
-                className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5"
+                className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5"
               >
                 <div className="flex flex-wrap items-center justify-between gap-y-2 mb-4">
                   <div className="flex items-center gap-2">
@@ -379,7 +379,7 @@ export default function VinhetagemPage() {
                         <button
                           type="button"
                           onClick={() => setFormCategoria({ id: categoriaId, nome: categoria.nome, tipo: categoria.tipo! })}
-                          className="text-xs font-medium text-roxo-claro hover:text-roxo-dim"
+                          className="text-xs font-medium text-acento-claro hover:text-acento-dim"
                         >
                           Renomear
                         </button>
@@ -393,7 +393,7 @@ export default function VinhetagemPage() {
                         <button
                           type="button"
                           onClick={() => setFormInsercao(novaInsercaoVazia(categoria.tipo!, categoriaId))}
-                          className="text-xs font-medium text-roxo-claro hover:text-roxo-dim"
+                          className="text-xs font-medium text-acento-claro hover:text-acento-dim"
                         >
                           + Inserção
                         </button>
@@ -426,12 +426,12 @@ export default function VinhetagemPage() {
                           entrada.tipo === "biblioteca" ? (
                         <div
                           key={`vinheta-${entrada.item.id}`}
-                          className="flex items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-sm"
+                          className="flex items-center gap-2 rounded-xl border border-border px-2.5 py-1.5 text-sm"
                         >
                           <button
                             type="button"
                             onClick={() => tocarVinheta(entrada.item)}
-                            className="shrink-0 text-roxo-claro hover:text-roxo-dim"
+                            className="shrink-0 text-acento-claro hover:text-acento-dim"
                             title="Tocar"
                           >
                             {tocandoId === entrada.item.id ? <LocufySpin size={14} /> : "▶"}
@@ -447,7 +447,7 @@ export default function VinhetagemPage() {
                           <button
                             type="button"
                             onClick={() => editarVinheta(entrada.item)}
-                            className="shrink-0 text-xs font-medium text-roxo-claro hover:text-roxo-dim"
+                            className="shrink-0 text-xs font-medium text-acento-claro hover:text-acento-dim"
                           >
                             Editar
                           </button>
@@ -462,7 +462,7 @@ export default function VinhetagemPage() {
                       ) : (
                         <div
                           key={`propaganda-${entrada.item.id}`}
-                          className="flex items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-sm"
+                          className="flex items-center gap-2 rounded-xl border border-border px-2.5 py-1.5 text-sm"
                         >
                           <div className="min-w-0 flex-1">
                             <p className={`truncate ${entrada.item.ativo ? "text-fg" : "text-fg/65"}`}>
@@ -480,7 +480,7 @@ export default function VinhetagemPage() {
                           <button
                             type="button"
                             onClick={() => editarPropaganda(entrada.item)}
-                            className="shrink-0 text-xs font-medium text-roxo-claro hover:text-roxo-dim"
+                            className="shrink-0 text-xs font-medium text-acento-claro hover:text-acento-dim"
                           >
                             Editar
                           </button>
@@ -502,7 +502,7 @@ export default function VinhetagemPage() {
                           type="button"
                           disabled={paginaAtual <= 1}
                           onClick={() => mudarPagina(paginaAtual - 1)}
-                          className="text-xs font-medium text-roxo-claro hover:text-roxo-dim disabled:opacity-40 disabled:hover:text-roxo-claro"
+                          className="text-xs font-medium text-acento-claro hover:text-acento-dim disabled:opacity-40 disabled:hover:text-acento-claro"
                         >
                           ◀ Anterior
                         </button>
@@ -513,7 +513,7 @@ export default function VinhetagemPage() {
                           type="button"
                           disabled={paginaAtual >= totalPaginas}
                           onClick={() => mudarPagina(paginaAtual + 1)}
-                          className="text-xs font-medium text-roxo-claro hover:text-roxo-dim disabled:opacity-40 disabled:hover:text-roxo-claro"
+                          className="text-xs font-medium text-acento-claro hover:text-acento-dim disabled:opacity-40 disabled:hover:text-acento-claro"
                         >
                           Próxima ▶
                         </button>
@@ -573,14 +573,14 @@ export default function VinhetagemPage() {
               <button
                 type="button"
                 onClick={() => setFormCategoria(null)}
-                className="rounded-lg px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
+                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={salvando}
-                className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60"
+                className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60"
               >
                 {salvando ? "Salvando..." : "Salvar"}
               </button>
@@ -630,7 +630,7 @@ export default function VinhetagemPage() {
                       type="color"
                       value={formInsercao.cor || "#e8a33d"}
                       onChange={(e) => setFormInsercao({ ...formInsercao, cor: e.target.value })}
-                      className="h-10 w-full rounded-lg border border-border-strong bg-bg"
+                      className="h-10 w-full rounded-xl border border-border-strong bg-bg"
                     />
                   </div>
                   <div>
@@ -750,14 +750,14 @@ export default function VinhetagemPage() {
               <button
                 type="button"
                 onClick={() => setFormInsercao(null)}
-                className="rounded-lg px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
+                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={salvando}
-                className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60"
+                className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60"
               >
                 {salvando ? "Salvando..." : "Salvar"}
               </button>

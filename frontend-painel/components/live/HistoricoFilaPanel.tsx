@@ -74,7 +74,7 @@ export default function HistoricoFilaPanel({ radialistaId }: Props) {
   }, [radialistaId, filtro, pagina]);
 
   return (
-    <section className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+    <section className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-display text-base font-bold text-fg">Histórico da fila</h2>
         {dados && <span className="font-mono text-xs text-fg/65">{dados.total} pedido(s)</span>}
@@ -88,7 +88,7 @@ export default function HistoricoFilaPanel({ radialistaId }: Props) {
             type="button"
             onClick={() => setFiltro(opcao)}
             className={`rounded-full px-3 py-1 text-xs font-medium capitalize transition-colors ${
-              filtro === opcao ? "bg-roxo/15 text-roxo-claro" : "text-fg/65 hover:bg-fg/5"
+              filtro === opcao ? "bg-acento/15 text-acento-claro" : "text-fg/65 hover:bg-fg/5"
             }`}
           >
             {opcao}
@@ -107,14 +107,14 @@ export default function HistoricoFilaPanel({ radialistaId }: Props) {
       ) : (
         <div className="space-y-2 max-h-72 overflow-y-auto pr-1 -mr-1">
           {dados.pedidos.map((pedido) => (
-            <div key={pedido.id} className="rounded-lg border border-border px-3 py-2">
+            <div key={pedido.id} className="rounded-xl border border-border px-3 py-2">
               <div className="flex items-center justify-between gap-2 mb-1">
                 <span className="text-xs font-medium text-fg truncate">
                   {pedido.nome || pedido.telefone} · {pedido.tipo === "musica" ? "🎵 música" : "👋 recado"}
                 </span>
                 <span
                   className={`shrink-0 text-[11px] font-medium rounded-full px-2 py-0.5 ${
-                    pedido.atendido ? "bg-ciano/10 text-ciano" : "bg-roxo/10 text-roxo-claro"
+                    pedido.atendido ? "bg-ciano/10 text-ciano" : "bg-acento/10 text-acento-claro"
                   }`}
                 >
                   {pedido.estado === "historico_legado" ? "Histórico legado" : pedido.atendido ? "Executado" : ({em_fila: "Na fila", aguardando_revisao: "Em revisão", selecionado: "Selecionado", expirado: "Expirado", cancelado: "Cancelado", nao_atendido: "Não atendido"} as Record<string, string>)[pedido.estado] || "Pendente"}

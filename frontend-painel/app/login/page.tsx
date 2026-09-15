@@ -56,7 +56,7 @@ export default function LoginPage() {
           <LocufyLogo wordmarkClassName="text-2xl" />
           <ThemeToggle className="ml-1" />
         </div>
-        <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-sm p-6">
+        <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-sm p-6">
           <h1 className="font-display text-lg font-bold text-fg mb-6">Entrar</h1>
           <form onSubmit={enviar} className="space-y-4">
             <div>
@@ -68,7 +68,7 @@ export default function LoginPage() {
                 placeholder="Ex.: email@dominio.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
+                className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
               />
             </div>
             <div>
@@ -81,7 +81,7 @@ export default function LoginPage() {
                 required
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
-                className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
+                className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
               />
             </div>
             <div className="flex items-center justify-between">
@@ -90,11 +90,11 @@ export default function LoginPage() {
                   type="checkbox"
                   checked={lembrar}
                   onChange={(e) => setLembrar(e.target.checked)}
-                  className="h-4 w-4 rounded border-border-strong accent-roxo"
+                  className="h-4 w-4 rounded border-border-strong accent-acento"
                 />
                 Lembrar senha
               </label>
-              <Link href="/esqueci-senha" className="text-sm text-roxo-claro hover:text-roxo-dim font-medium">
+              <Link href="/esqueci-senha" className="text-sm text-acento-claro hover:text-acento-dim font-medium">
                 Esqueci minha senha
               </Link>
             </div>
@@ -102,14 +102,14 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={carregando}
-              className="w-full rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {carregando ? "Entrando..." : "Entrar"}
             </button>
           </form>
           <p className="mt-4 text-sm text-fg/65">
             Não tem conta?{" "}
-            <Link href="/register" className="text-roxo-claro hover:text-roxo-dim font-medium">
+            <Link href="/register" className="text-acento-claro hover:text-acento-dim font-medium">
               Criar conta
             </Link>
           </p>

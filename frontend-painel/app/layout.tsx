@@ -2,14 +2,13 @@ import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Nunito, Outfit } from "next/font/google";
 import "./globals.css";
 
-// Substitutas enquanto as licenciadas não entram no repositório:
-// Outfit fica no lugar da Sama Latin (títulos) e Nunito no lugar da Gotham
-// Rounded (texto). Para trocar: coloque os .woff2 em app/fonts/ e rode o
-// script de novo — ele detecta os arquivos e reescreve este layout com
-// next/font/local, sem mudar mais nada da aplicação.
+// Substitutas enquanto as licenciadas não entram no repositório: Outfit no
+// lugar da Sama Latin (títulos) e Nunito no lugar da Gotham Rounded (texto) —
+// é a que mais se aproxima do "Locufy" arredondado do logo. Para trocar,
+// coloque os .woff2 em app/fonts/ e rode o script de novo.
 const displayFont = Outfit({
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-locufy-display",
 });
 
@@ -28,16 +27,10 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Locufy — Painel",
   description: "Transforme audiência em conexão. Painel do radialista virtual.",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "Locufy",
-  },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Locufy" },
 };
 
-export const viewport: Viewport = {
-  themeColor: "#111A2C",
-};
+export const viewport: Viewport = { themeColor: "#131C2E" };
 
 const TEMA_INICIAL_SCRIPT = `(function(){try{var t=localStorage.getItem("locufy-theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();`;
 

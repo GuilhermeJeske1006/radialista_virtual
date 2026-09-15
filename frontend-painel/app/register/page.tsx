@@ -234,7 +234,7 @@ export default function RegisterPage() {
           <ThemeToggle className="ml-1" />
         </div>
 
-        <form onSubmit={concluir} className="bg-surface rounded-2xl border border-border-strong shadow-theme-sm p-6 sm:p-8">
+        <form onSubmit={concluir} className="bg-surface rounded-3xl border border-border-strong shadow-theme-sm p-6 sm:p-8">
           <ol className="flex items-center gap-2 mb-8">
             {PASSOS.map((label, i) => {
               const numero = (i + 1) as 1 | 2 | 3;
@@ -244,7 +244,7 @@ export default function RegisterPage() {
                 <li key={label} className="flex items-center gap-2 flex-1 last:flex-none">
                   <span
                     className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-                      ativo || concluido ? "bg-roxo text-on-brand" : "bg-bg border border-border-strong text-fg/65"
+                      ativo || concluido ? "bg-acento text-on-brand" : "bg-bg border border-border-strong text-fg/65"
                     }`}
                   >
                     {concluido ? (
@@ -280,10 +280,10 @@ export default function RegisterPage() {
                   value={nome}
                   onChange={(e) => onChangeNome(e.target.value)}
                   onBlur={() => { onChangeNome(nome); marcarTocado("nome"); }}
-                  className={`w-full rounded-lg border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
+                  className={`w-full rounded-xl border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
                     tocado.nome && campoErros.nome
                       ? "border-laranja focus:border-laranja focus:ring-laranja/20"
-                      : "border-border-strong focus:border-roxo-claro/50 focus:ring-roxo-claro/20"
+                      : "border-border-strong focus:border-acento-claro/50 focus:ring-acento-claro/20"
                   }`}
                 />
                 {tocado.nome && campoErros.nome && (
@@ -299,10 +299,10 @@ export default function RegisterPage() {
                   value={email}
                   onChange={(e) => onChangeEmail(e.target.value)}
                   onBlur={() => { onChangeEmail(email); marcarTocado("email"); }}
-                  className={`w-full rounded-lg border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
+                  className={`w-full rounded-xl border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
                     tocado.email && campoErros.email
                       ? "border-laranja focus:border-laranja focus:ring-laranja/20"
-                      : "border-border-strong focus:border-roxo-claro/50 focus:ring-roxo-claro/20"
+                      : "border-border-strong focus:border-acento-claro/50 focus:ring-acento-claro/20"
                   }`}
                 />
                 {tocado.email && campoErros.email && (
@@ -319,10 +319,10 @@ export default function RegisterPage() {
                   value={senha}
                   onChange={(e) => onChangeSenha(e.target.value)}
                   onBlur={() => { onChangeSenha(senha); marcarTocado("senha"); }}
-                  className={`w-full rounded-lg border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
+                  className={`w-full rounded-xl border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
                     tocado.senha && campoErros.senha
                       ? "border-laranja focus:border-laranja focus:ring-laranja/20"
-                      : "border-border-strong focus:border-roxo-claro/50 focus:ring-roxo-claro/20"
+                      : "border-border-strong focus:border-acento-claro/50 focus:ring-acento-claro/20"
                   }`}
                 />
                 {tocado.senha && campoErros.senha ? (
@@ -341,10 +341,10 @@ export default function RegisterPage() {
                   value={confirmarSenha}
                   onChange={(e) => onChangeConfirmarSenha(e.target.value)}
                   onBlur={() => { onChangeConfirmarSenha(confirmarSenha); marcarTocado("confirmarSenha"); }}
-                  className={`w-full rounded-lg border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
+                  className={`w-full rounded-xl border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
                     tocado.confirmarSenha && campoErros.confirmarSenha
                       ? "border-laranja focus:border-laranja focus:ring-laranja/20"
-                      : "border-border-strong focus:border-roxo-claro/50 focus:ring-roxo-claro/20"
+                      : "border-border-strong focus:border-acento-claro/50 focus:ring-acento-claro/20"
                   }`}
                 />
                 {tocado.confirmarSenha && campoErros.confirmarSenha && (
@@ -371,10 +371,10 @@ export default function RegisterPage() {
                   value={nomeRadio}
                   onChange={(e) => onChangeNomeRadio(e.target.value)}
                   onBlur={() => { onChangeNomeRadio(nomeRadio); marcarTocado("nomeRadio"); }}
-                  className={`w-full rounded-lg border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
+                  className={`w-full rounded-xl border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
                     tocado.nomeRadio && campoErros.nomeRadio
                       ? "border-laranja focus:border-laranja focus:ring-laranja/20"
-                      : "border-border-strong focus:border-roxo-claro/50 focus:ring-roxo-claro/20"
+                      : "border-border-strong focus:border-acento-claro/50 focus:ring-acento-claro/20"
                   }`}
                 />
                 {tocado.nomeRadio && campoErros.nomeRadio && (
@@ -388,7 +388,7 @@ export default function RegisterPage() {
                   placeholder="Ex.: A rádio que toca pra você"
                   value={slogan}
                   onChange={(e) => setSlogan(e.target.value)}
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
+                  className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
                 />
               </div>
               <div>
@@ -398,7 +398,7 @@ export default function RegisterPage() {
                   placeholder="Ex.: 98.5 FM"
                   value={frequencia}
                   onChange={(e) => setFrequencia(e.target.value)}
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
+                  className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
                 />
               </div>
               <div>
@@ -408,7 +408,7 @@ export default function RegisterPage() {
                   placeholder="Ex.: (11) 4000-0000"
                   value={telefone}
                   onChange={(e) => setTelefone(e.target.value)}
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
+                  className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
                 />
               </div>
               <div>
@@ -418,7 +418,7 @@ export default function RegisterPage() {
                   placeholder="Ex.: Av. Principal, 123 - Centro"
                   value={endereco}
                   onChange={(e) => setEndereco(e.target.value)}
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
+                  className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
                 />
               </div>
               <div>
@@ -428,7 +428,7 @@ export default function RegisterPage() {
                   placeholder="Ex.: Porto Alegre"
                   value={cidade}
                   onChange={(e) => setCidade(e.target.value)}
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
+                  className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
                 />
               </div>
             </div>
@@ -449,10 +449,10 @@ export default function RegisterPage() {
                         type="button"
                         key={t.value}
                         onClick={() => setTipoRadio(selecionado ? "" : t.value)}
-                        className={`flex items-center justify-between gap-1.5 rounded-lg border px-3 py-2.5 text-left text-xs font-medium transition-colors ${
+                        className={`flex items-center justify-between gap-1.5 rounded-xl border px-3 py-2.5 text-left text-xs font-medium transition-colors ${
                           selecionado
-                            ? "bg-roxo/10 border-roxo-claro text-roxo-claro"
-                            : "border-border-strong text-fg/70 hover:border-roxo-claro/40"
+                            ? "bg-acento/10 border-acento-claro text-acento-claro"
+                            : "border-border-strong text-fg/70 hover:border-acento-claro/40"
                         }`}
                       >
                         {t.label}
@@ -486,8 +486,8 @@ export default function RegisterPage() {
                     onClick={() => setPlanoId(plano.id)}
                     className={`relative text-left rounded-xl border p-4 transition-colors hover:-translate-y-0.5 hover:shadow-theme-sm ${
                       selecionado
-                        ? "bg-surface border-roxo-claro ring-1 ring-roxo-claro/30"
-                        : "bg-surface border-border-strong hover:border-roxo-claro/40"
+                        ? "bg-surface border-acento-claro ring-1 ring-acento-claro/30"
+                        : "bg-surface border-border-strong hover:border-acento-claro/40"
                     }`}
                   >
                     {plano.destaque && (
@@ -499,7 +499,7 @@ export default function RegisterPage() {
                       <span className="font-display text-sm font-bold text-fg">{plano.nome}</span>
                       <span
                         className={`flex h-4.5 w-4.5 items-center justify-center rounded-full border ${
-                          selecionado ? "border-roxo-claro bg-roxo text-on-brand" : "border-border-strong"
+                          selecionado ? "border-acento-claro bg-acento text-on-brand" : "border-border-strong"
                         }`}
                       >
                         {selecionado && (
@@ -532,7 +532,7 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={voltar}
-                  className="rounded-lg border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/5"
+                  className="rounded-xl border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/5"
                 >
                   Voltar
                 </button>
@@ -543,7 +543,7 @@ export default function RegisterPage() {
                 key="continuar"
                 type="button"
                 onClick={avancar}
-                className="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600"
+                className="rounded-xl bg-brand-500 px-6 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600"
               >
                 Continuar
               </button>
@@ -552,7 +552,7 @@ export default function RegisterPage() {
                 key="finalizar"
                 type="submit"
                 disabled={carregando || formInvalido}
-                className="flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {carregando ? (
                   <>
@@ -569,18 +569,18 @@ export default function RegisterPage() {
 
         <p className="mt-4 text-sm text-fg/65 text-center">
           Já tem conta?{" "}
-          <Link href="/login" className="text-roxo-claro hover:text-roxo-dim font-medium">
+          <Link href="/login" className="text-acento-claro hover:text-acento-dim font-medium">
             Entrar
           </Link>
         </p>
 
         <p className="mt-2 text-xs text-fg/50 text-center">
           Ao criar conta, você concorda com os{" "}
-          <Link href="/termos" className="text-roxo-claro hover:text-roxo-dim">
+          <Link href="/termos" className="text-acento-claro hover:text-acento-dim">
             Termos de Uso
           </Link>{" "}
           e a{" "}
-          <Link href="/privacidade" className="text-roxo-claro hover:text-roxo-dim">
+          <Link href="/privacidade" className="text-acento-claro hover:text-acento-dim">
             Política de Privacidade
           </Link>
           .

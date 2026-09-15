@@ -64,7 +64,7 @@ export default function CartwallPanel({ itens, duckMusicaFundo }: Props) {
   }
 
   return (
-    <section className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">
+    <section className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5">
       <div className="flex items-center justify-between mb-1">
         <h2 className="font-display text-base font-bold text-fg">Cartwall</h2>
         {tocandoId !== null && (
@@ -92,10 +92,10 @@ export default function CartwallPanel({ itens, duckMusicaFundo }: Props) {
                 type="button"
                 onClick={() => tocar(item)}
                 style={item.cor ? { borderColor: item.cor } : undefined}
-                className={`rounded-2xl border p-3 text-left shadow-theme-xs transition-colors ${
+                className={`rounded-3xl border p-3 text-left shadow-theme-xs transition-colors ${
                   ativo
                     ? "bg-ciano/10 border-ciano/50 ring-1 ring-ciano/30"
-                    : "bg-surface border-border-strong hover:border-roxo-claro/40"
+                    : "bg-surface border-border-strong hover:border-acento-claro/40"
                 }`}
               >
                 <p className="text-sm font-medium text-fg truncate">{item.nome}</p>

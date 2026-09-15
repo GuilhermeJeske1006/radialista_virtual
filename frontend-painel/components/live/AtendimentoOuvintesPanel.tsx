@@ -83,7 +83,7 @@ export default function AtendimentoOuvintesPanel() {
     catch (e) { setErro(e instanceof Error ? e.message : "Não foi possível atualizar."); }
     finally { setOcupado(false); }
   }
-  return <section className="rounded-2xl border border-border-strong bg-surface p-6 space-y-4">
+  return <section className="rounded-3xl border border-border-strong bg-surface p-6 space-y-4">
     <h2 className="font-display font-bold">Atendimento aos ouvintes</h2>
     <p className="text-xs text-fg/65">O novo atendimento mantém a conversa e exige revisão antes de levar pedidos ao ar. A configuração de resposta automática de cada radialista continua sendo respeitada.</p>
     <button className={botao} disabled={ocupado} onClick={() => alterar("/ouvintes/config", "PUT", {ativo: !ativo})}>{ativo ? "Desativar novo atendimento" : "Ativar novo atendimento nesta rádio"}</button>

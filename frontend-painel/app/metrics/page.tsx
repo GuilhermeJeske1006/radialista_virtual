@@ -21,7 +21,7 @@ type Resumo = {
 
 function StatCard({ label, valor }: { label: string; valor: number }) {
   return (
-    <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">
+    <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5">
       <p className="text-xs font-medium text-fg/65 uppercase tracking-wide">{label}</p>
       <p className="mt-2 font-display text-3xl font-bold text-fg">{valor.toLocaleString("pt-BR")}</p>
     </div>
@@ -123,7 +123,7 @@ export default function MetricsPage() {
     <AppShell title="Métricas" maxWidthClassName="max-w-4xl">
       <p className="text-sm text-fg/65 mb-5">
         Números agregados das interações. Pra ver as conversas mensagem a mensagem,{" "}
-        <Link href="/conversas" className="text-roxo-claro hover:text-roxo-dim font-medium">
+        <Link href="/conversas" className="text-acento-claro hover:text-acento-dim font-medium">
           acesse Conversas
         </Link>
         .
@@ -136,7 +136,7 @@ export default function MetricsPage() {
               aria-label="Radialista"
               value={radialistaId ?? ""}
               onChange={(e) => setRadialistaId(Number(e.target.value))}
-              className="rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
+              className="rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
             >
               {radialistas.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -157,7 +157,7 @@ export default function MetricsPage() {
                 aria-label="Período do CSV"
                 value={periodoExport}
                 onChange={(e) => setPeriodoExport(e.target.value)}
-                className="rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
+                className="rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
               >
                 {OPCOES_PERIODO.map((opcao) => (
                   <option key={opcao.valor} value={opcao.valor}>
@@ -170,7 +170,7 @@ export default function MetricsPage() {
               type="button"
               onClick={exportarCsv}
               disabled={exportando}
-              className="rounded-lg border border-border-strong px-4 py-2 text-sm font-medium text-fg hover:bg-fg/5 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="rounded-xl border border-border-strong px-4 py-2 text-sm font-medium text-fg hover:bg-fg/5 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {exportando ? "Exportando..." : "Exportar CSV"}
             </button>
@@ -194,7 +194,7 @@ export default function MetricsPage() {
             <StatCard label="Últimos 30 dias" valor={resumo.ultimos_30_dias} />
           </div>
 
-          <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+          <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
             <h2 className="font-display text-base font-bold text-fg mb-1">Mensagens por dia</h2>
             <p className="text-xs text-fg/65 mb-5">Últimos 30 dias.</p>
             {resumo.mensagens_por_dia.every((ponto) => ponto.total === 0) ? (
@@ -204,7 +204,7 @@ export default function MetricsPage() {
             )}
           </div>
 
-          <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+          <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
             <h2 className="font-display text-base font-bold text-fg mb-4">Por status</h2>
             <BreakdownPorStatus porStatus={resumo.por_status} total={resumo.total} />
           </div>

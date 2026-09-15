@@ -1,232 +1,27 @@
 "use client";
 
-import type { ReactElement } from "react";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { apiFetch } from "../lib/api";
 import { limparContaCache, useConta } from "../lib/useConta";
 import { useConfiguracaoInicialCompleta } from "../lib/useConfiguracaoInicial";
-import { LocufyLogo, LocufyMark } from "./LocufyLogo";
+import { LocufyMark } from "./LocufyLogo";
+import { ICONE_SAIR, LINK_AJUDA, LINK_PERFIL, NAV_LINKS, NavGroup, NavIcone } from "./nav";
 
-type SidebarLink = {
-  href: string;
-  label: string;
-  adminOnly?: boolean;
-  icon: ReactElement;
-  /** 1/2/3 -- ganha o prefixo numerico enquanto o setup inicial nao termina (ver
-   * useConfiguracaoInicialCompleta), mesmo os links ficando em grupos diferentes. */
-  numeroSetup?: number;
-};
+const ORDEM_GRUPOS: NavGroup[] = ["Principal", "Conteúdo", "Conta"];
 
-type SidebarGroup = {
-  label: string;
-  links: SidebarLink[];
-};
-
-const GROUPS: SidebarGroup[] = [
-  {
-    label: "Principal",
-    links: [
-      {
-        href: "/dashboard",
-        label: "Dashboard",
-        icon: (
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"
-          />
-        ),
-      },
-      {
-        href: "/live",
-        label: "Ao Vivo",
-        numeroSetup: 3,
-        icon: (
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M8.288 15.038a5.25 5.25 0 117.424 0M6.34 17.5a8.25 8.25 0 1111.32 0M12 12.75a.75.75 0 11-.75-.75.75.75 0 01.75.75z"
-          />
-        ),
-      },
-      {
-        href: "/metrics",
-        label: "Métricas",
-        icon: (
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"
-          />
-        ),
-      },
-      {
-        href: "/conversas",
-        label: "Conversas",
-        icon: (
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"
-          />
-        ),
-      },
-    ],
-  },
-  {
-    label: "Conteúdo",
-    links: [
-      {
-        href: "/radialista",
-        label: "Radialistas",
-        numeroSetup: 1,
-        icon: (
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-          />
-        ),
-      },
-      {
-        href: "/programas",
-        label: "Programas",
-        numeroSetup: 2,
-        icon: (
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M8.25 6.75h12M8.25 12h12M8.25 17.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 17.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
-          />
-        ),
-      },
-      {
-        href: "/programacao",
-        label: "Grade",
-        icon: (
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"
-          />
-        ),
-      },
-      {
-        href: "/vinhetagem",
-        label: "Vinhetagem",
-        icon: (
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 010 3.46"
-          />
-        ),
-      },
-    ],
-  },
-  {
-    label: "Conta",
-    links: [
-      {
-        href: "/billing",
-        label: "Assinatura",
-        adminOnly: true,
-        icon: (
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        ),
-      },
-      {
-        href: "/equipe",
-        label: "Equipe",
-        adminOnly: true,
-        icon: (
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.94-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.06 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"
-          />
-        ),
-      },
-      {
-        href: "/configuracoes",
-        label: "Dados da rádio",
-        icon: (
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.107-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z"
-          />
-        ),
-      },
-    ],
-  },
-];
-
-const DIAL_SCALE = ["88", "90", "92", "94", "96", "LOCUFY", "100", "102", "104", "106", "108"];
-
-function NavLink({
-  href,
-  label,
-  icon,
-  active,
-  colapsada,
-}: {
-  href: string;
-  label: string;
-  icon: ReactElement;
-  active: boolean;
-  colapsada: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      title={colapsada ? label : undefined}
-      aria-label={colapsada ? label : undefined}
-      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-        colapsada ? "justify-center" : ""
-      } ${active ? "bg-roxo/10 text-roxo-claro" : "text-fg/65 hover:bg-fg/5 hover:text-fg"}`}
-    >
-      <svg
-        className={`h-5 w-5 shrink-0 ${active ? "text-roxo-claro" : "text-fg/65"}`}
-        fill="none"
-        viewBox="0 0 24 24"
-        strokeWidth={1.5}
-        stroke="currentColor"
-      >
-        {icon}
-      </svg>
-      {!colapsada && label}
-    </Link>
-  );
-}
-
-function ContaMenu({
-  nome,
-  email,
-  colapsada,
-  pathname,
-  onSair,
-}: {
-  nome: string | undefined;
-  email: string | undefined;
-  colapsada: boolean;
-  pathname: string;
-  onSair: () => void;
-}) {
+function ContaMenu({ colapsada }: { colapsada: boolean }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const conta = useConta();
   const [aberto, setAberto] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const botaoRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     function aoClicarFora(evento: MouseEvent) {
-      if (ref.current && !ref.current.contains(evento.target as Node)) {
-        setAberto(false);
-      }
+      if (ref.current && !ref.current.contains(evento.target as Node)) setAberto(false);
     }
     document.addEventListener("mousedown", aoClicarFora);
     return () => document.removeEventListener("mousedown", aoClicarFora);
@@ -236,153 +31,164 @@ function ContaMenu({
     setAberto(false);
   }, [pathname]);
 
-  const inicial = (nome || email || "?").charAt(0).toUpperCase();
-
-  return (
-    <div ref={ref} className="relative">
-      {aberto && (
-        <div
-          className={`absolute bottom-full mb-2 rounded-lg border border-border bg-surface shadow-lg py-1 ${
-            colapsada ? "left-0 w-48" : "left-0 right-0"
-          }`}
-        >
-          {!colapsada && (nome || email) && (
-            <div className="px-3 py-2 border-b border-border">
-              {nome && <div className="text-sm font-medium text-fg truncate">{nome}</div>}
-              {email && <div className="text-xs text-fg/65 truncate">{email}</div>}
-            </div>
-          )}
-          <Link
-            href="/ajuda"
-            className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-fg/65 hover:bg-fg/5 hover:text-fg transition-colors"
-          >
-            <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zM12 17.25h.008v.008H12v-.008z"
-              />
-            </svg>
-            Ajuda
-          </Link>
-          <Link
-            href="/perfil"
-            className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-fg/65 hover:bg-fg/5 hover:text-fg transition-colors"
-          >
-            <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
-              />
-            </svg>
-            Perfil
-          </Link>
-          <button
-            onClick={onSair}
-            className="flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-fg/65 hover:bg-fg/5 hover:text-fg transition-colors"
-          >
-            <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"
-              />
-            </svg>
-            Sair
-          </button>
-        </div>
-      )}
-      <button
-        onClick={() => setAberto((valor) => !valor)}
-        title={colapsada ? nome || "Conta" : undefined}
-        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-fg/65 hover:bg-fg/5 hover:text-fg transition-colors ${
-          colapsada ? "justify-center" : ""
-        }`}
-      >
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-roxo/10 text-roxo-claro text-xs font-semibold">
-          {inicial}
-        </span>
-        {!colapsada && <span className="truncate">{nome || email || "Conta"}</span>}
-      </button>
-    </div>
-  );
-}
-
-// tela Ao Vivo precisa do maximo de largura pra grade de 3 colunas -- sidebar
-// vira uma trilha so' de icones nessa rota (sem toggle manual, so' auto por rota).
-export default function Sidebar() {
-  const pathname = usePathname();
-  const router = useRouter();
-  const conta = useConta();
-  const colapsada = pathname === "/live";
-  const setupCompleto = useConfiguracaoInicialCompleta();
-  const groups = GROUPS.map((group) => ({
-    ...group,
-    links: group.links
-      .filter((link) => !link.adminOnly || conta?.role === "admin")
-      .map((link) => ({
-        ...link,
-        label: link.numeroSetup && !setupCompleto ? `${link.numeroSetup}. ${link.label}` : link.label,
-      })),
-  })).filter((group) => group.links.length > 0);
-
   function sair() {
     apiFetch("/auth/logout", { method: "POST" }).catch(() => {});
     limparContaCache();
     router.push("/login");
   }
 
+  const inicial = (conta?.nome || conta?.email || "?").charAt(0).toUpperCase();
+  const itemClasses =
+    "flex items-center gap-3 rounded-full px-3.5 py-2 text-sm font-semibold text-fg/65 hover:bg-fg/5 hover:text-fg transition-colors";
+
+  return (
+    <div
+      ref={ref}
+      className="relative"
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && aberto) {
+          setAberto(false);
+          botaoRef.current?.focus();
+        }
+      }}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setAberto(false);
+      }}
+    >
+      {aberto && (
+        <div
+          className={`absolute bottom-full mb-2 rounded-2xl border border-border-strong bg-surface shadow-theme-sm py-1.5 ${
+            colapsada ? "left-0 w-52" : "left-0 right-0"
+          }`}
+        >
+          {(conta?.nome || conta?.email) && (
+            <div className="px-3.5 py-2 mb-1 border-b border-border">
+              {conta?.nome && <div className="text-sm font-semibold text-fg truncate">{conta.nome}</div>}
+              {conta?.email && <div className="text-xs text-fg/55 truncate">{conta.email}</div>}
+            </div>
+          )}
+          <div className="px-1.5 space-y-0.5">
+            <Link href={LINK_AJUDA.href} className={itemClasses}>
+              <NavIcone>{LINK_AJUDA.icon}</NavIcone>
+              {LINK_AJUDA.label}
+            </Link>
+            <Link href={LINK_PERFIL.href} className={itemClasses}>
+              <NavIcone>{LINK_PERFIL.icon}</NavIcone>
+              {LINK_PERFIL.label}
+            </Link>
+            <button onClick={sair} className={`w-full ${itemClasses}`}>
+              <NavIcone>{ICONE_SAIR}</NavIcone>
+              Sair
+            </button>
+          </div>
+        </div>
+      )}
+      <button
+        ref={botaoRef}
+        type="button"
+        aria-label="Menu da conta"
+        aria-expanded={aberto}
+        onClick={() => setAberto((v) => !v)}
+        title={colapsada ? conta?.nome || "Conta" : undefined}
+        className={`flex w-full items-center gap-3 rounded-full px-3.5 py-2.5 text-sm font-semibold text-fg/65 hover:bg-fg/5 hover:text-fg transition-colors ${
+          colapsada ? "justify-center" : ""
+        }`}
+      >
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-acento/15 text-acento-claro text-xs font-bold">
+          {inicial}
+        </span>
+        {!colapsada && <span className="truncate">{conta?.nome || conta?.email || "Conta"}</span>}
+      </button>
+    </div>
+  );
+}
+
+// tela Ao Vivo precisa do máximo de largura pra grade de colunas -- sidebar
+// vira uma trilha só de ícones nessa rota (sem toggle manual, só auto por rota).
+export default function Sidebar() {
+  const pathname = usePathname();
+  const conta = useConta();
+  const colapsada = pathname === "/live";
+  const setupCompleto = useConfiguracaoInicialCompleta();
+  const links = NAV_LINKS.filter((link) => !link.adminOnly || conta?.role === "admin").map((link) =>
+    link.numeroSetup && !setupCompleto ? { ...link, label: `${link.numeroSetup}. ${link.label}` } : link
+  );
+  const grupos = ORDEM_GRUPOS.map((grupo) => ({
+    grupo,
+    links: links.filter((link) => link.group === grupo),
+  })).filter((g) => g.links.length > 0);
+
+  // Pílula: o item ativo repete a forma da cápsula do símbolo, cheia; os
+  // demais ficam só com o texto, sem caixa, para o ativo ser o único bloco
+  // sólido da coluna.
+  function classes(ativo: boolean) {
+    return `flex items-center gap-3 rounded-full px-4 py-2.5 text-sm font-semibold transition-colors ${
+      colapsada ? "justify-center px-0 w-11 h-11 mx-auto" : ""
+    } ${
+      ativo
+        ? "bg-acento text-on-brand shadow-[0_8px_24px_-10px_var(--color-acento)]"
+        : "text-fg/65 hover:bg-fg/5 hover:text-fg"
+    }`;
+  }
+
   return (
     <aside
-      className={`hidden md:flex md:flex-col md:fixed md:inset-y-0 bg-surface border-r border-border transition-[width] duration-150 ${
+      className={`hidden md:flex md:flex-col md:fixed md:inset-y-0 z-20 bg-surface border-r border-border transition-[width] duration-150 ${
         colapsada ? "md:w-20" : "md:w-72.5"
       }`}
     >
       <div className="flex flex-col flex-1 min-h-0">
-        <div className={`py-8 shrink-0 ${colapsada ? "px-0 flex justify-center" : "px-6"}`}>
-          {colapsada ? <LocufyMark size={28} /> : <LocufyLogo />}
+        {/* Lockup oficial, sem faixa de cor por trás — só troca de arte (branca
+            no tema escuro, grafite no claro) pra continuar legível nos dois. */}
+        <div
+          className={`flex items-center justify-center border-b border-border shrink-0 ${
+            colapsada ? "py-6" : "px-3"
+          }`}
+        >
+          {colapsada ? (
+            <LocufyMark size={32} className="shrink-0 text-acento-claro" />
+          ) : (
+            <>
+              <img
+                src="/Logos/Logo_Locufy_Logotipo_Horizontal_01.png"
+                alt="Locufy"
+                className="locufy-so-escuro mx-auto w-full max-w-44 h-auto object-contain object-center"
+              />
+              <img
+                src="/Logos/Logo_Locufy_Logotipo_Horizontal_02.png"
+                alt="Locufy"
+                className="locufy-so-claro mx-auto w-full max-w-44 h-auto object-contain object-center"
+              />
+            </>
+          )}
         </div>
-        {!colapsada && (
-          <div className="flex justify-between font-mono text-[10px] tracking-wide text-fg/65 border-y border-border px-6 py-2 mb-4">
-            {DIAL_SCALE.map((tick) => (
-              <span key={tick} className={tick === "LOCUFY" ? "text-roxo-claro" : ""}>
-                {tick}
-              </span>
-            ))}
-          </div>
-        )}
-        <nav className={`flex-1 overflow-y-auto space-y-5 ${colapsada ? "px-3 pt-2" : "px-4"}`}>
-          {groups.map((group) => (
-            <div key={group.label}>
+
+        <nav className={`flex-1 overflow-y-auto py-5 space-y-5 ${colapsada ? "px-3" : "px-4"}`}>
+          {grupos.map(({ grupo, links: linksDoGrupo }) => (
+            <div key={grupo}>
               {!colapsada && (
-                <div className="text-xs font-medium uppercase tracking-wide text-fg/65 px-3 mb-2 font-mono">
-                  {group.label}
-                </div>
+                <div className="px-4 mb-2 text-xs font-semibold uppercase tracking-wide text-fg/45">{grupo}</div>
               )}
               <div className="space-y-1">
-                {group.links.map((link) => (
-                  <NavLink
+                {linksDoGrupo.map((link) => (
+                  <Link
                     key={link.href}
                     href={link.href}
-                    label={link.label}
-                    icon={link.icon}
-                    active={pathname === link.href}
-                    colapsada={colapsada}
-                  />
+                    title={colapsada ? link.label : undefined}
+                    aria-label={colapsada ? link.label : undefined}
+                    className={classes(pathname === link.href)}
+                  >
+                    <NavIcone>{link.icon}</NavIcone>
+                    {!colapsada && link.label}
+                  </Link>
                 ))}
               </div>
             </div>
           ))}
         </nav>
-        <div className={`pb-6 border-t border-border pt-4 ${colapsada ? "px-3" : "px-4"}`}>
-          <ContaMenu
-            nome={conta?.nome}
-            email={conta?.email}
-            colapsada={colapsada}
-            pathname={pathname}
-            onSair={sair}
-          />
+
+        <div className={`pb-6 pt-2 border-t border-border ${colapsada ? "px-3" : "px-4"}`}>
+          <ContaMenu colapsada={colapsada} />
         </div>
       </div>
     </aside>
