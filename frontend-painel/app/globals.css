@@ -13,8 +13,9 @@
   --color-border: var(--locufy-border);
   --color-border-strong: var(--locufy-border-strong);
 
-  /* Paleta do manual — hex exatos, iguais nos dois temas */
-  --color-roxo: #631bf6;    /* Roxo Frequência Digital     */
+  /* Paleta do manual — hex exatos, iguais nos dois temas.
+     roxo puxado pro azul-índigo do logotipo (era #631bf6, violeta puro). */
+  --color-roxo: #4338ec;    /* Roxo Frequência Digital (azul-índigo)  */
   --color-ciano-puro: #00b4d8; /* Ciano Transmissão        */
   --color-azul: #1b263b;    /* Azul Estúdio Profissional   */
   --color-laranja-puro: #ff8c00; /* Laranja Vibração Humana */
@@ -34,52 +35,52 @@
 
   /* rampa brand-*: bg-brand-500 / text-brand-600 / focus:ring-brand-500 que já
      existem na aplicação passam a render o roxo da marca sem tocar no markup */
-  --color-brand-25: #f4f0ff;
-  --color-brand-50: #ece4ff;
-  --color-brand-100: #d9c9ff;
-  --color-brand-200: #bda3ff;
-  --color-brand-300: #9d76fb;
-  --color-brand-400: #7f45f9;
-  --color-brand-500: #631bf6;
-  --color-brand-600: #5415d4;
-  --color-brand-700: #4511ad;
-  --color-brand-800: #360d88;
-  --color-brand-900: #270a63;
+  --color-brand-25: #f2f1fe;
+  --color-brand-50: #e3e1fd;
+  --color-brand-100: #c7c3fb;
+  --color-brand-200: #a29cf7;
+  --color-brand-300: #7f76f2;
+  --color-brand-400: #5c4fec;
+  --color-brand-500: #4338ec;
+  --color-brand-600: #3529c7;
+  --color-brand-700: #2a20a3;
+  --color-brand-800: #201880;
+  --color-brand-900: #171260;
 
   --shadow-theme-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.28);
   --shadow-theme-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.36), 0 1px 2px 0 rgba(0, 0, 0, 0.22);
 }
 
-/* tema escuro (padrão): cabine acústica com painéis em azul estúdio */
+/* tema escuro (padrão): cabine acústica em azul estúdio, não mais preto neutro */
 :root {
-  --locufy-bg: #18181a;
-  --locufy-surface: #1f1f26;
-  --locufy-surface-2: #1b263b;
+  --locufy-bg: #111a2c;
+  --locufy-surface: #16223a;
+  --locufy-surface-2: #1e2b46;
   --locufy-fg: #ffffff;
-  --locufy-border: rgba(255, 255, 255, 0.12);
-  --locufy-border-strong: rgba(255, 255, 255, 0.22);
+  --locufy-border: rgba(160, 185, 255, 0.14);
+  --locufy-border-strong: rgba(160, 185, 255, 0.26);
 
-  --locufy-roxo-claro: #9a7bfa;
-  --locufy-roxo-dim: #c9b8fe;
+  --locufy-roxo-claro: #8c93ff;
+  --locufy-roxo-dim: #c7cbff;
   --locufy-ciano: #00b4d8;
   --locufy-laranja: #ff8c00;
 }
 
 [data-theme="light"] {
-  --locufy-bg: #ffffff;
-  --locufy-surface: #f7f7fa;
-  --locufy-surface-2: #eef0f5;
+  --locufy-bg: #f7f9fd;
+  --locufy-surface: #eef2fa;
+  --locufy-surface-2: #e2e8f7;
   --locufy-fg: #18181a;
-  --locufy-border: rgba(24, 24, 26, 0.1);
-  --locufy-border-strong: rgba(24, 24, 26, 0.18);
+  --locufy-border: rgba(27, 38, 59, 0.1);
+  --locufy-border-strong: rgba(27, 38, 59, 0.2);
 
-  --locufy-roxo-claro: #631bf6;
-  --locufy-roxo-dim: #4a12c4;
+  --locufy-roxo-claro: #3a2fd6;
+  --locufy-roxo-dim: #2a2199;
   --locufy-ciano: #0085a3;
   --locufy-laranja: #c96a00;
 
-  --shadow-theme-xs: 0 1px 2px 0 rgba(24, 24, 26, 0.08);
-  --shadow-theme-sm: 0 1px 3px 0 rgba(24, 24, 26, 0.12), 0 1px 2px 0 rgba(24, 24, 26, 0.08);
+  --shadow-theme-xs: 0 1px 2px 0 rgba(27, 38, 59, 0.08);
+  --shadow-theme-sm: 0 1px 3px 0 rgba(27, 38, 59, 0.12), 0 1px 2px 0 rgba(27, 38, 59, 0.08);
 }
 
 ::selection {

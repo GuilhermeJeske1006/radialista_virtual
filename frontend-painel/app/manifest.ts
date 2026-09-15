@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Transforme audiência em conexão. Painel do radialista virtual.",
     start_url: "/",
     display: "standalone",
-    background_color: "#18181A",
-    theme_color: "#18181A",
+    background_color: "#111A2C",
+    theme_color: "#111A2C",
     lang: "pt-BR",
     icons: [
       { src: "/pwa-icon-192", sizes: "192x192", type: "image/png", purpose: "any" },

@@ -9,7 +9,7 @@ const MARCA = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  background: "linear-gradient(135deg, #631BF6 0%, #00B4D8 100%)",
+  background: "linear-gradient(135deg, #4338EC 0%, #00B4D8 100%)",
   color: "#FFFFFF",
   fontWeight: 700,
   fontFamily: "sans-serif",
