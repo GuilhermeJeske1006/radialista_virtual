@@ -8,7 +8,7 @@ import { apiFetch, ApiError } from "../../lib/api";
 import { Conta, ConviteEquipe, UsuarioEquipe } from "../../lib/types";
 
 const inputClass =
-  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20";
+  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20";
 
 function formatarData(iso: string): string {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
@@ -145,8 +145,8 @@ export default function EquipePage() {
   return (
     <AppShell title="Equipe" maxWidthClassName="max-w-3xl">
       <div className="space-y-5">
-        {erro && <p className="text-sm text-rust-text">{erro}</p>}
-        {mensagem && <p className="text-sm text-teal-text">{mensagem}</p>}
+        {erro && <p className="text-sm text-laranja">{erro}</p>}
+        {mensagem && <p className="text-sm text-ciano">{mensagem}</p>}
 
         <form onSubmit={convidar} className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
           <h2 className="font-display text-base font-bold text-fg mb-1">Convidar</h2>
@@ -172,7 +172,7 @@ export default function EquipePage() {
             <button
               type="submit"
               disabled={convidando}
-              className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+              className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
             >
               {convidando ? "Enviando..." : "Enviar convite"}
             </button>
@@ -181,8 +181,8 @@ export default function EquipePage() {
             Membro usa o painel no dia a dia (radialistas, programação, ao vivo). Admin também gerencia a equipe e a
             assinatura.
           </p>
-          {erroConvite && <p className="mt-3 text-sm text-rust-text">{erroConvite}</p>}
-          {mensagemConvite && <p className="mt-3 text-sm text-teal-text">{mensagemConvite}</p>}
+          {erroConvite && <p className="mt-3 text-sm text-laranja">{erroConvite}</p>}
+          {mensagemConvite && <p className="mt-3 text-sm text-ciano">{mensagemConvite}</p>}
         </form>
 
         <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
@@ -213,7 +213,7 @@ export default function EquipePage() {
                     onClick={() => setParaRemover(usuario)}
                     disabled={usuario.id === conta?.id}
                     title={usuario.id === conta?.id ? "Você não pode remover sua própria conta" : "Remover"}
-                    className="rounded-lg border border-rust/40 px-3 py-1.5 text-xs font-medium text-rust-text hover:bg-rust/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="rounded-lg border border-laranja/40 px-3 py-1.5 text-xs font-medium text-laranja hover:bg-laranja/10 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Remover
                   </button>
@@ -242,14 +242,14 @@ export default function EquipePage() {
                     <button
                       type="button"
                       onClick={() => reenviar(convite)}
-                      className="rounded-lg border border-border-strong px-3 py-1.5 text-xs font-medium text-fg hover:bg-paper/5"
+                      className="rounded-lg border border-border-strong px-3 py-1.5 text-xs font-medium text-fg hover:bg-fg/5"
                     >
                       Reenviar
                     </button>
                     <button
                       type="button"
                       onClick={() => setParaRevogar(convite)}
-                      className="rounded-lg border border-rust/40 px-3 py-1.5 text-xs font-medium text-rust-text hover:bg-rust/10"
+                      className="rounded-lg border border-laranja/40 px-3 py-1.5 text-xs font-medium text-laranja hover:bg-laranja/10"
                     >
                       Revogar
                     </button>

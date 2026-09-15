@@ -94,7 +94,7 @@ export default function ProximosBlocosPanel({ programa, totalFalas, variant = "c
             key={i}
             className={`shrink-0 whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs ${
               i === 0
-                ? "bg-amber/10 border-amber/30 text-amber-text font-semibold"
+                ? "bg-roxo/10 border-roxo-claro/30 text-roxo-claro font-semibold"
                 : "bg-bg border-border-strong text-fg/60"
             }`}
           >
@@ -105,7 +105,7 @@ export default function ProximosBlocosPanel({ programa, totalFalas, variant = "c
           <li
             key={i}
             className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm ${
-              i === 0 ? "bg-amber/10 border border-amber/25 text-amber-text font-medium" : "text-fg/65"
+              i === 0 ? "bg-roxo/10 border border-roxo-claro/25 text-roxo-claro font-medium" : "text-fg/65"
             }`}
           >
             <span className="font-mono text-xs w-5 shrink-0">{i === 0 ? "▶" : i + 1}</span>

@@ -48,7 +48,7 @@ function RevisarPedido({pedido, programas, atualizar}: {pedido: Pedido; programa
       <label className="block text-xs">Transferir para programa no horário de exibição<select className={campo} value={destino} onChange={e => setDestino(e.target.value)}><option value="">Escolha o programa</option>{programas.map(p => <option value={p.id} key={p.id}>{p.nome}</option>)}</select></label>
       <button className={botao} disabled={ocupado || !destino || pedido.estado === "selecionado"} onClick={() => agir("transferir")}>Transferir para revisão</button>
     </div>}
-    {erro && <p role="alert" className="mt-2 text-sm text-rust-text">{erro}</p>}
+    {erro && <p role="alert" className="mt-2 text-sm text-laranja">{erro}</p>}
   </details>;
 }
 
@@ -87,7 +87,7 @@ export default function AtendimentoOuvintesPanel() {
     <h2 className="font-display font-bold">Atendimento aos ouvintes</h2>
     <p className="text-xs text-fg/65">O novo atendimento mantém a conversa e exige revisão antes de levar pedidos ao ar. A configuração de resposta automática de cada radialista continua sendo respeitada.</p>
     <button className={botao} disabled={ocupado} onClick={() => alterar("/ouvintes/config", "PUT", {ativo: !ativo})}>{ativo ? "Desativar novo atendimento" : "Ativar novo atendimento nesta rádio"}</button>
-    {erro && <p role="alert" className="text-sm text-rust-text">{erro}</p>}
+    {erro && <p role="alert" className="text-sm text-laranja">{erro}</p>}
     <p className="text-xs text-fg/65">Últimos 30 dias: {Object.entries(contagens).map(([estado, n]) => `${ESTADOS[estado] || estado}: ${n}`).join(" · ") || "Sem pedidos"}</p>
     {envios.length > 0 && <details><summary className="text-sm cursor-pointer">Respostas sem confirmação de envio ({envios.length})</summary>{envios.map(e => <div key={e.id} className="space-y-2 border border-border p-3 rounded mt-2">
       <p className="text-sm">{e.nome || e.telefone}: {e.texto}</p>

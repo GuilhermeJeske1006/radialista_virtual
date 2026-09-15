@@ -16,10 +16,10 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_CLASSE: Record<string, string> = {
-  trial: "bg-amber/10 text-amber-text",
-  ativo: "bg-teal/10 text-teal-text",
-  inadimplente: "bg-rust/10 text-rust-text",
-  cancelado: "bg-paper text-fg/65",
+  trial: "bg-roxo/10 text-roxo-claro",
+  ativo: "bg-ciano/10 text-ciano",
+  inadimplente: "bg-laranja/10 text-laranja",
+  cancelado: "bg-branco text-fg/65",
 };
 
 function formatarData(iso: string): string {
@@ -60,7 +60,7 @@ export default function AdminPage() {
   return (
     <AdminShell title="Administração" maxWidthClassName="max-w-6xl">
       <div className="space-y-5">
-        {erro && <p className="text-sm text-rust-text">{erro}</p>}
+        {erro && <p className="text-sm text-laranja">{erro}</p>}
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           <MetricaCard rotulo="Empresas" valor={overview ? String(overview.total_empresas) : "—"} />
@@ -77,7 +77,7 @@ export default function AdminPage() {
               <div className="space-y-2">
                 {Object.entries(overview.por_status).map(([status, total]) => (
                   <div key={status} className="flex items-center justify-between text-sm">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASSE[status] ?? "bg-paper text-fg/65"}`}>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASSE[status] ?? "bg-branco text-fg/65"}`}>
                       {STATUS_LABEL[status] ?? status}
                     </span>
                     <span className="text-fg/80 font-medium">{total}</span>
@@ -118,7 +118,7 @@ export default function AdminPage() {
                 placeholder="Buscar por nome da rádio..."
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                className="rounded-lg border border-border-strong bg-bg px-3 py-1.5 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                className="rounded-lg border border-border-strong bg-bg px-3 py-1.5 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
               />
               <select
                 aria-label="Filtrar por status"
@@ -138,7 +138,7 @@ export default function AdminPage() {
               </select>
               <button
                 type="submit"
-                className="rounded-lg border border-border-strong px-3 py-1.5 text-sm font-medium text-fg hover:bg-paper/5"
+                className="rounded-lg border border-border-strong px-3 py-1.5 text-sm font-medium text-fg hover:bg-fg/5"
               >
                 Buscar
               </button>
@@ -165,16 +165,16 @@ export default function AdminPage() {
                 </thead>
                 <tbody>
                   {empresas?.empresas.map((empresa) => (
-                    <tr key={empresa.id} className="border-b border-border last:border-0 hover:bg-paper/5">
+                    <tr key={empresa.id} className="border-b border-border last:border-0 hover:bg-fg/5">
                       <td className="py-2.5 pr-3">
-                        <Link href={`/admin/empresas/${empresa.id}`} className="font-medium text-fg hover:text-amber-text">
+                        <Link href={`/admin/empresas/${empresa.id}`} className="font-medium text-fg hover:text-roxo-claro">
                           {empresa.nome_radio || `Empresa #${empresa.id}`}
                         </Link>
                       </td>
                       <td className="py-2.5 pr-3 text-fg/70">{empresa.email_admin ?? "—"}</td>
                       <td className="py-2.5 pr-3 capitalize text-fg/70">{empresa.plano}</td>
                       <td className="py-2.5 pr-3">
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASSE[empresa.plano_status] ?? "bg-paper text-fg/65"}`}>
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASSE[empresa.plano_status] ?? "bg-branco text-fg/65"}`}>
                           {STATUS_LABEL[empresa.plano_status] ?? empresa.plano_status}
                         </span>
                       </td>

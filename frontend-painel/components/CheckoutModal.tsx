@@ -17,10 +17,10 @@ function resolverVariaveisDoTema() {
   const raiz = getComputedStyle(document.documentElement);
   const cor = (nome: string) => raiz.getPropertyValue(nome).trim();
   return {
-    colorPrimary: cor("--color-amber"),
+    colorPrimary: cor("--color-roxo-claro"),
     colorBackground: cor("--color-surface"),
     colorText: cor("--color-fg"),
-    colorDanger: cor("--color-rust"),
+    colorDanger: cor("--color-laranja"),
     borderRadius: "8px",
   };
 }
@@ -58,11 +58,11 @@ function Formulario({ onSuccess }: { onSuccess: () => void }) {
   return (
     <form onSubmit={pagar}>
       <PaymentElement options={{ layout: "tabs" }} />
-      {erro && <p className="mt-3 text-sm text-rust-text">{erro}</p>}
+      {erro && <p className="mt-3 text-sm text-laranja">{erro}</p>}
       <button
         type="submit"
         disabled={!stripe || enviando}
-        className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
+        className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {enviando ? (
           <>
@@ -185,8 +185,8 @@ export default function CheckoutModal({ open, onClose, onSuccess, endpoint, body
             onClick={() => setModo("salvo")}
             className={`rounded-lg border px-3 py-2 text-sm font-medium ${
               modo === "salvo"
-                ? "border-amber/40 bg-amber/10 text-amber-text"
-                : "border-border-strong text-fg/70 hover:bg-paper/10"
+                ? "border-roxo-claro/40 bg-roxo/10 text-roxo-claro"
+                : "border-border-strong text-fg/70 hover:bg-fg/10"
             }`}
           >
             •••• {cartaoSalvo.final} ({labelBandeira(cartaoSalvo.bandeira)})
@@ -196,8 +196,8 @@ export default function CheckoutModal({ open, onClose, onSuccess, endpoint, body
             onClick={() => setModo("novo")}
             className={`rounded-lg border px-3 py-2 text-sm font-medium ${
               modo === "novo"
-                ? "border-amber/40 bg-amber/10 text-amber-text"
-                : "border-border-strong text-fg/70 hover:bg-paper/10"
+                ? "border-roxo-claro/40 bg-roxo/10 text-roxo-claro"
+                : "border-border-strong text-fg/70 hover:bg-fg/10"
             }`}
           >
             Novo cartão
@@ -205,7 +205,7 @@ export default function CheckoutModal({ open, onClose, onSuccess, endpoint, body
         </div>
       )}
 
-      {erro && <p className="mb-3 text-sm text-rust-text">{erro}</p>}
+      {erro && <p className="mb-3 text-sm text-laranja">{erro}</p>}
 
       {modo === "salvo" ? (
         processandoSalvo && !erro && (

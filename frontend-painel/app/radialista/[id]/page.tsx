@@ -17,7 +17,7 @@ export default function EditarRadialistaPage() {
 
   return (
     <AppShell title="Radialista" maxWidthClassName="max-w-4xl">
-      <Link href="/radialista" className="text-sm text-amber-text hover:underline mb-4 inline-block">
+      <Link href="/radialista" className="text-sm text-roxo-claro hover:underline mb-4 inline-block">
         ← Todos os radialistas
       </Link>
 

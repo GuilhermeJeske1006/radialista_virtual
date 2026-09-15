@@ -171,16 +171,16 @@ export default function VozCloneModal({ onCriada, onFechar }: Props) {
         <p className="break-all text-xs text-fg/65">{f.name}</p>
         {previews[i] && <audio controls preload="metadata" src={previews[i]} className="mt-1 h-9 w-full" />}
       </div>)}
-      <button type="button" onClick={analisar} disabled={bloqueado || !arquivos.length} className="rounded-lg border border-amber/50 px-3 py-2 text-sm disabled:opacity-50">{ocupado === "analisando" ? "Analisando áudio…" : "Analisar amostras"}</button>
+      <button type="button" onClick={analisar} disabled={bloqueado || !arquivos.length} className="rounded-lg border border-roxo-claro/50 px-3 py-2 text-sm disabled:opacity-50">{ocupado === "analisando" ? "Analisando áudio…" : "Analisar amostras"}</button>
       {qualidade && <div role="status" className="rounded-lg border border-border-strong p-3 text-sm">
         <p>{qualidade.fala_segundos}s de fala detectada em {qualidade.duracao_segundos}s de áudio.</p>
-        {qualidade.avisos.map((aviso) => <p key={aviso} className="mt-2 text-amber-text">{aviso}</p>)}
+        {qualidade.avisos.map((aviso) => <p key={aviso} className="mt-2 text-roxo-claro">{aviso}</p>)}
         <p className="mt-2 text-xs text-fg/65">Ouça as amostras: a análise não garante ausência de música, eco ou outras pessoas.</p>
       </div>}
-      {erro && <p role="alert" className="text-sm text-rust-text">{erro}</p>}
+      {erro && <p role="alert" className="text-sm text-laranja">{erro}</p>}
       <div className="flex justify-end gap-3">
         <button type="button" onClick={onFechar} disabled={!!ocupado} className="px-3 py-2 text-sm disabled:opacity-50">Cancelar</button>
-        <button type="button" onClick={enviar} disabled={bloqueado || !nome.trim() || !qualidade} className="rounded-lg bg-amber px-4 py-2 text-sm font-medium text-ink disabled:opacity-50">{ocupado === "clonando" ? "Clonando…" : "Clonar voz"}</button>
+        <button type="button" onClick={enviar} disabled={bloqueado || !nome.trim() || !qualidade} className="rounded-lg bg-roxo px-4 py-2 text-sm font-medium text-on-brand disabled:opacity-50">{ocupado === "clonando" ? "Clonando…" : "Clonar voz"}</button>
       </div>
       <p className="text-xs text-fg/65">Para uma voz profissional, o titular precisa criar e verificar a própria voz na ElevenLabs. A clonagem aqui é instantânea.</p>
     </div>

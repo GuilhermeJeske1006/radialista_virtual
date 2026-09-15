@@ -31,13 +31,13 @@ export default function TagInput({ label, tags, onChange }: Props) {
           {tags.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center gap-1 rounded-full bg-amber/10 text-amber-text border border-amber/25 pl-2.5 pr-1.5 py-0.5 text-sm"
+              className="inline-flex items-center gap-1 rounded-full bg-roxo/10 text-roxo-claro border border-roxo-claro/25 pl-2.5 pr-1.5 py-0.5 text-sm"
             >
               {tag}
               <button
                 type="button"
                 onClick={() => remover(tag)}
-                className="text-amber-text/70 hover:text-amber-text leading-none text-base"
+                className="text-roxo-claro/70 hover:text-roxo-claro leading-none text-base"
               >
                 ×
               </button>
@@ -57,12 +57,12 @@ export default function TagInput({ label, tags, onChange }: Props) {
             }
           }}
           placeholder="Digite e pressione Enter"
-          className="flex-1 min-w-0 rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+          className="flex-1 min-w-0 rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
         />
         <button
           type="button"
           onClick={adicionar}
-          className="rounded-lg border border-border-strong px-3 py-2 text-sm font-medium text-fg/80 hover:bg-paper/5"
+          className="rounded-lg border border-border-strong px-3 py-2 text-sm font-medium text-fg/80 hover:bg-fg/5"
         >
           Adicionar
         </button>

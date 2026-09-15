@@ -117,7 +117,7 @@ function DiaColuna({
     <div
       ref={containerRef}
       onClick={aoClicarFundo}
-      className="relative border-l border-border cursor-pointer hover:bg-paper/[0.03]"
+      className="relative border-l border-border cursor-pointer hover:bg-fg/[0.03]"
       style={{ height: ALTURA_TOTAL_PX }}
     >
       {Array.from({ length: 24 }, (_, h) => (

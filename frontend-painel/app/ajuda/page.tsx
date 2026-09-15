@@ -116,7 +116,7 @@ export default function AjudaPage() {
               <ul className="space-y-1">
                 {grupo.secoes.map((s) => (
                   <li key={s.id}>
-                    <a href={`#${s.id}`} className="text-sm text-fg/65 hover:text-amber-text">
+                    <a href={`#${s.id}`} className="text-sm text-fg/65 hover:text-roxo-claro">
                       {s.titulo}
                     </a>
                   </li>
@@ -130,7 +130,7 @@ export default function AjudaPage() {
           <h1 className="font-display text-2xl font-bold text-fg mb-2">Central de Ajuda</h1>
           <p className="text-sm text-fg/65 mb-10">
             Como configurar e operar sua rádio na Locufy. Não achou o que precisa? Escreva pra{" "}
-            <a href="mailto:contato@locufy.com" className="text-amber-text hover:text-amber-dim">
+            <a href="mailto:contato@locufy.com" className="text-roxo-claro hover:text-roxo-dim">
               contato@locufy.com
             </a>
             .
@@ -177,7 +177,7 @@ export default function AjudaPage() {
               </p>
               <p className="mt-2">
                 Quantos radialistas sua conta pode ter depende do plano (veja{" "}
-                <a href="#assinatura" className="text-amber-text hover:text-amber-dim">
+                <a href="#assinatura" className="text-roxo-claro hover:text-roxo-dim">
                   Assinatura e planos
                 </a>
                 ); é possível comprar radialistas extras além do limite do plano.
@@ -344,7 +344,7 @@ export default function AjudaPage() {
                     Sim — as respostas e roteiros são gerados por IA de forma probabilística e podem
                     conter imprecisões. Vale revisar programas antes de deixar tópicos sensíveis
                     liberados. Detalhes em{" "}
-                    <Link href="/termos" className="text-amber-text hover:text-amber-dim">
+                    <Link href="/termos" className="text-roxo-claro hover:text-roxo-dim">
                       Termos de Uso
                     </Link>
                     .
@@ -354,7 +354,7 @@ export default function AjudaPage() {
                   <p className="font-medium text-fg">Posso ter mais de um radialista?</p>
                   <p>
                     Sim, até o limite do seu plano (veja{" "}
-                    <a href="#assinatura" className="text-amber-text hover:text-amber-dim">
+                    <a href="#assinatura" className="text-roxo-claro hover:text-roxo-dim">
                       Assinatura e planos
                     </a>
                     ); dá pra comprar radialistas extras além do limite.
@@ -364,7 +364,7 @@ export default function AjudaPage() {
                   <p className="font-medium text-fg">O conteúdo que envio é usado pra treinar IA?</p>
                   <p>
                     Não. Veja como tratamos seus dados na{" "}
-                    <Link href="/privacidade" className="text-amber-text hover:text-amber-dim">
+                    <Link href="/privacidade" className="text-roxo-claro hover:text-roxo-dim">
                       Política de Privacidade
                     </Link>
                     .

@@ -46,9 +46,9 @@ function RedefinirSenhaForm() {
 
   if (!token) {
     return (
-      <p className="text-sm text-rust-text">
+      <p className="text-sm text-laranja">
         Link inválido. Solicite um novo em{" "}
-        <Link href="/esqueci-senha" className="text-amber-text hover:text-amber-dim font-medium">
+        <Link href="/esqueci-senha" className="text-roxo-claro hover:text-roxo-dim font-medium">
           esqueci minha senha
         </Link>
         .
@@ -70,7 +70,7 @@ function RedefinirSenhaForm() {
           minLength={8}
           value={senha}
           onChange={(e) => setSenha(e.target.value)}
-          className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+          className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
         />
       </div>
       <div>
@@ -81,14 +81,14 @@ function RedefinirSenhaForm() {
           minLength={8}
           value={confirmarSenha}
           onChange={(e) => setConfirmarSenha(e.target.value)}
-          className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+          className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
         />
       </div>
-      {erro && <p className="text-sm text-rust-text">{erro}</p>}
+      {erro && <p className="text-sm text-laranja">{erro}</p>}
       <button
         type="submit"
         disabled={carregando}
-        className="w-full flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
+        className="w-full flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {carregando ? (
           <>

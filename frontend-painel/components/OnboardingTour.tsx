@@ -44,7 +44,7 @@ export default function OnboardingTour() {
       <button
         type="button"
         onClick={() => alternarColapsado(false)}
-        className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-amber px-4 py-2.5 text-sm font-medium text-ink shadow-lg hover:bg-amber/90"
+        className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-roxo px-4 py-2.5 text-sm font-medium text-on-brand shadow-lg hover:bg-roxo/90"
       >
         Configuração pendente ({restantes})
       </button>
@@ -54,7 +54,7 @@ export default function OnboardingTour() {
   return (
     <div className="fixed bottom-5 right-5 z-40 w-80 max-w-[calc(100vw-2.5rem)] rounded-2xl border border-border-strong bg-surface shadow-lg p-5">
       <div className="flex items-start justify-between gap-2 mb-2">
-        <span className="text-xs font-medium uppercase tracking-wide text-amber-text">
+        <span className="text-xs font-medium uppercase tracking-wide text-roxo-claro">
           Passo {passo.numero} de {PASSOS_TOUR.length}
         </span>
         <button
@@ -70,7 +70,7 @@ export default function OnboardingTour() {
       <p className="text-sm text-fg/65 mb-4">{passo.texto}</p>
       <Link
         href={passo.href}
-        className="block text-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600"
+        className="block text-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600"
       >
         {passo.cta} →
       </Link>

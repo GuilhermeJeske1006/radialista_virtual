@@ -123,7 +123,7 @@ export default function MetricsPage() {
     <AppShell title="Métricas" maxWidthClassName="max-w-4xl">
       <p className="text-sm text-fg/65 mb-5">
         Números agregados das interações. Pra ver as conversas mensagem a mensagem,{" "}
-        <Link href="/conversas" className="text-amber-text hover:text-amber-dim font-medium">
+        <Link href="/conversas" className="text-roxo-claro hover:text-roxo-dim font-medium">
           acesse Conversas
         </Link>
         .
@@ -136,7 +136,7 @@ export default function MetricsPage() {
               aria-label="Radialista"
               value={radialistaId ?? ""}
               onChange={(e) => setRadialistaId(Number(e.target.value))}
-              className="rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+              className="rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
             >
               {radialistas.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -157,7 +157,7 @@ export default function MetricsPage() {
                 aria-label="Período do CSV"
                 value={periodoExport}
                 onChange={(e) => setPeriodoExport(e.target.value)}
-                className="rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                className="rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
               >
                 {OPCOES_PERIODO.map((opcao) => (
                   <option key={opcao.valor} value={opcao.valor}>
@@ -170,7 +170,7 @@ export default function MetricsPage() {
               type="button"
               onClick={exportarCsv}
               disabled={exportando}
-              className="rounded-lg border border-border-strong px-4 py-2 text-sm font-medium text-fg hover:bg-paper/5 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="rounded-lg border border-border-strong px-4 py-2 text-sm font-medium text-fg hover:bg-fg/5 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {exportando ? "Exportando..." : "Exportar CSV"}
             </button>
@@ -178,7 +178,7 @@ export default function MetricsPage() {
         )}
       </div>
 
-      {erro && <p className="text-sm text-rust-text mb-4">{erro}</p>}
+      {erro && <p className="text-sm text-laranja mb-4">{erro}</p>}
 
       {carregando ? (
         <p className="flex items-center gap-2 text-sm text-fg/65">

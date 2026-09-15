@@ -190,10 +190,10 @@ function NavLink({
       aria-label={colapsada ? label : undefined}
       className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
         colapsada ? "justify-center" : ""
-      } ${active ? "bg-amber/10 text-amber-text" : "text-fg/65 hover:bg-paper/5 hover:text-fg"}`}
+      } ${active ? "bg-roxo/10 text-roxo-claro" : "text-fg/65 hover:bg-fg/5 hover:text-fg"}`}
     >
       <svg
-        className={`h-5 w-5 shrink-0 ${active ? "text-amber-text" : "text-fg/65"}`}
+        className={`h-5 w-5 shrink-0 ${active ? "text-roxo-claro" : "text-fg/65"}`}
         fill="none"
         viewBox="0 0 24 24"
         strokeWidth={1.5}
@@ -254,7 +254,7 @@ function ContaMenu({
           )}
           <Link
             href="/ajuda"
-            className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-fg/65 hover:bg-paper/5 hover:text-fg transition-colors"
+            className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-fg/65 hover:bg-fg/5 hover:text-fg transition-colors"
           >
             <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path
@@ -267,7 +267,7 @@ function ContaMenu({
           </Link>
           <Link
             href="/perfil"
-            className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-fg/65 hover:bg-paper/5 hover:text-fg transition-colors"
+            className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-fg/65 hover:bg-fg/5 hover:text-fg transition-colors"
           >
             <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path
@@ -280,7 +280,7 @@ function ContaMenu({
           </Link>
           <button
             onClick={onSair}
-            className="flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-fg/65 hover:bg-paper/5 hover:text-fg transition-colors"
+            className="flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-fg/65 hover:bg-fg/5 hover:text-fg transition-colors"
           >
             <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path
@@ -296,11 +296,11 @@ function ContaMenu({
       <button
         onClick={() => setAberto((valor) => !valor)}
         title={colapsada ? nome || "Conta" : undefined}
-        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-fg/65 hover:bg-paper/5 hover:text-fg transition-colors ${
+        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-fg/65 hover:bg-fg/5 hover:text-fg transition-colors ${
           colapsada ? "justify-center" : ""
         }`}
       >
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber/10 text-amber-text text-xs font-semibold">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-roxo/10 text-roxo-claro text-xs font-semibold">
           {inicial}
         </span>
         {!colapsada && <span className="truncate">{nome || email || "Conta"}</span>}
@@ -346,7 +346,7 @@ export default function Sidebar() {
         {!colapsada && (
           <div className="flex justify-between font-mono text-[10px] tracking-wide text-fg/65 border-y border-border px-6 py-2 mb-4">
             {DIAL_SCALE.map((tick) => (
-              <span key={tick} className={tick === "LOCUFY" ? "text-amber-text" : ""}>
+              <span key={tick} className={tick === "LOCUFY" ? "text-roxo-claro" : ""}>
                 {tick}
               </span>
             ))}

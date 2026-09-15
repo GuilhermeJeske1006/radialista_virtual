@@ -50,11 +50,11 @@ export type CorGrade = { borda: string; fundo: string; texto: string };
 // Unicos accent colors definidos em app/globals.css. Cobre ate 5 radialistas (limite do
 // plano mais caro, PLANOS["professional"].agentes = 5, ver backend/app/planos.py).
 const PALETA: CorGrade[] = [
-  { borda: "border-amber/50", fundo: "bg-amber/15", texto: "text-amber" },
-  { borda: "border-teal/50", fundo: "bg-teal/15", texto: "text-teal" },
-  { borda: "border-rust/50", fundo: "bg-rust/15", texto: "text-rust" },
-  { borda: "border-amber-dim/50", fundo: "bg-amber-dim/15", texto: "text-amber-dim" },
-  { borda: "border-paper/50", fundo: "bg-paper/15", texto: "text-paper" },
+  { borda: "border-roxo-claro/50", fundo: "bg-roxo/15", texto: "text-roxo-claro" },
+  { borda: "border-ciano/50", fundo: "bg-ciano/15", texto: "text-ciano" },
+  { borda: "border-laranja/50", fundo: "bg-laranja/15", texto: "text-laranja" },
+  { borda: "border-roxo-dim/50", fundo: "bg-roxo-dim/15", texto: "text-roxo-dim" },
+  { borda: "border-branco/50", fundo: "bg-fg/15", texto: "text-branco" },
 ];
 
 export function corPorIndice(indice: number): CorGrade {

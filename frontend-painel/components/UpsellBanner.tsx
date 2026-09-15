@@ -66,8 +66,8 @@ export function UpsellBanner() {
   const sinal = calcularSinal(status);
   if (!sinal) return null;
 
-  const cores = sinal.tom === "estouro" ? "border-rust/40 bg-rust/10" : "border-amber/40 bg-amber/10";
-  const corTexto = sinal.tom === "estouro" ? "text-rust-text" : "text-amber-text";
+  const cores = sinal.tom === "estouro" ? "border-laranja/40 bg-laranja/10" : "border-roxo-claro/40 bg-roxo/10";
+  const corTexto = sinal.tom === "estouro" ? "text-laranja" : "text-roxo-claro";
 
   return (
     <div className={`flex items-start justify-between gap-4 rounded-2xl border ${cores} px-5 py-4 mb-6`}>

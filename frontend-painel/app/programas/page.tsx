@@ -86,13 +86,13 @@ export default function ProgramasPage() {
           type="button"
           onClick={aoClicarNovoPrograma}
           disabled={radialistas.length === 0}
-          className="shrink-0 self-start rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+          className="shrink-0 self-start rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
         >
           + Novo programa
         </button>
       </div>
 
-      {erro && <p className="text-sm text-rust-text mb-4">{erro}</p>}
+      {erro && <p className="text-sm text-laranja mb-4">{erro}</p>}
 
       {carregando ? (
         <p className="flex items-center gap-2 text-sm text-fg/65">
@@ -118,7 +118,7 @@ export default function ProgramasPage() {
                 onClick={() => setModal({ radialistaId: p.radialista.id, programaId: p.id })}
                 className="min-w-0 text-left"
               >
-                <p className={`text-sm font-medium ${p.ativo ? "text-fg" : "text-fg/65"} hover:text-amber-text`}>
+                <p className={`text-sm font-medium ${p.ativo ? "text-fg" : "text-fg/65"} hover:text-roxo-claro`}>
                   {p.nome}
                   {!p.ativo && <span className="ml-2 text-xs font-medium text-fg/65">(pausado)</span>}
                 </p>
@@ -131,14 +131,14 @@ export default function ProgramasPage() {
                 <button
                   type="button"
                   onClick={() => setModal({ radialistaId: p.radialista.id, programaId: p.id })}
-                  className="text-xs font-medium text-amber-text hover:text-amber-dim"
+                  className="text-xs font-medium text-roxo-claro hover:text-roxo-dim"
                 >
                   Editar
                 </button>
                 <button
                   type="button"
                   onClick={() => setProgramaParaExcluir(p)}
-                  className="text-xs font-medium text-rust-text hover:text-rust/80"
+                  className="text-xs font-medium text-laranja hover:text-laranja/80"
                 >
                   Excluir
                 </button>
@@ -150,7 +150,7 @@ export default function ProgramasPage() {
 
       {escolhendoRadialista && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-grafite/50 px-4"
           onClick={() => setEscolhendoRadialista(false)}
         >
           <div
@@ -167,7 +167,7 @@ export default function ProgramasPage() {
                     setEscolhendoRadialista(false);
                     setModal({ radialistaId: r.id, programaId: null });
                   }}
-                  className="w-full text-left rounded-lg border border-border-strong px-3 py-2.5 text-sm font-medium text-fg hover:border-amber/40"
+                  className="w-full text-left rounded-lg border border-border-strong px-3 py-2.5 text-sm font-medium text-fg hover:border-roxo-claro/40"
                 >
                   {r.nome_locutor || `Radialista #${r.id}`}
                 </button>

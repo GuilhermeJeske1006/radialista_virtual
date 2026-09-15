@@ -4,7 +4,7 @@ import { useState } from "react";
 import { FeriadoMunicipal } from "../lib/types";
 
 const inputClass =
-  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20";
+  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20";
 
 const DATA_MM_DD_RE = /^\d{2}-\d{2}$/;
 
@@ -39,13 +39,13 @@ export default function FeriadosMunicipaisInput({ feriados, onChange }: Props) {
           {feriados.map((f, i) => (
             <span
               key={`${f.data}-${f.nome}-${i}`}
-              className="inline-flex items-center gap-1 rounded-full bg-amber/10 text-amber-text border border-amber/25 pl-2.5 pr-1.5 py-0.5 text-sm"
+              className="inline-flex items-center gap-1 rounded-full bg-roxo/10 text-roxo-claro border border-roxo-claro/25 pl-2.5 pr-1.5 py-0.5 text-sm"
             >
               {f.data} · {f.nome}
               <button
                 type="button"
                 onClick={() => remover(i)}
-                className="text-amber-text/70 hover:text-amber-text leading-none text-base"
+                className="text-roxo-claro/70 hover:text-roxo-claro leading-none text-base"
               >
                 ×
               </button>
@@ -78,7 +78,7 @@ export default function FeriadosMunicipaisInput({ feriados, onChange }: Props) {
         <button
           type="button"
           onClick={adicionar}
-          className="shrink-0 rounded-lg border border-border-strong px-3 py-2 text-sm font-medium text-fg/80 hover:bg-paper/5"
+          className="shrink-0 rounded-lg border border-border-strong px-3 py-2 text-sm font-medium text-fg/80 hover:bg-fg/5"
         >
           Adicionar
         </button>

@@ -42,7 +42,7 @@ export function GraficoBarras({
   return (
     <div className="relative">
       {hover && (
-        <div className="absolute -top-1 left-1/2 -translate-x-1/2 -translate-y-full rounded-lg bg-ink px-2.5 py-1.5 text-xs text-paper shadow-theme-sm whitespace-nowrap pointer-events-none z-10">
+        <div className="absolute -top-1 left-1/2 -translate-x-1/2 -translate-y-full rounded-lg bg-grafite px-2.5 py-1.5 text-xs text-branco shadow-theme-sm whitespace-nowrap pointer-events-none z-10">
           <span className="font-semibold">{hover.total.toLocaleString("pt-BR")}</span>{" "}
           {hover.total === 1 ? rotuloSingular : rotuloPlural} · {formatarDataLonga(hover.data)}
         </div>

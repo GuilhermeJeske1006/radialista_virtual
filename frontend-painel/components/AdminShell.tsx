@@ -34,7 +34,7 @@ export default function AdminShell({
           <div className="flex items-center gap-3 min-w-0">
             <LocufyMark size={22} className="shrink-0" />
             <h1 className="font-display text-xl font-bold text-fg truncate">{title}</h1>
-            <span className="rounded-full bg-amber/10 px-2 py-0.5 text-[11px] font-semibold tracking-wide text-amber-text shrink-0">
+            <span className="rounded-full bg-roxo/10 px-2 py-0.5 text-[11px] font-semibold tracking-wide text-roxo-claro shrink-0">
               ADMIN
             </span>
           </div>
@@ -43,7 +43,7 @@ export default function AdminShell({
             <ThemeToggle />
             <button
               onClick={sair}
-              className="rounded-lg border border-border-strong px-3 py-1.5 text-xs font-medium text-fg hover:bg-paper/5"
+              className="rounded-lg border border-border-strong px-3 py-1.5 text-xs font-medium text-fg hover:bg-fg/5"
             >
               Sair
             </button>

@@ -91,7 +91,7 @@ export default function AppShell({
                 }`}
                 title={noAr ? "A rádio está transmitindo ao vivo agora" : "Nenhum programa no ar agora"}
               >
-                <LocufyLed color={noAr ? "rust" : "amber"} pulse={noAr} />
+                <LocufyLed color={noAr ? "laranja" : "roxo"} pulse={noAr} />
                 {noAr ? "NO AR" : "FORA DO AR"}
               </span>
               <ThemeToggle />
@@ -99,7 +99,7 @@ export default function AppShell({
               <Link
                 href="/perfil"
                 title="Perfil"
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-amber/10 text-amber-text text-xs font-semibold hover:bg-amber/20"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-roxo/10 text-roxo-claro text-xs font-semibold hover:bg-roxo/20"
               >
                 RV
               </Link>
@@ -113,7 +113,7 @@ export default function AppShell({
                 href={link.href}
                 className={`text-sm font-medium whitespace-nowrap pb-1 border-b-2 ${
                   pathname === link.href
-                    ? "border-amber text-amber-text"
+                    ? "border-roxo-claro text-roxo-claro"
                     : "border-transparent text-fg/65"
                 }`}
               >

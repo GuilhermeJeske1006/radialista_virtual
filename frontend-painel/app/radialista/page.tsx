@@ -196,20 +196,20 @@ export default function RadialistasPage() {
               setDescricaoIA("");
               setModalIAAberto(true);
             }}
-            className="rounded-lg border border-amber/40 px-4 py-2.5 text-sm font-medium text-amber-text hover:bg-amber/10 whitespace-nowrap"
+            className="rounded-lg border border-roxo-claro/40 px-4 py-2.5 text-sm font-medium text-roxo-claro hover:bg-roxo/10 whitespace-nowrap"
           >
             ✨ Gerar com IA
           </button>
           <Link
             href="/radialista/novo"
-            className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 whitespace-nowrap"
+            className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 whitespace-nowrap"
           >
             + Novo radialista
           </Link>
         </div>
       </div>
 
-      {erro && <p className="text-sm text-rust-text mb-4">{erro}</p>}
+      {erro && <p className="text-sm text-laranja mb-4">{erro}</p>}
 
       {carregando ? (
         <p className="flex items-center gap-2 text-sm text-fg/65">
@@ -230,7 +230,7 @@ export default function RadialistasPage() {
                 key={r.id}
                 href={`/radialista/${r.id}`}
                 onClick={() => setRadialistaAtualId(r.id)}
-                className="flex items-center justify-between gap-3 bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5 hover:border-amber/40 transition-colors"
+                className="flex items-center justify-between gap-3 bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5 hover:border-roxo-claro/40 transition-colors"
               >
                 <div>
                   <h2 className="font-display text-base font-bold text-fg">{r.nome_locutor || `Radialista #${r.id}`}</h2>
@@ -243,7 +243,7 @@ export default function RadialistasPage() {
                         }`}
                   </p>
                 </div>
-                <span className="text-xs font-medium text-amber-text shrink-0">Editar →</span>
+                <span className="text-xs font-medium text-roxo-claro shrink-0">Editar →</span>
               </Link>
             );
           })}
@@ -252,7 +252,7 @@ export default function RadialistasPage() {
 
       {modalIAAberto && !proposta && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-grafite/50 px-4"
           onClick={() => !gerandoIA && fecharModalIA()}
         >
           <div
@@ -266,13 +266,13 @@ export default function RadialistasPage() {
               nada é criado ainda.
             </p>
             {tipoRadioConta ? (
-              <p className="text-xs font-medium text-amber-text bg-amber/10 rounded-lg px-3 py-2 mb-3">
+              <p className="text-xs font-medium text-roxo-claro bg-roxo/10 rounded-lg px-3 py-2 mb-3">
                 Baseado no perfil: {labelTipoRadioConta ?? tipoRadioConta}
               </p>
             ) : (
-              <p className="text-xs text-fg/65 bg-paper/5 rounded-lg px-3 py-2 mb-3">
+              <p className="text-xs text-fg/65 bg-fg/5 rounded-lg px-3 py-2 mb-3">
                 Nenhum tipo de rádio configurado — a IA vai depender só da descrição.{" "}
-                <Link href="/configuracoes" className="font-medium text-amber-text hover:underline">
+                <Link href="/configuracoes" className="font-medium text-roxo-claro hover:underline">
                   Configurar tipo de rádio →
                 </Link>
               </p>
@@ -283,7 +283,7 @@ export default function RadialistasPage() {
               disabled={gerandoIA}
               rows={4}
               placeholder="Descrição (opcional). Ex: programa de manhã, mais animado, com bloco de recado"
-              className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2.5 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:ring-2 focus:ring-amber/40 disabled:opacity-60"
+              className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2.5 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:ring-2 focus:ring-roxo-claro/40 disabled:opacity-60"
             />
             <div className="mt-2 space-y-1.5">
               {[
@@ -299,7 +299,7 @@ export default function RadialistasPage() {
                       type="button"
                       disabled={gerandoIA}
                       onClick={() => setDescricaoIA((atual) => adicionarChip(atual, chip))}
-                      className="rounded-full border border-border-strong px-2.5 py-0.5 text-xs text-fg/70 hover:border-amber/40 hover:text-amber-text disabled:opacity-60"
+                      className="rounded-full border border-border-strong px-2.5 py-0.5 text-xs text-fg/70 hover:border-roxo-claro/40 hover:text-roxo-claro disabled:opacity-60"
                     >
                       {chip}
                     </button>
@@ -317,7 +317,7 @@ export default function RadialistasPage() {
                 .
               </p>
             )}
-            {erroIA && <p className="text-sm text-rust-text mt-2">{erroIA}</p>}
+            {erroIA && <p className="text-sm text-laranja mt-2">{erroIA}</p>}
             <div className="flex justify-end gap-3 mt-5">
               <button
                 type="button"
@@ -331,7 +331,7 @@ export default function RadialistasPage() {
                 type="button"
                 onClick={gerarPreview}
                 disabled={gerandoIA || (!descricaoIA.trim() && !tipoRadioConta)}
-                className="rounded-lg bg-amber px-4 py-2.5 text-sm font-medium text-ink hover:bg-amber/90 disabled:opacity-60"
+                className="rounded-lg bg-roxo px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-roxo/90 disabled:opacity-60"
               >
                 {gerandoIA ? "Gerando..." : "Gerar"}
               </button>
@@ -341,7 +341,7 @@ export default function RadialistasPage() {
       )}
 
       {modalIAAberto && proposta && radialistaEdit && programaEdit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4 py-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-grafite/50 px-4 py-8">
           <div
             className="w-full max-w-2xl max-h-full overflow-y-auto rounded-2xl border border-border-strong bg-surface p-6 shadow-theme-xs"
             onClick={(e) => e.stopPropagation()}
@@ -353,25 +353,25 @@ export default function RadialistasPage() {
             </p>
 
             {proposta.campos_corrigidos.length > 0 && (
-              <p className="text-xs font-medium text-amber-text bg-amber/10 rounded-lg px-3 py-2 mb-4">
+              <p className="text-xs font-medium text-roxo-claro bg-roxo/10 rounded-lg px-3 py-2 mb-4">
                 Estes campos vieram com erro e usaram um valor padrão -- confira:{" "}
                 {proposta.campos_corrigidos.join(", ")}
               </p>
             )}
             {proposta.avisos.length > 0 && (
-              <ul className="text-xs font-medium text-rust-text bg-rust/10 rounded-lg px-3 py-2 mb-4 list-disc list-inside space-y-0.5">
+              <ul className="text-xs font-medium text-laranja bg-laranja/10 rounded-lg px-3 py-2 mb-4 list-disc list-inside space-y-0.5">
                 {proposta.avisos.map((aviso, i) => (
                   <li key={i}>{aviso}</li>
                 ))}
               </ul>
             )}
 
-            <h3 className="font-mono text-xs uppercase tracking-wide text-amber-text mb-2">Locutor</h3>
+            <h3 className="font-mono text-xs uppercase tracking-wide text-roxo-claro mb-2">Locutor</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-fg/80 mb-1.5">Nome do locutor</label>
                 <input
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
                   value={radialistaEdit.nome_locutor}
                   onChange={(e) => setRadialistaEdit({ ...radialistaEdit, nome_locutor: e.target.value })}
                 />
@@ -388,19 +388,19 @@ export default function RadialistasPage() {
               <label className="block text-sm font-medium text-fg/80 mb-1.5">Personalidade</label>
               <textarea
                 rows={3}
-                className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
                 value={radialistaEdit.personalidade}
                 onChange={(e) => setRadialistaEdit({ ...radialistaEdit, personalidade: e.target.value })}
               />
             </div>
 
             <hr className="border-border mb-4" />
-            <h3 className="font-mono text-xs uppercase tracking-wide text-amber-text mb-2">Programa</h3>
+            <h3 className="font-mono text-xs uppercase tracking-wide text-roxo-claro mb-2">Programa</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-fg/80 mb-1.5">Nome do programa</label>
                 <input
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
                   value={programaEdit.nome}
                   onChange={(e) => setProgramaEdit({ ...programaEdit, nome: e.target.value })}
                 />
@@ -409,7 +409,7 @@ export default function RadialistasPage() {
                 <label className="block text-sm font-medium text-fg/80 mb-1.5">Início</label>
                 <input
                   type="time"
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
                   value={programaEdit.horario_inicio.slice(0, 5)}
                   onChange={(e) => setProgramaEdit({ ...programaEdit, horario_inicio: `${e.target.value}:00` })}
                 />
@@ -418,7 +418,7 @@ export default function RadialistasPage() {
                 <label className="block text-sm font-medium text-fg/80 mb-1.5">Fim</label>
                 <input
                   type="time"
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
                   value={programaEdit.horario_fim.slice(0, 5)}
                   onChange={(e) => setProgramaEdit({ ...programaEdit, horario_fim: `${e.target.value}:00` })}
                 />
@@ -436,7 +436,7 @@ export default function RadialistasPage() {
                     }
                     className={`rounded-full px-3 py-1 text-xs font-medium border ${
                       programaEdit.dias_semana.includes(dia)
-                        ? "bg-brand-500 text-ink border-brand-500"
+                        ? "bg-brand-500 text-on-brand border-brand-500"
                         : "bg-transparent text-fg/65 border-border-strong"
                     }`}
                   >
@@ -450,7 +450,7 @@ export default function RadialistasPage() {
               <label className="block text-sm font-medium text-fg/80 mb-1.5">Tom</label>
               <textarea
                 rows={2}
-                className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20"
                 value={programaEdit.tom}
                 onChange={(e) => setProgramaEdit({ ...programaEdit, tom: e.target.value })}
               />
@@ -474,7 +474,7 @@ export default function RadialistasPage() {
                   {programaEdit.estrutura_blocos.map((bloco, i) => (
                     <span
                       key={`${bloco}-${i}`}
-                      className="inline-flex items-center rounded-full bg-amber/10 text-amber-text border border-amber/25 px-2.5 py-0.5 text-xs"
+                      className="inline-flex items-center rounded-full bg-roxo/10 text-roxo-claro border border-roxo-claro/25 px-2.5 py-0.5 text-xs"
                     >
                       {rotuloBloco(bloco)}
                     </span>
@@ -484,13 +484,13 @@ export default function RadialistasPage() {
             )}
 
             <hr className="border-border mb-4" />
-            <h3 className="font-mono text-xs uppercase tracking-wide text-amber-text mb-2">Refinar (opcional)</h3>
+            <h3 className="font-mono text-xs uppercase tracking-wide text-roxo-claro mb-2">Refinar (opcional)</h3>
             <div className="flex flex-wrap gap-2 mb-3">
               <button
                 type="button"
                 onClick={() => refinar("persona")}
                 disabled={processandoRefinamento || criandoFinal}
-                className="rounded-lg border border-border-strong px-3 py-1.5 text-xs font-medium text-fg hover:bg-paper/10 disabled:opacity-60"
+                className="rounded-lg border border-border-strong px-3 py-1.5 text-xs font-medium text-fg hover:bg-fg/10 disabled:opacity-60"
               >
                 Gerar outro nome/voz
               </button>
@@ -498,7 +498,7 @@ export default function RadialistasPage() {
                 type="button"
                 onClick={() => refinar("programa")}
                 disabled={processandoRefinamento || criandoFinal}
-                className="rounded-lg border border-border-strong px-3 py-1.5 text-xs font-medium text-fg hover:bg-paper/10 disabled:opacity-60"
+                className="rounded-lg border border-border-strong px-3 py-1.5 text-xs font-medium text-fg hover:bg-fg/10 disabled:opacity-60"
               >
                 Gerar outra grade
               </button>
@@ -510,19 +510,19 @@ export default function RadialistasPage() {
                 onChange={(e) => setInstrucaoAjuste(e.target.value)}
                 disabled={processandoRefinamento || criandoFinal}
                 placeholder="Ex.: mais sério, tira o bloco de notícia, começa às seis"
-                className="flex-1 min-w-[220px] rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20 disabled:opacity-60"
+                className="flex-1 min-w-[220px] rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20 disabled:opacity-60"
               />
               <button
                 type="button"
                 onClick={() => refinar("ajuste", instrucaoAjuste)}
                 disabled={processandoRefinamento || criandoFinal || !instrucaoAjuste.trim()}
-                className="rounded-lg border border-border-strong px-3 py-2 text-sm font-medium text-fg hover:bg-paper/10 disabled:opacity-60"
+                className="rounded-lg border border-border-strong px-3 py-2 text-sm font-medium text-fg hover:bg-fg/10 disabled:opacity-60"
               >
                 {processandoRefinamento ? "Ajustando..." : "Ajustar"}
               </button>
             </div>
 
-            {erroIA && <p className="text-sm text-rust-text mt-2">{erroIA}</p>}
+            {erroIA && <p className="text-sm text-laranja mt-2">{erroIA}</p>}
             <div className="flex flex-wrap justify-end gap-3 mt-5">
               <button
                 type="button"
@@ -541,7 +541,7 @@ export default function RadialistasPage() {
                   gerarPreview();
                 }}
                 disabled={gerandoIA || criandoFinal || processandoRefinamento}
-                className="rounded-lg border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-paper/10 disabled:opacity-60"
+                className="rounded-lg border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/10 disabled:opacity-60"
               >
                 {gerandoIA ? "Gerando..." : "Gerar tudo de novo"}
               </button>
@@ -549,7 +549,7 @@ export default function RadialistasPage() {
                 type="button"
                 onClick={confirmarCriacao}
                 disabled={criandoFinal || gerandoIA || processandoRefinamento}
-                className="rounded-lg bg-amber px-4 py-2.5 text-sm font-medium text-ink hover:bg-amber/90 disabled:opacity-60"
+                className="rounded-lg bg-roxo px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-roxo/90 disabled:opacity-60"
               >
                 {criandoFinal ? "Criando..." : "Criar radialista e programa"}
               </button>
@@ -560,7 +560,7 @@ export default function RadialistasPage() {
 
       {mensagemUpgrade && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-grafite/50 px-4"
           onClick={() => setMensagemUpgrade("")}
         >
           <div
@@ -584,14 +584,14 @@ export default function RadialistasPage() {
               </button>
               <Link
                 href="/billing"
-                className="rounded-lg border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-paper/10"
+                className="rounded-lg border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/10"
               >
                 Ver planos
               </Link>
               <button
                 type="button"
                 onClick={() => setCheckoutAgenteExtraAberto(true)}
-                className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600"
+                className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600"
               >
                 Adicionar agente extra
               </button>

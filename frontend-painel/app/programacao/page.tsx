@@ -96,10 +96,10 @@ export default function ProgramacaoPage() {
         </p>
       </div>
 
-      {erro && <p className="text-sm text-rust-text mb-4">{erro}</p>}
+      {erro && <p className="text-sm text-laranja mb-4">{erro}</p>}
 
       {programaPadraoNaoEditado && (
-        <div className="flex items-center justify-between gap-4 rounded-xl border border-amber/30 bg-amber/10 px-4 py-3 mb-4">
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-roxo-claro/30 bg-roxo/10 px-4 py-3 mb-4">
           <p className="text-sm text-fg/80">
             "{programas[0].nome}" ainda está no ar 24h, todos os dias -- é só o ponto de partida criado no
             cadastro. Divida em horários reais quando tiver outros programas pra colocar na grade.
@@ -107,7 +107,7 @@ export default function ProgramacaoPage() {
           <button
             type="button"
             onClick={() => aoClicarPrograma(programas[0])}
-            className="shrink-0 text-sm font-medium text-amber-text hover:text-amber-dim"
+            className="shrink-0 text-sm font-medium text-roxo-claro hover:text-roxo-dim"
           >
             Editar horários →
           </button>
@@ -147,7 +147,7 @@ export default function ProgramacaoPage() {
 
       {escolhaPendente && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-grafite/50 px-4"
           onClick={() => setEscolhaPendente(null)}
         >
           <div
@@ -167,7 +167,7 @@ export default function ProgramacaoPage() {
                     abrirCriacao(r.id, escolhaPendente.dia, escolhaPendente.horario);
                     setEscolhaPendente(null);
                   }}
-                  className="w-full text-left rounded-lg border border-border-strong px-3 py-2.5 text-sm font-medium text-fg hover:border-amber/40"
+                  className="w-full text-left rounded-lg border border-border-strong px-3 py-2.5 text-sm font-medium text-fg hover:border-roxo-claro/40"
                 >
                   {r.nome_locutor || `Radialista #${r.id}`}
                 </button>

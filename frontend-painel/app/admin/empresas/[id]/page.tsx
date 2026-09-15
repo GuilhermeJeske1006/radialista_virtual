@@ -18,7 +18,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const inputClass =
-  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20";
+  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20";
 
 function formatarData(iso: string): string {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
@@ -88,7 +88,7 @@ export default function AdminEmpresaDetalhePage() {
   if (!empresa) {
     return (
       <AdminShell title="Empresa">
-        <p className="text-sm text-rust-text">{erro || "Empresa não encontrada."}</p>
+        <p className="text-sm text-laranja">{erro || "Empresa não encontrada."}</p>
       </AdminShell>
     );
   }
@@ -97,13 +97,13 @@ export default function AdminEmpresaDetalhePage() {
 
   return (
     <AdminShell title={empresa.nome_radio || `Empresa #${empresa.id}`} maxWidthClassName="max-w-3xl">
-      <Link href="/admin" className="text-sm text-amber-text hover:underline mb-4 inline-block">
+      <Link href="/admin" className="text-sm text-roxo-claro hover:underline mb-4 inline-block">
         ← Todas as empresas
       </Link>
 
       <div className="space-y-5">
-        {erro && <p className="text-sm text-rust-text">{erro}</p>}
-        {mensagem && <p className="text-sm text-teal-text">{mensagem}</p>}
+        {erro && <p className="text-sm text-laranja">{erro}</p>}
+        {mensagem && <p className="text-sm text-ciano">{mensagem}</p>}
 
         <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
           <h2 className="font-display text-base font-bold text-fg mb-4">Dados da rádio</h2>
@@ -159,7 +159,7 @@ export default function AdminEmpresaDetalhePage() {
               type="button"
               disabled={!houveMudanca || salvando}
               onClick={() => setConfirmando(true)}
-              className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               Salvar alterações
             </button>
@@ -177,7 +177,7 @@ export default function AdminEmpresaDetalhePage() {
                 </div>
                 <div className="flex items-center gap-2 shrink-0 text-xs text-fg/65">
                   <span className="capitalize">{usuario.role}</span>
-                  {!usuario.ativo && <span className="rounded-full bg-paper px-2 py-0.5">Inativo</span>}
+                  {!usuario.ativo && <span className="rounded-full bg-branco px-2 py-0.5">Inativo</span>}
                 </div>
               </div>
             ))}

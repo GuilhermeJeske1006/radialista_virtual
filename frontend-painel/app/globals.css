@@ -1,79 +1,90 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-plex-sans), sans-serif;
-  --font-display: var(--font-bricolage), sans-serif;
+  --font-sans: var(--font-locufy-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-locufy-display), var(--font-locufy-sans), sans-serif;
   --font-mono: var(--font-plex-mono), monospace;
 
-  /* theme-aware roles: swap value under [data-theme="light"] below */
+  /* papéis que mudam com o tema: valores lá embaixo, em :root e [data-theme] */
   --color-bg: var(--locufy-bg);
   --color-surface: var(--locufy-surface);
   --color-surface-2: var(--locufy-surface-2);
   --color-fg: var(--locufy-fg);
   --color-border: var(--locufy-border);
   --color-border-strong: var(--locufy-border-strong);
-  /* amber/rust/teal, darkened enough in the light theme to hit 4.5:1 as text -- borders/bg/buttons
-     keep using the plain --color-amber/rust/teal unchanged, this is only for text-* (links, labels). */
-  --color-amber-text: var(--locufy-amber-text);
-  --color-rust-text: var(--locufy-rust-text);
-  --color-teal-text: var(--locufy-teal-text);
 
-  /* fixed brand hues: same in both themes */
-  --color-ink: #15130f;
-  --color-paper: #f4ead9;
-  --color-amber: #e8a33d;
-  --color-amber-dim: #a86f27;
-  --color-teal: #33c2a8;
-  --color-rust: #e2543a;
+  /* Paleta do manual — hex exatos, iguais nos dois temas */
+  --color-roxo: #631bf6;    /* Roxo Frequência Digital     */
+  --color-ciano-puro: #00b4d8; /* Ciano Transmissão        */
+  --color-azul: #1b263b;    /* Azul Estúdio Profissional   */
+  --color-laranja-puro: #ff8c00; /* Laranja Vibração Humana */
+  --color-grafite: #18181a; /* Preto Cabine Acústica       */
+  --color-branco: #ffffff;  /* Branco Clareza de Voz       */
+  --color-cinza: #6c707b;   /* Cinza Frequência Neutra     */
 
-  /* brand-* ramp mirrors the Locufy amber so existing bg-brand-500 / text-brand-600 /
-     focus:ring-brand-500 utilities across the app pick up the identity for free */
-  --color-brand-25: #fdf6ea;
-  --color-brand-50: #faecd3;
-  --color-brand-100: #f3d9a6;
-  --color-brand-200: #edc178;
-  --color-brand-300: #eab155;
-  --color-brand-400: #e8a548;
-  --color-brand-500: #e8a33d;
-  --color-brand-600: #cf8a28;
-  --color-brand-700: #a86f27;
-  --color-brand-800: #7a5423;
-  --color-brand-900: #573f1e;
+  /* texto/ícone em cima de fundo roxo — o roxo é escuro, então é sempre branco */
+  --color-on-brand: #ffffff;
 
-  --shadow-theme-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.24);
-  --shadow-theme-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.32), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  /* variantes legíveis: usadas em texto, ícone e borda, onde o hex puro
+     não alcança contraste suficiente contra o fundo do tema ativo */
+  --color-roxo-claro: var(--locufy-roxo-claro);
+  --color-roxo-dim: var(--locufy-roxo-dim);
+  --color-ciano: var(--locufy-ciano);
+  --color-laranja: var(--locufy-laranja);
+
+  /* rampa brand-*: bg-brand-500 / text-brand-600 / focus:ring-brand-500 que já
+     existem na aplicação passam a render o roxo da marca sem tocar no markup */
+  --color-brand-25: #f4f0ff;
+  --color-brand-50: #ece4ff;
+  --color-brand-100: #d9c9ff;
+  --color-brand-200: #bda3ff;
+  --color-brand-300: #9d76fb;
+  --color-brand-400: #7f45f9;
+  --color-brand-500: #631bf6;
+  --color-brand-600: #5415d4;
+  --color-brand-700: #4511ad;
+  --color-brand-800: #360d88;
+  --color-brand-900: #270a63;
+
+  --shadow-theme-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.28);
+  --shadow-theme-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.36), 0 1px 2px 0 rgba(0, 0, 0, 0.22);
 }
 
+/* tema escuro (padrão): cabine acústica com painéis em azul estúdio */
 :root {
-  --locufy-bg: #15130f;
-  --locufy-surface: #1e1b15;
-  --locufy-surface-2: #262117;
-  --locufy-fg: #f4ead9;
-  --locufy-border: rgba(244, 234, 217, 0.14);
-  --locufy-border-strong: rgba(244, 234, 217, 0.28);
-  --locufy-amber-text: #e8a33d;
-  --locufy-rust-text: #e2543a;
-  --locufy-teal-text: #33c2a8;
+  --locufy-bg: #18181a;
+  --locufy-surface: #1f1f26;
+  --locufy-surface-2: #1b263b;
+  --locufy-fg: #ffffff;
+  --locufy-border: rgba(255, 255, 255, 0.12);
+  --locufy-border-strong: rgba(255, 255, 255, 0.22);
+
+  --locufy-roxo-claro: #9a7bfa;
+  --locufy-roxo-dim: #c9b8fe;
+  --locufy-ciano: #00b4d8;
+  --locufy-laranja: #ff8c00;
 }
 
 [data-theme="light"] {
-  --locufy-bg: #f4ead9;
-  --locufy-surface: #fffdf8;
-  --locufy-surface-2: #f9f1e2;
-  --locufy-fg: #15130f;
-  --locufy-border: rgba(21, 19, 15, 0.1);
-  --locufy-border-strong: rgba(21, 19, 15, 0.18);
-  --locufy-amber-text: #8b5a10;
-  --locufy-rust-text: #c1361c;
-  --locufy-teal-text: #1f7565;
+  --locufy-bg: #ffffff;
+  --locufy-surface: #f7f7fa;
+  --locufy-surface-2: #eef0f5;
+  --locufy-fg: #18181a;
+  --locufy-border: rgba(24, 24, 26, 0.1);
+  --locufy-border-strong: rgba(24, 24, 26, 0.18);
 
-  --shadow-theme-xs: 0 1px 2px 0 rgba(21, 19, 15, 0.08);
-  --shadow-theme-sm: 0 1px 3px 0 rgba(21, 19, 15, 0.12), 0 1px 2px 0 rgba(21, 19, 15, 0.08);
+  --locufy-roxo-claro: #631bf6;
+  --locufy-roxo-dim: #4a12c4;
+  --locufy-ciano: #0085a3;
+  --locufy-laranja: #c96a00;
+
+  --shadow-theme-xs: 0 1px 2px 0 rgba(24, 24, 26, 0.08);
+  --shadow-theme-sm: 0 1px 3px 0 rgba(24, 24, 26, 0.12), 0 1px 2px 0 rgba(24, 24, 26, 0.08);
 }
 
 ::selection {
-  background: var(--color-amber);
-  color: var(--color-ink);
+  background: var(--color-roxo);
+  color: var(--color-on-brand);
 }
 
 ::-webkit-scrollbar {

@@ -88,7 +88,7 @@ export default function HistoricoFilaPanel({ radialistaId }: Props) {
             type="button"
             onClick={() => setFiltro(opcao)}
             className={`rounded-full px-3 py-1 text-xs font-medium capitalize transition-colors ${
-              filtro === opcao ? "bg-amber/15 text-amber-text" : "text-fg/65 hover:bg-paper/5"
+              filtro === opcao ? "bg-roxo/15 text-roxo-claro" : "text-fg/65 hover:bg-fg/5"
             }`}
           >
             {opcao}
@@ -96,7 +96,7 @@ export default function HistoricoFilaPanel({ radialistaId }: Props) {
         ))}
       </div>
 
-      {erro && <p className="text-sm text-rust-text mb-3">{erro}</p>}
+      {erro && <p className="text-sm text-laranja mb-3">{erro}</p>}
 
       {carregando ? (
         <p className="flex items-center gap-2 text-sm text-fg/65">
@@ -114,7 +114,7 @@ export default function HistoricoFilaPanel({ radialistaId }: Props) {
                 </span>
                 <span
                   className={`shrink-0 text-[11px] font-medium rounded-full px-2 py-0.5 ${
-                    pedido.atendido ? "bg-teal/10 text-teal-text" : "bg-amber/10 text-amber-text"
+                    pedido.atendido ? "bg-ciano/10 text-ciano" : "bg-roxo/10 text-roxo-claro"
                   }`}
                 >
                   {pedido.estado === "historico_legado" ? "Histórico legado" : pedido.atendido ? "Executado" : ({em_fila: "Na fila", aguardando_revisao: "Em revisão", selecionado: "Selecionado", expirado: "Expirado", cancelado: "Cancelado", nao_atendido: "Não atendido"} as Record<string, string>)[pedido.estado] || "Pendente"}

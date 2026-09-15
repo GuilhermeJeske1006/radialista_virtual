@@ -9,7 +9,7 @@ import { CategoriaVinheta } from "../../lib/types";
 import { LocufySpin } from "../LocufyLogo";
 
 const inputClass =
-  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20";
+  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-roxo-claro/50 focus:ring-2 focus:ring-roxo-claro/20";
 const labelClass = "block text-sm font-medium text-fg/80 mb-1.5";
 
 type FormState = {
@@ -145,14 +145,14 @@ export default function BibliotecaAudioPanel({
         <button
           type="button"
           onClick={abrirNovo}
-          className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-ink hover:bg-brand-600"
+          className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-on-brand hover:bg-brand-600"
         >
           + Áudio
         </button>
       </div>
       <p className="text-xs text-fg/65 mb-3">Cadastro de vinhetas e efeitos -- toque em Cartwall pra disparar.</p>
 
-      {erro && <p className="text-xs text-rust-text mb-3">{erro}</p>}
+      {erro && <p className="text-xs text-laranja mb-3">{erro}</p>}
 
       {carregando ? (
         <p className="flex items-center gap-2 text-sm text-fg/65">
@@ -181,8 +181,8 @@ export default function BibliotecaAudioPanel({
                       onClick={() => tocar(item)}
                       className={`shrink-0 ${
                         programaAtivo
-                          ? "text-rust-text hover:text-rust animate-pulse"
-                          : "text-amber-text hover:text-amber-dim"
+                          ? "text-laranja hover:text-laranja animate-pulse"
+                          : "text-roxo-claro hover:text-roxo-dim"
                       }`}
                       title={programaAtivo ? "Inserir agora na transmissao ao vivo (corta o audio atual)" : "Tocar preview"}
                     >
@@ -198,7 +198,7 @@ export default function BibliotecaAudioPanel({
                       type="button"
                       onClick={() => abrirEdicao(item)}
                       title="Editar"
-                      className="shrink-0 flex h-6 w-6 items-center justify-center rounded-md text-amber-text hover:bg-amber/10"
+                      className="shrink-0 flex h-6 w-6 items-center justify-center rounded-md text-roxo-claro hover:bg-roxo/10"
                     >
                       ✎
                     </button>
@@ -206,7 +206,7 @@ export default function BibliotecaAudioPanel({
                       type="button"
                       onClick={() => setParaExcluir(item)}
                       title="Excluir"
-                      className="shrink-0 flex h-6 w-6 items-center justify-center rounded-md text-rust-text hover:bg-rust/10"
+                      className="shrink-0 flex h-6 w-6 items-center justify-center rounded-md text-laranja hover:bg-laranja/10"
                     >
                       ✕
                     </button>
@@ -316,7 +316,7 @@ export default function BibliotecaAudioPanel({
               <button
                 type="submit"
                 disabled={salvando}
-                className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60"
+                className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60"
               >
                 {salvando ? "Salvando..." : "Salvar"}
               </button>

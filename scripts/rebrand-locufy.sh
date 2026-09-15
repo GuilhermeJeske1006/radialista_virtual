@@ -679,4 +679,3 @@ Rebrand aplicado. O que ainda é decisão humana:
 Para desfazer tudo:  git checkout . && git checkout - && git branch -D rebrand/locufy
 ──────────────────────────────────────────────────────────────────────
 FIM
-</content>

@@ -1,16 +1,22 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { IBM_Plex_Mono, Nunito, Outfit } from "next/font/google";
 import "./globals.css";
 
-const bricolage = Bricolage_Grotesque({
+// Substitutas enquanto as licenciadas não entram no repositório:
+// Outfit fica no lugar da Sama Latin (títulos) e Nunito no lugar da Gotham
+// Rounded (texto). Para trocar: coloque os .woff2 em app/fonts/ e rode o
+// script de novo — ele detecta os arquivos e reescreve este layout com
+// next/font/local, sem mudar mais nada da aplicação.
+const displayFont = Outfit({
   subsets: ["latin"],
-  variable: "--font-bricolage",
+  weight: ["500", "600", "700"],
+  variable: "--font-locufy-display",
 });
 
-const plexSans = IBM_Plex_Sans({
+const sansFont = Nunito({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-plex-sans",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-locufy-sans",
 });
 
 const plexMono = IBM_Plex_Mono({
@@ -21,7 +27,7 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "Locufy — Painel",
-  description: "Painel de configuração do radialista virtual",
+  description: "Transforme audiência em conexão. Painel do radialista virtual.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -30,7 +36,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#15130f",
+  themeColor: "#18181A",
 };
 
 const TEMA_INICIAL_SCRIPT = `(function(){try{var t=localStorage.getItem("locufy-theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();`;
@@ -43,7 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="pt-BR"
       data-theme="dark"
       suppressHydrationWarning
-      className={`${bricolage.variable} ${plexSans.variable} ${plexMono.variable}`}
+      className={`${displayFont.variable} ${sansFont.variable} ${plexMono.variable}`}
     >
       <body className="font-sans bg-bg text-fg antialiased">
         <script dangerouslySetInnerHTML={{ __html: TEMA_INICIAL_SCRIPT }} />

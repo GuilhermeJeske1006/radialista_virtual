@@ -78,7 +78,7 @@ export default function GradeProgramacaoForm({ programaId }: Props) {
   }
 
   if (!programa) {
-    return <p className="text-sm text-rust-text">{erro || "Programa não encontrado."}</p>;
+    return <p className="text-sm text-laranja">{erro || "Programa não encontrado."}</p>;
   }
 
   return (
@@ -90,8 +90,8 @@ export default function GradeProgramacaoForm({ programaId }: Props) {
         prosódia e a IA pode inserir blocos extra.
       </p>
 
-      {erro && <p className="text-sm text-rust-text mb-4">{erro}</p>}
-      {mensagem && <p className="text-sm text-teal-text mb-4">{mensagem}</p>}
+      {erro && <p className="text-sm text-laranja mb-4">{erro}</p>}
+      {mensagem && <p className="text-sm text-ciano mb-4">{mensagem}</p>}
 
       <RoteiroBlocosEditor
         blocos={programa.estrutura_blocos}
@@ -106,14 +106,14 @@ export default function GradeProgramacaoForm({ programaId }: Props) {
         type="button"
         onClick={salvar}
         disabled={salvando}
-        className="mt-4 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60"
+        className="mt-4 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60"
       >
         {salvando ? "Salvando..." : "Salvar programação"}
       </button>
 
       <hr className="border-border my-5" />
       <section>
-        <h3 className="font-mono text-xs uppercase tracking-wide text-amber-text mb-2">Elenco do programa</h3>
+        <h3 className="font-mono text-xs uppercase tracking-wide text-roxo-claro mb-2">Elenco do programa</h3>
         <p className="text-xs text-fg/65 mb-2">
           Quem participa do diálogo -- o motor já monta a conversa entre todos automaticamente, sem precisar
           apontar radialista por bloco.

@@ -35,7 +35,7 @@ export default function ConfirmDialog({
         <button
           type="button"
           onClick={onConfirmar}
-          className="rounded-lg bg-rust px-4 py-2.5 text-sm font-medium text-fg hover:bg-rust/90"
+          className="rounded-lg bg-laranja px-4 py-2.5 text-sm font-medium text-fg hover:bg-laranja/90"
         >
           {confirmarLabel}
         </button>
