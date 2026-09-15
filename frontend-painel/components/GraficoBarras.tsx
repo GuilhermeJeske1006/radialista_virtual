@@ -54,6 +54,7 @@ export function GraficoBarras({
         preserveAspectRatio="none"
         role="img"
         aria-label={ariaLabel}
+        style={{ maxWidth: largura * 3, display: "block", margin: "0 auto" }}
       >
         {/* linha de base -- unica gridline, recessiva */}
         <line

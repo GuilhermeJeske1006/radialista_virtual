@@ -153,10 +153,12 @@ export default function Sidebar() {
                 src="/Logos/Logo_Locufy_Logotipo_Horizontal_01.png"
                 alt="Locufy"
                 className="locufy-so-escuro mx-auto w-full max-w-44 h-auto object-contain object-center"
+                style={{ maxWidth: '53%' }}
               />
               <img
                 src="/Logos/Logo_Locufy_Logotipo_Horizontal_02.png"
                 alt="Locufy"
+                style={{ maxWidth: '53%' }}
                 className="locufy-so-claro mx-auto w-full max-w-44 h-auto object-contain object-center"
               />
             </>
@@ -187,7 +189,7 @@ export default function Sidebar() {
           ))}
         </nav>
 
-        <div className={`pb-6 pt-2 border-t border-border ${colapsada ? "px-3" : "px-4"}`}>
+        <div className={`pb-3 pt-2 border-t border-border ${colapsada ? "px-3" : "px-4"}`}>
           <ContaMenu colapsada={colapsada} />
         </div>
       </div>

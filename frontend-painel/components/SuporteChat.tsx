@@ -52,7 +52,7 @@ export default function SuporteChat() {
         type="button"
         onClick={() => setAberto(true)}
         title="Suporte"
-        className="fixed bottom-24 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-acento text-on-brand shadow-lg hover:bg-acento/90"
+        className="fixed bottom-5 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-acento text-on-brand shadow-lg hover:bg-acento/90"
       >
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
           <path

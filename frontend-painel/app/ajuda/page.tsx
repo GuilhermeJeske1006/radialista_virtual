@@ -27,8 +27,7 @@ const NAV: Grupo[] = [
   {
     titulo: "Operação",
     secoes: [
-      { id: "whatsapp", titulo: "WhatsApp" },
-      { id: "conversas", titulo: "Conversas" },
+      { id: "conversas", titulo: "Conversas e WhatsApp" },
       { id: "ao-vivo", titulo: "Ao Vivo" },
       { id: "metricas", titulo: "Métricas" },
     ],
@@ -38,7 +37,7 @@ const NAV: Grupo[] = [
     secoes: [
       { id: "equipe", titulo: "Equipe" },
       { id: "assinatura", titulo: "Assinatura e planos" },
-      { id: "dados-radio", titulo: "Dados da rádio" },
+      { id: "dados-radio", titulo: "Configuração" },
       { id: "perfil", titulo: "Perfil" },
     ],
   },
@@ -71,22 +70,6 @@ function Shot({ src, legenda }: { src: string; legenda: string }) {
       <img
         src={`/ajuda/screenshots/${src}.png`}
         alt={legenda}
-        className="w-full rounded-xl border border-border-strong shadow-theme-xs"
-      />
-      <figcaption className="mt-1.5 text-xs text-fg/50">{legenda}</figcaption>
-    </figure>
-  );
-}
-
-function Clip({ src, legenda }: { src: string; legenda: string }) {
-  return (
-    <figure className="mt-4">
-      <video
-        src={`/ajuda/videos/${src}.mp4`}
-        controls
-        loop
-        muted
-        playsInline
         className="w-full rounded-xl border border-border-strong shadow-theme-xs"
       />
       <figcaption className="mt-1.5 text-xs text-fg/50">{legenda}</figcaption>
@@ -139,28 +122,37 @@ export default function AjudaPage() {
           <div className="space-y-10 text-sm leading-relaxed text-fg/80">
             <section>
               <H2 id="primeiros-passos">Configuração inicial</H2>
-              <p>Ao criar sua conta, três passos deixam a rádio pronta pra operar:</p>
+              <p>
+                Ao criar sua conta, a <em>Visão geral</em> mostra um checklist com os passos que
+                faltam pra rádio ficar pronta:
+              </p>
               <ol className="list-decimal pl-5 mt-2 space-y-1">
                 <li>
-                  <strong className="text-fg">Criar o radialista</strong> — dê um nome e descreva o
-                  perfil (gênero musical, tom, público); a Locufy gera a personalidade e o primeiro
+                  <strong className="text-fg">Preencher dados da rádio</strong> — nome e frequência,
+                  em <em>Conta → Configuração</em>.
+                </li>
+                <li>
+                  <strong className="text-fg">Cadastrar o radialista</strong> — dê um nome e descreva
+                  o perfil (gênero musical, tom, público); a Locufy gera a personalidade e o primeiro
                   programa automaticamente via IA.
                 </li>
                 <li>
-                  <strong className="text-fg">Conectar o WhatsApp</strong> — em{" "}
-                  <em>Conta → WhatsApp</em>, escaneie o QR code pra ligar o número da rádio ao
-                  radialista.
+                  <strong className="text-fg">Cadastrar o programa</strong> — confira ou ajuste
+                  horários, tom e tópicos gerados em <em>Conteúdo → Programas</em>. É preciso ao
+                  menos um programa ativo.
                 </li>
                 <li>
-                  <strong className="text-fg">Revisar o programa</strong> — confira ou ajuste
-                  horários, tom e tópicos gerados em <em>Conteúdo → Programas</em>.
+                  <strong className="text-fg">Conectar o WhatsApp</strong> — na tela de{" "}
+                  <em>Conversas</em>, clique em &quot;Conectar WhatsApp&quot; e escaneie o QR code
+                  pra ligar o número da rádio ao radialista.
                 </li>
               </ol>
               <p className="mt-2">
-                Enquanto esses passos não terminam, a barra lateral numera os links correspondentes
-                pra guiar o setup.
+                Cadastrar vinhetagem é o único passo opcional do checklist. Enquanto o setup não
+                termina, a barra lateral também numera (1/2/3) os links de Locutores, Programas e Ao
+                Vivo pra guiar a ordem.
               </p>
-              <Shot src="dashboard" legenda="Dashboard logo após criar a conta, com o checklist de setup." />
+              <Shot src="dashboard" legenda="Visão geral logo após criar a conta, com o checklist de setup." />
             </section>
 
             <section>
@@ -170,7 +162,10 @@ export default function AjudaPage() {
                 e fuso horário. Ele pode ser gerado a partir de uma descrição livre (IA preenche
                 personalidade e voz) ou configurado manualmente.
               </p>
-              <Shot src="radialistas-vazio" legenda="Tela de Radialistas antes de criar o primeiro." />
+              <Shot
+                src="radialistas-vazio"
+                legenda="Tela de Locutores logo após criar a conta, com o radialista inicial pronto pra configurar."
+              />
               <p className="mt-2">
                 A voz vem de um catálogo pré-definido; nos planos Growth e Professional é possível
                 clonar uma voz real enviando uma amostra de áudio (clonagem de voz ElevenLabs).
@@ -182,7 +177,6 @@ export default function AjudaPage() {
                 </a>
                 ); é possível comprar radialistas extras além do limite do plano.
               </p>
-              <Clip src="criar-radialista" legenda="Gerando um radialista com IA a partir de uma descrição curta." />
               <Shot src="radialista-detalhe" legenda="Tela de edição do radialista: nome, voz e programação." />
             </section>
 
@@ -192,8 +186,8 @@ export default function AjudaPage() {
                 Um <strong className="text-fg">programa</strong> define as regras de uma faixa de
                 horário: dias da semana, horário de início/fim, tom, tópicos permitidos e proibidos,
                 gêneros musicais, mensagem de saudação/recusa e a estrutura de blocos (abertura,
-                música, recado, notícia, encerramento). Um programa pode ter mais de um radialista
-                como co-apresentador, dependendo do plano.
+                música, comentário, notícia, chamada ao ouvinte, entre outros). Um programa pode ter
+                mais de um radialista como co-apresentador, dependendo do plano.
               </p>
               <p className="mt-2">
                 A <strong className="text-fg">grade de programação</strong> (Conteúdo → Grade) mostra
@@ -210,29 +204,29 @@ export default function AjudaPage() {
             <section>
               <H2 id="vinhetagem">Vinhetagem</H2>
               <p>
-                Biblioteca de áudios (vinhetas, spots de patrocinador) organizada por categoria, com
-                busca e paginação dentro de cada categoria. O radialista pode usar esses áudios ao
-                montar a programação, conforme as regras do programa.
+                Inserções organizadas por categoria, com busca e paginação dentro de cada categoria.
+                Cada categoria é marcada como <strong className="text-fg">biblioteca</strong>{" "}
+                (vinhetas em áudio, tipo cartwall) ou <strong className="text-fg">propaganda</strong>{" "}
+                (spot de patrocinador). Uma propaganda pode ser um áudio pronto ou um texto que o
+                próprio radialista lê no ar, com a voz que você escolher. O radialista usa essas
+                inserções ao montar a programação, conforme as regras do programa.
               </p>
               <Shot src="vinhetagem" legenda="Categorias da vinhetagem, cada uma marcada como biblioteca ou propaganda." />
             </section>
 
             <section>
-              <H2 id="whatsapp">WhatsApp</H2>
+              <H2 id="conversas">Conversas e WhatsApp</H2>
               <p>
                 Cada conta tem um único número de WhatsApp, compartilhado por todos os radialistas da
-                rádio. Conecte em <em>Conta → WhatsApp</em> escaneando o QR code. Se a sessão cair,
-                avisamos o admin por e-mail automaticamente até a reconexão.
+                rádio. Conecte na tela de <em>Conversas</em>, clicando em &quot;Conectar
+                WhatsApp&quot; e escaneando o QR code. Se a sessão cair, avisamos o admin por e-mail
+                automaticamente até a reconexão. Pra trocar de número, use &quot;Desconectar
+                WhatsApp&quot; e escaneie um QR code novo.
               </p>
-              <Shot src="whatsapp-antes-conectar" legenda="Tela de conexão antes de escanear o QR code." />
-              <Clip src="conectar-whatsapp" legenda="Gerando o QR code pra conectar o número da rádio." />
-            </section>
-
-            <section>
-              <H2 id="conversas">Conversas</H2>
-              <p>
-                Histórico das mensagens trocadas entre ouvintes e o radialista pelo WhatsApp, com
-                filtro por período (últimos 7, 30 ou 90 dias) — útil pra revisar como a IA está
+              <Shot src="whatsapp-antes-conectar" legenda="Tela de Conversas antes de escanear o QR code." />
+              <p className="mt-2">
+                A mesma tela mostra o histórico das mensagens trocadas entre ouvintes e o radialista,
+                com filtro por período (últimos 7, 30 ou 90 dias) — útil pra revisar como a IA está
                 respondendo.
               </p>
               <Shot src="conversas" legenda="Histórico de conversas, com filtro por período." />
@@ -241,8 +235,10 @@ export default function AjudaPage() {
             <section>
               <H2 id="ao-vivo">Ao Vivo</H2>
               <p>
-                Painel de acompanhamento em tempo real de qual programa está no ar e o que o
-                radialista está executando.
+                Painel em tempo real do programa no ar: o que o radialista está executando, o
+                histórico de falas geradas e o que vem a seguir na sequência de blocos. Dá pra pausar
+                a transmissão, disparar vinhetas da Biblioteca/Cartwall manualmente e editar o
+                radialista ou o programa sem saltar de tela.
               </p>
               <Shot src="ao-vivo" legenda="Painel Ao Vivo." />
             </section>
@@ -250,8 +246,13 @@ export default function AjudaPage() {
             <section>
               <H2 id="metricas">Métricas</H2>
               <p>
-                Volume de mensagens recebidas por dia, com o mesmo filtro de período de Conversas —
-                ajuda a entender o consumo frente à franquia mensal do plano.
+                Volume de mensagens recebidas (total, últimos 7 e últimos 30 dias, por dia e por
+                status), com o mesmo filtro de período e exportação em CSV de Conversas. Pra ver o
+                consumo frente à franquia mensal do plano, acesse{" "}
+                <a href="#assinatura" className="text-acento-claro hover:text-acento-dim">
+                  Assinatura e planos
+                </a>
+                .
               </p>
               <Shot src="metricas" legenda="Métricas de mensagens recebidas por dia." />
             </section>
@@ -260,17 +261,20 @@ export default function AjudaPage() {
               <H2 id="equipe">Equipe</H2>
               <p>
                 Só administradores acessam esta tela. Convide pessoas por e-mail e defina o papel:{" "}
-                <strong className="text-fg">admin</strong> (gerencia equipe, configurações e
-                assinatura) ou <strong className="text-fg">membro</strong> (opera o dia a dia, sem
-                acesso a billing/equipe). Remover alguém desativa o acesso sem apagar o histórico
-                associado a esse usuário.
+                <strong className="text-fg">admin</strong> (também gerencia Equipe e Assinatura) ou{" "}
+                <strong className="text-fg">membro</strong> (opera o dia a dia — radialistas,
+                programas, conversas — sem acesso a Equipe nem Assinatura). Remover alguém desativa
+                o acesso sem apagar o histórico associado a esse usuário.
               </p>
               <Shot src="equipe" legenda="Convite de equipe e lista de membros." />
             </section>
 
             <section>
               <H2 id="assinatura">Assinatura e planos</H2>
-              <p>Três planos, cobrados por assinatura recorrente, com período de teste gratuito:</p>
+              <p>
+                Só administradores acessam esta tela (<em>Conta → Assinatura</em>). Três planos,
+                cobrados por assinatura recorrente, com período de teste gratuito:
+              </p>
               <div className="overflow-x-auto mt-2">
                 <table className="w-full text-left border-collapse">
                   <thead>
@@ -317,20 +321,37 @@ export default function AjudaPage() {
             </section>
 
             <section>
-              <H2 id="dados-radio">Dados da rádio</H2>
+              <H2 id="dados-radio">Configuração</H2>
               <p>
-                Em <em>Conta → Dados da rádio</em> ficam nome, slogan, frequência, telefone, endereço
-                e cidade da emissora — usados pra personalizar as respostas do radialista, e a
-                cidade também alimenta a previsão do tempo real que o locutor pode citar no ar.
+                Em <em>Conta → Configuração</em> ficam três blocos, todos preenchidos manualmente
+                (nada aqui é gerado por IA, pra não inventar lugar ou fato errado sobre sua rádio):
               </p>
-              <Shot src="configuracoes-salvo" legenda="Formulário de dados da rádio." />
+              <ol className="list-decimal pl-5 mt-2 space-y-1">
+                <li>
+                  <strong className="text-fg">Dados da rádio</strong> — nome, slogan, frequência,
+                  telefone, endereço, cidade e tipo de rádio. Usados pra personalizar as respostas do
+                  radialista; a cidade também alimenta a previsão do tempo real que o locutor pode
+                  citar no ar.
+                </li>
+                <li>
+                  <strong className="text-fg">Conhecimento local</strong> — gentílico, bairros,
+                  pontos de referência, eventos recorrentes e gírias da região, pra deixar as
+                  respostas com cara de quem é dali.
+                </li>
+                <li>
+                  <strong className="text-fg">Bíblia da rádio</strong> — história da emissora, rotina
+                  real (parcerias, transmissões fixas), outros programas da grade fora da IA, equipe
+                  que existe na rádio mas não fica ao vivo, e hábitos de trabalho reais.
+                </li>
+              </ol>
+              <Shot src="configuracoes-salvo" legenda="Formulário de dados da rádio, na tela de Configuração." />
             </section>
 
             <section>
               <H2 id="perfil">Perfil</H2>
               <p>
-                Seus dados pessoais e o status atual do plano da conta (em teste, ativo ou pagamento
-                pendente).
+                Seus dados pessoais e o status atual do plano da conta (em teste, ativo, pagamento
+                pendente ou cancelado).
               </p>
               <Shot src="perfil" legenda="Tela de Perfil." />
             </section>
@@ -374,14 +395,15 @@ export default function AjudaPage() {
                   <p className="font-medium text-fg">O que acontece se a sessão do WhatsApp cair?</p>
                   <p>
                     O admin da conta recebe um alerta por e-mail; basta reconectar escaneando o QR
-                    code de novo em <em>Conta → WhatsApp</em>.
+                    code de novo na tela de <em>Conversas</em>.
                   </p>
                 </div>
                 <div>
                   <p className="font-medium text-fg">Como cancelo minha assinatura?</p>
                   <p>
-                    Em <em>Conta → Assinatura</em> (acesso admin). O acesso continua até o fim do
-                    período já pago.
+                    Em <em>Conta → Assinatura</em> (acesso admin), clique em &quot;Gerenciar
+                    pagamento&quot; — isso abre o portal seguro da Stripe, onde dá pra cancelar. O
+                    acesso continua até o fim do período já pago.
                   </p>
                 </div>
               </div>
