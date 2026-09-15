@@ -1,29 +1,11 @@
 import { ImageResponse } from "next/og";
+import { MarcaIcone } from "../marca-icone";
 
 export const dynamic = "force-static";
 
-// Maskable: OS applies its own shape mask, so keep the glyph inside the
-// center ~80% safe zone and let the background bleed to the full canvas.
 export async function GET() {
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#15130f",
-          color: "#e8a33d",
-          fontSize: 220,
-          fontWeight: 700,
-          fontFamily: "sans-serif",
-        }}
-      >
-        L
-      </div>
-    ),
-    { width: 512, height: 512 }
-  );
+  return new ImageResponse(<MarcaIcone canvas={512} mark={256} />, {
+    width: 512,
+    height: 512,
+  });
 }

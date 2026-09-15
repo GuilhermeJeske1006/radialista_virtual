@@ -1,79 +1,130 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-plex-sans), sans-serif;
-  --font-display: var(--font-bricolage), sans-serif;
+  --font-sans: var(--font-locufy-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-locufy-display), var(--font-locufy-sans), sans-serif;
   --font-mono: var(--font-plex-mono), monospace;
 
-  /* theme-aware roles: swap value under [data-theme="light"] below */
+  /* papéis que mudam com o tema — valores em :root e [data-theme] abaixo */
   --color-bg: var(--locufy-bg);
   --color-surface: var(--locufy-surface);
   --color-surface-2: var(--locufy-surface-2);
   --color-fg: var(--locufy-fg);
   --color-border: var(--locufy-border);
   --color-border-strong: var(--locufy-border-strong);
-  /* amber/rust/teal, darkened enough in the light theme to hit 4.5:1 as text -- borders/bg/buttons
-     keep using the plain --color-amber/rust/teal unchanged, this is only for text-* (links, labels). */
-  --color-amber-text: var(--locufy-amber-text);
-  --color-rust-text: var(--locufy-rust-text);
-  --color-teal-text: var(--locufy-teal-text);
 
-  /* fixed brand hues: same in both themes */
-  --color-ink: #15130f;
-  --color-paper: #f4ead9;
-  --color-amber: #e8a33d;
-  --color-amber-dim: #a86f27;
-  --color-teal: #33c2a8;
-  --color-rust: #e2543a;
+  /* Paleta do manual — hex exatos */
+  --color-roxo: #631bf6;         /* Roxo Frequência Digital — início do gradiente */
+  --color-ciano-puro: #00b4d8;   /* Ciano Transmissão — fim do gradiente          */
+  --color-azul: #1b263b;         /* Azul Estúdio Profissional — base da interface */
+  --color-grafite: #18181a;      /* Preto Cabine Acústica                         */
+  --color-branco: #ffffff;       /* Branco Clareza de Voz                         */
+  --color-cinza: #6c707b;        /* Cinza Frequência Neutra                       */
+  --color-laranja-puro: #ff8c00; /* Laranja Vibração Humana                       */
 
-  /* brand-* ramp mirrors the Locufy amber so existing bg-brand-500 / text-brand-600 /
-     focus:ring-brand-500 utilities across the app pick up the identity for free */
-  --color-brand-25: #fdf6ea;
-  --color-brand-50: #faecd3;
-  --color-brand-100: #f3d9a6;
-  --color-brand-200: #edc178;
-  --color-brand-300: #eab155;
-  --color-brand-400: #e8a548;
-  --color-brand-500: #e8a33d;
-  --color-brand-600: #cf8a28;
-  --color-brand-700: #a86f27;
-  --color-brand-800: #7a5423;
-  --color-brand-900: #573f1e;
+  /* Azul de ação: ponto médio exato do gradiente #631BF6 → #00B4D8. É a cor que
+     o logo mostra na maior parte da faixa, e o que a interface usa para tudo
+     que é clicável. */
+  --color-acento: #3167e7;
+  --color-on-brand: #ffffff;
 
-  --shadow-theme-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.24);
-  --shadow-theme-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.32), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  /* variantes legíveis — texto, ícone e borda, onde o sólido não alcança
+     contraste contra o fundo do tema ativo */
+  --color-acento-claro: var(--locufy-acento-claro);
+  --color-acento-dim: var(--locufy-acento-dim);
+  --color-ciano: var(--locufy-ciano);
+  --color-laranja: var(--locufy-laranja);
+
+  /* rampa brand-*: bg-brand-500 / text-brand-600 / focus:ring-brand-500 que já
+     existem na aplicação passam a render o azul da marca sem tocar no markup */
+  --color-brand-25: #eff4ff;
+  --color-brand-50: #dfe9fe;
+  --color-brand-100: #c2d4fc;
+  --color-brand-200: #9bb6f8;
+  --color-brand-300: #6d93f3;
+  --color-brand-400: #4a79ee;
+  --color-brand-500: #3167e7;
+  --color-brand-600: #2352c7;
+  --color-brand-700: #1c40a0;
+  --color-brand-800: #17337d;
+  --color-brand-900: #12275e;
+
+  --shadow-theme-xs: 0 1px 2px 0 rgba(8, 14, 26, 0.32);
+  --shadow-theme-sm: 0 1px 3px 0 rgba(8, 14, 26, 0.4), 0 1px 2px 0 rgba(8, 14, 26, 0.24);
 }
 
+/* Tema escuro (padrão): estúdio azul. Fundo é o Azul Estúdio rebaixado, painéis
+   sobem para o #1B263B exato do manual — hierarquia por profundidade, sem
+   precisar de borda em tudo. */
 :root {
-  --locufy-bg: #15130f;
-  --locufy-surface: #1e1b15;
-  --locufy-surface-2: #262117;
-  --locufy-fg: #f4ead9;
-  --locufy-border: rgba(244, 234, 217, 0.14);
-  --locufy-border-strong: rgba(244, 234, 217, 0.28);
-  --locufy-amber-text: #e8a33d;
-  --locufy-rust-text: #e2543a;
-  --locufy-teal-text: #33c2a8;
+  --locufy-bg: #131c2e;
+  --locufy-surface: #1b263b;
+  --locufy-surface-2: #24334f;
+  --locufy-fg: #ffffff;
+  --locufy-border: rgba(255, 255, 255, 0.12);
+  --locufy-border-strong: rgba(255, 255, 255, 0.22);
+
+  --locufy-acento-claro: #6ba6ff;
+  --locufy-acento-dim: #a8c8ff;
+  --locufy-ciano: #00b4d8;
+  --locufy-laranja: #ff8c00;
 }
 
 [data-theme="light"] {
-  --locufy-bg: #f4ead9;
-  --locufy-surface: #fffdf8;
-  --locufy-surface-2: #f9f1e2;
-  --locufy-fg: #15130f;
-  --locufy-border: rgba(21, 19, 15, 0.1);
-  --locufy-border-strong: rgba(21, 19, 15, 0.18);
-  --locufy-amber-text: #8b5a10;
-  --locufy-rust-text: #c1361c;
-  --locufy-teal-text: #1f7565;
+  --locufy-bg: #ffffff;
+  --locufy-surface: #f5f8fc;
+  --locufy-surface-2: #e8eef7;
+  --locufy-fg: #1b263b;
+  --locufy-border: rgba(27, 38, 59, 0.12);
+  --locufy-border-strong: rgba(27, 38, 59, 0.2);
 
-  --shadow-theme-xs: 0 1px 2px 0 rgba(21, 19, 15, 0.08);
-  --shadow-theme-sm: 0 1px 3px 0 rgba(21, 19, 15, 0.12), 0 1px 2px 0 rgba(21, 19, 15, 0.08);
+  --locufy-acento-claro: #1e4fd8;
+  --locufy-acento-dim: #12358f;
+  --locufy-ciano: #0085a3;
+  --locufy-laranja: #c96a00;
+
+  --shadow-theme-xs: 0 1px 2px 0 rgba(27, 38, 59, 0.08);
+  --shadow-theme-sm: 0 1px 3px 0 rgba(27, 38, 59, 0.12), 0 1px 2px 0 rgba(27, 38, 59, 0.08);
+}
+
+/* O gradiente do logo. Aparece uma vez por tela, atrás do lockup ou em uma
+   superfície de marca — nunca como decoração de cartão. É o único lugar da
+   interface onde o roxo puro entra. */
+.bg-locufy-gradient {
+  background-image: linear-gradient(110deg, #631bf6 0%, #3167e7 52%, #00b4d8 100%);
+}
+
+.text-locufy-gradient {
+  background-image: linear-gradient(110deg, #631bf6 0%, #3167e7 52%, #00b4d8 100%);
+  background-clip: text;
+  color: transparent;
+}
+
+/* Troca de arte por tema: usado pelo lockup horizontal oficial na sidebar, que
+   vem pré-renderizado em uma cor só (branco ou grafite) e não pode herdar cor
+   como um SVG em currentColor. */
+.locufy-so-escuro {
+  display: block;
+}
+.locufy-so-claro {
+  display: none;
+}
+[data-theme="light"] .locufy-so-escuro {
+  display: none;
+}
+[data-theme="light"] .locufy-so-claro {
+  display: block;
+}
+
+/* Foco visível e consistente, em pílula, sem depender de cada componente. */
+:focus-visible {
+  outline: 2px solid var(--color-acento-claro);
+  outline-offset: 2px;
 }
 
 ::selection {
-  background: var(--color-amber);
-  color: var(--color-ink);
+  background: var(--color-acento);
+  color: var(--color-on-brand);
 }
 
 ::-webkit-scrollbar {
@@ -88,4 +139,14 @@
 ::-webkit-scrollbar-thumb {
   background: var(--color-border-strong);
   border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

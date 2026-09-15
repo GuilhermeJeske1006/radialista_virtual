@@ -33,7 +33,7 @@ export default function PrivacidadePage() {
               A Locufy (locufy.com) opera uma plataforma que permite a rádios criar e operar um
               radialista virtual com inteligência artificial. Esta política explica quais dados
               coletamos, para quê e com quem compartilhamos. Contato:{" "}
-              <a href="mailto:contato@locufy.com" className="text-amber-text hover:text-amber-dim">
+              <a href="mailto:contato@locufy.com" className="text-acento-claro hover:text-acento-dim">
                 contato@locufy.com
               </a>
               .
@@ -160,7 +160,7 @@ export default function PrivacidadePage() {
               pode solicitar confirmação de tratamento, acesso, correção, anonimização, portabilidade
               ou eliminação dos seus dados, além de revogar consentimentos dados. Para exercer esses
               direitos, escreva para{" "}
-              <a href="mailto:contato@locufy.com" className="text-amber-text hover:text-amber-dim">
+              <a href="mailto:contato@locufy.com" className="text-acento-claro hover:text-acento-dim">
                 contato@locufy.com
               </a>
               ; respondemos em até 15 dias úteis.
@@ -206,11 +206,11 @@ export default function PrivacidadePage() {
             <h2 className="font-display text-lg font-semibold text-fg mb-2">14. Contato</h2>
             <p>
               Dúvidas sobre privacidade ou dados pessoais:{" "}
-              <a href="mailto:contato@locufy.com" className="text-amber-text hover:text-amber-dim">
+              <a href="mailto:contato@locufy.com" className="text-acento-claro hover:text-acento-dim">
                 contato@locufy.com
               </a>
               . Veja também nossos{" "}
-              <Link href="/termos" className="text-amber-text hover:text-amber-dim">
+              <Link href="/termos" className="text-acento-claro hover:text-acento-dim">
                 Termos de Uso
               </Link>
               .

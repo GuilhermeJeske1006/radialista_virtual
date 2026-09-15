@@ -37,7 +37,7 @@ export default function GradeSemanalView({
   const indicePorRadialista = Object.fromEntries(radialistasOrdenados.map((r, i) => [r.id, i]));
 
   return (
-    <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs overflow-hidden">
+    <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs overflow-hidden">
       <div className="overflow-x-auto">
         <div className="min-w-[820px]">
           <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-border-strong">
@@ -117,7 +117,7 @@ function DiaColuna({
     <div
       ref={containerRef}
       onClick={aoClicarFundo}
-      className="relative border-l border-border cursor-pointer hover:bg-paper/[0.03]"
+      className="relative border-l border-border cursor-pointer hover:bg-fg/[0.03]"
       style={{ height: ALTURA_TOTAL_PX }}
     >
       {Array.from({ length: 24 }, (_, h) => (

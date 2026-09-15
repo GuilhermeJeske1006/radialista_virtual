@@ -56,7 +56,7 @@ export default function ConfiguracoesPage() {
 
   return (
     <AppShell title="Configuração da Rádio" maxWidthClassName="max-w-2xl">
-      <form onSubmit={salvar} className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+      <form onSubmit={salvar} className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
         <h2 className="font-display text-base font-bold text-fg mb-1">Dados da rádio</h2>
         <p className="text-sm text-fg/65 mb-5">
           Essas informações valem pra conta inteira e são usadas pelos seus radialistas de IA quando um ouvinte
@@ -72,7 +72,7 @@ export default function ConfiguracoesPage() {
               placeholder="Ex.: Rádio Cidade FM"
               value={radio.nome_radio}
               onChange={(e) => setRadio({ ...radio, nome_radio: e.target.value })}
-              className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+              className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
             />
           </div>
           <div>
@@ -82,7 +82,7 @@ export default function ConfiguracoesPage() {
               placeholder="Ex.: A rádio que toca pra você"
               value={radio.slogan}
               onChange={(e) => setRadio({ ...radio, slogan: e.target.value })}
-              className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+              className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
             />
           </div>
           <div>
@@ -92,7 +92,7 @@ export default function ConfiguracoesPage() {
               placeholder="Ex.: 98.5 FM"
               value={radio.frequencia}
               onChange={(e) => setRadio({ ...radio, frequencia: e.target.value })}
-              className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+              className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
             />
           </div>
           <div>
@@ -102,7 +102,7 @@ export default function ConfiguracoesPage() {
               placeholder="Ex.: (11) 4000-0000"
               value={radio.telefone}
               onChange={(e) => setRadio({ ...radio, telefone: e.target.value })}
-              className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+              className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
             />
           </div>
           <div>
@@ -112,7 +112,7 @@ export default function ConfiguracoesPage() {
               placeholder="Ex.: Av. Principal, 123 - Centro"
               value={radio.endereco}
               onChange={(e) => setRadio({ ...radio, endereco: e.target.value })}
-              className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+              className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
             />
           </div>
           <div>
@@ -122,7 +122,7 @@ export default function ConfiguracoesPage() {
               placeholder="Ex.: Porto Alegre"
               value={radio.cidade}
               onChange={(e) => setRadio({ ...radio, cidade: e.target.value })}
-              className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+              className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
             />
             <p className="text-xs text-fg/65 mt-1">Usada pro locutor comentar o clima real no ar.</p>
           </div>
@@ -131,7 +131,7 @@ export default function ConfiguracoesPage() {
             <select
               value={radio.tipo_radio}
               onChange={(e) => setRadio({ ...radio, tipo_radio: e.target.value })}
-              className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+              className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
             >
               <option value="">Não definido</option>
               {tiposRadio.map((t) => (
@@ -166,7 +166,7 @@ export default function ConfiguracoesPage() {
                   conhecimento_local: { ...radio.conhecimento_local, gentilico: e.target.value },
                 })
               }
-              className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+              className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
             />
           </div>
         </div>
@@ -223,7 +223,7 @@ export default function ConfiguracoesPage() {
             onChange={(e) =>
               setRadio({ ...radio, biblia_radio: { ...radio.biblia_radio, historia: e.target.value } })
             }
-            className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20 mb-4"
+            className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20 mb-4"
           />
         </div>
         <TagInput
@@ -251,13 +251,13 @@ export default function ConfiguracoesPage() {
           }
         />
 
-        {erro && <p className="text-sm text-rust-text mt-4">{erro}</p>}
-        {mensagem && <p className="text-sm text-teal-text mt-4">{mensagem}</p>}
+        {erro && <p className="text-sm text-laranja mt-4">{erro}</p>}
+        {mensagem && <p className="text-sm text-ciano mt-4">{mensagem}</p>}
 
         <button
           type="submit"
           disabled={salvando}
-          className="mt-5 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="mt-5 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {salvando ? "Salvando..." : "Salvar"}
         </button>

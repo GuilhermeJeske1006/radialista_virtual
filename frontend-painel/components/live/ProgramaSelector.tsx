@@ -61,11 +61,11 @@ export default function ProgramaSelector({
     .toUpperCase();
 
   return (
-    <section className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5 sm:p-6">
+    <section className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div className="flex min-w-0 flex-1 gap-3.5">
           {programaSelecionado && (
-            <div className="hidden sm:flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-amber to-rust font-display text-base font-bold text-ink">
+            <div className="hidden sm:flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-acento to-laranja font-display text-base font-bold text-on-brand">
               {iniciais}
             </div>
           )}
@@ -85,7 +85,7 @@ export default function ProgramaSelector({
             <div className="mt-3.5 flex flex-col gap-2 sm:flex-row sm:items-center">
               <select
                 aria-label="Selecionar programa"
-                className="w-full sm:max-w-sm rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                className="w-full sm:max-w-sm rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
                 value={programaId ?? ""}
                 disabled={carregandoProgramas || programaAtivo}
                 onChange={(e) => {
@@ -121,7 +121,7 @@ export default function ProgramaSelector({
                   type="button"
                   onClick={onIniciar}
                   disabled={!programaId || gerandoFala}
-                  className="rounded-lg bg-rust px-4 py-2.5 text-sm font-medium text-fg hover:bg-rust/90 disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
+                  className="rounded-xl bg-laranja px-4 py-2.5 text-sm font-medium text-fg hover:bg-laranja/90 disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
                 >
                   Comecar transmissao
                 </button>
@@ -129,7 +129,7 @@ export default function ProgramaSelector({
                 <button
                   type="button"
                   onClick={onPausar}
-                  className="rounded-lg border border-border-strong bg-paper/5 px-4 py-2.5 text-sm font-medium text-fg hover:bg-paper/10 shrink-0"
+                  className="rounded-xl border border-border-strong bg-fg/5 px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/10 shrink-0"
                 >
                   Pausar transmissao
                 </button>
@@ -141,7 +141,7 @@ export default function ProgramaSelector({
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto shrink-0">
           <span
             className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
-              aoVivoAtivo ? "bg-teal/10 text-teal-text" : "bg-amber/10 text-amber-text"
+              aoVivoAtivo ? "bg-ciano/10 text-ciano" : "bg-acento/10 text-acento-claro"
             }`}
           >
             {aoVivoAtivo ? "Agente online" : "Aguardando conexao"}
@@ -149,7 +149,7 @@ export default function ProgramaSelector({
           {programaSelecionado && (
             <span
               className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                programaSelecionadoNoAr ? "bg-teal/10 text-teal-text" : "bg-amber/10 text-amber-text"
+                programaSelecionadoNoAr ? "bg-ciano/10 text-ciano" : "bg-acento/10 text-acento-claro"
               }`}
               title="Horario programado deste programa, independente de a transmissao estar ligada"
             >
@@ -161,10 +161,10 @@ export default function ProgramaSelector({
 
       {programaSelecionado && (
         <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
-          <span className="rounded-full bg-paper/5 px-2.5 py-1 font-mono text-xs font-medium text-fg/70">
+          <span className="rounded-full bg-fg/5 px-2.5 py-1 font-mono text-xs font-medium text-fg/70">
             Voz: {radialistaSelecionado?.voz_id ? "Personalizada" : "Padrao do servidor"}
           </span>
-          <span className="rounded-full bg-paper/5 px-2.5 py-1 font-mono text-xs font-medium text-fg/70">
+          <span className="rounded-full bg-fg/5 px-2.5 py-1 font-mono text-xs font-medium text-fg/70">
             Generos:{" "}
             {programaSelecionado.generos_musicais.length > 0
               ? programaSelecionado.generos_musicais.slice(0, 3).join(", ")
@@ -173,7 +173,7 @@ export default function ProgramaSelector({
               ? ` +${programaSelecionado.generos_musicais.length - 3}`
               : ""}
           </span>
-          <span className="rounded-full bg-paper/5 px-2.5 py-1 font-mono text-xs font-medium text-fg/70">
+          <span className="rounded-full bg-fg/5 px-2.5 py-1 font-mono text-xs font-medium text-fg/70">
             Dias: {formatarDiasSemana(programaSelecionado.dias_semana, programaSelecionado.data_especifica)}
           </span>
 
@@ -181,14 +181,14 @@ export default function ProgramaSelector({
             <button
               type="button"
               onClick={() => onEditarRadialista(programaSelecionado.radialistaId)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-amber/25 bg-amber/10 px-3 py-1.5 text-xs font-semibold text-amber-text hover:bg-amber/20"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-acento-claro/25 bg-acento/10 px-3 py-1.5 text-xs font-semibold text-acento-claro hover:bg-acento/20"
             >
               ✎ Editar radialista
             </button>
             <button
               type="button"
               onClick={() => onEditarPrograma(programaSelecionado.radialistaId, programaSelecionado.id)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-amber/25 bg-amber/10 px-3 py-1.5 text-xs font-semibold text-amber-text hover:bg-amber/20"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-acento-claro/25 bg-acento/10 px-3 py-1.5 text-xs font-semibold text-acento-claro hover:bg-acento/20"
             >
               ✎ Editar programa
             </button>

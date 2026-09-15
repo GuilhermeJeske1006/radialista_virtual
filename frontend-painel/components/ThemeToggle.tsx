@@ -33,7 +33,7 @@ export default function ThemeToggle({ className = "" }: { className?: string }) 
       onClick={alternar}
       aria-label={tema === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
       title={tema === "dark" ? "Tema claro" : "Tema escuro"}
-      className={`flex h-8 w-8 items-center justify-center rounded-full border border-border-strong text-fg/65 hover:text-amber-text hover:border-amber/40 transition-colors ${className}`}
+      className={`flex h-8 w-8 items-center justify-center rounded-full border border-border-strong text-fg/65 hover:text-acento-claro hover:border-acento-claro/40 transition-colors ${className}`}
     >
       {tema === "dark" ? (
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor">

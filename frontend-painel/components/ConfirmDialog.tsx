@@ -24,18 +24,20 @@ export default function ConfirmDialog({
   return (
     <Modal open={open} onClose={onCancelar} title={title} maxWidthClassName="max-w-sm">
       <p className="text-sm text-fg/70 mb-6">{mensagem}</p>
-      <div className="flex justify-end gap-3">
+      <div className="flex justify-end gap-2">
         <button
           type="button"
           onClick={onCancelar}
-          className="rounded-lg px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
+          className="rounded-full px-4 py-2.5 text-sm font-semibold text-fg/60 hover:bg-fg/5 hover:text-fg transition-colors"
         >
           {cancelarLabel}
         </button>
+        {/* A paleta não tem vermelho. Destrutivo usa o Laranja Vibração Humana
+            com texto grafite — é o sinal mais alto do manual. */}
         <button
           type="button"
           onClick={onConfirmar}
-          className="rounded-lg bg-rust px-4 py-2.5 text-sm font-medium text-fg hover:bg-rust/90"
+          className="rounded-full bg-laranja px-4 py-2.5 text-sm font-semibold text-grafite hover:opacity-90 transition-opacity"
         >
           {confirmarLabel}
         </button>

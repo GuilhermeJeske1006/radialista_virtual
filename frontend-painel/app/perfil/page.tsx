@@ -16,17 +16,17 @@ const STATUS_LABEL: Record<string, string> = {
   cancelado: "Cancelado",
 };
 
-const STATUS_COR: Record<string, "teal" | "amber" | "rust"> = {
-  trial: "amber",
-  ativo: "teal",
-  inadimplente: "rust",
-  cancelado: "rust",
+const STATUS_COR: Record<string, "ciano" | "acento" | "laranja"> = {
+  trial: "acento",
+  ativo: "ciano",
+  inadimplente: "laranja",
+  cancelado: "laranja",
 };
 
-const STATUS_CLASSE: Record<"teal" | "amber" | "rust", string> = {
-  teal: "bg-teal/10 text-teal-text",
-  amber: "bg-amber/10 text-amber-text",
-  rust: "bg-rust/10 text-rust-text",
+const STATUS_CLASSE: Record<"ciano" | "acento" | "laranja", string> = {
+  ciano: "bg-ciano/10 text-ciano",
+  acento: "bg-acento/10 text-acento-claro",
+  laranja: "bg-laranja/10 text-laranja",
 };
 
 function formatarData(iso: string): string {
@@ -135,18 +135,18 @@ export default function PerfilPage() {
   if (!conta) {
     return (
       <AppShell title="Perfil">
-        <p className="text-sm text-rust-text">{erro || "Não foi possível carregar seu perfil."}</p>
+        <p className="text-sm text-laranja">{erro || "Não foi possível carregar seu perfil."}</p>
       </AppShell>
     );
   }
 
   const nomePlano = PLANOS.find((p) => p.id === conta.plano)?.nome ?? conta.plano;
-  const statusCor = STATUS_COR[conta.plano_status] ?? "amber";
+  const statusCor = STATUS_COR[conta.plano_status] ?? "acento";
 
   return (
     <AppShell title="Perfil" maxWidthClassName="max-w-2xl">
       <div className="space-y-5">
-        <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+        <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
           <h2 className="font-display text-base font-bold text-fg mb-5">Sua conta</h2>
 
           <form onSubmit={salvarNome} className="flex items-end gap-2 mb-4">
@@ -158,19 +158,19 @@ export default function PerfilPage() {
                 required
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
-                className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
               />
             </div>
             <button
               type="submit"
               disabled={salvandoNome || nome.trim() === conta.nome}
-              className="rounded-lg border border-border-strong px-4 py-2 text-sm font-medium text-fg hover:bg-paper/5 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-xl border border-border-strong px-4 py-2 text-sm font-medium text-fg hover:bg-fg/5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {salvandoNome ? "Salvando..." : "Salvar"}
             </button>
           </form>
-          {erroNome && <p className="text-sm text-rust-text mb-4">{erroNome}</p>}
-          {mensagemNome && <p className="text-sm text-teal-text mb-4">{mensagemNome}</p>}
+          {erroNome && <p className="text-sm text-laranja mb-4">{erroNome}</p>}
+          {mensagemNome && <p className="text-sm text-ciano mb-4">{mensagemNome}</p>}
 
           <dl className="space-y-4">
             <div className="flex items-center justify-between gap-4">
@@ -197,12 +197,12 @@ export default function PerfilPage() {
               </dd>
             </div>
           </dl>
-          <Link href="/billing" className="mt-5 inline-block text-sm font-medium text-amber-text hover:text-amber-dim">
+          <Link href="/billing" className="mt-5 inline-block text-sm font-medium text-acento-claro hover:text-acento-dim">
             Gerenciar assinatura →
           </Link>
         </div>
 
-        <form onSubmit={alterarSenha} className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+        <form onSubmit={alterarSenha} className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
           <h2 className="font-display text-base font-bold text-fg mb-5">Alterar senha</h2>
           <div className="space-y-4">
             <div>
@@ -213,7 +213,7 @@ export default function PerfilPage() {
                 required
                 value={senhaAtual}
                 onChange={(e) => setSenhaAtual(e.target.value)}
-                className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -226,7 +226,7 @@ export default function PerfilPage() {
                   minLength={8}
                   value={senhaNova}
                   onChange={(e) => setSenhaNova(e.target.value)}
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                  className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
                 />
               </div>
               <div>
@@ -238,29 +238,29 @@ export default function PerfilPage() {
                   minLength={8}
                   value={confirmarSenha}
                   onChange={(e) => setConfirmarSenha(e.target.value)}
-                  className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                  className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
                 />
               </div>
             </div>
-            {erroSenha && <p className="text-sm text-rust-text">{erroSenha}</p>}
-            {mensagemSenha && <p className="text-sm text-teal-text">{mensagemSenha}</p>}
+            {erroSenha && <p className="text-sm text-laranja">{erroSenha}</p>}
+            {mensagemSenha && <p className="text-sm text-ciano">{mensagemSenha}</p>}
             <button
               type="submit"
               disabled={salvandoSenha}
-              className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {salvandoSenha ? "Salvando..." : "Alterar senha"}
             </button>
           </div>
         </form>
 
-        <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+        <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
           <h2 className="font-display text-base font-bold text-fg mb-1">Sessão</h2>
           <p className="text-sm text-fg/65 mb-4">Encerrar sua sessão neste dispositivo.</p>
           <button
             type="button"
             onClick={sair}
-            className="rounded-lg border border-rust/40 px-4 py-2.5 text-sm font-medium text-rust-text hover:bg-rust/10"
+            className="rounded-xl border border-laranja/40 px-4 py-2.5 text-sm font-medium text-laranja hover:bg-laranja/10"
           >
             Sair da conta
           </button>

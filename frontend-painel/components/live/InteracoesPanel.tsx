@@ -68,16 +68,16 @@ export default function InteracoesPanel({ radialistaId, nomeLocutor, pulso, onNo
   }, [radialistaId]);
 
   return (
-    <section className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6 flex flex-col">
+    <section className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6 flex flex-col">
       <div className="flex items-center justify-between mb-4 shrink-0">
         <h2 className="font-display text-base font-bold text-fg flex items-center gap-2">
           Conversas
-          <LocufyLed color="rust" pulse={Boolean(pulso)} />
+          <LocufyLed color="laranja" pulse={Boolean(pulso)} />
         </h2>
         <span className="font-mono text-xs font-medium text-fg/65">Atualiza a cada 4s</span>
       </div>
 
-      {erro && <p className="text-sm text-rust-text mb-3">{erro}</p>}
+      {erro && <p className="text-sm text-laranja mb-3">{erro}</p>}
 
       {carregando ? (
         <p className="flex items-center gap-2 text-sm text-fg/65">
@@ -103,7 +103,7 @@ export default function InteracoesPanel({ radialistaId, nomeLocutor, pulso, onNo
 
               {it.resposta && (
                 <div className="text-sm text-fg/85">
-                  <span className="font-medium text-amber-text">{nomeLocutor}: </span>
+                  <span className="font-medium text-acento-claro">{nomeLocutor}: </span>
                   {it.resposta}
                 </div>
               )}
@@ -111,7 +111,7 @@ export default function InteracoesPanel({ radialistaId, nomeLocutor, pulso, onNo
               <div className="mt-3">
                 <span
                   className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${
-                    STATUS_STYLE[it.status] ?? "bg-paper/10 text-fg/60"
+                    STATUS_STYLE[it.status] ?? "bg-fg/10 text-fg/60"
                   }`}
                 >
                   {STATUS_LABEL[it.status] ?? it.status}

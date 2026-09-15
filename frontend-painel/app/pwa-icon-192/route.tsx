@@ -1,27 +1,11 @@
 import { ImageResponse } from "next/og";
+import { MarcaIcone } from "../marca-icone";
 
 export const dynamic = "force-static";
 
 export async function GET() {
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#15130f",
-          color: "#e8a33d",
-          fontSize: 130,
-          fontWeight: 700,
-          fontFamily: "sans-serif",
-        }}
-      >
-        L
-      </div>
-    ),
-    { width: 192, height: 192 }
-  );
+  return new ImageResponse(<MarcaIcone canvas={192} mark={132} />, {
+    width: 192,
+    height: 192,
+  });
 }

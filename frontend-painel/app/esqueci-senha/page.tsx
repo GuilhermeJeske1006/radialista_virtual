@@ -36,7 +36,7 @@ export default function EsqueciSenhaPage() {
           <LocufyLogo wordmarkClassName="text-2xl" />
           <ThemeToggle className="ml-1" />
         </div>
-        <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-sm p-6">
+        <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-sm p-6">
           <h1 className="font-display text-lg font-bold text-fg mb-1.5">Esqueci minha senha</h1>
           {enviado ? (
             <p className="text-sm text-fg/70 mt-4">
@@ -56,14 +56,14 @@ export default function EsqueciSenhaPage() {
                     placeholder="Ex.: email@dominio.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                    className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
                   />
                 </div>
-                {erro && <p className="text-sm text-rust-text">{erro}</p>}
+                {erro && <p className="text-sm text-laranja">{erro}</p>}
                 <button
                   type="submit"
                   disabled={carregando}
-                  className="w-full flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {carregando ? (
                     <>
@@ -77,7 +77,7 @@ export default function EsqueciSenhaPage() {
             </>
           )}
           <p className="mt-4 text-sm text-fg/65">
-            <Link href="/login" className="text-amber-text hover:text-amber-dim font-medium">
+            <Link href="/login" className="text-acento-claro hover:text-acento-dim font-medium">
               Voltar para o login
             </Link>
           </p>

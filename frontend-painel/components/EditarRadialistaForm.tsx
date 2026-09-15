@@ -14,7 +14,7 @@ import { LocufySpin } from "./LocufyLogo";
 import { PRECO_AGENTE_ADICIONAL, formatarReais } from "../lib/planos";
 
 const inputClass =
-  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20";
+  "w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20";
 const labelClass = "block text-sm font-medium text-fg/80 mb-1.5";
 
 // Fusos horários do Brasil pós-2019 (sem horário de verão) -- ver Radialista.timezone,
@@ -173,15 +173,15 @@ export default function EditarRadialistaForm({
   }
 
   if (!config) {
-    return <p className="text-sm text-rust-text">{erro || "Radialista não encontrado."}</p>;
+    return <p className="text-sm text-laranja">{erro || "Radialista não encontrado."}</p>;
   }
 
   return (
     <div className="space-y-5">
-      {erro && <p className="text-sm text-rust-text">{erro}</p>}
-      {mensagem && <p className="text-sm text-teal-text">{mensagem}</p>}
+      {erro && <p className="text-sm text-laranja">{erro}</p>}
+      {mensagem && <p className="text-sm text-ciano">{mensagem}</p>}
 
-      <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+      <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
         <div className="flex flex-col gap-1 mb-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="font-display text-base font-bold text-fg">
@@ -189,7 +189,7 @@ export default function EditarRadialistaForm({
             </h2>
             <p className="text-sm text-fg/65">
               Atende pelo WhatsApp da rádio.{" "}
-              <Link href="/conversas" className="text-amber-text hover:underline">
+              <Link href="/conversas" className="text-acento-claro hover:underline">
                 Gerenciar conexão
               </Link>
             </p>
@@ -198,7 +198,7 @@ export default function EditarRadialistaForm({
             <button
               type="button"
               onClick={() => setConfirmandoExclusaoRadialista(true)}
-              className="text-xs font-medium text-rust-text hover:text-rust/80 self-start sm:self-auto"
+              className="text-xs font-medium text-laranja hover:text-laranja/80 self-start sm:self-auto"
             >
               Excluir radialista
             </button>
@@ -269,7 +269,7 @@ export default function EditarRadialistaForm({
               type="checkbox"
               checked={config.resposta_automatica_whatsapp}
               onChange={(e) => setConfig({ ...config, resposta_automatica_whatsapp: e.target.checked })}
-              className="h-4 w-4 rounded border-border-strong bg-bg text-amber-text focus:ring-amber/40"
+              className="h-4 w-4 rounded border-border-strong bg-bg text-acento-claro focus:ring-acento-claro/40"
             />
             Responder automaticamente no WhatsApp
           </label>
@@ -277,7 +277,7 @@ export default function EditarRadialistaForm({
             <button
               type="submit"
               disabled={salvando}
-              className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {salvando ? "Salvando..." : "Salvar"}
             </button>
@@ -286,18 +286,18 @@ export default function EditarRadialistaForm({
       </div>
 
       {criando ? (
-        <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+        <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
           <h2 className="font-display text-base font-bold text-fg mb-1">Programação</h2>
           <p className="text-sm text-fg/65">Salve o radialista pra poder cadastrar os programas dele.</p>
         </div>
       ) : (
-        <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+        <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
           <div className="flex items-center justify-between mb-1">
             <h2 className="font-display text-base font-bold text-fg">Programação</h2>
             <button
               type="button"
               onClick={abrirNovoPrograma}
-              className="text-sm font-medium text-amber-text hover:text-amber-dim"
+              className="text-sm font-medium text-acento-claro hover:text-acento-dim"
             >
               + Novo programa
             </button>
@@ -314,11 +314,11 @@ export default function EditarRadialistaForm({
               {programas.map((p) => (
                 <div
                   key={p.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border-strong px-3 py-2.5"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border-strong px-3 py-2.5"
                 >
                   {onAbrirPrograma ? (
                     <button type="button" onClick={() => onAbrirPrograma(p.id)} className="min-w-0 text-left">
-                      <p className="text-sm font-medium text-fg hover:text-amber-text">{p.nome}</p>
+                      <p className="text-sm font-medium text-fg hover:text-acento-claro">{p.nome}</p>
                       <p className="text-xs text-fg/65 font-mono">
                         {formatarDias(p.dias_semana, p.data_especifica)} · {p.horario_inicio.slice(0, 5)} às{" "}
                         {p.horario_fim.slice(0, 5)}
@@ -327,7 +327,7 @@ export default function EditarRadialistaForm({
                     </button>
                   ) : (
                     <Link href={`/radialista/${idEfetivo}/programas/${p.id}`} className="min-w-0">
-                      <p className="text-sm font-medium text-fg hover:text-amber-text">{p.nome}</p>
+                      <p className="text-sm font-medium text-fg hover:text-acento-claro">{p.nome}</p>
                       <p className="text-xs text-fg/65 font-mono">
                         {formatarDias(p.dias_semana, p.data_especifica)} · {p.horario_inicio.slice(0, 5)} às{" "}
                         {p.horario_fim.slice(0, 5)}
@@ -340,14 +340,14 @@ export default function EditarRadialistaForm({
                       <button
                         type="button"
                         onClick={() => onAbrirPrograma(p.id)}
-                        className="text-xs font-medium text-amber-text hover:text-amber-dim"
+                        className="text-xs font-medium text-acento-claro hover:text-acento-dim"
                       >
                         Editar
                       </button>
                     ) : (
                       <Link
                         href={`/radialista/${idEfetivo}/programas/${p.id}`}
-                        className="text-xs font-medium text-amber-text hover:text-amber-dim"
+                        className="text-xs font-medium text-acento-claro hover:text-acento-dim"
                       >
                         Editar
                       </Link>
@@ -355,7 +355,7 @@ export default function EditarRadialistaForm({
                     <button
                       type="button"
                       onClick={() => setProgramaParaExcluir(p)}
-                      className="text-xs font-medium text-rust-text hover:text-rust/80"
+                      className="text-xs font-medium text-laranja hover:text-laranja/80"
                     >
                       Excluir
                     </button>
@@ -369,11 +369,11 @@ export default function EditarRadialistaForm({
 
       {mensagemLimiteAgentes && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-grafite/50 px-4"
           onClick={() => setMensagemLimiteAgentes("")}
         >
           <div
-            className="w-full max-w-sm rounded-2xl border border-border-strong bg-surface p-6 shadow-theme-xs"
+            className="w-full max-w-sm rounded-3xl border border-border-strong bg-surface p-6 shadow-theme-xs"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="font-display text-base font-bold text-fg mb-2">Limite de agentes atingido</h2>
@@ -387,20 +387,20 @@ export default function EditarRadialistaForm({
               <button
                 type="button"
                 onClick={() => setMensagemLimiteAgentes("")}
-                className="rounded-lg px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
+                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
               >
                 Fechar
               </button>
               <Link
                 href="/billing"
-                className="rounded-lg border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-paper/10"
+                className="rounded-xl border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/10"
               >
                 Ver planos
               </Link>
               <button
                 type="button"
                 onClick={() => setCheckoutAgenteExtraAberto(true)}
-                className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600"
+                className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600"
               >
                 Adicionar agente extra
               </button>

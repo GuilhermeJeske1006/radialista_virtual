@@ -64,18 +64,18 @@ export default function CartwallPanel({ itens, duckMusicaFundo }: Props) {
   }
 
   return (
-    <section className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">
+    <section className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5">
       <div className="flex items-center justify-between mb-1">
         <h2 className="font-display text-base font-bold text-fg">Cartwall</h2>
         {tocandoId !== null && (
-          <button type="button" onClick={pararTudo} className="text-xs font-medium text-rust-text hover:text-rust/80">
+          <button type="button" onClick={pararTudo} className="text-xs font-medium text-laranja hover:text-laranja/80">
             Parar
           </button>
         )}
       </div>
       <p className="text-xs text-fg/65 mb-3">Toque manual durante a transmissão.</p>
 
-      {erro && <p className="text-xs text-rust-text mb-3">{erro}</p>}
+      {erro && <p className="text-xs text-laranja mb-3">{erro}</p>}
 
       {itens.length === 0 ? (
         <p className="text-sm text-fg/65">
@@ -92,10 +92,10 @@ export default function CartwallPanel({ itens, duckMusicaFundo }: Props) {
                 type="button"
                 onClick={() => tocar(item)}
                 style={item.cor ? { borderColor: item.cor } : undefined}
-                className={`rounded-2xl border p-3 text-left shadow-theme-xs transition-colors ${
+                className={`rounded-3xl border p-3 text-left shadow-theme-xs transition-colors ${
                   ativo
-                    ? "bg-teal/10 border-teal/50 ring-1 ring-teal/30"
-                    : "bg-surface border-border-strong hover:border-amber/40"
+                    ? "bg-ciano/10 border-ciano/50 ring-1 ring-ciano/30"
+                    : "bg-surface border-border-strong hover:border-acento-claro/40"
                 }`}
               >
                 <p className="text-sm font-medium text-fg truncate">{item.nome}</p>

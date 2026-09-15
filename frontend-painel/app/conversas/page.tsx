@@ -268,20 +268,20 @@ export default function ConversasPage() {
 
   return (
     <AppShell title="Conversas" maxWidthClassName="max-w-4xl">
-      <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-4 mb-4">
+      <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-4 mb-4">
         {verificandoConexao ? (
           <p className="flex items-center gap-2 text-sm text-fg/65">
             <LocufySpin size={16} /> Verificando conexão do WhatsApp...
           </p>
         ) : conectado ? (
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-teal/10 text-teal-text border border-teal/25 px-2.5 py-0.5 text-xs font-medium">
-              <LocufyLed color="teal" pulse={false} /> WhatsApp conectado
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-ciano/10 text-ciano border border-ciano/25 px-2.5 py-0.5 text-xs font-medium">
+              <LocufyLed color="ciano" pulse={false} /> WhatsApp conectado
             </span>
             <button
               type="button"
               onClick={() => setConfirmandoDesconexao(true)}
-              className="text-xs font-medium text-rust-text hover:text-rust/80"
+              className="text-xs font-medium text-laranja hover:text-laranja/80"
             >
               Desconectar WhatsApp
             </button>
@@ -290,13 +290,13 @@ export default function ConversasPage() {
           <div>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm text-fg/80">
-                <span className="font-medium text-rust-text">WhatsApp desconectado</span> — os ouvintes não
+                <span className="font-medium text-laranja">WhatsApp desconectado</span> — os ouvintes não
                 estão sendo atendidos.
               </p>
               <button
                 onClick={conectarWhatsapp}
                 disabled={conectando}
-                className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-ink hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {conectando ? "Gerando..." : "Conectar WhatsApp"}
               </button>
@@ -307,13 +307,13 @@ export default function ConversasPage() {
                 <img
                   src={qrCode}
                   alt="QR Code do WhatsApp"
-                  className="max-w-64 rounded-lg bg-paper p-2 border border-border-strong"
+                  className="max-w-64 rounded-xl bg-branco p-2 border border-border-strong"
                 />
               </div>
             )}
           </div>
         )}
-        {erroConexao && <p className="text-sm text-rust-text mt-3">{erroConexao}</p>}
+        {erroConexao && <p className="text-sm text-laranja mt-3">{erroConexao}</p>}
       </div>
 
       <ConfirmDialog
@@ -328,7 +328,7 @@ export default function ConversasPage() {
         <p className="text-sm text-fg/65">
           Conversas dos ouvintes, separadas por número, e o que o sistema fez com cada mensagem. Pra ver
           totais e gráficos,{" "}
-          <Link href="/metrics" className="text-amber-text hover:text-amber-dim font-medium">
+          <Link href="/metrics" className="text-acento-claro hover:text-acento-dim font-medium">
             acesse Métricas
           </Link>
           .
@@ -340,7 +340,7 @@ export default function ConversasPage() {
               aria-label="Período do CSV"
               value={periodoExport}
               onChange={(e) => setPeriodoExport(e.target.value)}
-              className="rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+              className="rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
             >
               {OPCOES_PERIODO.map((opcao) => (
                 <option key={opcao.valor} value={opcao.valor}>
@@ -353,18 +353,18 @@ export default function ConversasPage() {
             type="button"
             onClick={exportarCsv}
             disabled={exportando}
-            className="rounded-lg border border-border-strong px-4 py-2 text-sm font-medium text-fg hover:bg-paper/5 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="rounded-xl border border-border-strong px-4 py-2 text-sm font-medium text-fg hover:bg-fg/5 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {exportando ? "Exportando..." : "Exportar CSV"}
           </button>
         </div>
       </div>
-      {erroExport && <p className="text-sm text-rust-text mb-4">{erroExport}</p>}
+      {erroExport && <p className="text-sm text-laranja mb-4">{erroExport}</p>}
 
       <div className="flex flex-col md:flex-row gap-4 h-130">
         {/* Lista de conversas, tipo lista de chats do WhatsApp */}
         <div
-          className={`w-full md:w-72 shrink-0 bg-surface rounded-2xl border border-border-strong shadow-theme-xs flex-col overflow-hidden ${
+          className={`w-full md:w-72 shrink-0 bg-surface rounded-3xl border border-border-strong shadow-theme-xs flex-col overflow-hidden ${
             telefoneSelecionado ? "hidden md:flex" : "flex"
           }`}
         >
@@ -380,7 +380,7 @@ export default function ConversasPage() {
                 <button
                   key={conversa.telefone}
                   onClick={() => selecionarConversa(conversa.telefone)}
-                  className={`w-full text-left p-3 hover:bg-paper/70 transition-colors ${
+                  className={`w-full text-left p-3 hover:bg-fg/70 transition-colors ${
                     telefoneSelecionado === conversa.telefone ? "bg-brand-500/10" : ""
                   }`}
                 >
@@ -432,7 +432,7 @@ export default function ConversasPage() {
 
         {/* Thread da conversa selecionada, tipo tela de chat do WhatsApp */}
         <div
-          className={`flex-1 bg-surface rounded-2xl border border-border-strong shadow-theme-xs flex-col overflow-hidden ${
+          className={`flex-1 bg-surface rounded-3xl border border-border-strong shadow-theme-xs flex-col overflow-hidden ${
             telefoneSelecionado ? "flex" : "hidden md:flex"
           }`}
         >
@@ -456,7 +456,7 @@ export default function ConversasPage() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 bg-paper/40 flex flex-col gap-3">
+              <div className="flex-1 overflow-y-auto p-4 bg-fg/40 flex flex-col gap-3">
                 {paginaMensagens < totalPaginasMensagens && (
                   <button
                     onClick={() => carregarMensagens(telefoneSelecionado, paginaMensagens + 1)}
@@ -479,7 +479,7 @@ export default function ConversasPage() {
                         <div
                           className={`border px-3 py-2 shadow-theme-xs rounded-xl ${
                             enviadaPelaRadio
-                              ? "bg-teal/15 border-teal/25 rounded-tr-none"
+                              ? "bg-ciano/15 border-ciano/25 rounded-tr-none"
                               : "bg-surface border-border-strong rounded-tl-none"
                           }`}
                         >

@@ -81,7 +81,7 @@ export default function VoiceSelect({ value, onChange }: Props) {
       <div
         role="radiogroup"
         aria-label="Voz"
-        className="max-h-72 divide-y divide-border-strong overflow-y-auto rounded-lg border border-border-strong"
+        className="max-h-72 divide-y divide-border-strong overflow-y-auto rounded-xl border border-border-strong"
       >
         <label className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-fg/5">
           <input type="radio" name="voz" checked={!value} onChange={() => onChange(null)} />
@@ -96,7 +96,7 @@ export default function VoiceSelect({ value, onChange }: Props) {
                 <div key={v.voz_id} className="flex items-center gap-2 px-3 py-2 text-sm">
                   <input
                     autoFocus
-                    className="min-w-0 flex-1 rounded-lg border border-border-strong bg-bg px-2 py-1 text-sm text-fg focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20"
+                    className="min-w-0 flex-1 rounded-xl border border-border-strong bg-bg px-2 py-1 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
                     value={nomeEdicao}
                     onChange={(e) => setNomeEdicao(e.target.value)}
                     onKeyDown={(e) => {
@@ -107,7 +107,7 @@ export default function VoiceSelect({ value, onChange }: Props) {
                   <button
                     type="button"
                     onClick={() => salvarRenomeacao(v.id)}
-                    className="shrink-0 text-xs font-medium text-amber-text hover:text-amber-dim"
+                    className="shrink-0 text-xs font-medium text-acento-claro hover:text-acento-dim"
                   >
                     Salvar
                   </button>
@@ -125,7 +125,7 @@ export default function VoiceSelect({ value, onChange }: Props) {
                     <input type="radio" name="voz" checked={value === v.voz_id} disabled={v.requer_verificacao} onChange={() => onChange(v.voz_id)} />
                     {v.nome}{v.requer_verificacao && " · aguardando verificação"}
                   </label>
-                  {v.requer_verificacao && <button type="button" className="text-xs text-amber-text" onClick={() => setConfigVoz(v.voz_id)}>Verificar status</button>}
+                  {v.requer_verificacao && <button type="button" className="text-xs text-acento-claro" onClick={() => setConfigVoz(v.voz_id)}>Verificar status</button>}
                   {v.preview_url && (
                     <audio controls preload="none" src={v.preview_url} className="h-8 w-40 shrink-0" />
                   )}
@@ -141,7 +141,7 @@ export default function VoiceSelect({ value, onChange }: Props) {
                     type="button"
                     onClick={() => excluirVozClonada(v)}
                     title="Excluir"
-                    className="shrink-0 text-fg/65 hover:text-rust-text"
+                    className="shrink-0 text-fg/65 hover:text-laranja"
                   >
                     🗑️
                   </button>
@@ -182,16 +182,16 @@ export default function VoiceSelect({ value, onChange }: Props) {
         ))}
       </div>
 
-      <button type="button" className="mt-2 text-xs text-amber-text" onClick={() => setConfigVoz(value)}>Ajustar voz selecionada</button>
+      <button type="button" className="mt-2 text-xs text-acento-claro" onClick={() => setConfigVoz(value)}>Ajustar voz selecionada</button>
       {configVoz !== undefined && <VozConfigModal vozId={configVoz} onFechar={() => setConfigVoz(undefined)} onAtualizada={carregarVozesClonadas} />}
-      {erro && <p className="mt-1.5 text-xs text-rust-text">{erro}</p>}
+      {erro && <p className="mt-1.5 text-xs text-laranja">{erro}</p>}
 
       <div className="mt-1.5">
         {permiteClonagemVoz(plano) ? (
           <button
             type="button"
             onClick={() => setModalAberto(true)}
-            className="text-xs font-medium text-amber-text hover:text-amber-dim"
+            className="text-xs font-medium text-acento-claro hover:text-acento-dim"
           >
             🎙️ Clonar uma voz
           </button>
@@ -199,7 +199,7 @@ export default function VoiceSelect({ value, onChange }: Props) {
           plano && (
             <p className="text-xs text-fg/65">
               Clonar sua própria voz é um recurso do plano Growth em diante.{" "}
-              <Link href="/billing" className="text-amber-text hover:underline">
+              <Link href="/billing" className="text-acento-claro hover:underline">
                 Fazer upgrade
               </Link>
             </p>

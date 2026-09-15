@@ -182,26 +182,26 @@ export default function DashboardPage() {
   const pendentes = TAREFAS_AO_VIVO.filter((t) => !t.feita && !t.opcional).length;
 
   return (
-    <AppShell title="Dashboard" maxWidthClassName="max-w-4xl">
-      {erro && <p className="text-sm text-rust-text mb-4">{erro}</p>}
+    <AppShell title="Visão geral" maxWidthClassName="max-w-4xl">
+      {erro && <p className="text-sm text-laranja mb-4">{erro}</p>}
 
       <UpsellBanner />
 
       {onboardingIncompleto && (
-        <div className="flex items-start justify-between gap-4 rounded-2xl border border-amber/40 bg-amber/10 px-5 py-4 mb-6">
+        <div className="flex items-start justify-between gap-4 rounded-3xl border border-acento-claro/40 bg-acento/10 px-5 py-4 mb-6">
           <div>
             <p className="text-sm font-medium text-fg">Sua conta foi criada, mas a assinatura ainda não foi confirmada.</p>
             <p className="text-sm text-fg/65 mt-0.5">
               Alguns dados podem não ter sido salvos.{" "}
-              <Link href="/billing" className="text-amber-text hover:text-amber-dim font-medium">
+              <Link href="/billing" className="text-acento-claro hover:text-acento-dim font-medium">
                 Finalizar assinatura
               </Link>
               {" "}· revise também{" "}
-              <Link href="/configuracoes" className="text-amber-text hover:text-amber-dim font-medium">
+              <Link href="/configuracoes" className="text-acento-claro hover:text-acento-dim font-medium">
                 Configurações
               </Link>
               {" "}e{" "}
-              <Link href="/radialista" className="text-amber-text hover:text-amber-dim font-medium">
+              <Link href="/radialista" className="text-acento-claro hover:text-acento-dim font-medium">
                 Radialistas
               </Link>
               .
@@ -225,48 +225,48 @@ export default function DashboardPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">
+            <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5">
               <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">Radialistas</p>
               <p className="font-display text-2xl font-bold text-fg">{radialistas.length}</p>
               <p className="text-xs text-fg/65 mt-0.5">
                 {radialistasProntos} pronto{radialistasProntos === 1 ? "" : "s"} com voz definida
               </p>
             </div>
-            <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">
+            <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5">
               <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">WhatsApp da rádio</p>
               <p className="flex items-center gap-2 font-display text-2xl font-bold text-fg">
-                <LocufyLed color={whatsappConectado ? "teal" : "amber"} pulse={false} />
+                <LocufyLed color={whatsappConectado ? "ciano" : "acento"} pulse={false} />
                 {whatsappConectado ? "Conectado" : "Não conectado"}
               </p>
             </div>
-            <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">
+            <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5">
               <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">No ar agora</p>
               {realmenteNoAr ? (
                 <>
                   <p className="flex items-center gap-2 font-display text-2xl font-bold text-fg truncate">
-                    <LocufyLed color="rust" pulse /> {noAr!.radialista_nome}
+                    <LocufyLed color="laranja" pulse /> {noAr!.radialista_nome}
                   </p>
                   <p className="text-xs text-fg/65 mt-0.5 truncate">{noAr!.programa_nome}</p>
                 </>
               ) : (
                 <p className="flex items-center gap-2 font-display text-2xl font-bold text-fg/65">
-                  <LocufyLed color="amber" pulse={false} /> Ninguém
+                  <LocufyLed color="acento" pulse={false} /> Ninguém
                 </p>
               )}
             </div>
-            <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">
+            <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5">
               <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">Plano</p>
               <p className="font-display text-2xl font-bold text-fg capitalize">{conta?.plano ?? "-"}</p>
               <p className="text-xs text-fg/65 mt-0.5 capitalize">{conta?.plano_status ?? ""}</p>
             </div>
-            <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">
+            <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5">
               <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">Programas</p>
               <p className="font-display text-2xl font-bold text-fg">{programas.length}</p>
               <p className="text-xs text-fg/65 mt-0.5">
                 {programasAtivos} ativo{programasAtivos === 1 ? "" : "s"} na grade
               </p>
             </div>
-            <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5">
+            <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5">
               <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">Vinhetagem</p>
               <p className="font-display text-2xl font-bold text-fg">{patrocinadores.length}</p>
               <p className="text-xs text-fg/65 mt-0.5">
@@ -275,7 +275,7 @@ export default function DashboardPage() {
             </div>
             <Link
               href="/metrics"
-              className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5 hover:border-amber/40 transition-colors"
+              className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5 hover:border-acento-claro/40 transition-colors"
             >
               <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">Mensagens (7 dias)</p>
               <p className="font-display text-2xl font-bold text-fg">{mensagens7Dias ?? "-"}</p>
@@ -284,10 +284,10 @@ export default function DashboardPage() {
           </div>
 
           {mensagensPorDia.some((ponto) => ponto.total > 0) && (
-            <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5 mb-6">
+            <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5 mb-6">
               <div className="flex items-center justify-between mb-3">
                 <p className="font-display text-sm font-bold text-fg">Mensagens por dia (últimos 30 dias)</p>
-                <Link href="/metrics" className="text-xs font-medium text-amber-text hover:text-amber-dim">
+                <Link href="/metrics" className="text-xs font-medium text-acento-claro hover:text-acento-dim">
                   Ver detalhes
                 </Link>
               </div>
@@ -295,7 +295,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5 mb-6">
+          <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5 mb-6">
             <div className="flex items-center justify-between mb-3">
               <p className="font-display text-sm font-bold text-fg">Pronto para o ao vivo</p>
               <span className="text-xs font-medium text-fg/65">
@@ -308,7 +308,7 @@ export default function DashboardPage() {
                   <Link href={t.href} className="flex items-start gap-3 group">
                     <span
                       className={`mt-0.5 shrink-0 w-4 h-4 rounded-full border flex items-center justify-center ${
-                        t.feita ? "bg-teal border-teal text-ink" : "border-border-strong text-transparent"
+                        t.feita ? "bg-ciano border-ciano text-on-brand" : "border-border-strong text-transparent"
                       }`}
                     >
                       <svg viewBox="0 0 16 16" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -317,7 +317,7 @@ export default function DashboardPage() {
                     </span>
                     <span className="flex-1">
                       <span
-                        className={`text-sm font-medium group-hover:text-amber-text transition-colors ${
+                        className={`text-sm font-medium group-hover:text-acento-claro transition-colors ${
                           t.feita ? "text-fg/65 line-through" : "text-fg"
                         }`}
                       >
@@ -340,13 +340,13 @@ export default function DashboardPage() {
                 <Link
                   key={a.href}
                   href={a.href}
-                  className="flex items-center justify-between gap-3 bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-5 hover:border-amber/40 transition-colors"
+                  className="flex items-center justify-between gap-3 bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5 hover:border-acento-claro/40 transition-colors"
                 >
                   <div>
                     <p className="font-display text-sm font-bold text-fg">{a.label}</p>
                     <p className="text-sm text-fg/65 mt-0.5">{a.descricao}</p>
                   </div>
-                  <span className="text-amber-text shrink-0">→</span>
+                  <span className="text-acento-claro shrink-0">→</span>
                 </Link>
               ))}
             </div>

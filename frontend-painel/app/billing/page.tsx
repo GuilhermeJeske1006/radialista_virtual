@@ -146,7 +146,7 @@ export default function BillingPage() {
       <UpsellBanner />
 
       {assinaturaConfirmada && (
-        <div className="flex items-center justify-between gap-4 rounded-2xl border border-teal/40 bg-teal/10 px-5 py-3 mb-6 max-w-2xl">
+        <div className="flex items-center justify-between gap-4 rounded-3xl border border-ciano/40 bg-ciano/10 px-5 py-3 mb-6 max-w-2xl">
           <p className="text-sm font-medium text-fg">Assinatura confirmada.</p>
           <button
             type="button"
@@ -160,7 +160,7 @@ export default function BillingPage() {
       )}
 
       {compraConfirmada && (
-        <div className="flex items-center justify-between gap-4 rounded-2xl border border-teal/40 bg-teal/10 px-5 py-3 mb-6 max-w-2xl">
+        <div className="flex items-center justify-between gap-4 rounded-3xl border border-ciano/40 bg-ciano/10 px-5 py-3 mb-6 max-w-2xl">
           <p className="text-sm font-medium text-fg">{compraConfirmada}</p>
           <button
             type="button"
@@ -174,7 +174,7 @@ export default function BillingPage() {
       )}
 
       {planoTrocado && (
-        <div className="flex items-center justify-between gap-4 rounded-2xl border border-teal/40 bg-teal/10 px-5 py-3 mb-6 max-w-2xl">
+        <div className="flex items-center justify-between gap-4 rounded-3xl border border-ciano/40 bg-ciano/10 px-5 py-3 mb-6 max-w-2xl">
           <p className="text-sm font-medium text-fg">Plano trocado com sucesso.</p>
           <button
             type="button"
@@ -186,7 +186,7 @@ export default function BillingPage() {
           </button>
         </div>
       )}
-      <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6 mb-8 max-w-lg">
+      <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6 mb-8 max-w-lg">
         <h2 className="font-display text-base font-bold text-fg mb-4">Plano atual</h2>
         {carregando ? (
           <p className="flex items-center gap-2 text-sm text-fg/65">
@@ -198,10 +198,10 @@ export default function BillingPage() {
               <span className="text-sm text-fg/65">Status:</span>
               <span
                 className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                  ativo ? "bg-teal/10 text-teal-text" : "bg-amber/10 text-amber-text"
+                  ativo ? "bg-ciano/10 text-ciano" : "bg-acento/10 text-acento-claro"
                 }`}
               >
-                <LocufyLed color={ativo ? "teal" : "amber"} pulse={false} />
+                <LocufyLed color={ativo ? "ciano" : "acento"} pulse={false} />
                 {statusPlano.plano_status}
               </span>
               {planoAtual && (
@@ -236,7 +236,7 @@ export default function BillingPage() {
                   type="button"
                   onClick={abrirPortal}
                   disabled={abrindoPortal}
-                  className="mt-5 flex items-center gap-2 rounded-lg bg-paper/10 px-4 py-2.5 text-sm font-medium text-fg hover:bg-paper/15 disabled:opacity-60"
+                  className="mt-5 flex items-center gap-2 rounded-xl bg-fg/10 px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/15 disabled:opacity-60"
                 >
                   {abrindoPortal ? (
                     <>
@@ -246,7 +246,7 @@ export default function BillingPage() {
                     "Gerenciar pagamento"
                   )}
                 </button>
-                {erroPortal && <p className="text-sm text-rust-text mt-2">{erroPortal}</p>}
+                {erroPortal && <p className="text-sm text-laranja mt-2">{erroPortal}</p>}
               </>
             )}
           </>
@@ -264,7 +264,7 @@ export default function BillingPage() {
         </p>
       </div>
 
-      {erro && <p className="text-sm text-rust-text mb-4">{erro}</p>}
+      {erro && <p className="text-sm text-laranja mb-4">{erro}</p>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {PLANOS.map((plano) => {
@@ -273,21 +273,21 @@ export default function BillingPage() {
           return (
           <div
             key={plano.id}
-            className={`relative flex flex-col rounded-2xl border p-6 shadow-theme-xs ${
+            className={`relative flex flex-col rounded-3xl border p-6 shadow-theme-xs ${
               ehPlanoSelecionado
-                ? "bg-surface border-teal/50 ring-1 ring-teal/30"
+                ? "bg-surface border-ciano/50 ring-1 ring-ciano/30"
                 : plano.destaque
-                ? "bg-surface border-amber/50 ring-1 ring-amber/30"
+                ? "bg-surface border-acento-claro/50 ring-1 ring-acento-claro/30"
                 : "bg-surface border-border-strong"
             }`}
           >
             {ehPlanoSelecionado ? (
-              <span className="absolute -top-3 left-6 rounded-full bg-teal px-2.5 py-0.5 text-[11px] font-semibold text-ink">
+              <span className="absolute -top-3 left-6 rounded-full bg-ciano px-2.5 py-0.5 text-[11px] font-semibold text-on-brand">
                 Seu plano atual
               </span>
             ) : (
               plano.destaque && (
-                <span className="absolute -top-3 left-6 rounded-full bg-brand-500 px-2.5 py-0.5 text-[11px] font-semibold text-ink">
+                <span className="absolute -top-3 left-6 rounded-full bg-brand-500 px-2.5 py-0.5 text-[11px] font-semibold text-on-brand">
                   Mais escolhido
                 </span>
               )
@@ -318,17 +318,17 @@ export default function BillingPage() {
             </ul>
 
             {ehPlanoAtual ? (
-              <span className="flex items-center justify-center rounded-lg border border-teal/40 bg-teal/10 px-4 py-2.5 text-sm font-medium text-teal-text">
+              <span className="flex items-center justify-center rounded-xl border border-ciano/40 bg-ciano/10 px-4 py-2.5 text-sm font-medium text-ciano">
                 Plano atual
               </span>
             ) : (
               <button
                 onClick={() => assinar(plano.id)}
                 disabled={carregandoId === plano.id}
-                className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed ${
+                className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed ${
                   plano.destaque
-                    ? "bg-brand-500 text-ink hover:bg-brand-600"
-                    : "bg-paper/10 text-fg hover:bg-paper/15"
+                    ? "bg-brand-500 text-on-brand hover:bg-brand-600"
+                    : "bg-fg/10 text-fg hover:bg-fg/15"
                 }`}
               >
                 {carregandoId === plano.id ? (
@@ -347,7 +347,7 @@ export default function BillingPage() {
         })}
       </div>
 
-      <div className="mt-6 bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+      <div className="mt-6 bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h3 className="font-display text-sm font-bold text-fg mb-3">Agentes adicionais</h3>
@@ -366,7 +366,7 @@ export default function BillingPage() {
             <button
               type="button"
               onClick={() => setCheckoutAgenteExtraAberto(true)}
-              className="flex items-center gap-2 shrink-0 rounded-lg bg-paper/10 px-4 py-2.5 text-sm font-medium text-fg hover:bg-paper/15"
+              className="flex items-center gap-2 shrink-0 rounded-xl bg-fg/10 px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/15"
             >
               + Agente extra
             </button>
@@ -389,7 +389,7 @@ export default function BillingPage() {
             <button
               type="button"
               onClick={() => setModalExcedenteAberto(true)}
-              className="shrink-0 rounded-lg bg-paper/10 px-4 py-2.5 text-sm font-medium text-fg hover:bg-paper/15"
+              className="shrink-0 rounded-xl bg-fg/10 px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/15"
             >
               Comprar excedente
             </button>
@@ -399,11 +399,11 @@ export default function BillingPage() {
 
       {modalExcedenteAberto && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-grafite/50 px-4"
           onClick={() => setModalExcedenteAberto(false)}
         >
           <div
-            className="w-full max-w-sm rounded-2xl border border-border-strong bg-surface p-6 shadow-theme-xs"
+            className="w-full max-w-sm rounded-3xl border border-border-strong bg-surface p-6 shadow-theme-xs"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="font-display text-base font-bold text-fg mb-2">Comprar excedente de mensagens</h2>
@@ -418,7 +418,7 @@ export default function BillingPage() {
               max={50}
               value={blocosExcedente}
               onChange={(e) => setBlocosExcedente(Math.min(50, Math.max(1, Number(e.target.value) || 1)))}
-              className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-amber/40"
+              className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-acento-claro/40"
             />
             <p className="text-sm text-fg/65 mt-2">
               Total: <span className="font-semibold text-fg">R$ {formatarReais(blocosExcedente * PRECO_EXCEDENTE_1000_MSG)}</span>
@@ -427,14 +427,14 @@ export default function BillingPage() {
               <button
                 type="button"
                 onClick={() => setModalExcedenteAberto(false)}
-                className="rounded-lg px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
+                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={comprarExcedente}
-                className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600"
+                className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600"
               >
                 Comprar
               </button>
@@ -509,9 +509,9 @@ function BarraUso({
           {usado.toLocaleString("pt-BR")} / {limite.toLocaleString("pt-BR")}
         </span>
       </div>
-      <div className="h-1.5 rounded-full bg-paper/10 overflow-hidden">
+      <div className="h-1.5 rounded-full bg-fg/10 overflow-hidden">
         <div
-          className={`h-full rounded-full ${perto ? "bg-rust" : "bg-amber"}`}
+          className={`h-full rounded-full ${perto ? "bg-laranja" : "bg-acento"}`}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -523,7 +523,7 @@ function Feature({ texto }: { texto: string }) {
   return (
     <li className="flex items-start gap-2 text-sm text-fg/75">
       <svg
-        className="h-4.5 w-4.5 shrink-0 text-teal-text mt-0.5"
+        className="h-4.5 w-4.5 shrink-0 text-ciano mt-0.5"
         fill="none"
         viewBox="0 0 24 24"
         strokeWidth={2}

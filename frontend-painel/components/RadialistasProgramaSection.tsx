@@ -7,7 +7,7 @@ import { PAPEIS_SUGERIDOS, Radialista, RadialistaPrograma } from "../lib/types";
 import { LocufySpin } from "./LocufyLogo";
 
 const inputClass =
-  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20";
+  "w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20";
 
 type Props = {
   programaId: number;
@@ -97,7 +97,7 @@ export default function RadialistasProgramaSection({ programaId }: Props) {
   }
 
   if (!roster) {
-    return <p className="text-sm text-rust-text">{erro || "Não foi possível carregar os radialistas do programa."}</p>;
+    return <p className="text-sm text-laranja">{erro || "Não foi possível carregar os radialistas do programa."}</p>;
   }
 
   const disponiveisPraAdicionar = radialistasConta.filter(
@@ -111,16 +111,16 @@ export default function RadialistasProgramaSection({ programaId }: Props) {
         voz. Defina o papel e como cada um deve se comportar.
       </p>
 
-      {erro && <p className="text-sm text-rust-text">{erro}</p>}
+      {erro && <p className="text-sm text-laranja">{erro}</p>}
 
       <div className="space-y-3">
         {roster.map((item) => (
-          <div key={item.radio_config_id} className="rounded-lg border border-border-strong p-3 space-y-2">
+          <div key={item.radio_config_id} className="rounded-xl border border-border-strong p-3 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium text-fg">
                 {item.nome_locutor}
                 {item.e_dono && (
-                  <span className="ml-2 rounded-full bg-amber/10 px-2 py-0.5 text-xs font-medium text-amber-text">
+                  <span className="ml-2 rounded-full bg-acento/10 px-2 py-0.5 text-xs font-medium text-acento-claro">
                     Dono do programa
                   </span>
                 )}
@@ -130,7 +130,7 @@ export default function RadialistasProgramaSection({ programaId }: Props) {
                   type="button"
                   onClick={() => remover(item.radio_config_id)}
                   disabled={salvandoId === item.radio_config_id}
-                  className="text-xs font-medium text-rust-text hover:text-rust/80 disabled:opacity-60"
+                  className="text-xs font-medium text-laranja hover:text-laranja/80 disabled:opacity-60"
                 >
                   Remover
                 </button>
@@ -145,7 +145,7 @@ export default function RadialistasProgramaSection({ programaId }: Props) {
                   onClick={() => atualizarLocal(item.radio_config_id, "papel", papel)}
                   className={`rounded-full px-3 py-1 text-xs font-medium border ${
                     item.papel === papel
-                      ? "bg-brand-500 text-ink border-brand-500"
+                      ? "bg-brand-500 text-on-brand border-brand-500"
                       : "bg-transparent text-fg/65 border-border-strong"
                   }`}
                 >
@@ -171,7 +171,7 @@ export default function RadialistasProgramaSection({ programaId }: Props) {
                 type="button"
                 onClick={() => salvar(item)}
                 disabled={salvandoId === item.radio_config_id}
-                className="rounded-lg border border-border-strong px-3 py-1.5 text-xs font-medium text-fg/80 hover:bg-paper/5 disabled:opacity-60"
+                className="rounded-xl border border-border-strong px-3 py-1.5 text-xs font-medium text-fg/80 hover:bg-fg/5 disabled:opacity-60"
               >
                 {salvandoId === item.radio_config_id ? "Salvando..." : "Salvar"}
               </button>
@@ -188,7 +188,7 @@ export default function RadialistasProgramaSection({ programaId }: Props) {
             if (e.target.value) adicionar(Number(e.target.value));
             e.target.value = "";
           }}
-          className="rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg/80"
+          className="rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg/80"
         >
           <option value="">+ Adicionar radialista ao programa</option>
           {disponiveisPraAdicionar.map((r) => (
@@ -201,11 +201,11 @@ export default function RadialistasProgramaSection({ programaId }: Props) {
 
       {mensagemLimite && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-grafite/50 px-4"
           onClick={() => setMensagemLimite("")}
         >
           <div
-            className="w-full max-w-sm rounded-2xl border border-border-strong bg-surface p-6 shadow-theme-xs"
+            className="w-full max-w-sm rounded-3xl border border-border-strong bg-surface p-6 shadow-theme-xs"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="font-display text-base font-bold text-fg mb-2">Limite de radialistas atingido</h2>
@@ -214,13 +214,13 @@ export default function RadialistasProgramaSection({ programaId }: Props) {
               <button
                 type="button"
                 onClick={() => setMensagemLimite("")}
-                className="rounded-lg px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
+                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
               >
                 Fechar
               </button>
               <Link
                 href="/billing"
-                className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600"
+                className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600"
               >
                 Ver planos
               </Link>

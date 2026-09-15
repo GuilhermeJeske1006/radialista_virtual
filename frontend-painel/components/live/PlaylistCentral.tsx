@@ -58,14 +58,14 @@ export default function PlaylistCentral({
   return (
     <>
       <section
-        className={`rounded-2xl border shadow-theme-xs p-6 transition-colors ${
-          programaAtivo ? "bg-surface border-rust/40 ring-1 ring-rust/15" : "bg-surface border-border-strong"
+        className={`rounded-3xl border shadow-theme-xs p-6 transition-colors ${
+          programaAtivo ? "bg-surface border-laranja/40 ring-1 ring-laranja/15" : "bg-surface border-border-strong"
         }`}
       >
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
-            {programaAtivo && <LocufyLed color="rust" />}
-            <p className={`font-mono text-xs font-semibold uppercase tracking-wide truncate ${programaAtivo ? "text-rust-text" : "text-fg/65"}`}>
+            {programaAtivo && <LocufyLed color="laranja" />}
+            <p className={`font-mono text-xs font-semibold uppercase tracking-wide truncate ${programaAtivo ? "text-laranja" : "text-fg/65"}`}>
               {programaAtivo ? "Transmitindo" : "Pausado"}
             </p>
           </div>
@@ -73,7 +73,7 @@ export default function PlaylistCentral({
             type="button"
             onClick={onProximaFala}
             disabled={gerandoFala}
-            className="shrink-0 rounded-lg border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-paper/5 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="shrink-0 rounded-xl border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/5 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {gerandoFala ? "Gerando..." : "Proxima fala"}
           </button>
@@ -97,7 +97,7 @@ export default function PlaylistCentral({
           <div className="mt-4">
             <div className="h-1.5 rounded-full bg-bg overflow-hidden">
               <div
-                className="h-full rounded-full bg-linear-to-r from-teal to-amber transition-[width]"
+                className="h-full rounded-full bg-linear-to-r from-ciano to-acento transition-[width]"
                 style={{ width: `${transport.percentConcluido ?? 0}%` }}
               />
             </div>
@@ -122,7 +122,7 @@ export default function PlaylistCentral({
         )}
       </section>
 
-      <section className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+      <section className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display text-base font-bold text-fg">Historico de falas</h2>
           <span className="font-mono text-xs text-fg/65">{falasPrograma.length} nesta transmissao</span>
@@ -141,12 +141,12 @@ export default function PlaylistCentral({
                   key={fala.id}
                   className={
                     index === 0
-                      ? "rounded-lg bg-surface border border-rust/30 p-3 text-fg shadow-theme-xs"
+                      ? "rounded-xl bg-surface border border-laranja/30 p-3 text-fg shadow-theme-xs"
                       : "text-fg/65"
                   }
                 >
                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <span className="rounded-full bg-teal/10 px-2 py-0.5 text-xs font-medium text-teal-text">
+                    <span className="rounded-full bg-ciano/10 px-2 py-0.5 text-xs font-medium text-ciano">
                       {fala.tipo.replace("_", " ")}
                     </span>
                     <span className="font-mono text-xs text-fg/65">{formatarHora(fala.criado_em)}</span>
@@ -159,7 +159,7 @@ export default function PlaylistCentral({
                       </span>
                     )}
                     {fala.origem === "local" && (
-                      <span className="rounded-full bg-amber/10 px-2 py-0.5 text-xs font-medium text-amber-text">
+                      <span className="rounded-full bg-acento/10 px-2 py-0.5 text-xs font-medium text-acento-claro">
                         fallback local
                       </span>
                     )}
@@ -174,7 +174,7 @@ export default function PlaylistCentral({
                     <div className="mt-2 text-xs text-fg/65">
                       {fala.pesquisa_noticias.status === "ok" ? (
                         <details>
-                          <summary className="cursor-pointer text-teal-text">
+                          <summary className="cursor-pointer text-ciano">
                             Fontes consultadas ({fala.pesquisa_noticias.fontes.length})
                             {fala.pesquisa_noticias.consultado_em && ` · ${formatarHora(fala.pesquisa_noticias.consultado_em)}`}
                           </summary>

@@ -92,9 +92,9 @@ export default function ProximosBlocosPanel({ programa, totalFalas, variant = "c
         variant === "strip" ? (
           <li
             key={i}
-            className={`shrink-0 whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs ${
+            className={`shrink-0 whitespace-nowrap rounded-xl border px-3 py-1.5 text-xs ${
               i === 0
-                ? "bg-amber/10 border-amber/30 text-amber-text font-semibold"
+                ? "bg-acento/10 border-acento-claro/30 text-acento-claro font-semibold"
                 : "bg-bg border-border-strong text-fg/60"
             }`}
           >
@@ -104,8 +104,8 @@ export default function ProximosBlocosPanel({ programa, totalFalas, variant = "c
         ) : (
           <li
             key={i}
-            className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm ${
-              i === 0 ? "bg-amber/10 border border-amber/25 text-amber-text font-medium" : "text-fg/65"
+            className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm ${
+              i === 0 ? "bg-acento/10 border border-acento-claro/25 text-acento-claro font-medium" : "text-fg/65"
             }`}
           >
             <span className="font-mono text-xs w-5 shrink-0">{i === 0 ? "▶" : i + 1}</span>
@@ -133,7 +133,7 @@ export default function ProximosBlocosPanel({ programa, totalFalas, variant = "c
   }
 
   return (
-    <section className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+    <section className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
       <h2 className="font-display text-base font-bold text-fg">Proximos blocos</h2>
       <p className="text-sm text-fg/65 mt-1">
         Sequencia planejada pra grade deste programa. So os tipos -- o conteudo real (texto, musica) so e' gerado

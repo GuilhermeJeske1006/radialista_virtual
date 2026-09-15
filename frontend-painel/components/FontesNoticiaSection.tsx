@@ -6,7 +6,7 @@ import { FONTE_NOTICIA_VAZIA, FonteNoticia } from "../lib/types";
 import { LocufySpin } from "./LocufyLogo";
 
 const inputClass =
-  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20";
+  "w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20";
 
 const TIPO_LABEL: Record<FonteNoticia["tipo"], string> = {
   oficial: "Órgão oficial",
@@ -115,11 +115,11 @@ export default function FontesNoticiaSection() {
         coleta.
       </p>
 
-      {erro && <p className="text-sm text-rust-text">{erro}</p>}
+      {erro && <p className="text-sm text-laranja">{erro}</p>}
 
       <div className="space-y-2">
         {(fontes ?? []).map((fonte) => (
-          <div key={fonte.id} className="rounded-lg border border-border-strong p-3 space-y-2">
+          <div key={fonte.id} className="rounded-xl border border-border-strong p-3 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium text-fg">{fonte.nome}</span>
               <div className="flex items-center gap-3">
@@ -131,7 +131,7 @@ export default function FontesNoticiaSection() {
                       atualizarLocal(fonte.id, "ativa", e.target.checked);
                       salvar({ ...fonte, ativa: e.target.checked });
                     }}
-                    className="h-3.5 w-3.5 rounded border-border-strong bg-bg text-amber-text focus:ring-amber/40"
+                    className="h-3.5 w-3.5 rounded border-border-strong bg-bg text-acento-claro focus:ring-acento-claro/40"
                   />
                   Ativa
                 </label>
@@ -139,7 +139,7 @@ export default function FontesNoticiaSection() {
                   type="button"
                   onClick={() => remover(fonte.id)}
                   disabled={salvandoId === fonte.id}
-                  className="text-xs font-medium text-rust-text hover:text-rust/80 disabled:opacity-60"
+                  className="text-xs font-medium text-laranja hover:text-laranja/80 disabled:opacity-60"
                 >
                   Remover
                 </button>
@@ -167,7 +167,7 @@ export default function FontesNoticiaSection() {
                 type="button"
                 onClick={() => salvar(fonte)}
                 disabled={salvandoId === fonte.id}
-                className="rounded-lg border border-border-strong px-3 py-1.5 text-xs font-medium text-fg/80 hover:bg-paper/5 disabled:opacity-60"
+                className="rounded-xl border border-border-strong px-3 py-1.5 text-xs font-medium text-fg/80 hover:bg-fg/5 disabled:opacity-60"
               >
                 {salvandoId === fonte.id ? "Salvando..." : "Salvar"}
               </button>
@@ -179,7 +179,7 @@ export default function FontesNoticiaSection() {
         )}
       </div>
 
-      <div className="rounded-lg border border-dashed border-border-strong p-3 space-y-2">
+      <div className="rounded-xl border border-dashed border-border-strong p-3 space-y-2">
         <p className="text-xs font-medium text-fg/70">Nova fonte</p>
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2">
           <input
@@ -208,7 +208,7 @@ export default function FontesNoticiaSection() {
           type="button"
           onClick={adicionar}
           disabled={salvandoId === "nova" || !novaFonte.nome.trim()}
-          className="rounded-lg border border-border-strong px-3 py-1.5 text-xs font-medium text-fg/80 hover:bg-paper/5 disabled:opacity-60"
+          className="rounded-xl border border-border-strong px-3 py-1.5 text-xs font-medium text-fg/80 hover:bg-fg/5 disabled:opacity-60"
         >
           {salvandoId === "nova" ? "Adicionando..." : "+ Adicionar fonte"}
         </button>
@@ -218,7 +218,7 @@ export default function FontesNoticiaSection() {
         type="button"
         onClick={gerarSugestoes}
         disabled={gerandoSeeds}
-        className="text-xs font-medium text-amber-text hover:text-amber-dim disabled:opacity-60"
+        className="text-xs font-medium text-acento-claro hover:text-acento-dim disabled:opacity-60"
       >
         {gerandoSeeds ? "Gerando..." : "Sugerir fontes oficiais pela cidade da rádio"}
       </button>

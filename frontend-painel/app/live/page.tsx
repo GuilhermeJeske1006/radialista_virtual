@@ -59,15 +59,15 @@ export default function LivePage() {
   const nomeLocutor = engine.radialistaSelecionado?.nome_locutor || "Locutor";
 
   return (
-    <AppShell title="Ao Vivo" maxWidthClassName="max-w-[1600px]">
+    <AppShell title="Ao vivo" maxWidthClassName="max-w-[1600px]">
       <div id="yt-players-root" className="pointer-events-none fixed left-[-9999px] top-0 h-px w-px overflow-hidden">
         <div id="yt-live-player" />
         <div id="yt-bg-player" />
       </div>
 
       {engine.falhasAudioConsecutivas >= LIMIAR_ALERTA_FALHA_AUDIO && (
-        <div className="mb-4 rounded-lg border border-rust bg-rust/10 px-4 py-3">
-          <p className="text-sm font-medium text-rust-text">
+        <div className="mb-4 rounded-xl border border-laranja bg-laranja/10 px-4 py-3">
+          <p className="text-sm font-medium text-laranja">
             Sintese de voz falhando ha {engine.falhasAudioConsecutivas} blocos seguidos -- o programa esta
             no ar so' com musica, sem locucao. Verifique a ElevenLabs (chave de API, limite de uso) ou a
             conexao do backend.
@@ -77,15 +77,15 @@ export default function LivePage() {
 
       {(engine.erro || erroBiblioteca || engine.abaEmSegundoPlano || engine.avisoGravacao) && (
         <div className="space-y-2 mb-4">
-          {engine.erro && <p className="text-sm text-rust-text">{engine.erro}</p>}
-          {erroBiblioteca && <p className="text-sm text-rust-text">{erroBiblioteca}</p>}
+          {engine.erro && <p className="text-sm text-laranja">{engine.erro}</p>}
+          {erroBiblioteca && <p className="text-sm text-laranja">{erroBiblioteca}</p>}
           {engine.abaEmSegundoPlano && (
-            <p className="text-sm text-rust-text">
+            <p className="text-sm text-laranja">
               Aba em segundo plano -- o navegador pode pausar o ao vivo. Mantenha esta aba aberta e em foco pra
               transmissao nao parar.
             </p>
           )}
-          {engine.avisoGravacao && <p className="text-sm text-teal-text">{engine.avisoGravacao}</p>}
+          {engine.avisoGravacao && <p className="text-sm text-ciano">{engine.avisoGravacao}</p>}
         </div>
       )}
 
@@ -110,13 +110,13 @@ export default function LivePage() {
       </div>
 
       {!engine.programaId ? (
-        <section className="mt-5 bg-surface rounded-2xl border border-dashed border-border-strong p-10 text-center">
+        <section className="mt-5 bg-surface rounded-3xl border border-dashed border-border-strong p-10 text-center">
           {engine.radialistas.length === 0 ? (
             <>
               <p className="text-sm text-fg/65">Nenhum radialista cadastrado ainda.</p>
               <Link
                 href="/radialista"
-                className="mt-3 inline-flex rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600"
+                className="mt-3 inline-flex rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600"
               >
                 1. Criar radialista →
               </Link>
@@ -126,7 +126,7 @@ export default function LivePage() {
               <p className="text-sm text-fg/65">Nenhum programa cadastrado ainda.</p>
               <Link
                 href="/programas"
-                className="mt-3 inline-flex rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-ink hover:bg-brand-600"
+                className="mt-3 inline-flex rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600"
               >
                 2. Criar programa →
               </Link>

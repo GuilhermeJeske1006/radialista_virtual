@@ -85,7 +85,7 @@ export default function NotificationBell() {
         type="button"
         onClick={abrir}
         title="Notificações"
-        className="relative flex h-8 w-8 items-center justify-center rounded-full text-fg/70 hover:bg-paper/10 hover:text-fg"
+        className="relative flex h-8 w-8 items-center justify-center rounded-full text-fg/70 hover:bg-fg/10 hover:text-fg"
       >
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
           <path
@@ -95,7 +95,7 @@ export default function NotificationBell() {
           />
         </svg>
         {totalNaoLidas > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rust px-1 text-[10px] font-semibold text-white">
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-laranja px-1 text-[10px] font-semibold text-white">
             {totalNaoLidas > 9 ? "9+" : totalNaoLidas}
           </span>
         )}
@@ -106,7 +106,7 @@ export default function NotificationBell() {
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <span className="font-display text-sm font-bold text-fg">Notificações</span>
             {notificacoes.some((n) => !n.lida) && (
-              <button type="button" onClick={marcarTodasLidas} className="text-xs text-amber-text hover:underline">
+              <button type="button" onClick={marcarTodasLidas} className="text-xs text-acento-claro hover:underline">
                 Marcar todas como lidas
               </button>
             )}
@@ -121,7 +121,7 @@ export default function NotificationBell() {
                 key={n.id}
                 type="button"
                 onClick={() => clicarNotificacao(n)}
-                className={`block w-full border-b border-border px-4 py-3 text-left text-sm last:border-b-0 hover:bg-paper/5 ${
+                className={`block w-full border-b border-border px-4 py-3 text-left text-sm last:border-b-0 hover:bg-fg/5 ${
                   n.lida ? "text-fg/60" : "text-fg"
                 }`}
               >

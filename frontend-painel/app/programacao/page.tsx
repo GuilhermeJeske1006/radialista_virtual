@@ -96,10 +96,10 @@ export default function ProgramacaoPage() {
         </p>
       </div>
 
-      {erro && <p className="text-sm text-rust-text mb-4">{erro}</p>}
+      {erro && <p className="text-sm text-laranja mb-4">{erro}</p>}
 
       {programaPadraoNaoEditado && (
-        <div className="flex items-center justify-between gap-4 rounded-xl border border-amber/30 bg-amber/10 px-4 py-3 mb-4">
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-acento-claro/30 bg-acento/10 px-4 py-3 mb-4">
           <p className="text-sm text-fg/80">
             "{programas[0].nome}" ainda está no ar 24h, todos os dias -- é só o ponto de partida criado no
             cadastro. Divida em horários reais quando tiver outros programas pra colocar na grade.
@@ -107,7 +107,7 @@ export default function ProgramacaoPage() {
           <button
             type="button"
             onClick={() => aoClicarPrograma(programas[0])}
-            className="shrink-0 text-sm font-medium text-amber-text hover:text-amber-dim"
+            className="shrink-0 text-sm font-medium text-acento-claro hover:text-acento-dim"
           >
             Editar horários →
           </button>
@@ -133,7 +133,7 @@ export default function ProgramacaoPage() {
           <LocufySpin size={16} /> Carregando...
         </p>
       ) : radialistas.length === 0 ? (
-        <div className="bg-surface rounded-2xl border border-border-strong shadow-theme-xs p-6">
+        <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
           <p className="text-sm text-fg/65">Crie um radialista primeiro para poder montar a programação.</p>
         </div>
       ) : (
@@ -147,11 +147,11 @@ export default function ProgramacaoPage() {
 
       {escolhaPendente && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-grafite/50 px-4"
           onClick={() => setEscolhaPendente(null)}
         >
           <div
-            className="w-full max-w-sm rounded-2xl border border-border-strong bg-surface p-6 shadow-theme-xs"
+            className="w-full max-w-sm rounded-3xl border border-border-strong bg-surface p-6 shadow-theme-xs"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="font-display text-base font-bold text-fg mb-1">Para qual radialista?</h2>
@@ -167,7 +167,7 @@ export default function ProgramacaoPage() {
                     abrirCriacao(r.id, escolhaPendente.dia, escolhaPendente.horario);
                     setEscolhaPendente(null);
                   }}
-                  className="w-full text-left rounded-lg border border-border-strong px-3 py-2.5 text-sm font-medium text-fg hover:border-amber/40"
+                  className="w-full text-left rounded-xl border border-border-strong px-3 py-2.5 text-sm font-medium text-fg hover:border-acento-claro/40"
                 >
                   {r.nome_locutor || `Radialista #${r.id}`}
                 </button>
@@ -177,7 +177,7 @@ export default function ProgramacaoPage() {
               <button
                 type="button"
                 onClick={() => setEscolhaPendente(null)}
-                className="rounded-lg px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
+                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
               >
                 Cancelar
               </button>

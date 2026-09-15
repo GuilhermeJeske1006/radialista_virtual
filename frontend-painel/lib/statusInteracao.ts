@@ -12,24 +12,24 @@ export const STATUS_LABEL: Record<string, string> = {
 };
 
 export const STATUS_COR: Record<string, string> = {
-  fila_musica: "text-teal",
-  fila_abraco: "text-teal",
-  bloqueado_horario: "text-rust",
-  bloqueado_rate_limit: "text-rust",
-  bloqueado_conteudo: "text-rust",
-  bloqueado_plano: "text-rust",
+  fila_musica: "text-ciano",
+  fila_abraco: "text-ciano",
+  bloqueado_horario: "text-laranja",
+  bloqueado_rate_limit: "text-laranja",
+  bloqueado_conteudo: "text-laranja",
+  bloqueado_plano: "text-laranja",
   guardado: "text-fg/55",
 };
 
 // Mesma paleta que STATUS_COR, como selo (fundo + texto), pra badges tipo pilula.
 export const STATUS_STYLE: Record<string, string> = {
-  fila_musica: "bg-teal/10 text-teal",
-  fila_abraco: "bg-teal/10 text-teal",
-  bloqueado_horario: "bg-rust/10 text-rust",
-  bloqueado_rate_limit: "bg-rust/10 text-rust",
-  bloqueado_conteudo: "bg-rust/10 text-rust",
-  bloqueado_plano: "bg-rust/10 text-rust",
-  guardado: "bg-paper/10 text-fg/60",
+  fila_musica: "bg-ciano/10 text-ciano",
+  fila_abraco: "bg-ciano/10 text-ciano",
+  bloqueado_horario: "bg-laranja/10 text-laranja",
+  bloqueado_rate_limit: "bg-laranja/10 text-laranja",
+  bloqueado_conteudo: "bg-laranja/10 text-laranja",
+  bloqueado_plano: "bg-laranja/10 text-laranja",
+  guardado: "bg-fg/10 text-fg/60",
 };
 
 // Mesma paleta que STATUS_COR, em hex, pra usar em preenchimento de SVG (fill nao

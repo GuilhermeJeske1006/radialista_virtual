@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 const inputClass =
-  "w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/20";
+  "w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20";
 
 type Props = {
   quadros: Record<string, string[]>;
@@ -49,13 +49,13 @@ export default function QuadrosFixosInput({ quadros, onChange }: Props) {
       </p>
       <div className="space-y-3 mb-3">
         {labels.map((label) => (
-          <div key={label} className="rounded-lg border border-border-strong p-3">
+          <div key={label} className="rounded-xl border border-border-strong p-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-fg">{label}</span>
               <button
                 type="button"
                 onClick={() => removerQuadro(label)}
-                className="text-xs font-medium text-rust-text hover:text-rust/80"
+                className="text-xs font-medium text-laranja hover:text-laranja/80"
               >
                 Remover quadro
               </button>
@@ -65,13 +65,13 @@ export default function QuadrosFixosInput({ quadros, onChange }: Props) {
                 {quadros[label].map((item) => (
                   <span
                     key={item}
-                    className="inline-flex items-center gap-1 rounded-full bg-amber/10 text-amber-text border border-amber/25 pl-2.5 pr-1.5 py-0.5 text-sm"
+                    className="inline-flex items-center gap-1 rounded-full bg-acento/10 text-acento-claro border border-acento-claro/25 pl-2.5 pr-1.5 py-0.5 text-sm"
                   >
                     {item}
                     <button
                       type="button"
                       onClick={() => removerItem(label, item)}
-                      className="text-amber-text/70 hover:text-amber-text leading-none text-base"
+                      className="text-acento-claro/70 hover:text-acento-claro leading-none text-base"
                     >
                       ×
                     </button>
@@ -96,7 +96,7 @@ export default function QuadrosFixosInput({ quadros, onChange }: Props) {
               <button
                 type="button"
                 onClick={() => adicionarItem(label)}
-                className="shrink-0 rounded-lg border border-border-strong px-3 py-2 text-sm font-medium text-fg/80 hover:bg-paper/5"
+                className="shrink-0 rounded-xl border border-border-strong px-3 py-2 text-sm font-medium text-fg/80 hover:bg-fg/5"
               >
                 Adicionar
               </button>
@@ -121,7 +121,7 @@ export default function QuadrosFixosInput({ quadros, onChange }: Props) {
         <button
           type="button"
           onClick={adicionarQuadro}
-          className="shrink-0 rounded-lg border border-border-strong px-3 py-2 text-sm font-medium text-fg/80 hover:bg-paper/5"
+          className="shrink-0 rounded-xl border border-border-strong px-3 py-2 text-sm font-medium text-fg/80 hover:bg-fg/5"
         >
           Novo quadro
         </button>
