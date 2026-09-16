@@ -93,6 +93,13 @@ def test_classificar_tom_fala_reconhece_tom_valido(monkeypatch):
     assert llm_client.classificar_tom_fala("vamos la!", "abertura") == "energico"
 
 
+def test_classificar_tom_fala_reconhece_tom_acentuado(monkeypatch):
+    # Prompt pede o literal sem acento ("energico"/"calmo"), mas o classificador pode
+    # devolver a grafia correta em portugues -- nao pode cair em neutro por causa disso.
+    monkeypatch.setattr(llm_client, "gerar_classificacao", lambda system, user: "enérgico")
+    assert llm_client.classificar_tom_fala("vamos la!", "abertura") == "energico"
+
+
 def test_classificar_tom_fala_cai_em_neutro_por_padrao(monkeypatch):
     monkeypatch.setattr(llm_client, "gerar_classificacao", lambda system, user: "resposta esquisita")
     assert llm_client.classificar_tom_fala("...", None) == "neutro"

@@ -1,4 +1,5 @@
 import logging
+import unicodedata
 
 from anthropic import Anthropic
 
@@ -239,6 +240,10 @@ def classificar_tema_fala(texto: str) -> str:
     return resposta.strip().strip(".").lower()
 
 
+def _sem_acento(texto: str) -> str:
+    return "".join(c for c in unicodedata.normalize("NFD", texto) if unicodedata.category(c) != "Mn")
+
+
 def classificar_tom_fala(texto: str, tipo_bloco: str | None) -> str:
     """Classifica o tom da fala ja gerada (energico/calmo/neutro) pra modular a voz no TTS
     de acordo com o conteudo real da fala, nao so com o tipo de bloco. Nunca deve derrubar a
@@ -251,7 +256,11 @@ def classificar_tom_fala(texto: str, tipo_bloco: str | None) -> str:
         logger.warning("Falha ao classificar tom da fala", exc_info=True)
         return "neutro"
 
-    resposta = resposta.strip().lower()
+    # _TONS_VALIDOS e' sem acento de proposito (e' o literal pedido no prompt), mas o
+    # classificador pode "corrigir" a grafia e responder "enérgico" -- sem tirar o acento daqui
+    # tambem, a substring nao bate e a fala cai silenciosamente em neutro (mesma classe de
+    # problema ja resolvida em app.live.router._categoria_bloco, que usa _sem_acento).
+    resposta = _sem_acento(resposta.strip().lower())
     for tom in _TONS_VALIDOS:
         if tom in resposta:
             return tom
