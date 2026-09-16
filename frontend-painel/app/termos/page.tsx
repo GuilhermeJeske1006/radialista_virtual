@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: "Termos de Uso da Locufy, plataforma de radialista virtual com inteligência artificial.",
 };
 
-const ATUALIZADO_EM = "31 de agosto de 2026";
+const ATUALIZADO_EM = "15 de setembro de 2026";
 
 export default function TermosPage() {
   return (
@@ -43,8 +43,8 @@ export default function TermosPage() {
           <section>
             <h2 className="font-display text-lg font-semibold text-fg mb-2">2. O Serviço</h2>
             <p>
-              A Locufy é um serviço pago por assinatura (planos Starter, Growth e Professional, com
-              período de teste gratuito) que gera, a partir de uma descrição fornecida pela rádio,
+              A Locufy é um serviço pago por assinatura mensal (planos Starter, Growth e Professional),
+              com valores e condições apresentados antes do pagamento, que gera, a partir de uma descrição fornecida pela rádio,
               a configuração de um ou mais radialistas virtuais e de sua programação (roteiros,
               locução em áudio por síntese de voz e, quando ativado, atendimento automatizado via
               WhatsApp aos ouvintes). Podemos ajustar, suspender ou descontinuar funcionalidades a

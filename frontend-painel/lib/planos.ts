@@ -15,9 +15,9 @@ export const PLANOS: Plano[] = [
     nome: "Starter",
     preco: 399,
     agentes: 1,
-    mensagens: 1000,
+    mensagens: 2000,
     radialistasPorPrograma: 1,
-    descricao: "Pequenos negócios",
+    descricao: "Para colocar sua primeira voz no ar.",
   },
   {
     id: "growth",
@@ -27,7 +27,7 @@ export const PLANOS: Plano[] = [
     mensagens: 3000,
     radialistasPorPrograma: 2,
     destaque: true,
-    descricao: "Empresas em crescimento",
+    descricao: "Mais vozes para ampliar sua programação.",
   },
   {
     id: "professional",
@@ -36,7 +36,7 @@ export const PLANOS: Plano[] = [
     agentes: 5,
     mensagens: 7500,
     radialistasPorPrograma: 3,
-    descricao: "Maior volume de atendimento",
+    descricao: "Para uma operação com mais programas e ouvintes.",
   },
 ];
 

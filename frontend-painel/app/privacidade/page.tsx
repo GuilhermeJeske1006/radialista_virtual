@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: "Como a Locufy coleta, usa e protege dados na plataforma de radialista virtual com IA.",
 };
 
-const ATUALIZADO_EM = "31 de agosto de 2026";
+const ATUALIZADO_EM = "15 de setembro de 2026";
 
 export default function PrivacidadePage() {
   return (
@@ -47,6 +47,7 @@ export default function PrivacidadePage() {
             <p className="mb-2"><strong className="text-fg">Conteúdo que você envia:</strong> descrições em texto usadas para gerar o radialista e a programação, áudios de patrocinadores e, quando aplicável, uma amostra de voz enviada para clonagem.</p>
             <p className="mb-2"><strong className="text-fg">Mensagens de WhatsApp:</strong> quando você conecta um número, processamos o número de telefone e o conteúdo das mensagens trocadas entre os ouvintes e o radialista virtual, para gerar as respostas.</p>
             <p className="mb-2"><strong className="text-fg">Dados de pagamento:</strong> processados diretamente pela Stripe; não armazenamos número de cartão em nossos servidores, apenas identificadores de cliente/assinatura da Stripe.</p>
+            <p className="mb-2"><strong className="text-fg">Medição própria de uso:</strong> registramos cliques em cadastro e WhatsApp, reprodução de demonstrações e etapas concluídas do cadastro. Os eventos incluem códigos de campanha e plano, sem o conteúdo dos formulários. Depois do cadastro, vinculamos à conta os eventos de criação, início do pagamento e confirmação da assinatura. Os códigos de campanha podem ficar no armazenamento da sessão do navegador até a aba ser encerrada. Respeitamos os sinais Do Not Track e Global Privacy Control para os eventos opcionais do navegador.</p>
             <p><strong className="text-fg">Dados técnicos:</strong> logs de erro de aplicação (via Sentry) para diagnóstico e estabilidade.</p>
           </section>
 
@@ -61,7 +62,7 @@ export default function PrivacidadePage() {
 
           <section>
             <h2 className="font-display text-lg font-semibold text-fg mb-2">4. Como usamos os dados</h2>
-            <p>Usamos os dados acima para: (i) operar o serviço — gerar configuração, roteiros, áudio e respostas de WhatsApp; (ii) processar cobrança; (iii) enviar e-mails operacionais (boas-vindas, alertas de conexão do WhatsApp, convites de equipe); (iv) monitorar e corrigir erros; (v) cumprir obrigações legais.</p>
+            <p>Usamos os dados acima para: (i) operar o serviço — gerar configuração, roteiros, áudio e respostas de WhatsApp; (ii) processar cobrança; (iii) enviar e-mails operacionais (boas-vindas, alertas de conexão do WhatsApp, convites de equipe); (iv) monitorar e corrigir erros e avaliar as etapas de contratação; (v) cumprir obrigações legais.</p>
           </section>
 
           <section>

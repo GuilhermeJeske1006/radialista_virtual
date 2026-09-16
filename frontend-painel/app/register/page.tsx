@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { apiFetch, ApiError } from "../../lib/api";
-import { RADIALISTA_VAZIO, Radialista, TipoRadio } from "../../lib/types";
+import { RADIALISTA_VAZIO, Radialista } from "../../lib/types";
 import { PLANOS, formatarReais } from "../../lib/planos";
 import { LocufyLogo, LocufySpin } from "../../components/LocufyLogo";
 import ThemeToggle from "../../components/ThemeToggle";
+import { captureCampaign, trackFunnel } from "../../lib/funnel";
 import CheckoutModal from "../../components/CheckoutModal";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -42,14 +43,7 @@ export default function RegisterPage() {
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [nomeRadio, setNomeRadio] = useState("");
-  const [tipoRadio, setTipoRadio] = useState("");
-  const [tiposRadio, setTiposRadio] = useState<TipoRadio[]>([]);
-  const [endereco, setEndereco] = useState("");
-  const [cidade, setCidade] = useState("");
-  const [slogan, setSlogan] = useState("");
-  const [frequencia, setFrequencia] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [planoId, setPlanoId] = useState("growth");
+  const [planoId, setPlanoId] = useState("starter");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [mostrarCheckout, setMostrarCheckout] = useState(false);
@@ -63,11 +57,23 @@ export default function RegisterPage() {
     nomeRadio: false,
   });
 
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const initialStep = useRef(true);
   useEffect(() => {
-    apiFetch<TipoRadio[]>("/config/tipos-radio")
-      .then(setTiposRadio)
-      .catch(() => {});
+    const selected = new URLSearchParams(window.location.search).get("plano");
+    if (PLANOS.some(p => p.id === selected)) setPlanoId(selected!);
+    captureCampaign();
+    trackFunnel("register_started", { plano: PLANOS.some(p => p.id === selected) ? selected! : "starter" });
   }, []);
+  useEffect(() => {
+    if (initialStep.current) { initialStep.current = false; return; }
+    headingRef.current?.focus();
+  }, [passo]);
+
+  function focarErro(erros: CampoErros) {
+    const field = Object.entries(erros).find(([, value]) => value)?.[0];
+    if (field) requestAnimationFrame(() => document.getElementById(field)?.focus());
+  }
 
   function marcarTocado(campo: keyof CampoErros) {
     setTocado((t) => ({ ...t, [campo]: true }));
@@ -116,6 +122,7 @@ export default function RegisterPage() {
     const primeiroErro = Object.values(erros).find((m) => m);
     if (primeiroErro) {
       setErro(primeiroErro);
+      focarErro(erros);
       return false;
     }
     return true;
@@ -133,6 +140,7 @@ export default function RegisterPage() {
     const primeiroErro = Object.values(erros).find((m) => m);
     if (primeiroErro) {
       setErro(primeiroErro);
+      focarErro(erros);
       return false;
     }
     setErro("");
@@ -146,6 +154,7 @@ export default function RegisterPage() {
     const primeiroErro = Object.values(erros).find((m) => m);
     if (primeiroErro) {
       setErro(primeiroErro);
+      focarErro(erros);
       return false;
     }
     setErro("");
@@ -153,8 +162,8 @@ export default function RegisterPage() {
   }
 
   function avancar() {
-    if (passo === 1 && validarPasso1()) setPasso(2);
-    else if (passo === 2 && validarPasso2()) setPasso(3);
+    if (passo === 1 && validarPasso1()) { trackFunnel("register_account_step", { plano: planoId }); setPasso(2); }
+    else if (passo === 2 && validarPasso2()) { trackFunnel("register_radio_step", { plano: planoId }); setPasso(3); }
   }
 
   function voltar() {
@@ -166,7 +175,7 @@ export default function RegisterPage() {
   async function concluir(e: React.FormEvent) {
     e.preventDefault();
     setErro("");
-    if (passo !== 3) return;
+    if (passo !== 3) { avancar(); return; }
     if (!validar()) return;
     setCarregando(true);
     let contaCriada = false;
@@ -174,7 +183,7 @@ export default function RegisterPage() {
       // sessao ja vem via cookie httpOnly no Set-Cookie da resposta -- nada pra guardar aqui.
       await apiFetch("/auth/register", {
         method: "POST",
-        body: JSON.stringify({ nome: nome.trim(), email, senha }),
+        body: JSON.stringify({ nome: nome.trim(), email, senha, campanha: captureCampaign() }),
       });
       contaCriada = true;
 
@@ -182,12 +191,6 @@ export default function RegisterPage() {
         method: "PUT",
         body: JSON.stringify({
           nome_radio: nomeRadio.trim(),
-          tipo_radio: tipoRadio,
-          endereco: endereco.trim(),
-          cidade: cidade.trim(),
-          slogan: slogan.trim(),
-          frequencia: frequencia.trim(),
-          telefone: telefone.trim(),
         }),
       });
 
@@ -224,387 +227,80 @@ export default function RegisterPage() {
     !!validarConfirmarSenha(senha, confirmarSenha) ||
     !!validarNomeRadio(nomeRadio);
 
-  const PASSOS = ["Criar conta", "Sua rádio", "Escolha seu plano"];
-
+  const PASSOS = ["Seus dados", "Sua rádio", "Seu plano"];
+  const fields: { key: keyof CampoErros; label: string; type: string; value: string; change: (v: string) => void; autoComplete: string }[] = [
+    { key: "nome", label: "Seu nome", type: "text", value: nome, change: onChangeNome, autoComplete: "name" },
+    { key: "email", label: "E-mail", type: "email", value: email, change: onChangeEmail, autoComplete: "email" },
+    { key: "senha", label: "Senha", type: "password", value: senha, change: onChangeSenha, autoComplete: "new-password" },
+    { key: "confirmarSenha", label: "Confirmar senha", type: "password", value: confirmarSenha, change: onChangeConfirmarSenha, autoComplete: "new-password" },
+  ];
+  const inputClass = "w-full rounded-xl border border-border-strong bg-bg px-3 py-3 text-base text-fg focus:outline-none focus:ring-2 focus:ring-acento-claro";
   return (
-    <div className="min-h-screen bg-bg flex items-center justify-center px-4 py-10">
+    <main className="min-h-screen bg-bg flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-4xl">
         <div className="flex items-center justify-center gap-3 mb-6">
-          <LocufyLogo wordmarkClassName="text-2xl" />
-          <ThemeToggle className="ml-1" />
+          <LocufyLogo wordmarkClassName="text-2xl" /><ThemeToggle />
         </div>
-
-        <form onSubmit={concluir} className="bg-surface rounded-3xl border border-border-strong shadow-theme-sm p-6 sm:p-8">
-          <ol className="flex items-center gap-2 mb-8">
-            {PASSOS.map((label, i) => {
-              const numero = (i + 1) as 1 | 2 | 3;
-              const ativo = passo === numero;
-              const concluido = passo > numero;
-              return (
-                <li key={label} className="flex items-center gap-2 flex-1 last:flex-none">
-                  <span
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-                      ativo || concluido ? "bg-acento text-on-brand" : "bg-bg border border-border-strong text-fg/65"
-                    }`}
-                  >
-                    {concluido ? (
-                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                      </svg>
-                    ) : (
-                      numero
-                    )}
-                  </span>
-                  <span className={`hidden sm:inline text-sm font-medium ${ativo ? "text-fg" : "text-fg/65"}`}>
-                    {label}
-                  </span>
-                  {numero < 3 && <span className="flex-1 h-px bg-border mx-1" />}
-                </li>
-              );
-            })}
+        <form noValidate onSubmit={concluir} className="bg-surface rounded-3xl border border-border-strong shadow-theme-sm p-5 sm:p-8">
+          <ol aria-label="Etapas do cadastro" className="flex gap-3 mb-8">
+            {PASSOS.map((label, i) => <li key={label} aria-current={passo === i + 1 ? "step" : undefined} className={`flex-1 text-sm border-b-2 pb-3 ${passo === i + 1 ? "border-acento-claro text-fg font-semibold" : "border-border text-fg/65"}`}>
+              <span aria-hidden="true">{i + 1}. </span>{label}
+            </li>)}
           </ol>
-
-          {passo === 1 && (
-          <div>
-            <div className="mb-5">
-              <h1 className="font-display text-lg font-bold text-fg">Criar conta</h1>
-              <p className="text-sm text-fg/65">Seus dados de acesso ao painel.</p>
+          <h1 ref={headingRef} tabIndex={-1} className="font-display text-xl font-bold text-fg mb-2 outline-none">
+            {passo === 1 ? "Crie sua conta" : passo === 2 ? "Qual é o nome da sua rádio?" : "Confirme o plano da sua rádio"}
+          </h1>
+          <p className="text-sm text-fg/65 mb-6">{passo === 1 ? "Informe seus dados de acesso. Você escolhe o plano antes de pagar." : passo === 2 ? "Por enquanto, só precisamos do nome. Voz, programação e os outros dados podem ser configurados depois." : "O pagamento abre aqui mesmo, em um ambiente seguro. Confira os valores antes de confirmar."}</p>
+          {passo === 1 && <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {fields.map(field => {
+              const error = tocado[field.key] && campoErros[field.key];
+              const help = field.key === "senha" ? "senha-ajuda" : undefined;
+              return <div key={field.key}>
+                <label htmlFor={field.key} className="block text-sm font-medium text-fg mb-2">{field.label}</label>
+                <input id={field.key} name={field.key} type={field.type} required autoComplete={field.autoComplete} value={field.value}
+                  minLength={field.type === "password" ? 8 : undefined}
+                  onChange={e => field.change(e.target.value)} onBlur={() => { field.change(field.value); marcarTocado(field.key); }}
+                  aria-invalid={!!error} aria-describedby={error ? `${field.key}-erro` : help} className={inputClass} />
+                {error ? <p id={`${field.key}-erro`} className="mt-2 text-sm text-laranja">{error}</p> : field.key === "senha" && <p id="senha-ajuda" className="mt-2 text-sm text-fg/65">Use pelo menos 8 caracteres.</p>}
+              </div>;
+            })}
+          </div>}
+          {passo === 2 && <div className="max-w-lg">
+            <label htmlFor="nomeRadio" className="block text-sm font-medium text-fg mb-2">Nome da rádio</label>
+            <input id="nomeRadio" name="nomeRadio" required autoComplete="organization" value={nomeRadio} placeholder="Ex.: Rádio Cidade FM"
+              onChange={e => onChangeNomeRadio(e.target.value)} onBlur={() => { onChangeNomeRadio(nomeRadio); marcarTocado("nomeRadio"); }}
+              aria-invalid={!!(tocado.nomeRadio && campoErros.nomeRadio)} aria-describedby={tocado.nomeRadio && campoErros.nomeRadio ? "nomeRadio-erro" : undefined} className={inputClass} />
+            {tocado.nomeRadio && campoErros.nomeRadio && <p id="nomeRadio-erro" className="mt-2 text-sm text-laranja">{campoErros.nomeRadio}</p>}
+          </div>}
+          {passo === 3 && <fieldset>
+            <legend className="sr-only">Escolha seu plano mensal</legend>
+            <div className="grid sm:grid-cols-3 gap-4">
+              {PLANOS.map(plano => <label key={plano.id} className={`relative cursor-pointer rounded-xl border p-4 focus-within:ring-2 focus-within:ring-acento-claro ${planoId === plano.id ? "border-acento-claro bg-bg" : "border-border-strong"}`}>
+                <span className="flex items-center gap-2 font-semibold text-fg">
+                  <input type="radio" name="plano" value={plano.id} checked={planoId === plano.id} onChange={() => { setPlanoId(plano.id); trackFunnel("plan_selected", { plano: plano.id }); }} className="accent-brand-500 h-5 w-5" />{plano.nome}
+                </span>
+                <span className="block text-sm text-fg/65 mt-2 min-h-12">{plano.descricao}</span>
+                <span className="block text-2xl font-bold text-fg mt-4">R$ {formatarReais(plano.preco)}<span className="text-sm font-normal">/mês</span></span>
+                <span className="block text-sm text-fg mt-4">{plano.agentes} {plano.agentes === 1 ? "radialista virtual" : "radialistas virtuais"}</span>
+                <span className="block text-sm text-fg mt-1">{plano.mensagens.toLocaleString("pt-BR")} mensagens/mês</span>
+                <span className="block text-sm text-fg mt-1">Até {plano.radialistasPorPrograma} {plano.radialistasPorPrograma === 1 ? "radialista" : "radialistas"} por programa</span>
+                <span className="block text-sm text-fg mt-1">{plano.id === "starter" ? "Sem clonagem de voz" : "Clonagem de voz incluída"}</span>
+              </label>)}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5">
-              <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">Seu nome</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex.: João da Silva"
-                  value={nome}
-                  onChange={(e) => onChangeNome(e.target.value)}
-                  onBlur={() => { onChangeNome(nome); marcarTocado("nome"); }}
-                  className={`w-full rounded-xl border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
-                    tocado.nome && campoErros.nome
-                      ? "border-laranja focus:border-laranja focus:ring-laranja/20"
-                      : "border-border-strong focus:border-acento-claro/50 focus:ring-acento-claro/20"
-                  }`}
-                />
-                {tocado.nome && campoErros.nome && (
-                  <p className="mt-1 text-xs text-laranja">{campoErros.nome}</p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">E-mail</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="Ex.: email@dominio.com"
-                  value={email}
-                  onChange={(e) => onChangeEmail(e.target.value)}
-                  onBlur={() => { onChangeEmail(email); marcarTocado("email"); }}
-                  className={`w-full rounded-xl border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
-                    tocado.email && campoErros.email
-                      ? "border-laranja focus:border-laranja focus:ring-laranja/20"
-                      : "border-border-strong focus:border-acento-claro/50 focus:ring-acento-claro/20"
-                  }`}
-                />
-                {tocado.email && campoErros.email && (
-                  <p className="mt-1 text-xs text-laranja">{campoErros.email}</p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">Senha</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Mínimo de 8 caracteres"
-                  minLength={8}
-                  value={senha}
-                  onChange={(e) => onChangeSenha(e.target.value)}
-                  onBlur={() => { onChangeSenha(senha); marcarTocado("senha"); }}
-                  className={`w-full rounded-xl border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
-                    tocado.senha && campoErros.senha
-                      ? "border-laranja focus:border-laranja focus:ring-laranja/20"
-                      : "border-border-strong focus:border-acento-claro/50 focus:ring-acento-claro/20"
-                  }`}
-                />
-                {tocado.senha && campoErros.senha ? (
-                  <p className="mt-1 text-xs text-laranja">{campoErros.senha}</p>
-                ) : (
-                  <p className="mt-1 text-xs text-fg/65">Mínimo de 8 caracteres</p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">Confirmar senha</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Digite a mesma senha novamente"
-                  minLength={8}
-                  value={confirmarSenha}
-                  onChange={(e) => onChangeConfirmarSenha(e.target.value)}
-                  onBlur={() => { onChangeConfirmarSenha(confirmarSenha); marcarTocado("confirmarSenha"); }}
-                  className={`w-full rounded-xl border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
-                    tocado.confirmarSenha && campoErros.confirmarSenha
-                      ? "border-laranja focus:border-laranja focus:ring-laranja/20"
-                      : "border-border-strong focus:border-acento-claro/50 focus:ring-acento-claro/20"
-                  }`}
-                />
-                {tocado.confirmarSenha && campoErros.confirmarSenha && (
-                  <p className="mt-1 text-xs text-laranja">{campoErros.confirmarSenha}</p>
-                )}
-              </div>
-            </div>
-          </div>
-          )}
-
-          {passo === 2 && (
-          <div>
-            <div className="mb-5">
-              <h2 className="font-display text-lg font-bold text-fg">Sua rádio</h2>
-              <p className="text-sm text-fg/65">Dados da emissora e do locutor de IA que vai atender os ouvintes.</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-5">
-              <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">Nome da rádio</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex.: Rádio Cidade FM"
-                  value={nomeRadio}
-                  onChange={(e) => onChangeNomeRadio(e.target.value)}
-                  onBlur={() => { onChangeNomeRadio(nomeRadio); marcarTocado("nomeRadio"); }}
-                  className={`w-full rounded-xl border bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 ${
-                    tocado.nomeRadio && campoErros.nomeRadio
-                      ? "border-laranja focus:border-laranja focus:ring-laranja/20"
-                      : "border-border-strong focus:border-acento-claro/50 focus:ring-acento-claro/20"
-                  }`}
-                />
-                {tocado.nomeRadio && campoErros.nomeRadio && (
-                  <p className="mt-1 text-xs text-laranja">{campoErros.nomeRadio}</p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">Slogan</label>
-                <input
-                  type="text"
-                  placeholder="Ex.: A rádio que toca pra você"
-                  value={slogan}
-                  onChange={(e) => setSlogan(e.target.value)}
-                  className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">Frequência</label>
-                <input
-                  type="text"
-                  placeholder="Ex.: 98.5 FM"
-                  value={frequencia}
-                  onChange={(e) => setFrequencia(e.target.value)}
-                  className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">Telefone</label>
-                <input
-                  type="text"
-                  placeholder="Ex.: (11) 4000-0000"
-                  value={telefone}
-                  onChange={(e) => setTelefone(e.target.value)}
-                  className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">Endereço</label>
-                <input
-                  type="text"
-                  placeholder="Ex.: Av. Principal, 123 - Centro"
-                  value={endereco}
-                  onChange={(e) => setEndereco(e.target.value)}
-                  className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">Cidade</label>
-                <input
-                  type="text"
-                  placeholder="Ex.: Porto Alegre"
-                  value={cidade}
-                  onChange={(e) => setCidade(e.target.value)}
-                  className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
-                />
-              </div>
-            </div>
-
-            {tiposRadio.length > 0 && (
-              <div className="mt-5">
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">
-                  Que tipo de rádio é a sua? <span className="text-fg/65 font-normal">(opcional, mas ajuda a IA)</span>
-                </label>
-                <p className="text-xs text-fg/65 mb-2.5">
-                  Usado como ponto de partida quando você gerar o locutor e os programas com IA. Dá pra trocar depois.
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {tiposRadio.map((t) => {
-                    const selecionado = tipoRadio === t.value;
-                    return (
-                      <button
-                        type="button"
-                        key={t.value}
-                        onClick={() => setTipoRadio(selecionado ? "" : t.value)}
-                        className={`flex items-center justify-between gap-1.5 rounded-xl border px-3 py-2.5 text-left text-xs font-medium transition-colors ${
-                          selecionado
-                            ? "bg-acento/10 border-acento-claro text-acento-claro"
-                            : "border-border-strong text-fg/70 hover:border-acento-claro/40"
-                        }`}
-                      >
-                        {t.label}
-                        {selecionado && (
-                          <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                          </svg>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-          )}
-
-          {passo === 3 && (
-          <div>
-            <div className="mb-5">
-              <h2 className="font-display text-lg font-bold text-fg">Escolha seu plano</h2>
-              <p className="text-sm text-fg/65">Você vai ser redirecionado pro checkout seguro pra confirmar a assinatura.</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {PLANOS.map((plano) => {
-                const selecionado = planoId === plano.id;
-                return (
-                  <button
-                    type="button"
-                    key={plano.id}
-                    onClick={() => setPlanoId(plano.id)}
-                    className={`relative text-left rounded-xl border p-4 transition-colors hover:-translate-y-0.5 hover:shadow-theme-sm ${
-                      selecionado
-                        ? "bg-surface border-acento-claro ring-1 ring-acento-claro/30"
-                        : "bg-surface border-border-strong hover:border-acento-claro/40"
-                    }`}
-                  >
-                    {plano.destaque && (
-                      <span className="absolute -top-2.5 right-4 rounded-full bg-brand-500 px-2 py-0.5 text-[10px] font-semibold text-on-brand">
-                        Mais escolhido
-                      </span>
-                    )}
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-display text-sm font-bold text-fg">{plano.nome}</span>
-                      <span
-                        className={`flex h-4.5 w-4.5 items-center justify-center rounded-full border ${
-                          selecionado ? "border-acento-claro bg-acento text-on-brand" : "border-border-strong"
-                        }`}
-                      >
-                        {selecionado && (
-                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                          </svg>
-                        )}
-                      </span>
-                    </div>
-                    <p className="text-xs text-fg/65 mb-3">{plano.descricao}</p>
-                    <div className="mb-2">
-                      <span className="font-display text-xl font-bold text-fg">R$ {formatarReais(plano.preco)}</span>
-                      <span className="text-xs text-fg/65">/mês</span>
-                    </div>
-                    <p className="text-xs text-fg/65">
-                      {plano.agentes} {plano.agentes === 1 ? "agente" : "agentes"} ·{" "}
-                      {plano.mensagens.toLocaleString("pt-BR")} msgs/mês
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          )}
-
-          <div className="border-t border-border pt-6 mt-8">
-            {erro && <p className="mb-3 text-sm text-laranja">{erro}</p>}
-            <div className="flex items-center gap-3">
-              {passo > 1 && (
-                <button
-                  type="button"
-                  onClick={voltar}
-                  className="rounded-xl border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/5"
-                >
-                  Voltar
-                </button>
-              )}
-              <div className="flex-1" />
-              {passo < 3 ? (
-              <button
-                key="continuar"
-                type="button"
-                onClick={avancar}
-                className="rounded-xl bg-brand-500 px-6 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600"
-              >
-                Continuar
-              </button>
-            ) : (
-              <button
-                key="finalizar"
-                type="submit"
-                disabled={carregando || formInvalido}
-                className="flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {carregando ? (
-                  <>
-                    <LocufySpin size={14} /> Criando...
-                  </>
-                ) : (
-                  "Criar conta e assinar"
-                )}
-              </button>
-              )}
-            </div>
+            <p className="text-sm text-fg/65 mt-4">Assinatura mensal. Adicionais são cobrados separadamente. A franquia conta mensagens de ouvintes respondidas ou encaminhadas para participação no programa.</p>
+          </fieldset>}
+          {erro && <p role="alert" className="mt-5 text-sm text-laranja">{erro}</p>}
+          <div className="flex justify-between gap-3 mt-8">
+            {passo > 1 ? <button type="button" onClick={voltar} disabled={carregando} className="rounded-xl border border-border-strong px-4 py-3 text-fg">Voltar</button> : <span />}
+            <button type="submit" disabled={carregando || (passo === 3 && formInvalido)} className="flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-on-brand hover:bg-brand-600 disabled:opacity-60">
+              {carregando ? <><LocufySpin size={14} /> Criando conta...</> : passo < 3 ? "Continuar" : "Criar conta e ir para pagamento"}
+            </button>
           </div>
         </form>
-
-        <p className="mt-4 text-sm text-fg/65 text-center">
-          Já tem conta?{" "}
-          <Link href="/login" className="text-acento-claro hover:text-acento-dim font-medium">
-            Entrar
-          </Link>
-        </p>
-
-        <p className="mt-2 text-xs text-fg/50 text-center">
-          Ao criar conta, você concorda com os{" "}
-          <Link href="/termos" className="text-acento-claro hover:text-acento-dim">
-            Termos de Uso
-          </Link>{" "}
-          e a{" "}
-          <Link href="/privacidade" className="text-acento-claro hover:text-acento-dim">
-            Política de Privacidade
-          </Link>
-          .
-        </p>
+        <p className="mt-6 text-center text-sm text-fg/65">Já tem conta? <Link href="/login" className="text-acento-claro underline">Entrar</Link></p>
+        <p className="mt-3 text-center text-xs text-fg/65">Ao criar conta, você concorda com os <Link href="/termos" className="underline">Termos de Uso</Link> e a <Link href="/privacidade" className="underline">Política de Privacidade</Link>.</p>
+        <CheckoutModal open={mostrarCheckout} onClose={() => { setMostrarCheckout(false); window.location.href = "/billing"; }} onSuccess={() => { window.location.href = "/dashboard"; }} endpoint="/billing/checkout" body={{ plano_id: planoId }} />
       </div>
-
-      {mostrarCheckout && (
-        <CheckoutModal
-          open
-          endpoint="/billing/checkout"
-          body={{ plano_id: planoId }}
-          onSuccess={() => {
-            // conta acabou de ser criada -- o locutor sempre comeca sem voz definida
-            // (RADIALISTA_VAZIO ali em cima), entao vai direto pro wizard guiado.
-            window.location.href = "/onboarding/locutor";
-          }}
-          onClose={() => {
-            // conta, radio e locutor ja foram criados antes de abrir o checkout --
-            // fechar sem pagar deixa a assinatura pendente, entao manda pro dashboard
-            // que sinaliza isso (mesmo destino usado quando o checkout falha).
-            window.location.href = "/dashboard?onboarding=incompleto";
-          }}
-        />
-      )}
-    </div>
+    </main>
   );
 }
