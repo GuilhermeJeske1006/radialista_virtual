@@ -13,6 +13,7 @@ from sqlalchemy import inspect, text
 from app.admin_sistema.auth_router import router as admin_sistema_auth_router
 from app.admin_sistema.router import router as admin_sistema_router
 from app.auth.router import router as auth_router
+from app.funnel.router import router as funnel_router
 from app.biblioteca_audio.router import router as biblioteca_audio_router
 from app.biblioteca_audio.sons_padrao import criar_sons_padrao
 from app.billing.router import router as billing_router
@@ -97,6 +98,8 @@ _frontend_origins.update(
     origin.strip() for origin in settings.cors_extra_origins.split(",") if origin.strip()
 )
 
+_frontend_origins.update(settings.funnel_origins.split(","))
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(_frontend_origins),
@@ -119,6 +122,7 @@ async def _security_headers(request, call_next):
 app.include_router(whatsapp_router)
 app.include_router(ouvintes_router)
 app.include_router(auth_router)
+app.include_router(funnel_router)
 app.include_router(equipe_router)
 app.include_router(config_router)
 app.include_router(onboarding_router)

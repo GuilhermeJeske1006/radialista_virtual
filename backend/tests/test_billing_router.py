@@ -23,7 +23,7 @@ def test_checkout_devolve_client_secret_da_sessao(client, account, auth_headers,
     def _fake_criar_sessao(acc, plano_id, db, usar_cartao_salvo=False):
         capturado["plano_id"] = plano_id
         pi = SimpleNamespace(client_secret="cs_test_secret123")
-        return SimpleNamespace(latest_invoice=SimpleNamespace(payment_intent=pi))
+        return SimpleNamespace(id="sub_test_funnel", latest_invoice=SimpleNamespace(payment_intent=pi))
 
     monkeypatch.setattr("app.billing.router.criar_sessao_checkout", _fake_criar_sessao)
     resposta = client.post(
@@ -160,7 +160,7 @@ def test_checkout_agente_extra_usa_cartao_salvo(client, account_factory, auth_he
     def _fake(acc, db, usar_cartao_salvo=False):
         capturado["usar_cartao_salvo"] = usar_cartao_salvo
         pi = SimpleNamespace(client_secret="cs_reuso123")
-        return SimpleNamespace(latest_invoice=SimpleNamespace(payment_intent=pi))
+        return SimpleNamespace(id="sub_test_funnel", latest_invoice=SimpleNamespace(payment_intent=pi))
 
     monkeypatch.setattr("app.billing.router.criar_sessao_checkout_agente_extra", _fake)
     resposta = client.post(

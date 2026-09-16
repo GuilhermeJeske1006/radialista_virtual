@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     # Origens extras liberadas no CORS alem de frontend_url (ex.: tunel ngrok em dev),
     # separadas por virgula. Vazio = so' frontend_url (e variante localhost/127.0.0.1).
     cors_extra_origins: str = ""
+    funnel_origins: str = "https://locufybr.com,https://www.locufybr.com,http://localhost:3010,http://127.0.0.1:3010"
 
     stripe_secret_key: str = ""
     # Sem default de proposito: stripe.Webhook.construct_event verifica a assinatura

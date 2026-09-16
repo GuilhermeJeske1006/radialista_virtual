@@ -26,6 +26,7 @@ from app.billing.stripe_client import (
 from app.config.redis_client import redis_client
 from app.config.settings import settings
 from app.db.database import get_db
+from app.funnel.service import record_event
 from app.guardrails.http_rate_limit import limitar_por_ip
 from app.models.account import Account
 from app.models.compra_excedente import CompraExcedente
@@ -101,6 +102,8 @@ def checkout(
         assinatura = criar_sessao_checkout(account, dados.plano_id, db, usar_cartao_salvo=dados.usar_cartao_salvo)
     except CartaoSalvoNaoEncontrado:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nenhum cartao salvo encontrado.")
+    record_event(db, "checkout_started", event_id=f"checkout:{assinatura.id}", account_id=account.id, plano=dados.plano_id)
+    db.commit()
     return {"client_secret": assinatura.latest_invoice.payment_intent.client_secret}
 
 
@@ -234,6 +237,7 @@ async def webhook_stripe(request: Request, db: Session = Depends(get_db)):
             account.plano = metadata.get("plano", "starter")
             account.stripe_subscription_id = subscription_id
             _definir_ativo(db, account, True)
+            record_event(db, "subscription_confirmed", event_id=f"subscription:{subscription_id or dados.get('id')}", account_id=account.id, plano=account.plano, valor_centavos=int(dados.get("amount_paid") or 0) if dados.get("currency") == "brl" else 0)
             db.commit()
             logger.info("Assinatura ativada: account_id=%s plano=%s", account.id, account.plano)
             notificar_admins(

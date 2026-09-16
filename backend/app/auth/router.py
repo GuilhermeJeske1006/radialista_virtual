@@ -20,6 +20,7 @@ from app.auth.security import (
 from app.biblioteca_audio.sons_padrao import criar_sons_padrao
 from app.categorias_vinheta.defaults import criar_categorias_padrao
 from app.db.database import get_db
+from app.funnel.service import Campaign, record_event
 from app.guardrails.http_rate_limit import limitar_por_ip
 from app.models.account import Account
 from app.models.password_reset_token import PasswordResetToken
@@ -44,6 +45,7 @@ class RegistroRequest(BaseModel):
     nome: str
     email: EmailStr
     senha: str
+    campanha: Campaign = Campaign()
 
 
 class LoginRequest(BaseModel):
@@ -133,6 +135,7 @@ def registrar(dados: RegistroRequest, response: Response, db: Session = Depends(
     except Exception:
         logger.warning("Falha ao seedar sons padrao pra account_id=%s", account.id, exc_info=True)
 
+    record_event(db, "account_created", event_id=f"account:{account.id}", account_id=account.id, campanha=dados.campanha.model_dump(exclude_defaults=True))
     db.commit()
 
     logger.info("Conta registrada: account_id=%s usuario_id=%s email=%s", account.id, usuario.id, usuario.email)

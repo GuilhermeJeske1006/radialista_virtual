@@ -58,3 +58,5 @@ __all__ = [
 from app.models.conversa_ouvinte import ConversaOuvinte
 
 from app.models.mensagem_ouvinte import MensagemOuvinte
+
+from app.funnel.service import FunnelEvent
