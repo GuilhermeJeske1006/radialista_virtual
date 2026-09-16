@@ -1,0 +1,29 @@
+[
+  {
+    "id": "demo-abertura",
+    "title": "Abertura de programa",
+    "voice": "Paulo",
+    "voice_id": "Qrdut83w0Cr152Yb4Xn3",
+    "model": "eleven_v3",
+    "text": "Bom dia! Está começando o Manhã em Sintonia, com música, informação e boa companhia. Eu sou o Paulo, seu radialista virtual. Prepare o café, escolha sua música e venha passar a manhã com a gente. Aqui, a sua participação faz parte do programa.",
+    "file": "demo-abertura.mp3"
+  },
+  {
+    "id": "demo-recado",
+    "title": "Recado ao ouvinte",
+    "voice": "Yasmin Alves",
+    "voice_id": "lWq4KDY8znfkV0DrK8Vb",
+    "model": "eleven_v3",
+    "text": "Um abraço para a Ana, que está acompanhando a nossa programação enquanto prepara o almoço! Obrigada pela companhia, Ana. E você que também está ouvindo, conte pra gente de onde está ligado. Seu recado pode fazer parte do próximo bloco.",
+    "file": "demo-recado.mp3"
+  },
+  {
+    "id": "demo-chamada",
+    "title": "Chamada da programação",
+    "voice": "Paulo",
+    "voice_id": "Qrdut83w0Cr152Yb4Xn3",
+    "model": "eleven_v3",
+    "text": "Daqui a pouco, tem mais música e conversa boa no Manhã em Sintonia. Enquanto isso, mande sua participação pelo WhatsApp da rádio. A gente quer saber qual canção combina com o seu dia. Continue com a gente e aproveite a programação.",
+    "file": "demo-chamada.mp3"
+  }
+]
