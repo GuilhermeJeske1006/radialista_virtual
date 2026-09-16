@@ -67,6 +67,16 @@ _VOICE_SETTINGS_POR_TIPO = {
     "comentario": {"stability": 0.45, "style": 0.3, "speed": 0.92},
     "noticia": {"stability": 0.5, "style": 0.25, "speed": 0.9},
     "patrocinador": {"stability": 0.4, "style": 0.35, "speed": 0.97},
+    # As 5 categorias abaixo (ver _DESCRICAO_BLOCO/_PROSODIA_BLOCO em app.live.router) nao
+    # tinham preset proprio -- cada uma caia so' no _VOICE_SETTINGS_PADRAO generico, apesar de
+    # pedir prosodia bem diferente entre si no texto do prompt. Calibradas por interpolacao
+    # dentro da mesma faixa medida acima (stability 0.34-0.5, speed 0.9-1.02); reavaliar por
+    # audicao como os demais tipos desta tabela.
+    "escalada": {"stability": 0.32, "style": 0.55, "speed": 1.05},  # manchete seca e rapida, mais que abertura/musica
+    "servico": {"stability": 0.42, "style": 0.25, "speed": 0.97},  # pratico e claro, perto do padrao generico
+    "plantao": {"stability": 0.48, "style": 0.2, "speed": 0.95},  # serio e estavel; tom "energico" (ver _TOM_SINTESE_POR_CATEGORIA) empurra o ritmo sem virar "empolgado"
+    "reporter": {"stability": 0.48, "style": 0.27, "speed": 0.91},  # mesmo registro serio/sereno da noticia comum, em dupla
+    "encerramento": {"stability": 0.4, "style": 0.4, "speed": 0.93},  # caloroso como chamada_ouvinte, porem mais calmo
 }
 
 # ajuste fino por cima do tipo de bloco, a partir do tom real da fala gerada (ver

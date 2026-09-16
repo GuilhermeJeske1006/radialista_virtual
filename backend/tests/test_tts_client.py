@@ -104,6 +104,16 @@ def test_construir_voice_settings_aplica_preset_do_tipo_bloco():
     assert settings_musica["speed"] > settings_comentario["speed"]
 
 
+@pytest.mark.parametrize("tipo_bloco", ["escalada", "servico", "plantao", "reporter", "encerramento"])
+def test_construir_voice_settings_categorias_de_noticia_tem_preset_proprio(tipo_bloco):
+    # Essas 5 categorias (ver _DESCRICAO_BLOCO/_PROSODIA_BLOCO em app.live.router) nao tinham
+    # entrada em _VOICE_SETTINGS_POR_TIPO e caiam so' no padrao generico -- confirma que agora
+    # cada uma difere do padrao em pelo menos uma dimensao.
+    resultado = tts_client._construir_voice_settings(tipo_bloco, None, "eleven_multilingual_v2", False)
+    padrao = tts_client._VOICE_SETTINGS_PADRAO
+    assert any(resultado[chave] != pytest.approx(padrao[chave]) for chave in ("stability", "style", "speed"))
+
+
 def test_construir_voice_settings_bloco_customizado_reconhece_prefixo(monkeypatch):
     monkeypatch.setattr(tts_client.random, "uniform", lambda a, b: 0.0)
     a = tts_client._construir_voice_settings("Musica Vaneira", None, "eleven_multilingual_v2", False)
