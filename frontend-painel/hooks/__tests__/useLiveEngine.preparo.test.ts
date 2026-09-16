@@ -217,7 +217,8 @@ it("diálogo só entra com todas as vozes prontas e já libera a escrita do bloc
   expect(players).toHaveLength(0);
   await act(async () => { segundaVoz.resolve(new Blob(["bia"])); });
   expect(players).toHaveLength(1);
-  await act(async () => { players[0].terminar(); });
+  // 280ms = pausa entre turnos do dialogo multi-voz (ver PAUSA_ENTRE_LINHAS_MS em continuidadeAudio.ts).
+  await act(async () => { players[0].terminar(); await vi.advanceTimersByTimeAsync(280); });
   expect(players).toHaveLength(2);
   expect(mocks.tts).toHaveBeenCalledTimes(2);
 });

@@ -20,6 +20,13 @@ export function pausaAntesDoBloco(ms?: number | null): number {
   return ms != null && Number.isFinite(ms) ? Math.max(0, Math.min(5000, ms)) : 350;
 }
 
+// Cada linha do dialogo multi-voz e' sintetizada isolada (uma chamada de API por locutor,
+// ver _sintetizar_falas_multivoz no backend) e tocada aqui uma logo apos a outra -- sem
+// nenhum intervalo, o corte entre quem fala soa como edicao digital, nao como alguem
+// esperando a vez de falar. 280ms e' o "beat" curto de troca de turno em conversa real,
+// perto do que ja se usa como pausa padrao entre blocos (ver pausaAntesDoBloco).
+const PAUSA_ENTRE_LINHAS_MS = 280;
+
 export async function reproduzirGrupoDeFalas<T>(
   falas: T[],
   ativo: () => boolean,
@@ -32,6 +39,10 @@ export async function reproduzirGrupoDeFalas<T>(
   try {
     for (let i = 0; i < falas.length && ativo(); i++) {
       duracao += await tocar(falas[i], i);
+      if (i < falas.length - 1 && ativo()) {
+        await new Promise((resolver) => setTimeout(resolver, PAUSA_ENTRE_LINHAS_MS));
+        duracao += PAUSA_ENTRE_LINHAS_MS / 1000;
+      }
     }
     return duracao;
   } finally {

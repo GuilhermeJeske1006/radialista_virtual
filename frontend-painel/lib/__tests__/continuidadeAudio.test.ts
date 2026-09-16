@@ -37,12 +37,28 @@ describe("continuidade da programação", () => {
   });
 
   it("mantém a cama baixa durante todo o diálogo, inclusive uma linha sem áudio", async () => {
+    vi.useFakeTimers();
     const eventos: unknown[] = [];
-    const duracao = await reproduzirGrupoDeFalas(["primeira", null, "última"], () => true,
+    const promessa = reproduzirGrupoDeFalas(["primeira", null, "última"], () => true,
       async (fala) => { eventos.push(fala); return fala ? 2 : 0; },
       (baixo) => eventos.push(baixo));
+    await vi.runAllTimersAsync();
+    const duracao = await promessa;
     expect(eventos).toEqual([true, "primeira", null, "última", false]);
-    expect(duracao).toBe(4);
+    expect(duracao).toBeCloseTo(4.56, 5); // 2 + 2 de fala + 2 pausas de 280ms entre as 3 linhas
+  });
+
+  it("espera um intervalo curto entre uma linha e a próxima, pra soar como troca de turno", async () => {
+    vi.useFakeTimers();
+    const ordem: string[] = [];
+    const promessa = reproduzirGrupoDeFalas(["a", "b"], () => true,
+      async (fala) => { ordem.push(`falou:${fala}`); return 1; },
+      () => {});
+    await vi.advanceTimersByTimeAsync(0);
+    expect(ordem).toEqual(["falou:a"]); // "b" so' comeca depois da pausa
+    await vi.advanceTimersByTimeAsync(280);
+    await promessa;
+    expect(ordem).toEqual(["falou:a", "falou:b"]);
   });
 
   it("não toca o restante nem altera a cama de uma execução que substituiu o diálogo", async () => {
