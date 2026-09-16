@@ -76,6 +76,8 @@ from app.numeros import normalizar_texto_fala
     ("WhatsApp (11) 99999-1234", "WhatsApp um um nove nove nove nove nove um dois três quatro"),
     ("20%", "vinte por cento"),
     ("25°C", "vinte e cinco graus Celsius"),
+    ("01/01/2026", "primeiro de janeiro de dois mil e vinte e seis"),
+    ("10/09/2026", "dez de setembro de dois mil e vinte e seis"),
 ])
 def test_normalizacao_formatos_radio(texto, esperado):
     assert normalizar_texto_fala(texto) == esperado

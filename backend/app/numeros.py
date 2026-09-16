@@ -115,7 +115,10 @@ def normalizar_texto_fala(texto: str, pronuncias: dict[str, str] | None = None) 
         except ValueError:
             return m.group()
         meses = ("janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro")
-        return f"{numero_por_extenso(dia)} de {meses[mes - 1]} de {numero_por_extenso(ano)}"
+        # Convenção do português: só o primeiro dia do mês usa ordinal ("primeiro de
+        # janeiro"); os demais são cardinais ("dois de fevereiro", nunca "segundo de fevereiro").
+        dia_extenso = "primeiro" if dia == 1 else numero_por_extenso(dia)
+        return f"{dia_extenso} de {meses[mes - 1]} de {numero_por_extenso(ano)}"
     texto = re.sub(r"\b(\d{2})/(\d{2})/(\d{4})\b", data_por_extenso, texto)
     texto = re.sub(r"\b(\d{1,3})[,.](\d{1,2})\s*(FM|MHz)\b",
                    lambda m: f"{numero_por_extenso(int(m[1]))} vírgula {numero_por_extenso(int(m[2]))} " + ("efe eme" if m[3].lower() == "fm" else "megahertz"), texto, flags=re.I)
