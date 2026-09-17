@@ -39,6 +39,9 @@ wuzapi/qr.png
 backend/uploads/
 /uploads/
 
+# --- audio de teste gerado por scripts de escuta (consome creditos ElevenLabs, nao versiona) ---
+backend/scripts/saida_vozes/
+
 # --- OS / editor ---
 .DS_Store
 Thumbs.db
