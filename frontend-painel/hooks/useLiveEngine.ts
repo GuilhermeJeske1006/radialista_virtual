@@ -910,27 +910,29 @@ export function useLiveEngine() {
     }
 
     try {
-      const { audio_base64, audio_status, audio_erro, ...resposta } = await apiFetchComTimeout<LiveProgramResponse>(
-        `/live/${contexto.radialistaId}/programas/${contexto.programaId}/proxima`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            incluir_audio: false,
-            historico: historicoBase
-              .slice(0, 8)
-              .reverse()
-              .map((fala) => `${fala.tipo}: ${fala.fala}${linhaMusicasHistorico(fala)}`),
-            total_falas: totalFalasAtual,
-            perfil_pos_producao: "radio_fm",
-            ultima_fala: ultimaFalaAtual,
-          }),
-        },
-        // Inclui apuração jornalística antes da locução; o áudio segue preparado em paralelo.
-        75_000
-      );
+      const { audio_base64, audio_status, audio_erro, audios_falas_base64, ...resposta } =
+        await apiFetchComTimeout<LiveProgramResponse>(
+          `/live/${contexto.radialistaId}/programas/${contexto.programaId}/proxima`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              incluir_audio: false,
+              historico: historicoBase
+                .slice(0, 8)
+                .reverse()
+                .map((fala) => `${fala.tipo}: ${fala.fala}${linhaMusicasHistorico(fala)}`),
+              total_falas: totalFalasAtual,
+              perfil_pos_producao: "radio_fm",
+              ultima_fala: ultimaFalaAtual,
+            }),
+          },
+          // Inclui apuração jornalística antes da locução; o áudio segue preparado em paralelo.
+          75_000
+        );
       audioBase64 = audio_base64;
       audioStatus = audio_status;
       audioErro = audio_erro;
+      audiosFalasBase64 = audios_falas_base64 ?? null;
       segmento = { ...resposta, origem: "ia" };
       if (ativa()) setErro("");
     } catch (err) {
@@ -950,7 +952,7 @@ export function useLiveEngine() {
         if (ativa()) setErro(err instanceof ApiError ? err.message : "IA indisponivel");
       }
     }
-    return { segmento, audioBase64, audioStatus, audioErro };
+    return { segmento, audioBase64, audioStatus, audioErro, audiosFalasBase64 };
   }
 
   // Só fica pronto após baixar a voz ou vinheta e concluir o tratamento Rádio FM.

@@ -141,7 +141,7 @@ def test_noticia_pesquisada_chega_a_locucao_e_retorna_fontes(
     fala = "Segundo o Jornal da Cidade, a prefeitura anunciou uma nova escola."
     monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or fala)
     monkeypatch.setattr(
-        "app.live.router.gerar_configuracao",
+        "app.live.router.gerar_dialogo_multivoz",
         lambda system, msg: prompts.append(system) or json.dumps({"linhas": [
             {"locutor": radialista.nome_locutor, "texto": fala},
             {"locutor": "Maria", "texto": "A medida amplia o acesso à educação."},
@@ -378,7 +378,7 @@ def test_gerar_proxima_fala_multi_voz_gera_dialogo(
             ]
         }
     )
-    monkeypatch.setattr("app.live.router.gerar_configuracao", lambda system, msg: resposta_llm)
+    monkeypatch.setattr("app.live.router.gerar_dialogo_multivoz", lambda system, msg: resposta_llm)
 
     resposta = client.post(
         _url_proxima(dono.id, programa.id),

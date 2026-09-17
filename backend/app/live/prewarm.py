@@ -6,12 +6,11 @@ e o programa comeca atrasado. Roda in-process (mesmo BackgroundScheduler de
 app.news.worker::iniciar_scheduler_noticias em app.main), sujeito ao mesmo sleep por
 inatividade do free tier do Render -- so' resolve pontualidade enquanto o processo esta' de pe.
 
-Chama gerar_proxima_fala/gerar_audio_fala direto (mesmas funcoes do endpoint HTTP, so' sem
-passar pela camada ASGI) pra reusar a logica de verdade (patrocinador, vinheta, dialogo
-multi-voz, sintese embutida) em vez de duplicar-la aqui.
+Chama gerar_proxima_fala direto (mesma funcao do endpoint HTTP, so' sem passar pela camada
+ASGI) pra reusar a logica de verdade (patrocinador, vinheta, dialogo multi-voz, sintese
+embutida -- inclusive por linha, ver audios_falas_base64) em vez de duplica-la aqui.
 """
 
-import base64
 import datetime
 import json
 import logging
@@ -22,12 +21,7 @@ from sqlalchemy.orm import Session
 from app.config.redis_client import redis_client
 from app.db.database import SessionLocal
 from app.guardrails.schedule import segundos_ate_inicio_hoje
-from app.live.router import (
-    LiveProgramRequest,
-    LiveTtsRequest,
-    gerar_audio_fala,
-    gerar_proxima_fala,
-)
+from app.live.router import LiveProgramRequest, gerar_proxima_fala
 from app.models.account import Account
 from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
@@ -62,27 +56,6 @@ def consumir_preparo_antecipado(programa_id: int) -> dict | None:
         return None
 
 
-def _sintetizar_audio_b64(
-    radialista_id: int, account: Account, db: Session, texto: str, tipo: str, voz_id: str | None,
-    texto_anterior: str | None, programa_id: int,
-) -> str | None:
-    dados = LiveTtsRequest(
-        texto=texto,
-        tipo=tipo,
-        voz_id=voz_id,
-        perfil_pos_producao="radio_fm",
-        texto_anterior=texto_anterior,
-        programa_id=programa_id,
-    )
-    try:
-        resposta = gerar_audio_fala(radialista_id, dados, account=account, db=db)
-    except Exception:
-        logger.warning("prewarm: falha ao sintetizar audio de uma linha do dialogo, programa_id=%s", programa_id, exc_info=True)
-        return None
-    corpo = getattr(resposta, "body", None)
-    return base64.b64encode(corpo).decode("ascii") if corpo else None
-
-
 def preparar_programa(db: Session, account: Account, radialista: RadioConfig, programa: Programa) -> None:
     dados = LiveProgramRequest(incluir_audio=True, historico=[], total_falas=0, perfil_pos_producao="radio_fm")
     try:
@@ -91,20 +64,10 @@ def preparar_programa(db: Session, account: Account, radialista: RadioConfig, pr
         logger.warning("prewarm: falha ao gerar a primeira fala antecipada, programa_id=%s", programa.id, exc_info=True)
         return
 
+    # Dialogo multi-voz ja vem com audio por linha (ver audios_falas_base64 em
+    # gerar_proxima_fala/_sintetizar_falas_multivoz) -- gerar_proxima_fala sintetiza tudo em
+    # paralelo, sem precisar de um loop dedicado aqui como antes.
     payload = json.loads(resposta.model_dump_json())
-
-    # Dialogo multi-voz nao tem sintese embutida em gerar_proxima_fala (precisa de uma voz por
-    # linha) -- o frontend normalmente busca cada audio via /tts depois; aqui adianta esse
-    # mesmo trabalho pra' o preparo antecipado sair completo.
-    if resposta.falas:
-        audios = []
-        anterior = None
-        for linha in resposta.falas:
-            audios.append(
-                _sintetizar_audio_b64(radialista.id, account, db, linha.texto, resposta.tipo, linha.voz_id, anterior, programa.id)
-            )
-            anterior = linha.texto
-        payload["audios_falas_base64"] = audios
 
     redis_client.set(_chave_cache(programa.id), json.dumps(payload), ex=_TTL_CACHE_SEGUNDOS)
     logger.info("prewarm: preparo antecipado pronto para programa_id=%s tipo=%s", programa.id, resposta.tipo)

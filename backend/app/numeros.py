@@ -59,6 +59,18 @@ def numero_por_extenso(numero: int) -> str:
     return f"{prefixo} e {_extenso_0_999(resto)}" if resto else prefixo
 
 
+def cardinal_feminino(numero: int) -> str:
+    """Cardinal por extenso com concordância de gênero feminino ('duas' em vez de 'dois') --
+    português exige a concordância com 'horas' mesmo quando o substantivo fica implícito
+    ('são duas', não 'são dois'), inclusive em compostos como vinte e dois -> vinte e duas."""
+    texto = numero_por_extenso(numero)
+    if texto == "dois":
+        return "duas"
+    if texto.endswith(" dois"):
+        return texto[: -len("dois")] + "duas"
+    return texto
+
+
 def valor_monetario_por_extenso(reais: int, centavos: int = 0) -> str:
     """Ex.: (19, 90) -> 'dezenove reais e noventa centavos'; (1, 0) -> 'um real';
     (0, 50) -> 'cinquenta centavos'."""
@@ -104,10 +116,26 @@ def normalizar_texto_fala(texto: str, pronuncias: dict[str, str] | None = None) 
         h, minuto = int(m[1]), int(m[2])
         if h > 23 or minuto > 59:
             return m.group()
-        horas = "uma hora" if h == 1 else ("duas horas" if h == 2 else f"{numero_por_extenso(h)} horas")
+        horas = "uma hora" if h == 1 else f"{cardinal_feminino(h)} horas"
         return horas + (f" e {numero_por_extenso(minuto)}" if minuto else "")
 
     texto = re.sub(r"\b(\d{1,2})[:h](\d{2})\b", horario, texto)
+
+    def hora_sem_minutos(m):
+        h = int(m.group(1))
+        if h > 23:
+            return m.group()
+        if h == 1:
+            return "uma hora"
+        return f"{cardinal_feminino(h)} horas"
+
+    # "8h", "18h" -- formato comum em texto de servico/patrocinador (nunca passa pelo LLM,
+    # que so' recebe a instrucao de "escreva por extenso" em prompt) pra hora sem minutos. O
+    # regex de horario acima exige minutos (\d{2} depois do separador) e o regex generico de
+    # numero solto mais abaixo bloqueia quando o digito e' seguido de letra -- "h" -- entao sem
+    # este passo esse formato passava intacto pro sintetizador.
+    texto = re.sub(r"\b(\d{1,2})h\b", hora_sem_minutos, texto)
+
     def data_por_extenso(m):
         dia, mes, ano = map(int, m.groups())
         try:

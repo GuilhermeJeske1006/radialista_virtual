@@ -161,6 +161,35 @@ def gerar_configuracao(system_prompt: str, mensagem_usuario: str) -> str:
     return ""
 
 
+def gerar_dialogo_multivoz(system_prompt: str, mensagem_usuario: str) -> str:
+    """Gera o dialogo JSON multi-voz do ao vivo (ver app.live.router._gerar_falas_bloco).
+
+    Ao contrario de gerar_configuracao (pensada pra' configuracao rara de radialista/programa,
+    no maximo 5/hora por conta), esta roda a cada bloco de um programa multi-voz ao vivo --
+    mesmo volume/latencia de gerar_resposta, por isso fica em effort='low' com um teto de
+    tokens compativel com 2 a 4 falas curtas de dialogo, nao os 4096 de uma configuracao
+    completa.
+    """
+    response = _client.messages.create(
+        model=MODEL,
+        max_tokens=1024,
+        thinking={"type": "disabled"},
+        output_config={"effort": "low"},
+        system=system_prompt,
+        messages=[{"role": "user", "content": mensagem_usuario}],
+    )
+
+    if response.stop_reason == "refusal":
+        logger.warning("LLM recusou gerar dialogo multi-voz")
+        return ""
+
+    for block in response.content:
+        if block.type == "text":
+            return block.text
+
+    return ""
+
+
 _TONS_VALIDOS = ("energico", "calmo", "neutro")
 
 _TOM_SYSTEM_PROMPT = (

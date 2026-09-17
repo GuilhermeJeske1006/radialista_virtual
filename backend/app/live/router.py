@@ -10,6 +10,7 @@ import threading
 import time
 import unicodedata
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -34,7 +35,7 @@ from app.llm.client import (
     classificar_fio_condutor,
     classificar_tema_fala,
     classificar_tom_fala,
-    gerar_configuracao,
+    gerar_dialogo_multivoz,
     gerar_resposta,
     resumir_contexto_musica,
     sugerir_musica_do_genero,
@@ -72,6 +73,7 @@ from app.news.pauta import (
     proximas_noticias,
 )
 from app.news.validacao import frase_proibida_em, tem_atribuicao
+from app.numeros import cardinal_feminino, numero_por_extenso
 from app.postprod.client import processar_audio
 from pydub.exceptions import PydubException
 from app.tts.client import sintetizar_audio, sintetizar_audio_stream, tts_habilitado
@@ -165,6 +167,12 @@ class LiveProgramResponse(BaseModel):
     # Preenchido só quando o programa tem mais de um radialista (ver ProgramaRadialista):
     # diálogo alternado, uma linha por participante, cada uma com sua própria voz.
     falas: list[FalaItem] | None = None
+    # Audio (mp3, base64) de cada linha de `falas` acima, mesmo indice -- sintetizado aqui
+    # dentro em paralelo (ver _sintetizar_falas_multivoz) pra poupar o frontend de abrir uma
+    # chamada /tts por linha em sequencia. Item None significa que aquela linha especifica
+    # falhou (ou audio nao foi pedido) -- o frontend cai pro /tts avulso so' pra essa linha,
+    # nao pro bloco inteiro.
+    audios_falas_base64: list[str | None] | None = None
     # Compatibilidade com painéis antigos. O painel atual usa apenas pausa_antes_ms.
     intervalo_ms: int | None = None
     # Pausa aplicada uma única vez ANTES deste bloco, quando ele já estiver preparado.
@@ -760,32 +768,15 @@ def _limpar_fala(fala: str) -> str:
     return texto
 
 
-_NUMERO_POR_EXTENSO = (
-    "zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez",
-    "onze", "doze", "treze", "catorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove",
-)
-_DEZENA_POR_EXTENSO = {2: "vinte", 3: "trinta", 4: "quarenta", 5: "cinquenta"}
-
-
-def _numero_0_59_por_extenso(numero: int) -> str:
-    if numero < 20:
-        return _NUMERO_POR_EXTENSO[numero]
-    dezena, resto = divmod(numero, 10)
-    palavra = _DEZENA_POR_EXTENSO[dezena]
-    return f"{palavra} e {_NUMERO_POR_EXTENSO[resto]}" if resto else palavra
-
-
 def _hora_certa_por_extenso(agora: datetime.datetime) -> str:
     """Hora atual por extenso (ex.: 'catorze e trinta e cinco') pra injetar no prompt --
     nunca em algarismo, porque o texto vai direto pro TTS e algarismo lido em portugues
     e' onde o sintetizador mais erra (ver _LANGUAGE_CODE em app.tts.client).
     """
-    hora_extenso = _numero_0_59_por_extenso(agora.hour)
-    if agora.hour == 1:
-        hora_extenso = "uma"  # "horas" e' feminino: "uma hora", nao "um hora"
+    hora_extenso = "uma" if agora.hour == 1 else cardinal_feminino(agora.hour)  # "horas" e' feminino
     if agora.minute == 0:
         return f"{hora_extenso} horas em ponto"
-    return f"{hora_extenso} e {_numero_0_59_por_extenso(agora.minute)}"
+    return f"{hora_extenso} e {numero_por_extenso(agora.minute)}"
 
 
 # TTL generico p/ estado de sessao ao vivo no Redis (historico de musica, historico de temas,
@@ -1670,6 +1661,73 @@ def _pedido_recente_nao_atendido(db: Session, radialista: RadioConfig, tipo: str
     )
 
 
+# Teto de threads simultaneas pra sintese multi-voz embutida -- dialogo tem no maximo 4 linhas
+# (ver instrucao "entre 2 e 4 linhas" em montar_system_prompt), entao isso so' limita o caso raro
+# de o LLM devolver mais que isso.
+_MAX_WORKERS_TTS_MULTIVOZ = 4
+
+
+def _preparar_parametros_multivoz(db: Session, account_id: int, falas_bloco: list[FalaItem]) -> dict[str, dict]:
+    """Resolve parametros_sintese (toca o banco, ver app.tts.profiles) uma vez por voz distinta
+    do dialogo, ANTES de paralelizar -- Session do SQLAlchemy nao e' thread-safe pra uso
+    concorrente, entao nenhum acesso a `db` pode acontecer dentro das threads de
+    _sintetizar_falas_multivoz abaixo."""
+    parametros_por_voz: dict[str, dict] = {}
+    for linha in falas_bloco:
+        chave = linha.voz_id or ""
+        if chave not in parametros_por_voz:
+            parametros_por_voz[chave] = parametros_sintese(db, account_id, linha.voz_id)
+    return parametros_por_voz
+
+
+def _sintetizar_falas_multivoz(
+    falas_bloco: list[FalaItem],
+    parametros_por_voz: dict[str, dict],
+    tipo: str,
+    tom: str,
+    ultima_fala_anterior: str | None,
+    perfil_pos_producao: str | None,
+    request_id: str,
+    programa_id: int,
+) -> list[str | None]:
+    """Sintetiza em paralelo o audio de cada linha de um dialogo multi-voz, embutido aqui em
+    /proxima (mesmo espirito do Plano B.3 pro locutor unico) -- sem isso o frontend abre uma
+    chamada /tts por linha (ver prepararAudio em useLiveEngine.ts). So a chamada de rede pra
+    ElevenLabs roda em thread; parametros de voz ja foram resolvidos fora da paralelizacao (ver
+    _preparar_parametros_multivoz). Item None no resultado = aquela linha falhou -- o frontend
+    cai pro /tts avulso so' pra ela, sem perder o bloco inteiro."""
+    resultados: list[str | None] = [None] * len(falas_bloco)
+
+    def _uma_linha(indice: int) -> None:
+        linha = falas_bloco[indice]
+        texto_anterior = falas_bloco[indice - 1].texto if indice > 0 else ultima_fala_anterior
+        parametros_voz = parametros_por_voz.get(linha.voz_id or "", {"eh_clonada": False})
+        try:
+            audio_bytes = sintetizar_audio(
+                linha.texto,
+                linha.voz_id,
+                tipo_bloco=tipo,
+                tom=tom,
+                **parametros_voz,
+                texto_anterior=texto_anterior,
+                timeout_segundos=_TTS_TIMEOUT_EMBUTIDO_SEGUNDOS,
+                max_tentativas=1,
+            )
+            if perfil_pos_producao:
+                audio_bytes = processar_audio(audio_bytes, perfil_pos_producao)
+            resultados[indice] = base64.b64encode(audio_bytes).decode("ascii")
+        except Exception:
+            logger.warning(
+                "live_audio_multivoz_falhou request_id=%s programa_id=%s indice=%s",
+                request_id, programa_id, indice, exc_info=True,
+            )
+
+    with ThreadPoolExecutor(max_workers=min(len(falas_bloco), _MAX_WORKERS_TTS_MULTIVOZ)) as executor:
+        list(executor.map(_uma_linha, range(len(falas_bloco))))
+
+    return resultados
+
+
 @router.post("/{radialista_id}/programas/{programa_id}/proxima", response_model=LiveProgramResponse)
 def gerar_proxima_fala(
     radialista_id: int,
@@ -2102,9 +2160,6 @@ def gerar_proxima_fala(
         "conteúdo sólido pro bloco, mantenha a fala curta e direta em vez de enrolar.",
         "Quando o bloco for comentário, escolha um assunto diferente do último comentado no histórico.",
         "Se pesquisa externa estiver desabilitada, não invente fatos recentes: faça chamadas gerais e atemporais.",
-        "Nunca comente o próprio formato do programa nem descreva rádio de fora em vez de fazer rádio -- "
-        "proibidas frases como 'clima de rádio', 'cara de ao vivo', 'perto do ouvinte', 'sentir o pulso', "
-        "'perfil da rádio', 'ritmo gostoso' e qualquer variação desse registro meta.",
         "Nunca soe como se o programa estivesse terminando ou se despedindo (frases tipo 'por hoje é só', "
         "'foi um prazer ficar com vocês', 'até a próxima', 'foi isso por agora') a não ser que o bloco atual "
         "seja o de encerramento -- despedida só é permitida na fala do bloco 'encerramento', em nenhum outro. "
@@ -2419,7 +2474,7 @@ def gerar_proxima_fala(
         if not multi_voz:
             return [], _limpar_fala(gerar_resposta(prompt, mensagem))
 
-        resposta_llm = gerar_configuracao(prompt, mensagem)
+        resposta_llm = gerar_dialogo_multivoz(prompt, mensagem)
         try:
             linhas_dialogo = list((extrair_json(resposta_llm) if resposta_llm else {}).get("linhas") or [])
         except (json.JSONDecodeError, TypeError, AttributeError, ValueError):
@@ -2602,6 +2657,28 @@ def gerar_proxima_fala(
     elif not falas_bloco and categoria != "patrocinador" and fala.strip():
         audio_status = "indisponivel"
 
+    # Dialogo multi-voz: sintetiza cada linha em paralelo aqui dentro (ver
+    # _sintetizar_falas_multivoz), poupando o frontend de N chamadas /tts em sequencia (ver
+    # prepararAudio em useLiveEngine.ts). Ao contrario do locutor unico acima, nao depende de
+    # dados.incluir_audio -- esse campo existe pra' dar ao locutor unico a opcao de streaming
+    # via /tts avulso (que multi-voz nunca teve), entao aqui e' so' uma questao de o TTS estar
+    # habilitado.
+    audios_falas_base64: list[str | None] | None = None
+    if falas_bloco and tts_habilitado(radialista.voz_id):
+        tom_multivoz = _tom_sintese_do_bloco(tipo, pedido_ouvinte.natureza if pedido_ouvinte is not None else None)
+        _registrar_ultimo_tom(programa.id, tom_multivoz)
+        inicio_tts_multivoz = time.perf_counter()
+        parametros_por_voz = _preparar_parametros_multivoz(db, account.id, falas_bloco)
+        audios_falas_base64 = _sintetizar_falas_multivoz(
+            falas_bloco, parametros_por_voz, tipo, tom_multivoz, dados.ultima_fala,
+            dados.perfil_pos_producao, request_id, programa.id,
+        )
+        logger.info(
+            "live_audio_multivoz_pronto request_id=%s programa_id=%s tipo=%s linhas=%s tts_ms=%s",
+            request_id, programa.id, tipo, len(falas_bloco),
+            round((time.perf_counter() - inicio_tts_multivoz) * 1000),
+        )
+
     logger.info(
         "live_proxima_pronta request_id=%s programa_id=%s tipo=%s audio_status=%s total_ms=%s",
         request_id,
@@ -2645,6 +2722,7 @@ def gerar_proxima_fala(
         ],
         programa_atual=programa.nome,
         falas=falas_bloco or None,
+        audios_falas_base64=audios_falas_base64,
         intervalo_ms=_intervalo_transicao_ms(ultima_categoria, categoria),
         pausa_antes_ms=_pausa_antes_ms(ultima_categoria, categoria),
         duracao_alvo_segundos=orcamento_fala(tipo, total_falas == 0)[:2] if formato_musical else None,

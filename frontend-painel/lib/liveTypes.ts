@@ -84,6 +84,10 @@ export type LiveProgramResponse = ConfirmacaoPedido & {
   // backend, evitando uma segunda chamada cara e a voz sintetica do navegador.
   audio_status?: "pronto" | "pendente" | "falhou" | "indisponivel" | "nao_aplicavel";
   audio_erro?: string | null;
+  // Audio (mp3, base64) de cada linha de `falas` acima, mesmo indice -- sintetizado em paralelo
+  // dentro do proprio /proxima pra dialogo multi-voz (ver _sintetizar_falas_multivoz no
+  // backend). Item null = aquela linha falhou; prepararAudio cai pro /tts avulso so' pra ela.
+  audios_falas_base64?: (string | null)[] | null;
 };
 
 export type ProgramaOpcao = Programa & { radialistaId: number; radialistaNome: string };
