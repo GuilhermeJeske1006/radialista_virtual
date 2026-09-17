@@ -432,6 +432,7 @@ def garantir_colunas_patrocinador():
         "voz_id": "VARCHAR NULL",
         "duracao_segundos": "INTEGER NULL",
         "categoria_id": "INTEGER NULL",
+        "audio_cache": "JSON NULL",
     }
 
     with engine.begin() as conn:

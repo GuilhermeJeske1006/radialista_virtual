@@ -114,7 +114,7 @@ def test_obter_audio_de_patrocinador(client, account, auth_headers):
     assert resposta.content == b"fake-mp3-bytes"
 
 
-def test_obter_audio_de_patrocinador_texto_falha(client, account, auth_headers):
+def test_obter_audio_de_patrocinador_texto_sem_tts_configurado_falha(client, account, auth_headers):
     criado = client.post(
         "/patrocinadores",
         data={"nome": "Loja X", "tipo_conteudo": "texto", "texto": "oi"},
@@ -123,6 +123,64 @@ def test_obter_audio_de_patrocinador_texto_falha(client, account, auth_headers):
 
     resposta = client.get(f"/patrocinadores/{criado['id']}/audio", headers=auth_headers(account.id))
     assert resposta.status_code == 404
+
+
+def test_obter_audio_de_patrocinador_texto_sintetiza_e_cacheia(client, account, auth_headers, monkeypatch):
+    chamadas = []
+
+    def _sintetizar(texto, voz_id, **kwargs):
+        chamadas.append((texto, voz_id))
+        return b"audio-sintetizado"
+
+    # storage_backend real desta conta de dev aponta pra S3 (sem credenciais neste ambiente de
+    # teste) -- so' o cache de audio precisa de storage de verdade aqui, forca local/tmp_path.
+    monkeypatch.setattr(settings, "storage_backend", "local")
+    monkeypatch.setattr("app.patrocinadores.router.tts_habilitado", lambda voz_id=None: True)
+    monkeypatch.setattr("app.patrocinadores.router.sintetizar_audio", _sintetizar)
+    monkeypatch.setattr("app.patrocinadores.router.processar_audio", lambda audio, perfil: audio)
+    monkeypatch.setattr("app.patrocinadores.router.classificar_tom_fala", lambda texto, tipo: "neutro")
+
+    criado = client.post(
+        "/patrocinadores",
+        data={"nome": "Loja X", "tipo_conteudo": "texto", "texto": "Compre na loja X", "voz_id": ""},
+        headers=auth_headers(account.id),
+    ).json()
+
+    primeira = client.get(f"/patrocinadores/{criado['id']}/audio", headers=auth_headers(account.id))
+    assert primeira.status_code == 200
+    assert primeira.content == b"audio-sintetizado"
+    assert len(chamadas) == 1
+
+    # Segunda leitura serve do cache -- nao sintetiza de novo (spot de anuncio deve soar sempre igual).
+    segunda = client.get(f"/patrocinadores/{criado['id']}/audio", headers=auth_headers(account.id))
+    assert segunda.status_code == 200
+    assert segunda.content == b"audio-sintetizado"
+    assert len(chamadas) == 1
+
+
+def test_atualizar_patrocinador_limpa_cache_de_audio(client, account, auth_headers, monkeypatch):
+    monkeypatch.setattr(settings, "storage_backend", "local")
+    monkeypatch.setattr("app.patrocinadores.router.tts_habilitado", lambda voz_id=None: True)
+    monkeypatch.setattr("app.patrocinadores.router.sintetizar_audio", lambda texto, voz_id, **kwargs: b"audio-1")
+    monkeypatch.setattr("app.patrocinadores.router.processar_audio", lambda audio, perfil: audio)
+    monkeypatch.setattr("app.patrocinadores.router.classificar_tom_fala", lambda texto, tipo: "neutro")
+
+    criado = client.post(
+        "/patrocinadores",
+        data={"nome": "Loja X", "tipo_conteudo": "texto", "texto": "Texto original", "voz_id": ""},
+        headers=auth_headers(account.id),
+    ).json()
+    client.get(f"/patrocinadores/{criado['id']}/audio", headers=auth_headers(account.id))
+
+    monkeypatch.setattr("app.patrocinadores.router.sintetizar_audio", lambda texto, voz_id, **kwargs: b"audio-2")
+    client.put(
+        f"/patrocinadores/{criado['id']}",
+        data={"nome": "Loja X", "tipo_conteudo": "texto", "texto": "Texto novo", "ativo": "true"},
+        headers=auth_headers(account.id),
+    )
+
+    resposta = client.get(f"/patrocinadores/{criado['id']}/audio", headers=auth_headers(account.id))
+    assert resposta.content == b"audio-2"
 
 
 def test_atualizar_patrocinador(client, account, auth_headers):

@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
@@ -36,6 +36,14 @@ class Patrocinador(Base):
     audio_path: Mapped[str | None] = mapped_column(String, nullable=True)
     audio_nome_original: Mapped[str | None] = mapped_column(String, nullable=True)
     duracao_segundos: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    # Audio TTS ja sintetizado por voz efetiva ({voz_id ou "_padrao": caminho no storage}) --
+    # so' usado quando tipo_conteudo == "texto". Texto de patrocinador e' fixo por contrato: um
+    # spot de radio de verdade e' sempre a MESMA gravacao, entao a leitura e' feita uma vez e
+    # reaproveitada em toda exibicao (ver obter_audio_patrocinador em app/patrocinadores/router.py)
+    # em vez de resintetizada a cada vez com variacao aleatoria (ver _aplicar_jitter em
+    # app.tts.client). Limpo em qualquer edicao (ver atualizar_patrocinador).
+    audio_cache: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     ativo: Mapped[bool] = mapped_column(Boolean, default=True)
 

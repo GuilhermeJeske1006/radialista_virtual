@@ -1020,10 +1020,13 @@ export function useLiveEngine() {
         }
         // Se a sintese embutida falhar, tenta /tts com o mesmo perfil Rádio FM.
         // O processamento aguarda o audio completo; o timeout inclui essa etapa.
-        // patrocinador com audio pre-gravado ou vinheta: toca o arquivo direto, sem TTS
+        // Patrocinador (texto ou audio pre-gravado) e vinheta: buscam o arquivo pronto direto,
+        // sem passar texto/tom aqui -- o backend resolve a voz efetiva e cacheia a sintese TTS
+        // do patrocinador (ver obter_audio_patrocinador em app/patrocinadores/router.py), porque
+        // um spot de anuncio deve soar sempre igual, nao uma nova leitura a cada exibicao.
         audioBlob =
-          segmento.tipo === "patrocinador" && segmento.patrocinador_audio && segmento.patrocinador_id
-            ? await apiFetchBlob(`/patrocinadores/${segmento.patrocinador_id}/audio`)
+          segmento.tipo === "patrocinador" && segmento.patrocinador_id
+            ? await apiFetchBlob(`/patrocinadores/${segmento.patrocinador_id}/audio?radialista_id=${contexto.radialistaId}`)
             : segmento.tipo === "vinheta" && segmento.vinheta_id
               ? await apiFetchBlob(`/biblioteca-audio/${segmento.vinheta_id}/audio`)
               : await apiFetchBlobComTimeout(`/live/${contexto.radialistaId}/tts`, {
@@ -1033,7 +1036,6 @@ export function useLiveEngine() {
                     texto: segmento.fala,
                     tipo: segmento.tipo,
                     tom: segmento.tom ?? null,
-                    voz_id: segmento.patrocinador_voz_id ?? null,
                     texto_anterior: ultimaFalaAtual,
                     programa_id: contexto.programaId,
                 }),
