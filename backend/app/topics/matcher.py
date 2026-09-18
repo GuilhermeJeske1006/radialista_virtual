@@ -11,7 +11,6 @@ degradacao pra score puro por tags quando estourado (ver _TETO_CHAMADAS_HAIKU_PO
 
 import datetime
 import logging
-import unicodedata
 
 from sqlalchemy.orm import Session
 from zoneinfo import ZoneInfo
@@ -27,6 +26,7 @@ from app.models.assunto_programa import AssuntoPrograma
 from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
 from app.topics.eixos import EIXOS_ASSUNTO
+from app.util.texto import sem_acento as _sem_acento
 
 logger = logging.getLogger("radialista.topics.matcher")
 
@@ -36,10 +36,6 @@ _LIMIAR_MATCH_FINAL = 3.0
 _MAX_GANCHOS_POR_CHAMADA = 20
 _TETO_CHAMADAS_HAIKU_POR_CONTA_DIA = 300
 _TTL_TETO_DIARIO = 2 * 24 * 60 * 60
-
-
-def _sem_acento(texto: str) -> str:
-    return "".join(c for c in unicodedata.normalize("NFD", texto) if unicodedata.category(c) != "Mn")
 
 
 def _normalizar_termos(termos: list[str]) -> set[str]:

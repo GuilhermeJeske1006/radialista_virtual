@@ -19,7 +19,7 @@ from app.postprod.client import processar_audio
 from app.storage import get_storage
 from app.tts.client import sintetizar_audio, tts_habilitado
 from app.tts.profiles import parametros_sintese
-from app.tts.voices import voz_valida_para_conta
+from app.tts.voices import validar_voz_ou_400
 
 logger = logging.getLogger("radialista.patrocinadores")
 
@@ -48,13 +48,6 @@ class PatrocinadorResponse(BaseModel):
     ativo: bool
 
     model_config = {"from_attributes": True}
-
-
-def _validar_voz(db: Session, account: Account, voz_id: str | None) -> str | None:
-    voz_id = (voz_id or "").strip() or None
-    if voz_id is not None and not voz_valida_para_conta(db, account.id, voz_id):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Voz invalida")
-    return voz_id
 
 
 def _validar_categoria(db: Session, account: Account, categoria_id: int | None) -> int | None:
@@ -153,7 +146,7 @@ async def criar_patrocinador(
         if not texto or not texto.strip():
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Texto obrigatorio")
         patrocinador.texto = texto.strip()
-        patrocinador.voz_id = _validar_voz(db, account, voz_id)
+        patrocinador.voz_id = validar_voz_ou_400(db, account, voz_id)
     else:
         if arquivo is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Arquivo de audio obrigatorio")
@@ -198,7 +191,7 @@ async def atualizar_patrocinador(
         if not texto or not texto.strip():
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Texto obrigatorio")
         patrocinador.texto = texto.strip()
-        patrocinador.voz_id = _validar_voz(db, account, voz_id)
+        patrocinador.voz_id = validar_voz_ou_400(db, account, voz_id)
         _remover_audio(patrocinador.audio_path)
         patrocinador.audio_path = None
         patrocinador.audio_nome_original = None

@@ -1,9 +1,9 @@
 import logging
-import unicodedata
 
 from anthropic import Anthropic
 
 from app.config.settings import settings
+from app.util.texto import sem_acento as _sem_acento
 
 logger = logging.getLogger("radialista.llm")
 
@@ -267,10 +267,6 @@ def classificar_tema_fala(texto: str) -> str:
         logger.warning("Falha ao classificar tema da fala", exc_info=True)
         return ""
     return resposta.strip().strip(".").lower()
-
-
-def _sem_acento(texto: str) -> str:
-    return "".join(c for c in unicodedata.normalize("NFD", texto) if unicodedata.category(c) != "Mn")
 
 
 def classificar_tom_fala(texto: str, tipo_bloco: str | None) -> str:

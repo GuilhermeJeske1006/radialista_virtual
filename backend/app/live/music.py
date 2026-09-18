@@ -2,7 +2,6 @@ import json
 import logging
 import random
 import re
-import unicodedata
 from dataclasses import dataclass, field
 
 import httpx
@@ -10,6 +9,7 @@ import httpx
 from app.config.redis_client import redis_client
 from app.config.settings import settings
 from app.live.audio_analysis import obter_fim_seguro, obter_inicio_seguro
+from app.util.texto import sem_acento as _sem_acento
 
 logger = logging.getLogger("radialista.music")
 
@@ -58,10 +58,6 @@ _DURACAO_MAX_ABSOLUTA_SEGUNDOS = 20 * 60
 # YouTube devolve quase so' mix de 1-3h+ (compilacao "radio" e' literalmente isso), entao evitar
 # duracao longa aqui zeraria praticamente todo candidato dessa busca especifica.
 _DURACAO_MAX_FUNDO_SEGUNDOS = 4 * 60 * 60
-
-
-def _sem_acento(texto: str) -> str:
-    return "".join(c for c in unicodedata.normalize("NFD", texto) if unicodedata.category(c) != "Mn")
 
 
 # Palavras que nao carregam sentido de genero sozinhas -- ignoradas ao extrair as palavras-chave

@@ -1,6 +1,5 @@
 import json
 import logging
-import unicodedata
 
 from app.guardrails.content_filter import TERMOS_SEMPRE_BLOQUEADOS
 from app.llm.client import gerar_classificacao, gerar_configuracao
@@ -9,6 +8,7 @@ from app.llm.json_utils import extrair_json
 from app.llm.tipos_radio import contexto_prompt_tipo_radio
 from app.models.account import Account
 from app.tts.voices import VOZES_DISPONIVEIS, descricao_voz, voz_valida
+from app.util.texto import sem_acento as _sem_acento
 
 logger = logging.getLogger("radialista.config_generator")
 
@@ -354,10 +354,6 @@ _CAMPOS_TEXTO_SANITIZAVEIS = (
     "nome", "descricao", "tom", "mensagem_saudacao", "mensagem_recusa",
     "criterios_busca_musicas", "instrucoes_pesquisa", "publico_alvo",
 )
-
-
-def _sem_acento(texto: str) -> str:
-    return "".join(c for c in unicodedata.normalize("NFD", texto) if unicodedata.category(c) != "Mn")
 
 
 def _normalizar(texto: str) -> str:

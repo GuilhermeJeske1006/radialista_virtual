@@ -17,7 +17,6 @@ montar_escalada): isso é só apuração interna da redação (`Noticia.fonte_no
 import dataclasses
 import datetime
 import itertools
-import unicodedata
 
 from sqlalchemy.orm import Session
 
@@ -25,6 +24,7 @@ from app.models.account import Account
 from app.models.noticia import Noticia
 from app.models.noticia_historico import NoticiaHistorico
 from app.models.programa import Programa
+from app.util.texto import sem_acento as _sem_acento
 
 # Ângulo padrão de toda notícia comum (única aparição, ver docstring do módulo).
 _ANGULO_PADRAO = "fato"
@@ -58,10 +58,6 @@ _JANELA_VALIDADE_HORAS = {
 }
 
 _MAX_CANDIDATOS = 200
-
-
-def _sem_acento(texto: str) -> str:
-    return "".join(c for c in unicodedata.normalize("NFD", texto) if unicodedata.category(c) != "Mn")
 
 
 def _categoria_permitida(categoria: str, tipos_noticias: list[str]) -> bool:

@@ -9,6 +9,7 @@ from app.models.account import Account
 from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
 from app.numeros import numero_por_extenso
+from app.util.texto import lista_ou
 from app.weather.client import obter_clima_atual
 
 # Mesmo TTL de sessao ao vivo usado em app/live/router.py::_TTL_SESSAO_AO_VIVO.
@@ -173,14 +174,12 @@ def montar_system_prompt(
     programa: Programa,
     roster: list[ParticipantePrograma] | None = None,
 ) -> str:
-    topicos = ", ".join(programa.topicos_permitidos) if programa.topicos_permitidos else "assuntos gerais da rádio"
-    generos = ", ".join(programa.generos_musicais) if programa.generos_musicais else "perfil musical geral da rádio"
-    musicas = ", ".join(programa.musicas_permitidas) if programa.musicas_permitidas else "sem lista fixa de músicas"
-    assuntos = ", ".join(programa.assuntos_ao_vivo) if programa.assuntos_ao_vivo else topicos
-    noticias = ", ".join(programa.tipos_noticias) if programa.tipos_noticias else "notícias alinhadas aos temas permitidos"
-    fontes_noticias = (
-        ", ".join(programa.fontes_noticias) if programa.fontes_noticias else "fontes confiáveis informadas pela rádio"
-    )
+    topicos = lista_ou(programa.topicos_permitidos, "assuntos gerais da rádio")
+    generos = lista_ou(programa.generos_musicais, "perfil musical geral da rádio")
+    musicas = lista_ou(programa.musicas_permitidas, "sem lista fixa de músicas")
+    assuntos = lista_ou(programa.assuntos_ao_vivo, topicos)
+    noticias = lista_ou(programa.tipos_noticias, "notícias alinhadas aos temas permitidos")
+    fontes_noticias = lista_ou(programa.fontes_noticias, "fontes confiáveis informadas pela rádio")
     identificacao_radio = account.nome_radio or "a rádio"
     if account.frequencia:
         identificacao_radio += f" ({account.frequencia})"
@@ -366,7 +365,7 @@ def montar_system_prompt(
             )
 
     if programa.pode_pesquisar:
-        fontes = ", ".join(programa.fontes_pesquisa) if programa.fontes_pesquisa else "fontes públicas confiáveis"
+        fontes = lista_ou(programa.fontes_pesquisa, "fontes públicas confiáveis")
         partes.append(
             f"Pesquisa externa habilitada. Fontes de pesquisa permitidas: {fontes}. "
             "Na apuração jornalística, as fontes de notícias configuradas têm prioridade. "

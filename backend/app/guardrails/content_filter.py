@@ -3,6 +3,7 @@ import logging
 
 from app.llm.client import gerar_classificacao
 from app.models.programa import Programa
+from app.util.texto import lista_ou
 
 logger = logging.getLogger("radialista.guardrails")
 
@@ -26,9 +27,7 @@ def avaliar_adequacao_programa(texto: str, programa: Programa) -> tuple[bool, st
     Retorna (adequado, motivo). Falha do LLM cai pro lado seguro -- NAO libera (fail-closed) --
     e nunca propaga excecao pro webhook, mesmo padrao de custo controlado ja usado em
     classificar_categoria_bloco (app.live.router)."""
-    topicos_proibidos = (
-        ", ".join(programa.topicos_proibidos) if programa.topicos_proibidos else "nenhum especifico"
-    )
+    topicos_proibidos = lista_ou(programa.topicos_proibidos, "nenhum especifico")
     system_prompt = "\n".join(
         [
             f"Voce e' o guardrail de conteudo de um programa de radio. Tom do programa: {programa.tom}.",

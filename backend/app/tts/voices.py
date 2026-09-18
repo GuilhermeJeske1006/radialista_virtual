@@ -1,7 +1,9 @@
 """Catalogo de vozes em portugues brasileiro da ElevenLabs."""
 
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.models.account import Account
 from app.tts.client import obter_preview_url
 
 # IDs e perfis conferidos em https://elevenlabs.io/text-to-speech/portuguese
@@ -77,3 +79,10 @@ def voz_valida_para_conta(db: Session, account_id: int, voz_id: str, incluir_pen
         .first()
         is not None
     )
+
+
+def validar_voz_ou_400(db: Session, account: Account, voz_id: str | None) -> str | None:
+    voz_id = (voz_id or "").strip() or None
+    if voz_id is not None and not voz_valida_para_conta(db, account.id, voz_id):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Voz invalida")
+    return voz_id

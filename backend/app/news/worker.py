@@ -9,7 +9,6 @@ import datetime
 import hashlib
 import logging
 import re
-import unicodedata
 
 from sqlalchemy.orm import Session
 
@@ -20,6 +19,7 @@ from app.models.noticia import Noticia
 from app.news.curadoria import curar_item
 from app.news.feeds import ler_feed
 from app.topics.pipeline import executar_para_conta as executar_pipeline_assuntos
+from app.util.texto import sem_acento as _sem_acento
 
 logger = logging.getLogger("radialista.news.worker")
 
@@ -36,10 +36,6 @@ _PONTUACAO_RE = re.compile(r"[^\w\s]")
 # de retificar/corrigir, pra não marcar matéria nova parecida como correção por engano. Aplicado
 # sempre sobre texto já sem acento (ver _sem_acento), por isso só a forma ascii aqui.
 _TERMOS_RETIFICACAO_RE = re.compile(r"\b(retifica\w*|corrig\w*|correcao\w*|errata\w*)\b")
-
-
-def _sem_acento(texto: str) -> str:
-    return "".join(c for c in unicodedata.normalize("NFD", texto) if unicodedata.category(c) != "Mn")
 
 
 def _palavras(texto: str) -> set[str]:

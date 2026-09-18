@@ -2,13 +2,13 @@ import logging
 import random
 import re
 import time
-import unicodedata
 from collections.abc import Iterator
 
 import httpx
 
 from app.config.settings import settings
 from app.numeros import normalizar_texto_fala
+from app.util.texto import sem_acento as _sem_acento
 
 logger = logging.getLogger("radialista.tts")
 
@@ -202,10 +202,6 @@ def _aplicar_jitter(voice_settings: dict) -> dict:
 
 def tts_habilitado(voice_id: str | None = None) -> bool:
     return bool(settings.elevenlabs_api_key and (voice_id or settings.elevenlabs_voice_id))
-
-
-def _sem_acento(texto: str) -> str:
-    return "".join(c for c in unicodedata.normalize("NFD", texto) if unicodedata.category(c) != "Mn")
 
 
 def _categoria_tipo_bloco(tipo_bloco: str) -> str:

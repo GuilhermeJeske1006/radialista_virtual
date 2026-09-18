@@ -34,7 +34,7 @@ from app.models.radio_config import RadioConfig
 from app.models.tema_historico import TemaHistorico
 from app.news.seeds_fontes import criar_seeds_fontes
 from app.billing.limites import limite_agentes_efetivo, limite_radialistas_por_programa
-from app.tts.voices import voz_valida_para_conta
+from app.tts.voices import validar_voz_ou_400
 
 logger = logging.getLogger("radialista.config")
 
@@ -330,11 +330,6 @@ def _buscar_programa(db: Session, account: Account, programa_id: int) -> Program
     return programa
 
 
-def _validar_voz(db: Session, account: Account, voz_id: str | None) -> None:
-    if voz_id is not None and not voz_valida_para_conta(db, account.id, voz_id):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Voz invalida")
-
-
 def _ocorrencias_conflitam(a, b) -> bool:
     # a e b tem .dias_semana e .data_especifica (ProgramaRequest ou Programa).
     data_a = a.data_especifica
@@ -587,7 +582,7 @@ def criar_radialista(
     account: Account = Depends(get_current_account),
     db: Session = Depends(get_db),
 ):
-    _validar_voz(db, account, dados.voz_id)
+    validar_voz_ou_400(db, account, dados.voz_id)
     _validar_limite_agentes(db, account)
     radialista = RadioConfig(account_id=account.id, **dados.model_dump())
     db.add(radialista)
@@ -677,7 +672,7 @@ def _commitar_radialista_gerado(
     Excecao: se a conta tem exatamente um radialista sem voz definida (placeholder do
     cadastro), PREENCHE esse radialista/programa em vez de criar um novo -- sem isso toda conta
     nova (1 agente) bateria o limite de agentes nessa primeira geracao."""
-    _validar_voz(db, account, radialista_dados.voz_id)
+    validar_voz_ou_400(db, account, radialista_dados.voz_id)
 
     radialistas_da_conta = db.query(RadioConfig).filter_by(account_id=account.id).all()
     radialista_placeholder = (
@@ -947,7 +942,7 @@ def atualizar_radialista(
     account: Account = Depends(get_current_account),
     db: Session = Depends(get_db),
 ):
-    _validar_voz(db, account, dados.voz_id)
+    validar_voz_ou_400(db, account, dados.voz_id)
     radialista = _buscar_radialista(db, account, radialista_id)
     for campo, valor in dados.model_dump().items():
         setattr(radialista, campo, valor)
