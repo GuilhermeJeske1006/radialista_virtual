@@ -15,6 +15,11 @@ from app.models.radio_config import RadioConfig
 # 2026-08-10 12:00 America/Sao_Paulo (segunda-feira), dentro do programa 10:00-14:00.
 AGORA_UTC = "2026-08-10 15:00:00"
 
+# HMAC agora e' obrigatorio (ver auditoria item 1) -- conta_no_ar ja' nasce com essa chave
+# configurada, e _post_webhook assina o corpo com ela por padrao, pra' cada teste que nao
+# quer testar assinatura em si nao precisar se preocupar com isso.
+_HMAC_CHAVE_PADRAO = "chave-secreta-teste"
+
 
 @pytest.fixture(autouse=True)
 def _sem_espera_debounce(monkeypatch):
@@ -44,7 +49,8 @@ def _guardrail_llm_aprova_por_padrao(monkeypatch):
 @pytest.fixture()
 def conta_no_ar(db_session, account_factory):
     account = account_factory(
-        email="radio@a.com", wuzapi_token="wuzapi-token-1", wuzapi_user_id="user-123"
+        email="radio@a.com", wuzapi_token="wuzapi-token-1", wuzapi_user_id="user-123",
+        wuzapi_hmac_key=_HMAC_CHAVE_PADRAO,
     )
     radio_config = RadioConfig(account_id=account.id, ativo=True, timezone="America/Sao_Paulo")
     db_session.add(radio_config)
@@ -86,10 +92,12 @@ def _payload(
     return payload
 
 
-def _post_webhook(client, payload, headers=None):
-    return client.post(
-        "/webhook/whatsapp", content=json.dumps(payload).encode(), headers=headers or {}
-    )
+def _post_webhook(client, payload, headers=None, chave_hmac=_HMAC_CHAVE_PADRAO):
+    corpo = json.dumps(payload).encode()
+    headers = dict(headers or {})
+    if chave_hmac and "x-hmac-signature" not in headers:
+        headers["x-hmac-signature"] = hmac.new(chave_hmac.encode(), corpo, hashlib.sha256).hexdigest()
+    return client.post("/webhook/whatsapp", content=corpo, headers=headers)
 
 
 @freeze_time(AGORA_UTC)
@@ -192,6 +200,59 @@ def test_limite_de_plano_excedido_bloqueia(client, conta_no_ar, monkeypatch, db_
 
     log = db_session.query(InteractionLog).filter_by(wuzapi_message_id="msg-limite-1").first()
     assert log.status == "bloqueado_plano"
+
+
+@freeze_time(AGORA_UTC)
+def test_limite_de_plano_bloqueia_audio_antes_de_transcrever(client, conta_no_ar, monkeypatch, db_session):
+    """Item 2 da auditoria: STT e' pago -- com o plano ja' estourado, nao deve nem ser chamado."""
+    chamadas = []
+    monkeypatch.setattr("app.whatsapp.webhook.stt_habilitado", lambda: True)
+    monkeypatch.setattr(
+        "app.whatsapp.webhook.transcrever_audio", lambda audio_b64: chamadas.append(audio_b64) or "texto"
+    )
+    monkeypatch.setattr("app.whatsapp.webhook.limite_mensagens_efetivo", lambda db, account: 0)
+    resposta = _post_webhook(client, _payload(audio=True, message_id="msg-limite-audio-1"))
+    assert resposta.json() == {"status": "bloqueado", "motivo": "limite_plano"}
+    assert chamadas == []
+
+
+@freeze_time(AGORA_UTC)
+def test_limite_de_plano_bloqueia_imagem_antes_de_descrever(client, conta_no_ar, monkeypatch, db_session):
+    """Mesma checagem do teste acima, mas pro outro custo pago (visao) -- ver item 2."""
+    chamadas = []
+    monkeypatch.setattr(
+        "app.whatsapp.webhook.descrever_imagem", lambda imagem_b64, mime_type: chamadas.append(imagem_b64) or "texto"
+    )
+    monkeypatch.setattr("app.whatsapp.webhook.limite_mensagens_efetivo", lambda db, account: 0)
+    resposta = _post_webhook(client, _payload(imagem=True, message_id="msg-limite-img-1"))
+    assert resposta.json() == {"status": "bloqueado", "motivo": "limite_plano"}
+    assert chamadas == []
+
+
+@freeze_time(AGORA_UTC)
+def test_rate_limit_de_midia_por_telefone_bloqueia_antes_de_transcrever(client, conta_no_ar, monkeypatch, db_session):
+    """Item 2 da auditoria: teto por telefone especifico pra' midia (STT/visao), independente
+    do limite de plano da conta -- protege contra um unico ouvinte crescendo custo pago em
+    sequencia."""
+    from app.whatsapp.webhook import _LIMITE_MIDIA_POR_TELEFONE_HORA
+
+    chamadas = []
+    monkeypatch.setattr("app.whatsapp.webhook.stt_habilitado", lambda: True)
+    monkeypatch.setattr(
+        "app.whatsapp.webhook.transcrever_audio", lambda audio_b64: chamadas.append(audio_b64) or "texto"
+    )
+    monkeypatch.setattr(
+        "app.whatsapp.webhook.classificar_intencao", lambda config, programa, texto: ("guardar", None, "outro")
+    )
+
+    for i in range(_LIMITE_MIDIA_POR_TELEFONE_HORA):
+        resposta = _post_webhook(client, _payload(audio=True, message_id=f"msg-rl-midia-{i}"))
+        assert resposta.json().get("motivo") != "rate_limit_midia"
+
+    chamadas.clear()
+    resposta = _post_webhook(client, _payload(audio=True, message_id="msg-rl-midia-excedente"))
+    assert resposta.json() == {"status": "bloqueado", "motivo": "rate_limit_midia"}
+    assert chamadas == []
 
 
 def test_fora_do_horario_bloqueia(client, conta_no_ar, db_session):
@@ -362,7 +423,10 @@ def test_status_broadcast_e_ignorado(client, conta_no_ar):
 def test_limite_isolado_por_radio_sem_token_no_payload(client, conta_no_ar, account_factory, db_session):
     _, _, programa = conta_no_ar
     programa.limite_mensagens_hora = 1
-    outra = account_factory(email="outra@radio.com", wuzapi_user_id="outra", wuzapi_token="outro-token")
+    outra = account_factory(
+        email="outra@radio.com", wuzapi_user_id="outra", wuzapi_token="outro-token",
+        wuzapi_hmac_key=_HMAC_CHAVE_PADRAO,
+    )
     config = RadioConfig(account_id=outra.id, ativo=True, timezone="America/Sao_Paulo")
     db_session.add(config)
     db_session.flush()
@@ -376,12 +440,49 @@ def test_limite_isolado_por_radio_sem_token_no_payload(client, conta_no_ar, acco
 
 
 @freeze_time(AGORA_UTC)
-def test_duplicada_tambem_exige_assinatura(client, conta_no_ar, db_session):
+def test_duplicada_tambem_exige_assinatura(client, conta_no_ar, db_session, monkeypatch):
+    """Dedupe (por wuzapi_message_id) roda depois de autenticar a origem -- reenvio do mesmo
+    id com uma chave HMAC que nao e' mais a atual da conta (rotacionada) tem que continuar
+    rejeitado por assinatura invalida, nunca "cair" na checagem de duplicada."""
+    monkeypatch.setattr(
+        "app.whatsapp.webhook.classificar_intencao", lambda config, programa, texto: ("guardar", None, "outro")
+    )
     account, _, _ = conta_no_ar
-    _post_webhook(client, _payload(message_id="reentrega"))
-    account.wuzapi_hmac_key = "segredo"
+    corpo = json.dumps(_payload(message_id="reentrega")).encode()
+    assinatura_original = hmac.new(_HMAC_CHAVE_PADRAO.encode(), corpo, hashlib.sha256).hexdigest()
+
+    primeira = client.post("/webhook/whatsapp", content=corpo, headers={"x-hmac-signature": assinatura_original})
+    assert primeira.json()["status"] == "ok"
+
+    account.wuzapi_hmac_key = "chave-rotacionada"
     db_session.commit()
-    assert _post_webhook(client, _payload(message_id="reentrega")).json()["motivo"] == "assinatura_invalida"
+
+    segunda = client.post("/webhook/whatsapp", content=corpo, headers={"x-hmac-signature": assinatura_original})
+    assert segunda.json() == {"status": "ignorado", "motivo": "assinatura_invalida"}
+
+
+@freeze_time(AGORA_UTC)
+def test_conta_sem_hmac_configurado_rejeita_mensagem_sem_verificar(client, account_factory, db_session):
+    """Nucleo do item 1 da auditoria: conta sem wuzapi_hmac_key (onboarding antigo, ou que
+    falhou ao configurar no WuzAPI) nao pode mais aceitar mensagem sem assinatura nenhuma --
+    o "userID" do payload nao e' secreto, entao aceitar sem checar deixaria qualquer um forjar
+    mensagem em nome dessa conta so' adivinhando um id sequencial."""
+    from app.models.radio_config import RadioConfig
+    from app.models.programa import Programa
+    import datetime as dt
+
+    account = account_factory(email="sem-hmac@a.com", wuzapi_token="tok-sem-hmac", wuzapi_user_id="user-sem-hmac")
+    radio_config = RadioConfig(account_id=account.id, ativo=True, timezone="America/Sao_Paulo")
+    db_session.add(radio_config)
+    db_session.commit()
+    db_session.add(Programa(
+        radio_config_id=radio_config.id, nome="Programa Principal",
+        horario_inicio=dt.time(10, 0), horario_fim=dt.time(14, 0), limite_mensagens_hora=1000,
+    ))
+    db_session.commit()
+
+    resposta = _post_webhook(client, _payload(user_id="user-sem-hmac", message_id="sem-hmac-1"), chave_hmac=None)
+    assert resposta.json() == {"status": "ignorado", "motivo": "assinatura_invalida"}
 
 
 def test_resposta_whatsapp_preserva_identidade_e_contexto(conta_no_ar, monkeypatch):

@@ -198,6 +198,48 @@ def test_gerar_proxima_fala_programa_inexistente_404(client, account, auth_heade
 
 
 @freeze_time(AGORA_UTC)
+def test_gerar_proxima_fala_rate_limit_por_conta(client, account, auth_headers, radialista_e_programa, monkeypatch):
+    """Item 4 da auditoria: endpoint gera fala via LLM (pago) e nao tinha nenhum teto -- um
+    JWT vazado (7 dias, sem revogacao) podia chamar sem limite."""
+    radio_config, programa = radialista_e_programa
+    chamado_com = {}
+
+    def _falso_limite(chave, limite, janela_segundos):
+        chamado_com["chave"] = chave
+        return True
+
+    monkeypatch.setattr("app.live.router.limite_excedido", _falso_limite)
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": [], "total_falas": 0},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 429
+    assert chamado_com["chave"] == f"live_proxima:{account.id}"
+
+
+@freeze_time(AGORA_UTC)
+def test_gerar_audio_fala_rate_limit_por_conta(client, account, auth_headers, radialista_e_programa, monkeypatch):
+    """Mesmo teto do teste acima, mas pro /tts (sintese de audio via ElevenLabs, tambem
+    pago -- ver item 4)."""
+    radio_config, _ = radialista_e_programa
+    chamado_com = {}
+
+    def _falso_limite(chave, limite, janela_segundos):
+        chamado_com["chave"] = chave
+        return True
+
+    monkeypatch.setattr("app.live.router.limite_excedido", _falso_limite)
+
+    resposta = client.post(
+        f"/live/{radio_config.id}/tts", json={"texto": "ola"}, headers=auth_headers(account.id)
+    )
+    assert resposta.status_code == 429
+    assert chamado_com["chave"] == f"live_tts:{account.id}"
+
+
+@freeze_time(AGORA_UTC)
 def test_gerar_proxima_fala_bloco_musica_inclui_dados_da_musica(
     client, account, auth_headers, radialista_e_programa, monkeypatch
 ):

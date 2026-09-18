@@ -27,6 +27,7 @@ from app.live.prewarm import executar_tick as preparar_falas_antecipadas
 from app.live.router import router as live_router
 from app.metrics.router import router as metrics_router
 from app.news.worker import executar as coletar_noticias
+from app.onboarding.reprocessar_hmac import reprocessar_contas_sem_hmac
 from app.models import (  # noqa: F401 -- garante que as tabelas sejam registradas no metadata
     Account,
     BibliotecaAudioItem,
@@ -164,6 +165,7 @@ async def criar_tabelas():
     limpar_coluna_is_staff_legado()
     iniciar_scheduler_noticias()
     iniciar_scheduler_prewarm()
+    iniciar_scheduler_reprocessar_hmac()
 
 
 # Coleta roda in-process (BackgroundScheduler, thread daemon) em vez de cron externo --
@@ -219,6 +221,36 @@ def iniciar_scheduler_prewarm():
             "interval",
             seconds=_INTERVALO_PREWARM_SEGUNDOS,
             id="prewarm_primeira_fala",
+            coalesce=True,
+            max_instances=1,
+        )
+    if not _scheduler_noticias.running:
+        _scheduler_noticias.start()
+
+
+# Job proprio (mesma instancia de scheduler), roda a cada hora -- corrige conta que ficou
+# sem wuzapi_hmac_key porque a chamada ao WuzAPI falhou no onboarding (ver
+# app/onboarding/reprocessar_hmac.py). Enquanto uma conta ficar pendente, o webhook do
+# WhatsApp rejeita toda mensagem dela (ver app/whatsapp/webhook.py::_verificar_assinatura) --
+# roda tambem na subida do processo (next_run_time=now) pra' encurtar essa janela.
+_INTERVALO_REPROCESSAR_HMAC_MINUTOS = 60
+
+
+def _job_reprocessar_hmac():
+    try:
+        reprocessar_contas_sem_hmac()
+    except Exception:
+        logger.warning("Falha na rodada agendada de reprocessamento de HMAC", exc_info=True)
+
+
+def iniciar_scheduler_reprocessar_hmac():
+    if not _scheduler_noticias.get_job("reprocessar_hmac"):
+        _scheduler_noticias.add_job(
+            _job_reprocessar_hmac,
+            "interval",
+            minutes=_INTERVALO_REPROCESSAR_HMAC_MINUTOS,
+            id="reprocessar_hmac",
+            next_run_time=datetime.datetime.now(),
             coalesce=True,
             max_instances=1,
         )

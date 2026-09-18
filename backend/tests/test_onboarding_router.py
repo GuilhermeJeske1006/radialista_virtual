@@ -2,10 +2,56 @@ import httpx
 
 
 def test_criar_usuario_wuzapi_ja_existente(client, account_factory, auth_headers, db_session):
-    account = account_factory(email="a@a.com", wuzapi_token="token-existente")
+    account = account_factory(
+        email="a@a.com", wuzapi_token="token-existente", wuzapi_hmac_key="hmac-ja-configurada"
+    )
     resposta = client.post("/onboarding/wuzapi-user", headers=auth_headers(account.id))
     assert resposta.status_code == 200
     assert resposta.json() == {"status": "ja_existe", "wuzapi_token": "token-existente"}
+
+
+def test_criar_usuario_wuzapi_ja_existente_sem_hmac_tenta_reconfigurar(
+    client, account_factory, auth_headers, db_session, monkeypatch
+):
+    """Item 1 da auditoria: 2a chamada a esta rota (onboarding que falhou ao configurar HMAC
+    na 1a vez) nao pode mais so' devolver "ja_existe" sem tentar de novo -- sem isso, a conta
+    ficava permanentemente sem wuzapi_hmac_key, e o webhook aceitava mensagem sem verificar
+    assinatura pra' sempre (ver app/whatsapp/webhook.py)."""
+    account = account_factory(email="a@a.com", wuzapi_token="token-existente")
+    assert account.wuzapi_hmac_key is None
+
+    chamadas = []
+    monkeypatch.setattr(
+        "app.onboarding.router.configurar_hmac",
+        lambda token, hmac_key: chamadas.append(token),
+    )
+
+    resposta = client.post("/onboarding/wuzapi-user", headers=auth_headers(account.id))
+    assert resposta.status_code == 200
+    assert resposta.json() == {"status": "ja_existe", "wuzapi_token": "token-existente"}
+    assert chamadas == ["token-existente"]
+
+    db_session.refresh(account)
+    assert account.wuzapi_hmac_key is not None
+
+
+def test_criar_usuario_wuzapi_ja_existente_sem_hmac_falha_best_effort(
+    client, account_factory, auth_headers, db_session, monkeypatch
+):
+    """Retry de HMAC tambem e' best-effort -- falha no WuzAPI so' loga, nao derruba a rota."""
+    account = account_factory(email="a@a.com", wuzapi_token="token-existente")
+
+    def _falha(*args, **kwargs):
+        raise httpx.HTTPStatusError("erro", request=None, response=httpx.Response(500))
+
+    monkeypatch.setattr("app.onboarding.router.configurar_hmac", _falha)
+
+    resposta = client.post("/onboarding/wuzapi-user", headers=auth_headers(account.id))
+    assert resposta.status_code == 200
+    assert resposta.json()["status"] == "ja_existe"
+
+    db_session.refresh(account)
+    assert account.wuzapi_hmac_key is None
 
 
 def test_criar_usuario_wuzapi_cria_novo(client, account, auth_headers, db_session, monkeypatch):

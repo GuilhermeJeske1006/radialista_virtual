@@ -24,9 +24,27 @@ logger = logging.getLogger("radialista.onboarding")
 router = APIRouter(prefix="/onboarding", tags=["onboarding"])
 
 
+def _tentar_configurar_hmac(account: Account, db: Session) -> None:
+    """Best-effort: (re)configura o HMAC no WuzAPI pra esta conta. Enquanto isso nao
+    acontecer, o webhook rejeita toda mensagem dessa conta (ver
+    app/whatsapp/webhook.py::_verificar_assinatura) -- falha aqui so' loga; quem corrige
+    de verdade contas que ficarem paradas e' o reprocessamento periodico
+    (app/onboarding/reprocessar_hmac.py, agendado em app/main.py).
+    """
+    try:
+        hmac_key = secrets.token_hex(32)
+        configurar_hmac(account.wuzapi_token, hmac_key)
+        account.wuzapi_hmac_key = hmac_key
+        db.commit()
+    except httpx.HTTPStatusError:
+        logger.exception("Falha ao configurar HMAC no WuzAPI: account_id=%s", account.id)
+
+
 @router.post("/wuzapi-user")
 def criar_usuario_wuzapi(account: Account = Depends(get_current_account), db: Session = Depends(get_db)):
     if account.wuzapi_token:
+        if not account.wuzapi_hmac_key:
+            _tentar_configurar_hmac(account, db)
         return {"status": "ja_existe", "wuzapi_token": account.wuzapi_token}
 
     novo_token = secrets.token_hex(16)
@@ -54,16 +72,7 @@ def criar_usuario_wuzapi(account: Account = Depends(get_current_account), db: Se
         # audio sem base64), nao trava o resto do onboarding.
         logger.exception("Falha ao configurar entrega de midia no WuzAPI")
 
-    try:
-        hmac_key = secrets.token_hex(32)
-        configurar_hmac(novo_token, hmac_key)
-        account.wuzapi_hmac_key = hmac_key
-        db.commit()
-    except httpx.HTTPStatusError:
-        # Best-effort: sem isso o webhook aceita mensagens dessa conta sem verificar
-        # assinatura (ver app/whatsapp/webhook.py::_verificar_assinatura) -- pior que
-        # travar o onboarding inteiro por uma falha transitoria no WuzAPI.
-        logger.exception("Falha ao configurar HMAC no WuzAPI")
+    _tentar_configurar_hmac(account, db)
 
     return {"status": "criado", "wuzapi_token": novo_token}
 

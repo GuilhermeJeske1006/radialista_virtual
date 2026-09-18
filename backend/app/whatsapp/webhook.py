@@ -17,7 +17,7 @@ from app.guardrails.content_filter import (
     avaliar_adequacao_programa,
     contem_topico_proibido,
 )
-from app.guardrails.http_rate_limit import limitar_por_ip
+from app.guardrails.http_rate_limit import limitar_por_ip, limite_excedido
 from app.guardrails.rate_limiter import dentro_do_limite
 from app.guardrails.schedule import encontrar_programa_atual
 from app.llm.client import descrever_imagem, gerar_resposta
@@ -49,6 +49,12 @@ _TTL_BUFFER_SEGUNDOS = 60
 # aplicar, gastando memoria/banda por requisicao sem necessidade.
 _TAMANHO_MAXIMO_BASE64 = 20 * 1024 * 1024
 
+# Guardrail de custo: STT e descricao de imagem via LLM (visao) sao pagos por chamada --
+# sem um teto por telefone, uma unica conversa pode gerar centenas de chamadas em sequencia
+# antes de qualquer outro limite (plano, horario) se aplicar. Generoso o bastante pra nao
+# incomodar uso legitimo (ver auditoria: item 2).
+_LIMITE_MIDIA_POR_TELEFONE_HORA = 30
+
 
 def _verificar_assinatura(account: Account, raw_body: bytes, assinatura: str | None) -> bool:
     """Confere o header x-hmac-signature (HMAC-SHA256 do corpo cru) que o WuzAPI manda
@@ -57,12 +63,13 @@ def _verificar_assinatura(account: Account, raw_body: bytes, assinatura: str | N
     secreto -- seria a unica coisa "autenticando" o webhook, e daria pra forjar mensagem em
     nome de qualquer conta so' adivinhando um id pequeno.
 
-    Contas criadas antes desse fix (ou que falharam ao configurar HMAC no onboarding, ver
-    onboarding/router.py) ainda nao tem wuzapi_hmac_key -- pra elas, mantem o comportamento
-    antigo (sem verificacao) pra nao quebrar producao existente.
+    HMAC e' obrigatorio: conta sem wuzapi_hmac_key (onboarding antigo, ou que falhou ao
+    configurar no WuzAPI -- ver onboarding/router.py) rejeita toda mensagem de ouvinte ate'
+    o reprocessamento periodico (app/onboarding/reprocessar_hmac.py, agendado em app/main.py)
+    configurar a chave. Preferimos bloquear temporariamente a aceitar mensagem forjavel.
     """
     if not account.wuzapi_hmac_key:
-        return True
+        return False
     esperado = hmac.new(account.wuzapi_hmac_key.encode(), raw_body, hashlib.sha256).hexdigest()
     return hmac.compare_digest(esperado, assinatura or "")
 
@@ -384,6 +391,27 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
         )
         return {"status": "ok", "origem": "radio"}
 
+    # Guardrails que NAO dependem do conteudo decodificado rodam antes de STT/visao (pagos) --
+    # sem isso, audio/foto custava a transcricao/descricao mesmo com o plano estourado ou o
+    # telefone acima do limite (ver auditoria: item 2). Filtro de conteudo continua depois da
+    # decodificacao porque so' existe texto pra filtrar depois dela.
+    if (audio_base64 or imagem_base64) and limite_excedido(
+        f"whatsapp_midia:{telefone}", limite=_LIMITE_MIDIA_POR_TELEFONE_HORA, janela_segundos=3600
+    ):
+        _registrar_log(
+            db, config, telefone, nome, "[imagem]" if imagem_base64 else "[audio]",
+            "bloqueado_rate_limit_midia", wuzapi_message_id=wuzapi_message_id,
+        )
+        return {"status": "bloqueado", "motivo": "rate_limit_midia"}
+
+    limite_mensagens = limite_mensagens_efetivo(db, account)
+    if mensagens_respondidas_no_mes(db, account.id) >= limite_mensagens:
+        _registrar_log(
+            db, config, telefone, nome, texto_usuario or ("[imagem]" if imagem_base64 else "[audio]"),
+            "bloqueado_plano", wuzapi_message_id=wuzapi_message_id,
+        )
+        return {"status": "bloqueado", "motivo": "limite_plano"}
+
     if texto_usuario is None and audio_base64:
         if not stt_habilitado():
             _registrar_log(
@@ -412,11 +440,6 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
                 db, config, telefone, nome, "[imagem]", "falha_descricao_imagem", wuzapi_message_id=wuzapi_message_id
             )
             return {"status": "ignorado", "motivo": "falha_descricao_imagem"}
-
-    limite_mensagens = limite_mensagens_efetivo(db, account)
-    if mensagens_respondidas_no_mes(db, account.id) >= limite_mensagens:
-        _registrar_log(db, config, telefone, nome, texto_usuario, "bloqueado_plano", wuzapi_message_id=wuzapi_message_id)
-        return {"status": "bloqueado", "motivo": "limite_plano"}
 
     if account.atendimento_ouvinte_ativo:
         from app.whatsapp.inbox import receber

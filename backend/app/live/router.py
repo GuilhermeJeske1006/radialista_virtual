@@ -8,7 +8,6 @@ import random
 import re
 import threading
 import time
-import unicodedata
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from zoneinfo import ZoneInfo
@@ -25,6 +24,7 @@ from app.auth.dependencies import get_current_account
 from app.config.redis_client import redis_client
 from app.config.settings import settings
 from app.db.database import SessionLocal, get_db
+from app.guardrails.http_rate_limit import limite_excedido
 from app.guardrails.schedule import encontrar_programa_atual, minutos_restantes
 from app.live.music import MusicaEncontrada, _titulo_normalizado, buscar_musica, buscar_musica_fundo
 from app.live.formato import ROTEIRO_MUSICAL, contar_palavras, direcao_musical, musical_companhia, orcamento_fala
@@ -77,8 +77,9 @@ from app.numeros import cardinal_feminino, numero_por_extenso
 from app.postprod.client import processar_audio
 from pydub.exceptions import PydubException
 from app.tts.client import sintetizar_audio, sintetizar_audio_stream, tts_habilitado
-from app.tts.voices import voz_valida_para_conta
+from app.tts.voices import validar_voz_ou_400
 from app.tts.profiles import parametros_sintese
+from app.util.texto import sem_acento as _sem_acento
 
 logger = logging.getLogger("radialista.live")
 
@@ -1058,10 +1059,6 @@ _TIPOS_COM_COMPORTAMENTO = (
 )
 
 
-def _sem_acento(texto: str) -> str:
-    return "".join(c for c in unicodedata.normalize("NFD", texto) if unicodedata.category(c) != "Mn")
-
-
 # cache no Redis (hash, por texto normalizado de bloco) da classificacao via LLM -- so paga a
 # chamada uma vez por bloco customizado distinto, mesmo que o ao vivo gere falas pra ele varias
 # vezes e mesmo entre workers/instancias diferentes do backend (cache em memoria de processo nao
@@ -1628,6 +1625,7 @@ def _proximo_pedido_fila_dentre(db: Session, radialista: RadioConfig, tipos: tup
             FilaAoVivo.atendido.is_(False),
         )
         .order_by(FilaAoVivo.criado_em.asc())
+        .with_for_update(skip_locked=True)
         .first()
     )
     if pedido is not None:
@@ -1740,6 +1738,12 @@ def gerar_proxima_fala(
     inicio_request = time.perf_counter()
     radialista = _buscar_radialista(db, account, radialista_id)
     programa = _buscar_programa(db, radialista, programa_id)
+
+    # Cada chamada gera fala via LLM (paga) -- sem teto, um JWT vazado (7 dias, sem revogacao,
+    # ver app/auth/security.py) pode chamar sem limite. Generoso pra nao afetar uso normal do
+    # ao vivo (ver auditoria: item 4).
+    if limite_excedido(f"live_proxima:{account.id}", limite=60, janela_segundos=60):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Muitas requisicoes. Tente novamente em instantes.")
 
     # Mesmos 3 campos que ja' identificam cada linha de log deste endpoint (ver
     # live_audio_pronto/live_proxima_pronta abaixo) -- como tag do Sentry pra' filtrar/agrupar
@@ -2796,6 +2800,11 @@ def gerar_audio_fala(
 ):
     radialista = _buscar_radialista(db, account, radialista_id)
 
+    # Mesmo motivo do teto em /proxima (ver auditoria: item 4) -- sintese de audio tambem e'
+    # paga (ElevenLabs) e este endpoint nao tinha nenhum limite ate' aqui.
+    if limite_excedido(f"live_tts:{account.id}", limite=90, janela_segundos=60):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Muitas requisicoes. Tente novamente em instantes.")
+
     # Tag em vez de contexto de request (Sentry ja' correlaciona por request via
     # FastApiIntegration) -- so' pra' filtrar/agrupar issues por radialista/programa direto
     # na lista de issues do Sentry, sem abrir cada evento pra' ver o traceback primeiro.
@@ -2805,9 +2814,7 @@ def gerar_audio_fala(
 
     # Patrocinador pode pedir uma voz especifica (independente da voz do locutor no ar) --
     # ver Patrocinador.voz_id em app/models/patrocinador.py.
-    if dados.voz_id and not voz_valida_para_conta(db, account.id, dados.voz_id):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Voz invalida")
-    voz_id = dados.voz_id or radialista.voz_id
+    voz_id = validar_voz_ou_400(db, account, dados.voz_id) or radialista.voz_id
 
     if not tts_habilitado(voz_id):
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="TTS nao configurado")

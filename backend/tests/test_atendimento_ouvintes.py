@@ -1,4 +1,6 @@
 import datetime
+import hashlib
+import hmac
 import json
 import httpx
 import pytest
@@ -422,11 +424,13 @@ def test_webhook_novo_fluxo_isola_id_por_radio(
     )
     a, r, p = contexto
     a.wuzapi_user_id = "radio1"
+    a.wuzapi_hmac_key = "chave-radio1"
     outra = account_factory(
         email="segunda@radio.com",
         atendimento_ouvinte_ativo=True,
         wuzapi_token="token2",
         wuzapi_user_id="radio2",
+        wuzapi_hmac_key="chave-radio2",
     )
     r2 = RadioConfig(account_id=outra.id, ativo=True, timezone="America/Sao_Paulo")
     db_session.add(r2)
@@ -440,6 +444,7 @@ def test_webhook_novo_fluxo_isola_id_por_radio(
         )
     )
     db_session.commit()
+    chaves_hmac = {"radio1": "chave-radio1", "radio2": "chave-radio2"}
     for radio in ("radio1", "radio2"):
         payload = {
             "userID": radio,
@@ -453,11 +458,15 @@ def test_webhook_novo_fluxo_isola_id_por_radio(
                 "Message": {"conversation": "Toca Oceano"},
             },
         }
-        res = client.post("/webhook/whatsapp", content=json.dumps(payload))
+        corpo = json.dumps(payload).encode()
+        headers = {
+            "x-hmac-signature": hmac.new(chaves_hmac[radio].encode(), corpo, hashlib.sha256).hexdigest()
+        }
+        res = client.post("/webhook/whatsapp", content=corpo, headers=headers)
         assert res.status_code == 200
         assert res.json()["status"] == "ok"
         assert (
-            client.post("/webhook/whatsapp", content=json.dumps(payload)).json()[
+            client.post("/webhook/whatsapp", content=corpo, headers=headers).json()[
                 "motivo"
             ]
             == "duplicada"
