@@ -18,6 +18,7 @@ from app.whatsapp.session_manager import (
     desconectar_sessao,
     obter_qrcode,
     obter_status_sessao,
+    token_wuzapi_orfao,
 )
 
 logger = logging.getLogger("radialista.onboarding")
@@ -42,6 +43,13 @@ def _tentar_configurar_hmac(account: Account, db: Session) -> None:
 
 @router.post("/wuzapi-user")
 def criar_usuario_wuzapi(account: Account = Depends(get_current_account), db: Session = Depends(get_db)):
+    if account.wuzapi_token and token_wuzapi_orfao(account.wuzapi_token):
+        logger.warning("Token WuzAPI orfao (nao existe mais no WuzAPI), recriando: account_id=%s", account.id)
+        account.wuzapi_token = None
+        account.wuzapi_user_id = None
+        account.wuzapi_hmac_key = None
+        db.commit()
+
     if account.wuzapi_token:
         if not account.wuzapi_hmac_key:
             _tentar_configurar_hmac(account, db)

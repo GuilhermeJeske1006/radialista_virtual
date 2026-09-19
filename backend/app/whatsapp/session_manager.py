@@ -88,6 +88,22 @@ def desconectar_sessao(user_token: str) -> dict:
         return response.json()
 
 
+def token_wuzapi_orfao(user_token: str) -> bool:
+    """True so' quando o WuzAPI confirma que nao conhece mais esse token (401) --
+    sinal de que o WuzAPI perdeu seu proprio estado (ex.: reset de banco) enquanto
+    o backend ainda guarda o token antigo, mascarando /connect com 502 "Falha ao
+    conectar sessao no WuzAPI" pra sempre ate alguem notar. Qualquer outro erro
+    (WuzAPI fora do ar, timeout, 5xx) e' tratado como "nao sei", pra nao apagar um
+    token bom por causa de uma falha transitoria."""
+    try:
+        obter_status_sessao(user_token)
+        return False
+    except httpx.HTTPStatusError as exc:
+        return exc.response.status_code == 401
+    except httpx.HTTPError:
+        return False
+
+
 def obter_status_sessao(user_token: str) -> dict:
     url = f"{settings.wuzapi_base_url}/session/status"
     headers = {"token": user_token}

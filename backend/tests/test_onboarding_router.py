@@ -1,13 +1,47 @@
 import httpx
 
 
-def test_criar_usuario_wuzapi_ja_existente(client, account_factory, auth_headers, db_session):
+def test_criar_usuario_wuzapi_ja_existente(client, account_factory, auth_headers, db_session, monkeypatch):
+    monkeypatch.setattr("app.onboarding.router.token_wuzapi_orfao", lambda token: False)
     account = account_factory(
         email="a@a.com", wuzapi_token="token-existente", wuzapi_hmac_key="hmac-ja-configurada"
     )
     resposta = client.post("/onboarding/wuzapi-user", headers=auth_headers(account.id))
     assert resposta.status_code == 200
     assert resposta.json() == {"status": "ja_existe", "wuzapi_token": "token-existente"}
+
+
+def test_criar_usuario_wuzapi_token_orfao_recria(
+    client, account_factory, auth_headers, db_session, monkeypatch
+):
+    """Reproduz o incidente real: WuzAPI perdeu o banco (SQLite efemero sem persistencia)
+    e nao reconhece mais um token que o backend ainda guarda como valido. Antes desse
+    self-heal, a rota devolvia "ja_existe" cegamente e /connect ficava preso em 502
+    "Falha ao conectar sessao no WuzAPI" pra sempre -- ver memoria de deploy."""
+    account = account_factory(
+        email="a@a.com",
+        wuzapi_token="token-orfao",
+        wuzapi_user_id="id-antigo",
+        wuzapi_hmac_key="hmac-antiga",
+    )
+    monkeypatch.setattr("app.onboarding.router.token_wuzapi_orfao", lambda token: True)
+    monkeypatch.setattr(
+        "app.onboarding.router.criar_usuario",
+        lambda admin_token, nome, token, webhook_url: {"data": {"id": "wuzapi-id-novo"}},
+    )
+    monkeypatch.setattr("app.onboarding.router.configurar_entrega_midia", lambda token: {})
+    monkeypatch.setattr("app.onboarding.router.configurar_hmac", lambda token, hmac_key: {})
+
+    resposta = client.post("/onboarding/wuzapi-user", headers=auth_headers(account.id))
+    assert resposta.status_code == 200
+    assert resposta.json()["status"] == "criado"
+    novo_token = resposta.json()["wuzapi_token"]
+    assert novo_token != "token-orfao"
+
+    db_session.refresh(account)
+    assert account.wuzapi_token == novo_token
+    assert account.wuzapi_user_id == "wuzapi-id-novo"
+    assert account.wuzapi_hmac_key is not None
 
 
 def test_criar_usuario_wuzapi_ja_existente_sem_hmac_tenta_reconfigurar(
@@ -20,6 +54,7 @@ def test_criar_usuario_wuzapi_ja_existente_sem_hmac_tenta_reconfigurar(
     account = account_factory(email="a@a.com", wuzapi_token="token-existente")
     assert account.wuzapi_hmac_key is None
 
+    monkeypatch.setattr("app.onboarding.router.token_wuzapi_orfao", lambda token: False)
     chamadas = []
     monkeypatch.setattr(
         "app.onboarding.router.configurar_hmac",
@@ -40,6 +75,8 @@ def test_criar_usuario_wuzapi_ja_existente_sem_hmac_falha_best_effort(
 ):
     """Retry de HMAC tambem e' best-effort -- falha no WuzAPI so' loga, nao derruba a rota."""
     account = account_factory(email="a@a.com", wuzapi_token="token-existente")
+
+    monkeypatch.setattr("app.onboarding.router.token_wuzapi_orfao", lambda token: False)
 
     def _falha(*args, **kwargs):
         raise httpx.HTTPStatusError("erro", request=None, response=httpx.Response(500))
