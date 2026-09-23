@@ -46,6 +46,15 @@ export type ProgramSegment = ConfirmacaoPedido & {
   patrocinador_audio?: boolean;
   patrocinador_voz_id?: string | null;
   vinheta_id?: number | null;
+  // true = /vinhetas/{id}/audio tem o arquivo mixado (voz + trilha). false = vinheta gerada ainda
+  // sem audio: toca `fala` via TTS normal, sem trilha (o ao vivo nunca espera a mixagem).
+  vinheta_audio?: boolean;
+  // So' na fala de encerramento: vinheta de encerramento do programa, tocada logo depois dela.
+  vinheta_encerramento_id?: number | null;
+  vinheta_encerramento_audio?: boolean;
+  vinheta_encerramento_texto?: string | null;
+  // Posicoes do roteiro consumidas por este bloco (>1 quando o backend pulou vinheta desativada).
+  passos_roteiro?: number;
   falas?: FalaItem[] | null;
   // Duracao REAL do bloco inteiro (soma do tempo de ar de cada musica + cada fala que
   // compoe esse bloco, medida ao vivo pelo player/audio -- ver atualizarDuracaoFala em
@@ -72,6 +81,15 @@ export type LiveProgramResponse = ConfirmacaoPedido & {
   patrocinador_audio?: boolean;
   patrocinador_voz_id?: string | null;
   vinheta_id?: number | null;
+  // true = /vinhetas/{id}/audio tem o arquivo mixado (voz + trilha). false = vinheta gerada ainda
+  // sem audio: toca `fala` via TTS normal, sem trilha (o ao vivo nunca espera a mixagem).
+  vinheta_audio?: boolean;
+  // So' na fala de encerramento: vinheta de encerramento do programa, tocada logo depois dela.
+  vinheta_encerramento_id?: number | null;
+  vinheta_encerramento_audio?: boolean;
+  vinheta_encerramento_texto?: string | null;
+  // Posicoes do roteiro consumidas por este bloco (>1 quando o backend pulou vinheta desativada).
+  passos_roteiro?: number;
   falas?: FalaItem[] | null;
   intervalo_ms?: number | null;
   pausa_antes_ms?: number | null;

@@ -18,6 +18,7 @@ import {
   TipoRadio,
 } from "../../lib/types";
 import { setRadialistaAtualId } from "../../lib/radialistas";
+import { marcarVinhetasCriadas } from "../../components/VinhetasProgramaSection";
 import { LocufySpin } from "../../components/LocufyLogo";
 import { PRECO_AGENTE_ADICIONAL, formatarReais } from "../../lib/planos";
 
@@ -170,6 +171,7 @@ export default function RadialistasPage() {
         body: JSON.stringify({ radialista: radialistaEdit, programa: programaEdit, geracao_id: geracaoId }),
       });
       setRadialistaAtualId(criado.radialista.id);
+      marcarVinhetasCriadas(criado.programa.id);
       window.location.href = `/radialista/${criado.radialista.id}`;
     } catch (err) {
       if (err instanceof ApiError && err.status === 402) {

@@ -10,6 +10,7 @@ import FeriadosMunicipaisInput from "./FeriadosMunicipaisInput";
 import RadialistasProgramaSection from "./RadialistasProgramaSection";
 import FontesNoticiaSection from "./FontesNoticiaSection";
 import PautaDoDiaSection from "./PautaDoDiaSection";
+import VinhetasProgramaSection, { marcarVinhetasCriadas } from "./VinhetasProgramaSection";
 import { apiFetch, ApiError } from "../lib/api";
 import {
   CategoriaVinheta,
@@ -124,6 +125,20 @@ export default function EditarProgramaForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idEfetivo]);
 
+  // Regerar/recolocar vinhetas mexe na estrutura_blocos no backend -- so' atualiza esse campo
+  // (e a lista de vinhetas pros rotulos), sem descartar o que o usuario esta editando no resto.
+  function recarregarEstrutura() {
+    if (idEfetivo === null) return;
+    apiFetch<Programa>(`/config/programas/${idEfetivo}`)
+      .then((dados) =>
+        setPrograma((atual) => (atual ? { ...atual, estrutura_blocos: normalizarPrograma(dados).estrutura_blocos } : atual))
+      )
+      .catch(() => {});
+    apiFetch<BibliotecaAudioItem[]>("/biblioteca-audio")
+      .then(setVinhetas)
+      .catch(() => {});
+  }
+
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
     if (!programa) return;
@@ -144,7 +159,10 @@ export default function EditarProgramaForm({
             method: "PUT",
             body: JSON.stringify(semCamposSistema(programa)),
           });
-      if (criando) setIdCriado(atualizado.id);
+      if (criando) {
+        setIdCriado(atualizado.id);
+        marcarVinhetasCriadas(atualizado.id);
+      }
       setPrograma(normalizarPrograma(atualizado));
       setMensagem(criando ? "Programa criado." : "Programa salvo.");
       onSalvo?.(atualizado);
@@ -585,7 +603,11 @@ export default function EditarProgramaForm({
                     <li key={`${bloco}-${i}`} className="flex items-center gap-1.5">
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-acento/10 text-acento-claro border border-acento-claro/25 px-2.5 py-0.5 text-sm">
                         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${cor.dot}`} />
-                        {rotuloBloco(bloco, Object.fromEntries(patrocinadores.map((p) => [p.id, p.nome])))}
+                        {rotuloBloco(
+                          bloco,
+                          Object.fromEntries(patrocinadores.map((p) => [p.id, p.nome])),
+                          Object.fromEntries(vinhetas.map((v) => [v.id, v.nome]))
+                        )}
                       </span>
                       {i < programa.estrutura_blocos.length - 1 && <span className="text-fg/25 text-xs">→</span>}
                     </li>
@@ -605,6 +627,13 @@ export default function EditarProgramaForm({
             >
               {programa.estrutura_blocos.length > 0 ? "Editar sequência do programa" : "Montar sequência do programa"} ↗
             </Link>
+          </div>
+        )}
+
+        {!criando && idEfetivo !== null && (
+          <div>
+            <h4 className="mb-2 font-mono text-xs uppercase tracking-wide text-acento-claro">Vinhetas deste programa</h4>
+            <VinhetasProgramaSection programaId={idEfetivo} onEstruturaMudou={recarregarEstrutura} />
           </div>
         )}
 

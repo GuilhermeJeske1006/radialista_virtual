@@ -853,7 +853,8 @@ export function useLiveEngine() {
     const atualizadas = [novaFala, ...falasProgramaRef.current].slice(0, 20);
     falasProgramaRef.current = atualizadas;
     setFalasPrograma(atualizadas);
-    totalFalasRef.current += 1;
+    // vinheta desativada pulada no backend consome mais de uma posicao do roteiro (passos_roteiro)
+    totalFalasRef.current += segmento.passos_roteiro ?? 1;
     setTotalFalas(totalFalasRef.current);
     return novaFala;
   }
@@ -1029,7 +1030,7 @@ export function useLiveEngine() {
         audioBlob =
           segmento.tipo === "patrocinador" && segmento.patrocinador_id
             ? await apiFetchBlob(`/patrocinadores/${segmento.patrocinador_id}/audio?radialista_id=${contexto.radialistaId}`)
-            : segmento.tipo === "vinheta" && segmento.vinheta_id
+            : segmento.tipo === "vinheta" && segmento.vinheta_id && segmento.vinheta_audio !== false
               ? await apiFetchBlob(`/biblioteca-audio/${segmento.vinheta_id}/audio`)
               : await apiFetchBlobComTimeout(`/live/${contexto.radialistaId}/tts`, {
                   method: "POST",
@@ -1080,7 +1081,7 @@ export function useLiveEngine() {
         avancar: (contexto, { segmento }) => segmento.tipo === "encerramento" ? null : ({
           ...contexto,
           historicoBase: [segmento, ...contexto.historicoBase].slice(0, 20),
-          totalFalas: contexto.totalFalas + 1,
+          totalFalas: contexto.totalFalas + (segmento.passos_roteiro ?? 1),
           ultimaFala: segmento.fala,
         }),
         descartar: (preparado) => {
@@ -1242,6 +1243,17 @@ export function useLiveEngine() {
     if (execucaoAtualRef.current !== minhaExecucao) return;
 
     if (novaFala.tipo === "encerramento") {
+      // Vinheta de encerramento do programa (fora da estrutura_blocos) fecha a transmissao
+      // logo depois da despedida.
+      if (novaFala.vinheta_encerramento_id && programaAtivoRef.current) {
+        const audioVinheta = await obterAudioVinhetaEncerramento(novaFala);
+        if (execucaoAtualRef.current !== minhaExecucao) return;
+        if (audioVinheta) {
+          await reproduzirAudioPreparado(audioVinheta, novaFala.vinheta_encerramento_texto ?? "");
+          URL.revokeObjectURL(audioVinheta);
+        }
+        if (execucaoAtualRef.current !== minhaExecucao) return;
+      }
       // roteiro chegou perto do horario_fim do programa -- a fala de despedida
       // ja foi ao ar, para a transmissao em vez de continuar o loop
       pausarPrograma();
@@ -1251,6 +1263,32 @@ export function useLiveEngine() {
     if (programaAtivoRef.current) {
       // O próximo conteúdo já recebe sua própria pausa_antes_ms. Não somar outra espera aqui.
       programaTimerRef.current = setTimeout(() => gerarProximaFala(), INTERVALO_PROGRAMA_MS);
+    }
+  }
+
+  // Vinheta de encerramento: arquivo mixado quando pronto; senao o texto dela via TTS normal
+  // (sem trilha). Qualquer falha so' pula a vinheta -- o programa encerra do mesmo jeito.
+  async function obterAudioVinhetaEncerramento(fala: ProgramSegment): Promise<string | null> {
+    try {
+      const blob = fala.vinheta_encerramento_audio
+        ? await apiFetchBlob(`/biblioteca-audio/${fala.vinheta_encerramento_id}/audio`)
+        : fala.vinheta_encerramento_texto && radialistaIdRef.current
+          ? await apiFetchBlobComTimeout(`/live/${radialistaIdRef.current}/tts`, {
+              method: "POST",
+              body: JSON.stringify({
+                perfil_pos_producao: "radio_fm",
+                texto: fala.vinheta_encerramento_texto,
+                tipo: "encerramento",
+                programa_id: programaIdRef.current,
+              }),
+            }, 60_000)
+          : null;
+      if (!blob) return null;
+      gravacaoBlobsRef.current.push(blob);
+      return URL.createObjectURL(blob);
+    } catch (err) {
+      console.error("Falha ao preparar a vinheta de encerramento, encerrando sem ela", err);
+      return null;
     }
   }
 

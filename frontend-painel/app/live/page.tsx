@@ -14,7 +14,7 @@ import InteracoesPanel from "../../components/live/InteracoesPanel";
 import AtendimentoOuvintesPanel from "../../components/live/AtendimentoOuvintesPanel";
 import HistoricoFilaPanel from "../../components/live/HistoricoFilaPanel";
 import { apiFetch, ApiError } from "../../lib/api";
-import { BibliotecaAudioItem } from "../../lib/bibliotecaAudio";
+import { BibliotecaAudioItem, temAudio } from "../../lib/bibliotecaAudio";
 import { CategoriaVinheta } from "../../lib/types";
 import { useLiveEngine } from "../../hooks/useLiveEngine";
 
@@ -168,7 +168,7 @@ export default function LivePage() {
 
           <div className="space-y-5">
             <CartwallPanel
-              itens={bibliotecaItens.filter((i) => i.ativo)}
+              itens={bibliotecaItens.filter((i) => i.ativo && temAudio(i))}
               duckMusicaFundo={engine.duckMusicaFundo}
             />
             <InteracoesPanel

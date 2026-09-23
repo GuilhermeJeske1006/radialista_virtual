@@ -156,6 +156,9 @@ export default function LocutorOnboardingPage() {
             )}
           </dl>
 
+          <p className="text-sm text-ciano mb-2">
+            Criamos 3 vinhetas com trilha para este programa e colocamos na programação.
+          </p>
           <p className="text-xs text-fg/65 mb-4">
             Dá pra ajustar tudo isso depois -- tom de voz, tópicos, músicas e o roteiro do programa.
           </p>

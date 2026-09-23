@@ -7,7 +7,7 @@ import Modal from "../../components/Modal";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import VoiceSelect from "../../components/VoiceSelect";
 import { apiFetch, apiFetchForm, apiFetchBlob, ApiError } from "../../lib/api";
-import { BibliotecaAudioItem, formatarDuracao } from "../../lib/bibliotecaAudio";
+import { BibliotecaAudioItem, formatarDuracao, temAudio } from "../../lib/bibliotecaAudio";
 import { CategoriaVinheta, Patrocinador, Radialista } from "../../lib/types";
 import { LocufySpin } from "../../components/LocufyLogo";
 
@@ -431,8 +431,9 @@ export default function VinhetagemPage() {
                           <button
                             type="button"
                             onClick={() => tocarVinheta(entrada.item)}
-                            className="shrink-0 text-acento-claro hover:text-acento-dim"
-                            title="Tocar"
+                            disabled={!temAudio(entrada.item)}
+                            className="shrink-0 text-acento-claro hover:text-acento-dim disabled:opacity-40"
+                            title={temAudio(entrada.item) ? "Tocar" : "Áudio ainda não gerado"}
                           >
                             {tocandoId === entrada.item.id ? <LocufySpin size={14} /> : "▶"}
                           </button>
@@ -440,6 +441,15 @@ export default function VinhetagemPage() {
                             <p className={`truncate ${entrada.item.ativo ? "text-fg" : "text-fg/65"}`}>
                               {entrada.item.nome}
                             </p>
+                            {entrada.item.origem === "auto" && (
+                              <p className="text-xs text-fg/65">
+                                {entrada.item.status === "pronta"
+                                  ? "Gerada para o programa"
+                                  : entrada.item.status === "erro"
+                                    ? "Gerada para o programa · sem áudio mixado"
+                                    : "Gerando trilha e mixando..."}
+                              </p>
+                            )}
                           </div>
                           <span className="shrink-0 font-mono text-xs text-fg/65">
                             {formatarDuracao(entrada.item.duracao_segundos)}
