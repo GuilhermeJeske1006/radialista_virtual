@@ -5,12 +5,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useConfiguracaoInicial } from "../lib/useConfiguracaoInicial";
 import { passoAtual, PASSOS_TOUR } from "../lib/tour";
+import { useAppConfigurado, useInstalarApp } from "../lib/instalarApp";
 
 const CHAVE_COLAPSADO = "locufy_tour_colapsado";
 
 export default function OnboardingTour() {
   const pathname = usePathname();
-  const estado = useConfiguracaoInicial();
+  const configuracao = useConfiguracaoInicial();
+  const appPronto = useAppConfigurado();
+  const estado = { ...configuracao, appPronto };
+  // passo do app: instala direto daqui, sem passar pela pagina do passo -- o cliente so' clica
+  // "Instalar" (+ confirmacao do navegador) e o app abre sozinho no ao vivo.
+  const { podeInstalar, instalar } = useInstalarApp();
   const [colapsado, setColapsado] = useState(true);
 
   // le' preferencia so' no cliente -- evita mismatch de hidratacao (localStorage nao existe no SSR).
@@ -68,12 +74,27 @@ export default function OnboardingTour() {
       </div>
       <h3 className="font-display text-sm font-bold text-fg mb-1">{passo.titulo}</h3>
       <p className="text-sm text-fg/65 mb-4">{passo.texto}</p>
-      <Link
-        href={passo.href}
-        className="block text-center rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600"
-      >
-        {passo.cta} →
-      </Link>
+      {passo.href === "/onboarding/app" && podeInstalar ? (
+        <>
+          <button
+            type="button"
+            onClick={() => { void instalar(); }}
+            className="block w-full text-center rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600"
+          >
+            Instalar Locufy
+          </button>
+          <Link href={passo.href} className="mt-2 block text-center text-xs text-fg/65 hover:text-fg">
+            Como funciona
+          </Link>
+        </>
+      ) : (
+        <Link
+          href={passo.href}
+          className="block text-center rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600"
+        >
+          {passo.cta} →
+        </Link>
+      )}
     </div>
   );
 }

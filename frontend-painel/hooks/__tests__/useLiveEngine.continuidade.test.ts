@@ -24,7 +24,11 @@ beforeEach(() => {
     if (path === "/config/radio") return Promise.resolve({});
     return Promise.reject(new Error("Sem cama musical neste teste"));
   });
-  vi.stubGlobal("Audio", class { constructor() { mocks.audio(); } });
+  // sondagem de autoplay (silencio em data:) nao conta como fala tocada
+  vi.stubGlobal("Audio", class {
+    constructor(src = "") { if (!src.startsWith("data:")) mocks.audio(); }
+    play() { return Promise.reject(new Error("sem autoplay no teste")); }
+  });
   vi.stubGlobal("YT", { Player: class {} });
   vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: vi.fn(() => "blob:teste"), revokeObjectURL: vi.fn() }));
   mocks.proxima.mockImplementation(() => new Promise(() => {}));

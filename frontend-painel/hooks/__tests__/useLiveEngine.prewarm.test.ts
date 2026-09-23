@@ -26,7 +26,8 @@ class AudioTeste {
   addEventListener() {}
   play = vi.fn(() => Promise.resolve());
   pause() {}
-  constructor(public src: string) { players.push(this); }
+  // sondagem de autoplay (silencio em data:) nao conta como fala tocada
+  constructor(public src: string) { if (!src.startsWith("data:")) players.push(this); }
   terminar() { this.ended = true; this.onended?.(); }
 }
 

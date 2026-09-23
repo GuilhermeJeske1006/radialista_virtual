@@ -57,6 +57,12 @@ function buscar(): Promise<ConfiguracaoInicialEstado> {
   return buscaEmVoo;
 }
 
+/** Estado ja' carregado (usa o cache se tiver) -- pra quem precisa esperar o dado real antes de
+ * decidir algo, como o redirecionamento de /onboarding pro proximo passo pendente. */
+export function obterConfiguracaoInicial(): Promise<ConfiguracaoInicialEstado> {
+  return cache ? Promise.resolve(cache) : buscar();
+}
+
 /** Forca um novo fetch e avisa quem ja' esta' montado (OnboardingTour, Sidebar, AppShell
  * sobrevivem a navegacao entre paginas) -- chamar depois de criar/editar radialista,
  * programa ou conectar o WhatsApp, senao o card do tour e o checklist do dashboard ficam
