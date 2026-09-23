@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Nunito, Outfit } from "next/font/google";
 import "./globals.css";
+import { CAPTURA_INSTALACAO_SCRIPT } from "../lib/instalarApp";
 
 // Substitutas enquanto as licenciadas não entram no repositório: Outfit no
 // lugar da Sama Latin (títulos) e Nunito no lugar da Gotham Rounded (texto) —
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans bg-bg text-fg antialiased">
         <script dangerouslySetInnerHTML={{ __html: TEMA_INICIAL_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: SW_REGISTER_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: CAPTURA_INSTALACAO_SCRIPT }} />
         {children}
       </body>
     </html>

@@ -33,7 +33,8 @@ class AudioTeste {
   }
   play = vi.fn(() => { this.paused = false; return Promise.resolve(); });
   pause() { this.paused = true; }
-  constructor(public src: string) { players.push(this); }
+  // sondagem de autoplay (silencio em data:) nao conta como fala tocada
+  constructor(public src: string) { if (!src.startsWith("data:")) players.push(this); }
   disparar(evento: string) {
     this.ouvintes[evento]?.forEach((cb) => cb());
   }
@@ -125,4 +126,72 @@ it("onerror pausa o audio explicitamente, sem deixar ele tocando por baixo do pr
   await act(async () => { players[0].errar(); });
 
   expect(players[0].paused).toBe(true);
+});
+
+// Aba do ao vivo em segundo plano (operador em outra aba/janela minimizada): o navegador não roda
+// requestAnimationFrame, e o fade de entrada (volume 0 -> 1) congelava em 0 -- a fala tocava
+// inteira muda, com o texto no histórico e nenhum erro na tela.
+it("aba oculta: fala sai no volume cheio mesmo sem requestAnimationFrame rodar", async () => {
+  vi.stubGlobal("requestAnimationFrame", vi.fn(() => 0));
+  vi.spyOn(document, "hidden", "get").mockReturnValue(true);
+  mocks.proxima.mockResolvedValueOnce(segmento("Primeira"));
+  mocks.tts.mockResolvedValueOnce(new Blob(["primeira"]));
+  await iniciar();
+
+  await act(async () => { players[0].disparar("playing"); });
+
+  expect(players[0].muted).toBe(false);
+  expect(players[0].volume).toBe(1);
+});
+
+it("aba sai de foco no meio do fade: timer de segurança completa o volume", async () => {
+  // aba visivel quando o fade comeca, mas o rAF congela logo depois (aba foi pro fundo).
+  vi.stubGlobal("requestAnimationFrame", vi.fn(() => 0));
+  mocks.proxima.mockResolvedValueOnce(segmento("Primeira"));
+  mocks.tts.mockResolvedValueOnce(new Blob(["primeira"]));
+  await iniciar();
+
+  await act(async () => { players[0].disparar("playing"); });
+  expect(players[0].volume).toBe(0);
+
+  await act(async () => { await vi.advanceTimersByTimeAsync(200); });
+  expect(players[0].volume).toBe(1);
+});
+
+// Pagina aberta/recarregada e programa iniciado sem nenhum clique (ex.: agendamento): o Chrome
+// rejeita o play() com NotAllowedError. A fala nao pode ser pulada -- espera o "Ativar som".
+it("autoplay bloqueado sem interação: fala espera o 'Ativar som' em vez de ser pulada", async () => {
+  mocks.proxima.mockResolvedValueOnce(segmento("Primeira"));
+  mocks.tts.mockResolvedValueOnce(new Blob(["primeira"]));
+  const bloqueio = Object.assign(new Error("user didn't interact"), { name: "NotAllowedError" });
+  const play = vi.fn()
+    .mockImplementationOnce(() => Promise.reject(bloqueio))
+    .mockImplementation(() => Promise.resolve());
+  vi.stubGlobal("Audio", class extends AudioTeste { play = this.src.startsWith("data:") ? vi.fn(() => Promise.reject(bloqueio)) : play; });
+  const { result } = await iniciar();
+
+  expect(result.current.audioBloqueado).toBe(true);
+  expect(result.current.erro).toBe("");
+  // nem a rede de seguranca de 3 min pode pular a fala enquanto espera o clique
+  await act(async () => { await vi.advanceTimersByTimeAsync(5 * 60 * 1000); });
+  expect(result.current.audioBloqueado).toBe(true);
+  expect(result.current.falhasAudioConsecutivas).toBe(0);
+
+  await act(async () => { result.current.liberarAudio(); });
+  expect(play).toHaveBeenCalledTimes(2);
+  expect(result.current.audioBloqueado).toBe(false);
+
+  await act(async () => { players[0].disparar("playing"); players[0].terminar(); });
+  expect(result.current.erro).toBe("");
+});
+
+it("outros erros de play() continuam pulando a fala com o motivo na tela", async () => {
+  mocks.proxima.mockResolvedValueOnce(segmento("Primeira"));
+  mocks.tts.mockResolvedValueOnce(new Blob(["primeira"]));
+  const erro = Object.assign(new Error("formato"), { name: "NotSupportedError" });
+  vi.stubGlobal("Audio", class extends AudioTeste { play = vi.fn(() => Promise.reject(erro)); });
+  const { result } = await iniciar();
+
+  expect(result.current.audioBloqueado).toBe(false);
+  expect(result.current.erro).toMatch(/Motivo: play\(\) rejeitado: NotSupportedError/);
 });

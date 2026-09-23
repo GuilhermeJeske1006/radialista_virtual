@@ -5,6 +5,7 @@ import { esperarTransicao, pausaAntesDoBloco, reproduzirGrupoDeFalas } from "../
 import { FilaPreparo } from "../lib/filaPreparo";
 
 import { useEffect, useRef, useState } from "react";
+import { sondarAutoplayComSom as sondarAutoplay } from "../lib/autoplay";
 import { apiFetch, apiFetchBlob, apiFetchBlobComTimeout, apiFetchComTimeout, ApiError } from "../lib/api";
 import { setRadialistaAtualId } from "../lib/radialistas";
 import { Radialista, Programa, RadioConta } from "../lib/types";
@@ -186,6 +187,17 @@ export function useLiveEngine() {
   const [falhasAudioConsecutivas, setFalhasAudioConsecutivas] = useState(0);
   const [avisoGravacao, setAvisoGravacao] = useState("");
   const [abaEmSegundoPlano, setAbaEmSegundoPlano] = useState(false);
+  // Navegador recusou som porque ninguem interagiu com a pagina ainda (ex.: /live aberto/
+  // recarregado e programa iniciado pelo agendamento, sem clique): o play() da fala e' rejeitado
+  // e o unMute() dos players do YouTube faz o video parar. Cada fonte bloqueada registra aqui como
+  // se liberar (fala: tocar; musica/fundo: desmutar) e o primeiro clique/tecla na pagina (ou o
+  // botao "Ativar som") roda tudo dentro do gesto do usuario, que o navegador aceita.
+  const [audioBloqueado, setAudioBloqueado] = useState(false);
+  const desbloqueiosAudioRef = useRef(new Map<"fala" | "musica" | "fundo", () => void>());
+  // true quando o navegador deixa tocar som sem clique: autoplay liberado na configuracao
+  // (flag --autoplay-policy=no-user-gesture-required, politica AutoplayAllowlist, permissao do
+  // site) -- descoberto por sondarAutoplayComSom -- ou uma fala ja tocou com som nesta pagina.
+  const somLiberadoRef = useRef(false);
   const [musicaAtual, setMusicaAtual] = useState<string | null>(null);
   // fim_segundos do corte calculado pelo backend (ver app/live/audio_analysis.py) pra faixa
   // atual -- quando null, a musica toca ate o fim real do video. Usado pro transport calcular
@@ -284,6 +296,24 @@ export function useLiveEngine() {
     return () => document.removeEventListener("visibilitychange", verificarVisibilidade);
   }, []);
 
+  // Qualquer clique/tecla na pagina ja' conta como interacao pro navegador -- libera o som
+  // pendente na hora, sem obrigar o operador a achar o botao "Ativar som". click/keydown (e nao
+  // pointerdown) porque sao eventos que ativam a pagina tambem no toque.
+  const liberarAudioAtualRef = useRef<() => void>(() => {});
+  liberarAudioAtualRef.current = liberarAudio;
+  useEffect(() => {
+    void sondarAutoplayComSom();
+    const aoInteragir = () => {
+      if (desbloqueiosAudioRef.current.size > 0) liberarAudioAtualRef.current();
+    };
+    document.addEventListener("click", aoInteragir, true);
+    document.addEventListener("keydown", aoInteragir, true);
+    return () => {
+      document.removeEventListener("click", aoInteragir, true);
+      document.removeEventListener("keydown", aoInteragir, true);
+    };
+  }, []);
+
   async function carregarRadialistasEProgramas() {
     try {
       const lista = await apiFetch<Radialista[]>("/config/radialistas");
@@ -370,6 +400,7 @@ export function useLiveEngine() {
       const audio = audioFalaRef.current;
       audioFalaRef.current = null;
       audio.pause();
+      removerDesbloqueioAudio("fala");
       // pause() nao dispara "ended" -- resolve na mao a promise que
       // reproduzirAudioPreparado esta esperando, senao ela fica pendurada.
       audio.onended?.(new Event("ended"));
@@ -399,22 +430,69 @@ export function useLiveEngine() {
   // fala real (ver ORCAMENTOS em app.live.formato, maior meta e' ~65s de abertura).
   const TIMEOUT_SEGURANCA_FALA_MS = 3 * 60 * 1000;
 
+  // Sem navigator.userActivation (navegador antigo) assume que pode -- mantem o comportamento
+  // de antes em vez de segurar o som pra sempre.
+  function paginaTemInteracao(): boolean {
+    if (somLiberadoRef.current) return true;
+    if (typeof navigator === "undefined") return true;
+    const ativacao = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation;
+    return ativacao?.hasBeenActive ?? true;
+  }
+
+  async function sondarAutoplayComSom(): Promise<boolean> {
+    if (!somLiberadoRef.current && (await sondarAutoplay())) somLiberadoRef.current = true;
+    return somLiberadoRef.current;
+  }
+
+  function registrarDesbloqueioAudio(fonte: "fala" | "musica" | "fundo", liberar: () => void) {
+    desbloqueiosAudioRef.current.set(fonte, liberar);
+    setAudioBloqueado(true);
+  }
+
+  function removerDesbloqueioAudio(fonte: "fala" | "musica" | "fundo") {
+    if (!desbloqueiosAudioRef.current.delete(fonte)) return;
+    if (desbloqueiosAudioRef.current.size === 0) setAudioBloqueado(false);
+  }
+
+  // Ordem importa: fundo antes da musica (o fade cruzado da musica ajusta o volume do fundo).
+  function liberarAudio() {
+    const pendentes = desbloqueiosAudioRef.current;
+    const ordem = (["fundo", "musica", "fala"] as const).filter((fonte) => pendentes.has(fonte));
+    const acoes = ordem.map((fonte) => pendentes.get(fonte)!);
+    pendentes.clear();
+    setAudioBloqueado(false);
+    acoes.forEach((liberar) => liberar());
+  }
+
   function fadeVolumeAudioElemento(audio: HTMLAudioElement, duracaoMs: number, alvo: number) {
     const inicio = audio.volume;
     const delta = alvo - inicio;
-    if (Math.abs(delta) < 0.01 || duracaoMs <= 0) {
+    // Aba em segundo plano (operador olhando outra aba/janela minimizada) nao roda
+    // requestAnimationFrame: o fade de entrada nunca saia do volume 0 e a fala inteira tocava
+    // muda -- texto no historico, voz nenhuma, sem erro. Oculta = pula direto pro alvo.
+    if (Math.abs(delta) < 0.01 || duracaoMs <= 0 || document.hidden) {
       audio.volume = alvo;
       return;
     }
     const inicioMs = performance.now();
+    let concluido = false;
     const passo = () => {
+      if (concluido) return;
       const progresso = Math.min(1, (performance.now() - inicioMs) / duracaoMs);
       audio.volume = Math.max(0, Math.min(1, inicio + delta * progresso));
-      if (progresso < 1 && audioFalaRef.current === audio) {
+      if (progresso >= 1) {
+        concluido = true;
+      } else if (audioFalaRef.current === audio) {
         requestAnimationFrame(passo);
       }
     };
     requestAnimationFrame(passo);
+    // Trava: se a aba sair de foco no meio do fade, o rAF congela -- o timer garante o alvo.
+    setTimeout(() => {
+      if (concluido || audioFalaRef.current !== audio) return;
+      concluido = true;
+      audio.volume = alvo;
+    }, duracaoMs + 50);
   }
 
   async function reproduzirAudioPreparado(audioUrl: string | null, _texto: string, aoConcluir?: () => void, gerenciarFundo = true): Promise<number> {
@@ -462,6 +540,10 @@ export function useLiveEngine() {
         // o texto da fala ja fica gravado no historico (adicionarFala roda antes/independente
         // disso) e some em silencio, dando a impressao de "texto tocou, voz nao".
         let falhouReproducao = false;
+        // Qual das saidas de falha disparou -- vai na mensagem de erro pra dar pra' diagnosticar
+        // sem abrir o console (autoplay bloqueado, midia invalida e travamento pedem correcoes
+        // diferentes).
+        let motivoFalha = "";
         let desmutado = false;
         const desmutarQuandoComecarDeVerdade = () => {
           if (desmutado) return;
@@ -478,12 +560,15 @@ export function useLiveEngine() {
           finalizar();
         };
         await new Promise<void>((resolve) => {
-          let timeoutSeguranca: ReturnType<typeof setTimeout> | null = setTimeout(() => {
+          const armarTimeoutSeguranca = () => setTimeout(() => {
             falhouReproducao = true;
+            motivoFalha = `nenhum evento de fim em ${TIMEOUT_SEGURANCA_FALA_MS / 1000}s (paused=${audio.paused}, muted=${audio.muted}, tempo=${Number(audio.currentTime ?? 0).toFixed(1)}s)`;
             limparFadeSaida();
             pararEFinalizar(resolve);
           }, TIMEOUT_SEGURANCA_FALA_MS);
+          let timeoutSeguranca: ReturnType<typeof setTimeout> | null = armarTimeoutSeguranca();
           const finalizar = () => {
+            removerDesbloqueioAudio("fala");
             if (timeoutSeguranca) {
               clearTimeout(timeoutSeguranca);
               timeoutSeguranca = null;
@@ -497,6 +582,7 @@ export function useLiveEngine() {
           };
           audio.onerror = () => {
             falhouReproducao = true;
+            motivoFalha = `erro de midia codigo ${audio.error?.code ?? "?"}${audio.error?.message ? ` (${audio.error.message})` : ""}`;
             limparFadeSaida();
             pararEFinalizar(finalizar);
           };
@@ -507,14 +593,35 @@ export function useLiveEngine() {
           // houve gesto do usuario -- mesma armadilha ja documentada em tocarMusica pros
           // players do YouTube (so' desmuta no PlayerState.PLAYING, nunca antes).
           audio.addEventListener("playing", desmutarQuandoComecarDeVerdade, { once: true });
-          audio.play().catch(() => {
+          const falharPlay = (err: unknown) => {
             falhouReproducao = true;
+            motivoFalha = `play() rejeitado: ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}`;
             limparFadeSaida();
             pararEFinalizar(finalizar);
+          };
+          audio.play().catch((err: unknown) => {
+            if (!(err instanceof Error && err.name === "NotAllowedError") || audioFalaRef.current !== audio) {
+              falharPlay(err);
+              return;
+            }
+            // Autoplay bloqueado por falta de interacao com a pagina: segura a fala (sem timeout
+            // de seguranca, que pularia ela em 3 min) ate' o operador clicar em "Ativar som". O
+            // play() de liberarAudio roda dentro do clique, entao o navegador aceita -- e dali em
+            // diante a pagina ja tem interacao e as proximas falas tocam sozinhas.
+            if (timeoutSeguranca) {
+              clearTimeout(timeoutSeguranca);
+              timeoutSeguranca = null;
+            }
+            registrarDesbloqueioAudio("fala", () => {
+              if (audioFalaRef.current !== audio) return;
+              timeoutSeguranca = armarTimeoutSeguranca();
+              audio.play().catch(falharPlay);
+            });
           });
         });
         if (falhouReproducao) {
-          setErro("Falha ao reproduzir o audio da fala (bloqueio do navegador ou erro de midia); texto ficou sem voz.");
+          console.error("Falha ao reproduzir o audio da fala:", motivoFalha, { oculta: document.hidden });
+          setErro(`Falha ao reproduzir o audio da fala; texto ficou sem voz. Motivo: ${motivoFalha}${document.hidden ? " [aba em segundo plano]" : ""}`);
           setFalhasAudioConsecutivas((n) => n + 1);
         }
         URL.revokeObjectURL(audioUrl);
@@ -616,6 +723,7 @@ export function useLiveEngine() {
 
   function pararMusicaFundo() {
     bgProntoRef.current = false;
+    removerDesbloqueioAudio("fundo");
     if (bgIntervaloFimRef.current) {
       clearInterval(bgIntervaloFimRef.current);
       bgIntervaloFimRef.current = null;
@@ -694,8 +802,16 @@ export function useLiveEngine() {
           // pratica" -- na real nem tinha audio nenhum rodando pra ouvir a mudanca).
           if (evento.data === window.YT.PlayerState.PLAYING && !bgDesmutadoRef.current) {
             bgDesmutadoRef.current = true;
-            evento.target.unMute();
-            evento.target.setVolume(VOLUME_FUNDO_NORMAL);
+            const player = evento.target;
+            const desmutar = () => {
+              if (bgPlayerRef.current !== player) return;
+              player.unMute();
+              // musica do bloco no ar = fundo fica em 0 (fade cruzado); fala no ar = abaixado.
+              player.setVolume(musicStopRef.current ? 0 : audioFalaRef.current ? VOLUME_FUNDO_BAIXO : VOLUME_FUNDO_NORMAL);
+            };
+            // sem interacao na pagina, unMute() faz o Chrome parar o video -- segue mudo ate' o clique
+            if (paginaTemInteracao()) desmutar();
+            else registrarDesbloqueioAudio("fundo", desmutar);
           }
         },
       },
@@ -749,6 +865,7 @@ export function useLiveEngine() {
           clearTimeout(timeoutId);
           if (intervaloFimId) clearInterval(intervaloFimId);
           musicStopRef.current = null;
+          removerDesbloqueioAudio("musica");
           try {
             musicPlayerRef.current?.stopVideo?.();
           } catch {
@@ -812,15 +929,23 @@ export function useLiveEngine() {
               // so' desmuta/inicia o fade cruzado quando a musica realmente comecar a tocar --
               // ver o mesmo cuidado no player de fundo (iniciarMusicaFundo) sobre por que
               // desmutar cedo demais cancela o autoplay de volta pra UNSTARTED.
-              if (evento.data === window.YT.PlayerState.PLAYING && !musicDesmutadoRef.current) {
-                musicDesmutadoRef.current = true;
-                evento.target.unMute();
-                // fade cruzado: musica sobe de silencio enquanto o fundo desce pro lugar dela, em
-                // vez do salto instantaneo de antes (fundo mudo + musica em volume cheio na mesma
-                // batida) -- e' o que soava "colado"/artificial na abertura do bloco.
-                evento.target.setVolume(0);
-                fadeVolumeYoutube(evento.target, musicFadeIntervalRef, 100, FADE_MUSICA_MS, 12, 0);
-                if (bgProntoRef.current) fadeVolumeYoutube(bgPlayerRef.current, bgFadeIntervalRef, 0, FADE_MUSICA_MS);
+              if (evento.data === window.YT.PlayerState.PLAYING && !musicDesmutadoRef.current && !finalizado) {
+                const player = evento.target;
+                const desmutar = () => {
+                  if (finalizado || musicPlayerRef.current !== player) return;
+                  musicDesmutadoRef.current = true;
+                  player.unMute();
+                  // fade cruzado: musica sobe de silencio enquanto o fundo desce pro lugar dela, em
+                  // vez do salto instantaneo de antes (fundo mudo + musica em volume cheio na mesma
+                  // batida) -- e' o que soava "colado"/artificial na abertura do bloco.
+                  player.setVolume(0);
+                  fadeVolumeYoutube(player, musicFadeIntervalRef, 100, FADE_MUSICA_MS, 12, 0);
+                  if (bgProntoRef.current) fadeVolumeYoutube(bgPlayerRef.current, bgFadeIntervalRef, 0, FADE_MUSICA_MS);
+                };
+                // sem interacao na pagina, unMute() faz o Chrome parar o video -- a faixa segue
+                // muda (o tempo do bloco continua correndo) ate' o clique em "Ativar som".
+                if (paginaTemInteracao()) desmutar();
+                else if (!desbloqueiosAudioRef.current.has("musica")) registrarDesbloqueioAudio("musica", desmutar);
               }
             },
             // codigos do player: 2 parametro invalido, 5 erro de HTML5, 100 video removido/privado,
@@ -1340,6 +1465,9 @@ export function useLiveEngine() {
     setProgramaAtivo(true);
     gravacaoBlobsRef.current = [];
     setAvisoGravacao("");
+    // de novo aqui: a sondagem da montagem pode ter rodado antes da configuracao do navegador
+    // valer (ou a pagina ganhou permissao depois); e' barata e so' toca silencio.
+    void sondarAutoplayComSom();
     iniciarMusicaFundo();
     gerarProximaFala(true);
   }
@@ -1524,6 +1652,8 @@ export function useLiveEngine() {
     falhasAudioConsecutivas,
     avisoGravacao,
     abaEmSegundoPlano,
+    audioBloqueado,
+    liberarAudio,
     musicaAtual,
     musicaFimSegundos,
     estagioAtual,

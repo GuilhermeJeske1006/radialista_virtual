@@ -8,6 +8,7 @@ import { Conta, Patrocinador, Programa, Radialista, RadioConta } from "../../lib
 import { LocufyLed, LocufySpin } from "../../components/LocufyLogo";
 import { GraficoBarras, PontoSerie } from "../../components/GraficoBarras";
 import { UpsellBanner } from "../../components/UpsellBanner";
+import { useAppConfigurado } from "../../lib/instalarApp";
 
 const ATALHOS = [
   {
@@ -64,9 +65,19 @@ export default function DashboardPage() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const [onboardingIncompleto, setOnboardingIncompleto] = useState(false);
+  // do aparelho, nao da conta (ver lib/instalarApp.ts) -- conta como pendente em cada computador
+  const appPronto = useAppConfigurado();
+  // aba do navegador que cedeu o ao vivo pro app recem-instalado (ver app/live/page.tsx)
+  const [aoVivoNoApp, setAoVivoNoApp] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    if (params.get("app") === "instalado") {
+      setAoVivoNoApp(true);
+      params.delete("app");
+      const resto = params.toString();
+      window.history.replaceState(null, "", resto ? `/dashboard?${resto}` : "/dashboard");
+    }
     if (params.get("onboarding") === "incompleto") {
       setOnboardingIncompleto(true);
       params.delete("onboarding");
@@ -172,6 +183,12 @@ export default function DashboardPage() {
       href: "/conversas",
     },
     {
+      feita: appPronto,
+      label: "Instalar app e liberar o som",
+      descricao: "Neste computador: a rádio toca sozinha, sem precisar clicar",
+      href: "/onboarding/app",
+    },
+    {
       feita: temPatrocinador,
       label: "Cadastrar Vinhetagem",
       descricao: "Opcional — para inserir chamadas comerciais no ar",
@@ -186,6 +203,15 @@ export default function DashboardPage() {
       {erro && <p className="text-sm text-laranja mb-4">{erro}</p>}
 
       <UpsellBanner />
+
+      {aoVivoNoApp && (
+        <div role="status" className="rounded-3xl border border-ciano bg-ciano/10 px-5 py-4 mb-6">
+          <p className="text-sm font-medium text-ciano">
+            O ao vivo está rodando no app Locufy (janela própria, som liberado), então esta aba saiu do ar pra rádio não tocar em dobro.
+          </p>
+          <p className="text-sm text-fg/65 mt-0.5">Pode fechar esta aba do navegador.</p>
+        </div>
+      )}
 
       {onboardingIncompleto && (
         <div className="flex items-start justify-between gap-4 rounded-3xl border border-acento-claro/40 bg-acento/10 px-5 py-4 mb-6">

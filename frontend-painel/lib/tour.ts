@@ -1,12 +1,16 @@
 import { ConfiguracaoInicialEstado } from "./useConfiguracaoInicial";
 
+// appPronto e' do aparelho (localStorage/app instalado, ver lib/instalarApp.ts), nao da conta --
+// fica fora de ConfiguracaoInicialEstado pra nao mexer em `completa` (menu numerado).
+export type EstadoTour = ConfiguracaoInicialEstado & { appPronto: boolean };
+
 export type PassoTour = {
   numero: number;
   titulo: string;
   texto: string;
   cta: string;
   href: string;
-  feito: (estado: ConfiguracaoInicialEstado) => boolean;
+  feito: (estado: EstadoTour) => boolean;
 };
 
 export const PASSOS_TOUR: PassoTour[] = [
@@ -37,8 +41,17 @@ export const PASSOS_TOUR: PassoTour[] = [
     href: "/conversas",
     feito: (e) => e.whatsappConectado,
   },
+  {
+    numero: 4,
+    titulo: "Instale o app e libere o som",
+    texto:
+      "Sem isso o navegador bloqueia a voz e a música até alguém clicar na página. Instalado, o painel toca sozinho, mesmo depois de reiniciar o computador.",
+    cta: "Instalar e liberar som",
+    href: "/onboarding/app",
+    feito: (e) => e.appPronto,
+  },
 ];
 
-export function passoAtual(estado: ConfiguracaoInicialEstado): PassoTour | null {
+export function passoAtual(estado: EstadoTour): PassoTour | null {
   return PASSOS_TOUR.find((p) => !p.feito(estado)) ?? null;
 }

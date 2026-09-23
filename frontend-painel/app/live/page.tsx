@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import AppShell from "../../components/AppShell";
 import Modal from "../../components/Modal";
@@ -17,6 +18,8 @@ import { apiFetch, ApiError } from "../../lib/api";
 import { BibliotecaAudioItem } from "../../lib/bibliotecaAudio";
 import { CategoriaVinheta } from "../../lib/types";
 import { useLiveEngine } from "../../hooks/useLiveEngine";
+import InstalarAppAviso from "../../components/live/InstalarAppAviso";
+import { useAoVivoUnico } from "../../lib/aoVivoUnico";
 
 // numero de blocos seguidos sem locucao (so' cama musical) a partir do qual o alerta vira
 // persistente na tela -- abaixo disso pode ser so' um solavanco pontual da ElevenLabs (ja
@@ -25,6 +28,16 @@ const LIMIAR_ALERTA_FALHA_AUDIO = 3;
 
 export default function LivePage() {
   const engine = useLiveEngine();
+  const router = useRouter();
+
+  // App instalado abriu (ou acabou de ser instalado a partir desta aba): ele assume o ao vivo e
+  // esta aba do navegador sai do ar, senao a radio tocaria em dobro (ver lib/aoVivoUnico.ts).
+  const pausarRef = useRef(engine.pausarPrograma);
+  pausarRef.current = engine.pausarPrograma;
+  useAoVivoUnico(() => {
+    pausarRef.current();
+    router.replace("/dashboard?app=instalado");
+  });
 
   const [pulso, setPulso] = useState(false);
   const [bibliotecaItens, setBibliotecaItens] = useState<BibliotecaAudioItem[]>([]);
@@ -72,6 +85,25 @@ export default function LivePage() {
             no ar so' com musica, sem locucao. Verifique a ElevenLabs (chave de API, limite de uso) ou a
             conexao do backend.
           </p>
+        </div>
+      )}
+
+      <InstalarAppAviso />
+
+      {engine.audioBloqueado && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-laranja bg-laranja/10 px-4 py-3">
+          <p className="text-sm font-medium text-laranja flex-1 min-w-[12rem]">
+            O navegador bloqueou o som porque a pagina ainda nao recebeu nenhum clique. Voz e musica
+            estao esperando -- clique em qualquer lugar da pagina ou no botao. Pra nao precisar clicar,
+            instale o Locufy como app.
+          </p>
+          <button
+            type="button"
+            onClick={() => engine.liberarAudio()}
+            className="rounded-full bg-laranja px-4 py-2.5 text-sm font-semibold text-grafite hover:opacity-90 transition-opacity"
+          >
+            Ativar som
+          </button>
         </div>
       )}
 
