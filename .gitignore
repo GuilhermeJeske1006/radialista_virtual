@@ -57,3 +57,6 @@ backend/logs/
 # --- graphify (knowledge graph tool) ---
 /graphify/
 graphify-out/
+
+# --- Exemplos de audio gerados localmente (vinhetas) ---
+backend/tmp/

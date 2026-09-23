@@ -2,7 +2,7 @@ import datetime
 import logging
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy.orm import Session
 
@@ -35,6 +35,7 @@ from app.models.tema_historico import TemaHistorico
 from app.news.seeds_fontes import criar_seeds_fontes
 from app.billing.limites import limite_agentes_efetivo, limite_radialistas_por_programa
 from app.tts.voices import validar_voz_ou_400
+from app.vinhetas.servico import criar_vinhetas_com_seguranca, excluir_dados_do_programa
 
 logger = logging.getLogger("radialista.config")
 
@@ -599,6 +600,7 @@ def criar_radialista(
 )
 def gerar_radialista_ia(
     dados: GerarConfiguracaoIARequest,
+    background_tasks: BackgroundTasks,
     account: Account = Depends(get_current_account),
     db: Session = Depends(get_db),
 ):
@@ -659,11 +661,15 @@ def gerar_radialista_ia(
                 detail="Nao foi possivel gerar a configuracao agora. Tenta de novo em instantes.",
             )
 
-    return _commitar_radialista_gerado(db, account, radialista_dados, programa_dados)
+    return _commitar_radialista_gerado(db, account, radialista_dados, programa_dados, background_tasks)
 
 
 def _commitar_radialista_gerado(
-    db: Session, account: Account, radialista_dados: "RadialistaRequest", programa_dados: "ProgramaRequest"
+    db: Session,
+    account: Account,
+    radialista_dados: "RadialistaRequest",
+    programa_dados: "ProgramaRequest",
+    background_tasks: BackgroundTasks | None = None,
 ) -> "ConfiguracaoIAResponse":
     """Grava radialista+programa (ja validados) no banco -- usado tanto pelo endpoint atomico
     gerar_radialista_ia (gera e grava numa tacada so) quanto por commitar_radialista_ia_gerado
@@ -714,6 +720,11 @@ def _commitar_radialista_gerado(
     db.commit()
     db.refresh(radialista)
     db.refresh(programa)
+    # Placeholder reaproveitado teve o programa sobrescrito -- vinhetas antigas (se houver) ficaram
+    # com nome/texto do programa anterior, entao regera.
+    criar_vinhetas_com_seguranca(
+        db, account, radialista, programa, background_tasks, substituir=radialista_placeholder is not None
+    )
 
     logger.info(
         "Radialista+programa gravados: radialista_id=%s programa_id=%s account_id=%s reaproveitado=%s",
@@ -810,6 +821,7 @@ class ConfiguracaoIACommitRequest(BaseModel):
 )
 def commitar_radialista_ia(
     dados: ConfiguracaoIACommitRequest,
+    background_tasks: BackgroundTasks,
     account: Account = Depends(get_current_account),
     db: Session = Depends(get_db),
 ):
@@ -817,7 +829,7 @@ def commitar_radialista_ia(
     /radialistas/gerar-ia/preview (ver Fase 2 do plano de melhoria) -- sem chamar o LLM de novo,
     so aplica a mesma logica de reaproveitamento de placeholder e limite de agentes do endpoint
     atomico gerar_radialista_ia."""
-    resultado = _commitar_radialista_gerado(db, account, dados.radialista, dados.programa)
+    resultado = _commitar_radialista_gerado(db, account, dados.radialista, dados.programa, background_tasks)
     _marcar_geracao_aceita(
         db,
         account,
@@ -977,6 +989,8 @@ def excluir_radialista(
         db.query(TemaHistorico).filter(TemaHistorico.programa_id.in_(programas_do_radialista)).delete(
             synchronize_session=False
         )
+    for programa_id in programas_do_radialista:
+        excluir_dados_do_programa(db, account.id, programa_id)
     db.query(Programa).filter_by(radio_config_id=radialista.id).delete()
     db.delete(radialista)
     db.commit()
@@ -1006,6 +1020,7 @@ def listar_programas(
 def criar_programa(
     radialista_id: int,
     dados: ProgramaRequest,
+    background_tasks: BackgroundTasks,
     account: Account = Depends(get_current_account),
     db: Session = Depends(get_db),
 ):
@@ -1015,6 +1030,7 @@ def criar_programa(
     db.add(programa)
     db.commit()
     db.refresh(programa)
+    criar_vinhetas_com_seguranca(db, account, radialista, programa, background_tasks)
     logger.info("Programa criado: id=%s radialista_id=%s", programa.id, radialista.id)
     return programa
 
@@ -1027,6 +1043,7 @@ def criar_programa(
 def gerar_programa_ia_endpoint(
     radialista_id: int,
     dados: GerarConfiguracaoIARequest,
+    background_tasks: BackgroundTasks,
     account: Account = Depends(get_current_account),
     db: Session = Depends(get_db),
 ):
@@ -1087,6 +1104,7 @@ def gerar_programa_ia_endpoint(
     db.add(programa)
     db.commit()
     db.refresh(programa)
+    criar_vinhetas_com_seguranca(db, account, radialista, programa, background_tasks)
     logger.info("Programa gerado via IA: id=%s radialista_id=%s", programa.id, radialista.id)
     return programa
 
@@ -1269,6 +1287,7 @@ def excluir_programa(
     # ao vivo do banco de assuntos, ver plano-assuntos.md).
     db.query(NoticiaHistorico).filter_by(programa_id=programa.id).delete()
     db.query(AssuntoPrograma).filter_by(programa_id=programa.id).delete()
+    excluir_dados_do_programa(db, account.id, programa.id)
     db.delete(programa)
     db.commit()
     logger.info("Programa excluido: id=%s account_id=%s", programa_id, account.id)

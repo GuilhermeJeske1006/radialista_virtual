@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     # Flash continua disponivel via ELEVENLABS_MODEL, com perfil proprio, para testes.
     elevenlabs_model: str = "eleven_v3"
 
+    # Trilha instrumental das vinhetas geradas por programa (ver app/vinhetas/trilha.py) via
+    # ElevenLabs Music API. Desligado = pula direto pro banco local de trilhas livres.
+    vinheta_trilha_ia_habilitada: bool = True
+    elevenlabs_music_model: str = "music_v1"
+
     # Diretorio (local, relativo ou absoluto) onde ficam os arquivos enviados pelo usuario
     # (ex.: audio de patrocinadores -- app/patrocinadores/router.py) quando storage_backend=local.
     upload_dir: str = "uploads"

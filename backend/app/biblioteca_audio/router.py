@@ -14,6 +14,7 @@ from app.models.account import Account
 from app.models.biblioteca_audio import BibliotecaAudioItem
 from app.models.categoria_vinheta import CategoriaVinheta
 from app.storage import get_storage
+from app.vinhetas.servico import excluir_vinhetas
 
 logger = logging.getLogger("radialista.biblioteca_audio")
 
@@ -34,11 +35,18 @@ class BibliotecaAudioItemResponse(BaseModel):
     id: int
     nome: str
     categoria_id: int | None
-    audio_nome_original: str
+    audio_nome_original: str | None
     duracao_segundos: int | None
     cor: str | None
     ordem: int
     ativo: bool
+    # Vinheta gerada por programa (ver app/vinhetas/) -- upload manual vem origem="manual",
+    # status="pronta" e o resto nulo.
+    programa_id: int | None = None
+    papel: str | None = None
+    texto: str | None = None
+    status: str = "pronta"
+    origem: str = "manual"
 
     model_config = {"from_attributes": True}
 
@@ -184,8 +192,8 @@ def excluir_item(
     db: Session = Depends(get_db),
 ):
     item = _buscar_item(db, account, item_id)
-    _remover_audio(item.audio_path)
-    db.delete(item)
+    # Tira "vinheta:<id>" das estruturas e apaga voz seca/audio final junto.
+    excluir_vinhetas(db, account.id, [item])
     db.commit()
     logger.info("Item de biblioteca de audio excluido: id=%s account_id=%s", item_id, account.id)
 
@@ -198,7 +206,7 @@ def obter_audio_item(
 ):
     item = _buscar_item(db, account, item_id)
 
-    conteudo = get_storage().read(item.audio_path)
+    conteudo = get_storage().read(item.audio_path) if item.audio_path else None
     if conteudo is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Arquivo de audio nao encontrado")
 

@@ -21,6 +21,7 @@ from app.models.programa_radialista import ProgramaRadialista
 from app.models.radio_config import RadioConfig
 from app.models.super_admin import SuperAdmin
 from app.models.tema_historico import TemaHistorico
+from app.models.trilha_vinheta import TrilhaVinheta
 from app.models.usuario import Usuario
 from app.models.voz_clonada import VozClonada
 from app.models.perfil_voz import ConfiguracaoVoz, MetadadosVoz
@@ -53,6 +54,7 @@ __all__ = [
     "Assunto",
     "AssuntoPrograma",
     "GeracaoIA",
+    "TrilhaVinheta",
 ]
 
 from app.models.conversa_ouvinte import ConversaOuvinte

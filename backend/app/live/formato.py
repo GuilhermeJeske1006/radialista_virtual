@@ -2,6 +2,11 @@
 import re
 import unicodedata
 
+# Roteiro que o ao vivo segue quando o programa nao tem estrutura_blocos propria (ver
+# _tipo_proximo_bloco em app.live.router). Compartilhado com app.vinhetas.estrutura, que
+# materializa ele antes de inserir as vinhetas numa estrutura vazia.
+ROTEIRO_PADRAO = ("musica", "abertura", "comentario", "noticia", "chamada_ouvinte")
+
 ROTEIRO_MUSICAL = ("musica", "musica", "identificacao", "musica", "musica", "retomada")
 
 # Tempos são metas editoriais; a velocidade da voz determina a duração final.

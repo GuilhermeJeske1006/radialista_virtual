@@ -26,6 +26,9 @@ os.environ["SPOTIFY_CLIENT_SECRET"] = ""
 # evento pro Sentry de producao, marcado como "production". "" desativa o SDK (ver main.py).
 os.environ["SENTRY_DSN"] = ""
 os.environ["SENTRY_ENVIRONMENT"] = "test"
+# Mesmo motivo: STORAGE_BACKEND=s3 no .env de quem roda faria os testes gravarem/lerem no bucket
+# real (ou falharem sem credencial). Testes de upload apontam upload_dir pra um tmp_path.
+os.environ["STORAGE_BACKEND"] = "local"
 
 import fakeredis
 import redis as redis_module
@@ -77,6 +80,28 @@ def _classificar_tema_fala_mockado(monkeypatch):
     monkeypatch.setattr("app.live.router.classificar_tema_fala", lambda texto: "")
 
 
+class _SessaoSemClose:
+    def __init__(self, sessao):
+        self._sessao = sessao
+
+    def close(self):
+        pass
+
+    def __getattr__(self, nome):
+        return getattr(self._sessao, nome)
+
+
+@pytest.fixture(autouse=True)
+def _texto_vinhetas_sem_llm(monkeypatch):
+    """Criar programa gera o texto das vinhetas via LLM (app.vinhetas.gerador) -- por padrao cai
+    no template local sem rede. Teste que precisa do LLM sobrescreve com o proprio monkeypatch."""
+
+    def _falha(*args, **kwargs):
+        raise RuntimeError("LLM desligado nos testes")
+
+    monkeypatch.setattr("app.vinhetas.gerador.gerar_configuracao", _falha)
+
+
 @pytest.fixture()
 def db_session():
     engine = create_engine(
@@ -95,7 +120,7 @@ def db_session():
 
 
 @pytest.fixture()
-def client(db_session):
+def client(db_session, monkeypatch):
     """TestClient sem `with` de proposito -- nao dispara o startup event de app.main
     (que faria Base.metadata.create_all contra o Postgres real de settings.database_url).
     As rotas so' usam o banco via Depends(get_db), que sobrescrevemos abaixo."""
@@ -103,6 +128,10 @@ def client(db_session):
 
     def _override_get_db():
         yield db_session
+
+    # Job de audio das vinhetas (BackgroundTasks, roda sincrono dentro do TestClient) abre a
+    # propria sessao -- aponta pra mesma sessao de teste, sem fechar ela no fim do job.
+    monkeypatch.setattr("app.vinhetas.servico._abrir_sessao", lambda: _SessaoSemClose(db_session))
 
     app.dependency_overrides[get_db] = _override_get_db
     yield TestClient(app)

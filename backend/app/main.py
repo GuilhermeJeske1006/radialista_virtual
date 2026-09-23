@@ -17,6 +17,8 @@ from app.funnel.router import router as funnel_router
 from app.biblioteca_audio.router import router as biblioteca_audio_router
 from app.biblioteca_audio.sons_padrao import criar_sons_padrao
 from app.billing.router import router as billing_router
+from app.vinhetas.router import router as vinhetas_router
+from app.vinhetas.servico import recuperar_vinhetas_travadas
 from app.categorias_vinheta.defaults import CATEGORIAS_PADRAO
 from app.categorias_vinheta.router import router as categorias_vinheta_router
 from app.config.router import router as config_router
@@ -48,6 +50,7 @@ from app.models import (  # noqa: F401 -- garante que as tabelas sejam registrad
     RadioConfig,
     SuperAdmin,
     TemaHistorico,
+    TrilhaVinheta,
     Usuario,
     VozClonada,
 )
@@ -135,6 +138,7 @@ app.include_router(patrocinadores_router)
 app.include_router(topics_router)
 app.include_router(biblioteca_audio_router)
 app.include_router(categorias_vinheta_router)
+app.include_router(vinhetas_router)
 app.include_router(suporte_router)
 app.include_router(notificacoes_router)
 app.include_router(admin_sistema_router)
@@ -156,6 +160,7 @@ async def criar_tabelas():
     garantir_colunas_categoria_vinheta()
     corrigir_tipo_categoria_vinheta_legado()
     migrar_categoria_biblioteca_audio()
+    garantir_colunas_biblioteca_audio()
     semear_categorias_padrao_em_contas_existentes()
     semear_sons_padrao_em_contas_existentes()
     migrar_conteudo_para_programas()
@@ -163,6 +168,7 @@ async def criar_tabelas():
     migrar_usuarios_de_account()
     garantir_colunas_password_reset_token()
     limpar_coluna_is_staff_legado()
+    recuperar_vinhetas_travadas()
     iniciar_scheduler_noticias()
     iniciar_scheduler_prewarm()
     iniciar_scheduler_reprocessar_hmac()
@@ -558,6 +564,43 @@ def migrar_categoria_biblioteca_audio():
             )
 
         conn.execute(text("ALTER TABLE biblioteca_audio_itens DROP COLUMN categoria"))
+
+
+def garantir_colunas_biblioteca_audio():
+    """Colunas das vinhetas geradas por programa (ver app/vinhetas/). audio_path deixa de ser
+    obrigatorio: vinheta gerada nasce "pendente", sem arquivo, ate' o job de audio terminar."""
+    inspector = inspect(engine)
+    if "biblioteca_audio_itens" not in inspector.get_table_names():
+        return
+
+    colunas = {coluna["name"]: coluna for coluna in inspector.get_columns("biblioteca_audio_itens")}
+    novas_colunas = {
+        "programa_id": "INTEGER NULL REFERENCES programas(id)",
+        "papel": "VARCHAR NULL",
+        "texto": "VARCHAR NULL",
+        "voz_id": "VARCHAR NULL",
+        "voz_path": "VARCHAR NULL",
+        "trilha_id": "INTEGER NULL REFERENCES trilhas_vinheta(id)",
+        "volume_trilha_db": "FLOAT DEFAULT -14 NOT NULL",
+        "usar_trilha": "BOOLEAN DEFAULT true NOT NULL",
+        "status": "VARCHAR DEFAULT 'pronta' NOT NULL",
+        "erro_msg": "VARCHAR NULL",
+        "origem": "VARCHAR DEFAULT 'manual' NOT NULL",
+    }
+
+    with engine.begin() as conn:
+        for nome, definicao in novas_colunas.items():
+            if nome not in colunas:
+                conn.execute(text(f"ALTER TABLE biblioteca_audio_itens ADD COLUMN {nome} {definicao}"))
+        for nome in ("audio_path", "audio_nome_original"):
+            if nome in colunas and not colunas[nome]["nullable"]:
+                conn.execute(text(f"ALTER TABLE biblioteca_audio_itens ALTER COLUMN {nome} DROP NOT NULL"))
+        conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_biblioteca_audio_itens_programa_id ON biblioteca_audio_itens (programa_id)"
+        ))
+        conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_biblioteca_audio_itens_trilha_id ON biblioteca_audio_itens (trilha_id)"
+        ))
 
 
 def semear_categorias_padrao_em_contas_existentes():

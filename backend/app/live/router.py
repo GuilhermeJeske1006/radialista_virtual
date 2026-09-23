@@ -27,7 +27,7 @@ from app.db.database import SessionLocal, get_db
 from app.guardrails.http_rate_limit import limite_excedido
 from app.guardrails.schedule import encontrar_programa_atual, minutos_restantes
 from app.live.music import MusicaEncontrada, _titulo_normalizado, buscar_musica, buscar_musica_fundo
-from app.live.formato import ROTEIRO_MUSICAL, contar_palavras, direcao_musical, musical_companhia, orcamento_fala
+from app.live.formato import ROTEIRO_MUSICAL, ROTEIRO_PADRAO, contar_palavras, direcao_musical, musical_companhia, orcamento_fala
 from app.live.song_service import dividir_artista_titulo, resolver_musica_catalogada
 from app.live.spotify import buscar_faixas_por_categoria
 from app.llm.client import (
@@ -75,6 +75,7 @@ from app.news.pauta import (
 from app.news.validacao import frase_proibida_em, tem_atribuicao
 from app.numeros import cardinal_feminino, numero_por_extenso
 from app.postprod.client import processar_audio
+from app.vinhetas.servico import vinheta_encerramento
 from pydub.exceptions import PydubException
 from app.tts.client import sintetizar_audio, sintetizar_audio_stream, tts_habilitado
 from app.tts.voices import validar_voz_ou_400
@@ -165,6 +166,19 @@ class LiveProgramResponse(BaseModel):
     patrocinador_audio: bool = False
     patrocinador_voz_id: str | None = None
     vinheta_id: int | None = None
+    # True = /vinhetas/{id}/audio tem o arquivo final (voz + trilha mixadas). False = vinheta
+    # gerada ainda sem audio (pendente/erro): o painel fala `fala` via TTS normal, sem trilha --
+    # o ao vivo nunca espera a mixagem.
+    vinheta_audio: bool = False
+    # So' na fala de encerramento: vinheta de encerramento do programa, tocada logo depois dela
+    # (encerramento nao entra em estrutura_blocos, ver app/vinhetas/estrutura.py).
+    vinheta_encerramento_id: int | None = None
+    vinheta_encerramento_audio: bool = False
+    vinheta_encerramento_texto: str | None = None
+    # Quantas posicoes do roteiro este bloco consumiu. >1 quando vinhetas desativadas/sem
+    # conteudo foram puladas -- o painel soma isso em total_falas, senao o proximo /proxima
+    # cairia de volta num bloco que ja saiu.
+    passos_roteiro: int = 1
     # Preenchido só quando o programa tem mais de um radialista (ver ProgramaRadialista):
     # diálogo alternado, uma linha por participante, cada uma com sua própria voz.
     falas: list[FalaItem] | None = None
@@ -291,8 +305,6 @@ def _buscar_roster(db: Session, account: Account, programa: Programa) -> list[Pa
             roster.append(participante)
     return roster
 
-
-_ROTEIRO_PADRAO = ["musica", "abertura", "comentario", "noticia", "chamada_ouvinte"]
 
 # Quantos minutos antes do horario_fim do programa a fala vira encerramento
 # em vez de seguir o roteiro normal.
@@ -717,7 +729,7 @@ def _tipo_proximo_bloco(programa: Programa, total_falas: int, ultima_categoria: 
     if not roteiro_customizado:
         if total_falas == 0:
             return "abertura"
-        return _ROTEIRO_PADRAO[(total_falas - 1) % len(_ROTEIRO_PADRAO)]
+        return ROTEIRO_PADRAO[(total_falas - 1) % len(ROTEIRO_PADRAO)]
 
     tipo = roteiro_customizado[total_falas % len(roteiro_customizado)]
     if programa.ia_pode_adicionar_blocos and total_falas > 0 and random.random() < 0.15:
@@ -726,7 +738,7 @@ def _tipo_proximo_bloco(programa: Programa, total_falas: int, ultima_categoria: 
     if (
         total_falas > 0
         and _categoria_bloco(tipo) == "abertura"
-        and ultima_categoria not in (None, "musica")
+        and ultima_categoria not in (None, "musica", "vinheta")
     ):
         return "comentario"
     return tipo
@@ -1766,6 +1778,30 @@ def gerar_proxima_fala(
     else:
         tipo = _tipo_proximo_bloco(programa, total_falas, ultima_categoria)
 
+    # Vinheta (tratada ANTES de _categoria_bloco: "vinheta:12" nunca vai pra classificacao por
+    # LLM nem pro cache do Redis). Conteudo fixo -- sem LLM, sem checagem de similaridade, sem
+    # registro de tema. Vinheta desativada/sem conteudo pula pro proximo bloco do roteiro.
+    passos_roteiro = 1
+    while _VINHETA_RE.match(tipo):
+        vinheta = _buscar_vinheta_ativa(db, account, tipo)
+        texto_vinheta = ((vinheta.texto or "").strip() if vinheta is not None else "")
+        if vinheta is not None and (vinheta.audio_path or texto_vinheta):
+            return LiveProgramResponse(
+                tipo="vinheta",
+                fala=texto_vinheta,
+                criado_em=datetime.datetime.now(datetime.timezone.utc),
+                programa_atual=programa.nome,
+                vinheta_id=vinheta.id,
+                vinheta_audio=bool(vinheta.audio_path),
+                passos_roteiro=passos_roteiro,
+                pausa_antes_ms=_pausa_antes_ms(ultima_categoria, "vinheta"),
+            )
+        if passos_roteiro > len(programa.estrutura_blocos or []):
+            tipo = "comentario"  # roteiro inteiro de vinhetas mortas -- nao trava o ao vivo
+            break
+        tipo = _tipo_proximo_bloco(programa, total_falas + passos_roteiro, ultima_categoria)
+        passos_roteiro += 1
+
     if _PATROCINADOR_RE.match(tipo):
         patrocinador = _buscar_patrocinador_ativo(db, account, tipo)
         if patrocinador is not None:
@@ -1778,24 +1814,10 @@ def gerar_proxima_fala(
                 patrocinador_id=patrocinador.id,
                 patrocinador_audio=patrocinador.tipo_conteudo == "audio",
                 patrocinador_voz_id=patrocinador.voz_id,
+                passos_roteiro=passos_roteiro,
                 pausa_antes_ms=_pausa_antes_ms(ultima_categoria, "patrocinador"),
             )
         tipo = "comentario"  # patrocinador excluido/desativado -- nao trava o ao vivo
-
-    if _VINHETA_RE.match(tipo):
-        vinheta = _buscar_vinheta_ativa(db, account, tipo)
-        if vinheta is not None:
-            # Vinheta e' audio pre-gravado (mesmo padrao do patrocinador em audio) -- nunca
-            # passa pelo LLM/TTS, so' devolve o id pro frontend buscar o binario direto.
-            return LiveProgramResponse(
-                tipo="vinheta",
-                fala="",
-                criado_em=datetime.datetime.now(datetime.timezone.utc),
-                programa_atual=programa.nome,
-                vinheta_id=vinheta.id,
-                pausa_antes_ms=_pausa_antes_ms(ultima_categoria, "vinheta"),
-            )
-        tipo = "comentario"  # vinheta excluida/desativada -- nao trava o ao vivo
 
     categoria = _categoria_bloco(tipo)
     if categoria in _CATEGORIAS_NOTICIA_LIKE and (
@@ -1892,6 +1914,7 @@ def gerar_proxima_fala(
             )],
             pausa_antes_ms=_pausa_antes_ms(ultima_categoria, "musica"),
             audio_status="nao_aplicavel",
+            passos_roteiro=passos_roteiro,
         )
 
     pedido_ouvinte = (
@@ -1972,10 +1995,14 @@ def gerar_proxima_fala(
         assunto_sugerido = _proxima_variacao(programa.id, "assunto_ao_vivo", programa.assuntos_ao_vivo)
 
     roteiro_ativo = [t.strip() for t in programa.estrutura_blocos if t.strip()] or (
-        list(ROTEIRO_MUSICAL) if formato_musical else _ROTEIRO_PADRAO
+        list(ROTEIRO_MUSICAL) if formato_musical else list(ROTEIRO_PADRAO)
     )
 
     def _descricao(t: str) -> str:
+        if _VINHETA_RE.match(t):
+            return "vinheta gravada da rádio (entra sozinha, não fale ela)"
+        if _PATROCINADOR_RE.match(t):
+            return "patrocinador gravado (entra sozinho, não fale ele)"
         if t in ("retomada", "identificacao"):
             return {"retomada": "retomada breve do programa em andamento",
                     "identificacao": "identificação curta da rádio ou programa"}[t]
@@ -2699,6 +2726,8 @@ def gerar_proxima_fala(
         db.commit()
         pedido_confirmavel = None
 
+    vinheta_fim = vinheta_encerramento(db, account.id, programa.id) if categoria == "encerramento" else None
+
     return LiveProgramResponse(
         pedido_id=pedido_confirmavel.id if pedido_confirmavel else None,
         pesquisa_noticias=pesquisa_noticias,
@@ -2734,6 +2763,10 @@ def gerar_proxima_fala(
         audio_status=audio_status,
         audio_erro=audio_erro,
         tom=tom_fala,
+        passos_roteiro=passos_roteiro,
+        vinheta_encerramento_id=vinheta_fim.id if vinheta_fim else None,
+        vinheta_encerramento_audio=bool(vinheta_fim and vinheta_fim.audio_path),
+        vinheta_encerramento_texto=(vinheta_fim.texto or None) if vinheta_fim else None,
     )
 
 

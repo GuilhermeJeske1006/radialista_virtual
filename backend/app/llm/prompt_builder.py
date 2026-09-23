@@ -113,6 +113,42 @@ def _feriado_municipal_do_dia(programa: Programa, data: datetime.date) -> str | 
     return None
 
 
+def separador_frequencia(frequencia: str | None) -> str | None:
+    """Separador decimal da frequencia como deve ser FALADO ("vírgula"/"ponto") -- o TTS pula o
+    simbolo e "98.5" vira "noventa e oito cinco". None quando a frequencia nao tem separador."""
+    if not frequencia:
+        return None
+    if "," in frequencia:
+        return "vírgula"
+    if "." in frequencia:
+        return "ponto"
+    return None
+
+
+def instrucao_frequencia_falada(frequencia: str | None) -> str | None:
+    """Instrucao de prompt pra o LLM escrever a frequencia por extenso, com o separador falado --
+    compartilhada entre o ao vivo (montar_system_prompt) e as vinhetas (app/vinhetas/gerador.py)."""
+    separador = separador_frequencia(frequencia)
+    if not separador:
+        return None
+    return (
+        f"A frequência da rádio é {frequencia}. Ao falar a frequência (por escrito, já que "
+        f"vira áudio depois), escreva o separador decimal por extenso -- diga '{separador}' -- "
+        f"nunca pule ele. Ex.: escreva 'noventa e oito {separador} cinco FM', não '98.5 FM' "
+        "nem 'noventa e oito cinco FM'."
+    )
+
+
+_BLOCO_INSERCAO_RE = re.compile(r"^(vinheta|patrocinador):\d+$")
+
+
+def rotulo_bloco_prompt(bloco: str) -> str:
+    """"vinheta:12"/"patrocinador:3" viram so' "vinheta"/"patrocinador" no prompt -- o LLM nao
+    precisa (nem deve) ver ids internos, e sabendo que ali entra uma vinheta pode emendar nela."""
+    match = _BLOCO_INSERCAO_RE.match(bloco.strip())
+    return match.group(1) if match else bloco
+
+
 def _contexto_atual(radialista: RadioConfig, account: Account, programa: Programa) -> str:
     """Data, hora e clima reais no fuso do radialista -- sem isso o modelo chuta
     (ou herda a data de treino) e erra dia da semana, hora do dia e clima quando
@@ -183,13 +219,6 @@ def montar_system_prompt(
     identificacao_radio = account.nome_radio or "a rádio"
     if account.frequencia:
         identificacao_radio += f" ({account.frequencia})"
-
-    separador_frequencia = None
-    if account.frequencia:
-        if "," in account.frequencia:
-            separador_frequencia = "vírgula"
-        elif "." in account.frequencia:
-            separador_frequencia = "ponto"
 
     multi_voz = bool(roster) and len(roster) > 1
 
@@ -291,13 +320,9 @@ def montar_system_prompt(
         f"Notícias permitidas: {noticias}. Fontes preferenciais de notícias: {fontes_noticias}.",
     ]
 
-    if separador_frequencia:
-        partes.append(
-            f"A frequência da rádio é {account.frequencia}. Ao falar a frequência (por escrito, já que "
-            f"vira áudio depois), escreva o separador decimal por extenso -- diga '{separador_frequencia}' -- "
-            f"nunca pule ele. Ex.: escreva 'noventa e oito {separador_frequencia} cinco FM', não '98.5 FM' "
-            "nem 'noventa e oito cinco FM'."
-        )
+    instrucao_frequencia = instrucao_frequencia_falada(account.frequencia)
+    if instrucao_frequencia:
+        partes.append(instrucao_frequencia)
 
     dados_radio = []
     if account.slogan:
@@ -352,7 +377,7 @@ def montar_system_prompt(
         partes.append(f"Nunca toque, recomende ou promova estas músicas/artistas: {bloqueadas}.")
 
     if programa.estrutura_blocos:
-        sequencia = " -> ".join(programa.estrutura_blocos)
+        sequencia = " -> ".join(rotulo_bloco_prompt(b) for b in programa.estrutura_blocos)
         if programa.ia_pode_adicionar_blocos and getattr(programa, "perfil_programacao", "padrao") != "musical_companhia":
             partes.append(
                 f"Estrutura de blocos do programa (ordem de referência): {sequencia}. "
