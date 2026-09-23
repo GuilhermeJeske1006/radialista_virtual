@@ -43,11 +43,11 @@ def test_criar_item(client, account, auth_headers):
     resposta = client.post(
         "/biblioteca-audio",
         data={"nome": "Vinheta de abertura", "categoria_id": str(categoria["id"]), "cor": "#E8A33D"},
-        files={"arquivo": ("vinheta.mp3", arquivo, "audio/mpeg")},
+        files={"arquivos": ("vinheta.mp3", arquivo, "audio/mpeg")},
         headers=auth_headers(account.id),
     )
     assert resposta.status_code == 201
-    corpo = resposta.json()
+    corpo = resposta.json()[0]
     assert corpo["nome"] == "Vinheta de abertura"
     assert corpo["categoria_id"] == categoria["id"]
     assert corpo["cor"] == "#E8A33D"
@@ -69,7 +69,7 @@ def test_criar_item_vazio_falha(client, account, auth_headers):
     resposta = client.post(
         "/biblioteca-audio",
         data={"nome": "Vinheta"},
-        files={"arquivo": ("vinheta.mp3", io.BytesIO(b""), "audio/mpeg")},
+        files={"arquivos": ("vinheta.mp3", io.BytesIO(b""), "audio/mpeg")},
         headers=auth_headers(account.id),
     )
     assert resposta.status_code == 400
@@ -79,7 +79,7 @@ def test_criar_item_formato_invalido_falha(client, account, auth_headers):
     resposta = client.post(
         "/biblioteca-audio",
         data={"nome": "Vinheta"},
-        files={"arquivo": ("vinheta.exe", io.BytesIO(b"fake-bytes"), "application/octet-stream")},
+        files={"arquivos": ("vinheta.exe", io.BytesIO(b"fake-bytes"), "application/octet-stream")},
         headers=auth_headers(account.id),
     )
     assert resposta.status_code == 400
@@ -92,7 +92,7 @@ def test_criar_item_maior_que_limite_falha(client, account, auth_headers, monkey
     resposta = client.post(
         "/biblioteca-audio",
         data={"nome": "Vinheta"},
-        files={"arquivo": ("vinheta.mp3", io.BytesIO(_mp3_sintetico()), "audio/mpeg")},
+        files={"arquivos": ("vinheta.mp3", io.BytesIO(_mp3_sintetico()), "audio/mpeg")},
         headers=auth_headers(account.id),
     )
     assert resposta.status_code == 413
@@ -103,9 +103,9 @@ def test_obter_audio_do_item(client, account, auth_headers):
     criado = client.post(
         "/biblioteca-audio",
         data={"nome": "Vinheta"},
-        files={"arquivo": ("vinheta.mp3", io.BytesIO(conteudo), "audio/mpeg")},
+        files={"arquivos": ("vinheta.mp3", io.BytesIO(conteudo), "audio/mpeg")},
         headers=auth_headers(account.id),
-    ).json()
+    ).json()[0]
 
     resposta = client.get(f"/biblioteca-audio/{criado['id']}/audio", headers=auth_headers(account.id))
     assert resposta.status_code == 200
@@ -124,9 +124,9 @@ def test_atualizar_item(client, account, auth_headers):
     criado = client.post(
         "/biblioteca-audio",
         data={"nome": "Vinheta"},
-        files={"arquivo": ("vinheta.mp3", io.BytesIO(_mp3_sintetico()), "audio/mpeg")},
+        files={"arquivos": ("vinheta.mp3", io.BytesIO(_mp3_sintetico()), "audio/mpeg")},
         headers=auth_headers(account.id),
-    ).json()
+    ).json()[0]
 
     resposta = client.put(
         f"/biblioteca-audio/{criado['id']}",
@@ -145,9 +145,9 @@ def test_atualizar_item_trocando_arquivo(client, account, auth_headers):
     criado = client.post(
         "/biblioteca-audio",
         data={"nome": "Vinheta"},
-        files={"arquivo": ("vinheta.mp3", io.BytesIO(_mp3_sintetico(1000)), "audio/mpeg")},
+        files={"arquivos": ("vinheta.mp3", io.BytesIO(_mp3_sintetico(1000)), "audio/mpeg")},
         headers=auth_headers(account.id),
-    ).json()
+    ).json()[0]
 
     novo_conteudo = _mp3_sintetico(2000)
     resposta = client.put(
@@ -176,9 +176,9 @@ def test_excluir_item(client, account, auth_headers):
     criado = client.post(
         "/biblioteca-audio",
         data={"nome": "Vinheta"},
-        files={"arquivo": ("vinheta.mp3", io.BytesIO(_mp3_sintetico()), "audio/mpeg")},
+        files={"arquivos": ("vinheta.mp3", io.BytesIO(_mp3_sintetico()), "audio/mpeg")},
         headers=auth_headers(account.id),
-    ).json()
+    ).json()[0]
 
     resposta = client.delete(f"/biblioteca-audio/{criado['id']}", headers=auth_headers(account.id))
     assert resposta.status_code == 204
@@ -193,9 +193,9 @@ def test_item_de_outra_conta_nao_e_visivel(client, account_factory, auth_headers
     criado = client.post(
         "/biblioteca-audio",
         data={"nome": "Vinheta"},
-        files={"arquivo": ("vinheta.mp3", io.BytesIO(_mp3_sintetico()), "audio/mpeg")},
+        files={"arquivos": ("vinheta.mp3", io.BytesIO(_mp3_sintetico()), "audio/mpeg")},
         headers=auth_headers(dono.id),
-    ).json()
+    ).json()[0]
 
     resposta = client.get(f"/biblioteca-audio/{criado['id']}/audio", headers=auth_headers(outro.id))
     assert resposta.status_code == 404

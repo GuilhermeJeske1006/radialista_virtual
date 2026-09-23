@@ -83,7 +83,7 @@ def test_criar_vinheta_em_categoria_de_propaganda_falha(client, account, auth_he
     resposta = client.post(
         "/biblioteca-audio",
         data={"nome": "Vinheta", "categoria_id": str(categoria["id"])},
-        files={"arquivo": ("vinheta.mp3", io.BytesIO(_mp3_sintetico()), "audio/mpeg")},
+        files={"arquivos": ("vinheta.mp3", io.BytesIO(_mp3_sintetico()), "audio/mpeg")},
         headers=auth_headers(account.id),
     )
     assert resposta.status_code == 400
@@ -106,9 +106,9 @@ def test_excluir_categoria_de_vinheta_desvincula_vinheta(client, account, auth_h
     vinheta = client.post(
         "/biblioteca-audio",
         data={"nome": "Vinheta", "categoria_id": str(categoria["id"])},
-        files={"arquivo": ("vinheta.mp3", io.BytesIO(_mp3_sintetico()), "audio/mpeg")},
+        files={"arquivos": ("vinheta.mp3", io.BytesIO(_mp3_sintetico()), "audio/mpeg")},
         headers=auth_headers(account.id),
-    ).json()
+    ).json()[0]
 
     resposta = client.delete(f"/categorias-vinheta/{categoria['id']}", headers=auth_headers(account.id))
     assert resposta.status_code == 204
