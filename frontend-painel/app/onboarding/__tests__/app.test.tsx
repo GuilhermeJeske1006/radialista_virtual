@@ -114,3 +114,13 @@ describe("/onboarding", () => {
     expect(mocks.replace).toHaveBeenCalledWith("/dashboard");
   });
 });
+
+describe("/onboarding/app em atalho sem manifest", () => {
+  it("janela de app com som bloqueado: avisa que o atalho não liberou o som e ensina a reinstalar", async () => {
+    vi.stubGlobal("matchMedia", (q: string) => ({ matches: q.includes("standalone"), media: q }));
+    mocks.sondar.mockResolvedValue(false);
+    render(<OnboardingAppPage />);
+    expect(await screen.findByText("Este atalho não liberou o som.")).toBeTruthy();
+    expect(screen.queryByText(/Tudo pronto: você está no app Locufy/)).toBeNull();
+  });
+});

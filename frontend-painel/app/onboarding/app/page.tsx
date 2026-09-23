@@ -84,7 +84,16 @@ export default function OnboardingAppPage() {
           )}
         </div>
 
-        {comoApp ? (
+        {comoApp && statusSom === "bloqueado" ? (
+          <div className="rounded-xl border border-laranja bg-laranja/10 px-4 py-3 mb-6">
+            <p className="text-sm font-medium text-laranja">Este atalho não liberou o som.</p>
+            <p className="text-sm text-fg/65 mt-0.5">
+              Ele foi criado sem o app completo (acontece ao instalar por um endereço que não entrega o manifest, como o
+              ngrok gratuito). Remova este atalho ({navegador === "edge" ? "edge://apps" : "chrome://apps"} &gt; botão direito &gt;
+              Remover) e instale de novo pelo botão Instalar Locufy, em app.locufybr.com.
+            </p>
+          </div>
+        ) : comoApp ? (
           <div className="mb-6">
             <p className="text-sm font-medium text-fg mb-3">Tudo pronto: você está no app Locufy.</p>
             <Link

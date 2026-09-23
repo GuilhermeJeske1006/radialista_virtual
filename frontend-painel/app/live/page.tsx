@@ -20,6 +20,7 @@ import { CategoriaVinheta } from "../../lib/types";
 import { useLiveEngine } from "../../hooks/useLiveEngine";
 import InstalarAppAviso from "../../components/live/InstalarAppAviso";
 import { useAoVivoUnico } from "../../lib/aoVivoUnico";
+import { rodandoComoApp } from "../../lib/instalarApp";
 
 // numero de blocos seguidos sem locucao (so' cama musical) a partir do qual o alerta vira
 // persistente na tela -- abaixo disso pode ser so' um solavanco pontual da ElevenLabs (ja
@@ -29,6 +30,10 @@ const LIMIAR_ALERTA_FALHA_AUDIO = 3;
 export default function LivePage() {
   const engine = useLiveEngine();
   const router = useRouter();
+  // som bloqueado DENTRO da janela de app = atalho instalado sem manifest (ex.: pelo ngrok gratuito,
+  // que entrega uma pagina de aviso no lugar do manifest) -- esse tipo nao ganha autoplay liberado
+  const [emJanelaDeApp, setEmJanelaDeApp] = useState(false);
+  useEffect(() => { setEmJanelaDeApp(rodandoComoApp()); }, []);
 
   // App instalado abriu (ou acabou de ser instalado a partir desta aba): ele assume o ao vivo e
   // esta aba do navegador sai do ar, senao a radio tocaria em dobro (ver lib/aoVivoUnico.ts).
@@ -94,8 +99,18 @@ export default function LivePage() {
         <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-laranja bg-laranja/10 px-4 py-3">
           <p className="text-sm font-medium text-laranja flex-1 min-w-[12rem]">
             O navegador bloqueou o som porque a pagina ainda nao recebeu nenhum clique. Voz e musica
-            estao esperando -- clique em qualquer lugar da pagina ou no botao. Pra nao precisar clicar,
-            instale o Locufy como app.
+            estao esperando -- clique em qualquer lugar da pagina ou no botao.{" "}
+            {emJanelaDeApp ? (
+              <>
+                Este atalho do app nao liberou o som.{" "}
+                <Link href="/onboarding/app" className="underline">
+                  Veja como reinstalar
+                </Link>
+                .
+              </>
+            ) : (
+              "Pra nao precisar clicar, instale o Locufy como app."
+            )}
           </p>
           <button
             type="button"
