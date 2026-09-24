@@ -513,11 +513,17 @@ export function useLiveEngine() {
           audioFalaRef.current = null;
         }
         const audio = new Audio(audioUrl);
-        audio.volume = 0;
-        // volume=0 sozinho nao basta pra passar pela politica de autoplay do navegador (ela
-        // olha o atributo `muted`, nao o volume) -- mesmo truque ja usado nos players do
-        // YouTube (mute:1 ate PLAYING) pra sobreviver ao inicio agendado sem gesto do usuario.
-        audio.muted = true;
+        // Sem interacao na pagina: comeca mudo -- volume=0 sozinho nao basta pra passar pela
+        // politica de autoplay do navegador (ela olha o atributo `muted`, nao o volume) -- mesmo
+        // truque ja usado nos players do YouTube (mute:1 ate PLAYING) pra sobreviver ao inicio
+        // agendado sem gesto do usuario. Com interacao, comeca com som: com a aba em segundo
+        // plano o Chrome trata midia muda (muted ou volume 0) como "video-only" e aborta o play()
+        // pra economizar energia ("video-only background media was paused to save power") -- a
+        // fala era pulada inteira com o texto no historico. Oculta = volume cheio direto (o fade
+        // de entrada nao roda sem requestAnimationFrame mesmo).
+        const somPermitido = paginaTemInteracao();
+        audio.muted = !somPermitido;
+        audio.volume = somPermitido && document.hidden ? 1 : 0;
         audioFalaRef.current = audio;
         let fadeSaidaTimeout: ReturnType<typeof setTimeout> | null = null;
         const limparFadeSaida = () => {
@@ -600,7 +606,19 @@ export function useLiveEngine() {
             pararEFinalizar(finalizar);
           };
           audio.play().catch((err: unknown) => {
-            if (!(err instanceof Error && err.name === "NotAllowedError") || audioFalaRef.current !== audio) {
+            const nome = err instanceof Error ? err.name : "";
+            // AbortError com a aba oculta = economia de energia do Chrome sobre midia muda (ver
+            // somPermitido acima; pode escapar se a aba foi pro fundo entre criar e tocar). Se a
+            // pagina ja pode tocar som, tenta de novo com som; senao, desmutar depois nao
+            // passaria no autoplay -- segura a fala igual NotAllowedError.
+            const abortadaEmSegundoPlano = nome === "AbortError" && document.hidden;
+            if (abortadaEmSegundoPlano && audioFalaRef.current === audio && paginaTemInteracao()) {
+              audio.muted = false;
+              audio.volume = 1;
+              audio.play().catch(falharPlay);
+              return;
+            }
+            if (!(nome === "NotAllowedError" || abortadaEmSegundoPlano) || audioFalaRef.current !== audio) {
               falharPlay(err);
               return;
             }
@@ -615,6 +633,8 @@ export function useLiveEngine() {
             registrarDesbloqueioAudio("fala", () => {
               if (audioFalaRef.current !== audio) return;
               timeoutSeguranca = armarTimeoutSeguranca();
+              // dentro do clique ja pode tocar com som -- mudo, a aba oculta abortaria de novo
+              audio.muted = false;
               audio.play().catch(falharPlay);
             });
           });

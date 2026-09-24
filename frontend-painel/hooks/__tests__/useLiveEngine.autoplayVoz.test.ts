@@ -85,7 +85,20 @@ async function iniciar() {
   return hook;
 }
 
-it("começa mudo e só desmuta quando o evento playing confirma reprodução real", async () => {
+// pagina sem clique e navegador sem autoplay liberado (sondagem com som rejeitada)
+function semInteracao() {
+  vi.stubGlobal("navigator", { ...navigator, userActivation: { hasBeenActive: false } });
+  const bloqueio = Object.assign(new Error("user didn't interact"), { name: "NotAllowedError" });
+  vi.stubGlobal("Audio", class extends AudioTeste {
+    constructor(src: string) {
+      super(src);
+      if (src.startsWith("data:")) this.play = vi.fn(() => Promise.reject(bloqueio));
+    }
+  });
+}
+
+it("sem interação: começa mudo e só desmuta quando o evento playing confirma reprodução real", async () => {
+  semInteracao();
   mocks.proxima.mockResolvedValueOnce(segmento("Primeira"));
   mocks.tts.mockResolvedValueOnce(new Blob(["primeira"]));
   await iniciar();
@@ -183,6 +196,57 @@ it("autoplay bloqueado sem interação: fala espera o 'Ativar som' em vez de ser
 
   await act(async () => { players[0].disparar("playing"); players[0].terminar(); });
   expect(result.current.erro).toBe("");
+});
+
+// Aba oculta: o Chrome aborta play() de midia muda (muted/volume 0) como "video-only background
+// media" -- a fala era pulada com "texto ficou sem voz". Com interacao, ja comeca com som.
+it("com interação e aba oculta: fala já começa com som, sem cair na economia de energia", async () => {
+  vi.spyOn(document, "hidden", "get").mockReturnValue(true);
+  mocks.proxima.mockResolvedValueOnce(segmento("Primeira"));
+  mocks.tts.mockResolvedValueOnce(new Blob(["primeira"]));
+  await iniciar();
+
+  expect(players[0].muted).toBe(false);
+  expect(players[0].volume).toBe(1);
+});
+
+it("AbortError de segundo plano com interação: tenta de novo com som em vez de pular a fala", async () => {
+  vi.spyOn(document, "hidden", "get").mockReturnValue(true);
+  mocks.proxima.mockResolvedValueOnce(segmento("Primeira"));
+  mocks.tts.mockResolvedValueOnce(new Blob(["primeira"]));
+  const abort = Object.assign(new Error("video-only background media was paused to save power"), { name: "AbortError" });
+  const play = vi.fn()
+    .mockImplementationOnce(() => Promise.reject(abort))
+    .mockImplementation(() => Promise.resolve());
+  vi.stubGlobal("Audio", class extends AudioTeste { play = this.src.startsWith("data:") ? vi.fn(() => Promise.resolve()) : play; });
+  const { result } = await iniciar();
+
+  expect(play).toHaveBeenCalledTimes(2);
+  expect(players[0].muted).toBe(false);
+  await act(async () => { players[0].disparar("playing"); players[0].terminar(); });
+  expect(result.current.erro).toBe("");
+  expect(result.current.falhasAudioConsecutivas).toBe(0);
+});
+
+it("AbortError de segundo plano sem interação: espera o 'Ativar som' em vez de pular a fala", async () => {
+  semInteracao();
+  vi.spyOn(document, "hidden", "get").mockReturnValue(true);
+  mocks.proxima.mockResolvedValueOnce(segmento("Primeira"));
+  mocks.tts.mockResolvedValueOnce(new Blob(["primeira"]));
+  const abort = Object.assign(new Error("video-only background media was paused to save power"), { name: "AbortError" });
+  const bloqueio = Object.assign(new Error("user didn't interact"), { name: "NotAllowedError" });
+  const play = vi.fn()
+    .mockImplementationOnce(() => Promise.reject(abort))
+    .mockImplementation(() => Promise.resolve());
+  vi.stubGlobal("Audio", class extends AudioTeste { play = this.src.startsWith("data:") ? vi.fn(() => Promise.reject(bloqueio)) : play; });
+  const { result } = await iniciar();
+
+  expect(result.current.audioBloqueado).toBe(true);
+  expect(result.current.erro).toBe("");
+
+  await act(async () => { result.current.liberarAudio(); });
+  expect(play).toHaveBeenCalledTimes(2);
+  expect(players[0].muted).toBe(false);
 });
 
 it("outros erros de play() continuam pulando a fala com o motivo na tela", async () => {
