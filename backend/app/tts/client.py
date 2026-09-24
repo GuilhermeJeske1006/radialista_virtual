@@ -174,7 +174,14 @@ _AJUSTE_CLONADA = {"stability": 0.15, "style": -0.15}
 # (Will, Yasmin, Scheila), sobretudo em musica/comentario (ate 282 wpm, acima da faixa
 # natural de radio de ~150-190 wpm). Multiplicador (nao delta fixo) pra escalar proporcionalmente
 # em qualquer tipo de bloco/tom, em vez de achatar so' os blocos mais rapidos.
-_AJUSTE_SPEED_MULTIPLICADOR_POR_VOZ = {"Qrdut83w0Cr152Yb4Xn3": 0.85}  # Paulo
+#
+# Yasmin no sentido oposto: reclamacao de fala pausada/lenta demais pra radio, sobretudo em
+# noticia/comentario (166-213 wpm no benchmark, speed base 0.9-0.92). Multiplicador acima de 1
+# acelera todos os blocos dela mantendo a diferenca relativa entre eles; reavaliar por audicao.
+_AJUSTE_SPEED_MULTIPLICADOR_POR_VOZ = {
+    "Qrdut83w0Cr152Yb4Xn3": 0.85,  # Paulo
+    "lWq4KDY8znfkV0DrK8Vb": 1.12,  # Yasmin Alves
+}
 
 # tipo de bloco/tom fixam sempre o mesmo voice_settings -- em bloco recorrente (ex.: varias
 # "musica" numa transmissao) isso saia identico take a take, cara de robo lendo script. Medido
