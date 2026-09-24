@@ -1396,7 +1396,18 @@ export function useLiveEngine() {
 
     if (novaFala.video_id) {
       try {
-        duracaoBlocoSegundos += await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala);
+        // bloco de fala (ate' dialogo multi-voz) tambem pode trazer musica: a que o locutor
+        // citou na fala toca logo depois dela (ver _musicas_citadas_na_fala no backend)
+        if (preparado.audiosFalas && preparado.audiosFalas.length > 0) {
+          duracaoBlocoSegundos += await reproduzirGrupoDeFalas(
+            preparado.audiosFalas,
+            () => programaAtivoRef.current && execucaoAtualRef.current === minhaExecucao,
+            (audio, i) => reproduzirAudioPreparado(audio.url, novaFala.falas?.[i]?.texto ?? novaFala.fala, undefined, false),
+            duckMusicaFundo,
+          );
+        } else {
+          duracaoBlocoSegundos += await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala);
+        }
         // bloco pode ter mais de uma musica (o agente decidiu emendar) --
         // toca todas seguidas, sem nova fala entre elas, pra manter o embalo
         const bloco =

@@ -92,6 +92,13 @@ class _SessaoSemClose:
 
 
 @pytest.fixture(autouse=True)
+def _musicas_citadas_sem_llm(monkeypatch):
+    """Toda fala do ao vivo passa pelo extrator de musicas citadas (ver _musicas_citadas_na_fala
+    em app.live.router) -- LLM real por padrao. Teste que precisa de citacao sobrescreve."""
+    monkeypatch.setattr("app.live.router.extrair_musicas_citadas", lambda fala, ja_tocadas=None: [])
+
+
+@pytest.fixture(autouse=True)
 def _texto_vinhetas_sem_llm(monkeypatch):
     """Criar programa gera o texto das vinhetas via LLM (app.vinhetas.gerador) -- por padrao cai
     no template local sem rede. Teste que precisa do LLM sobrescreve com o proprio monkeypatch."""

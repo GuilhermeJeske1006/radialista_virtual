@@ -35,6 +35,7 @@ from app.llm.client import (
     classificar_fio_condutor,
     classificar_tema_fala,
     classificar_tom_fala,
+    extrair_musicas_citadas,
     gerar_dialogo_multivoz,
     gerar_resposta,
     resumir_contexto_musica,
@@ -1452,10 +1453,22 @@ def _contexto_musica(musica: MusicaEncontrada) -> str:
 
 
 def _montar_bloco_musicas(
-    db: Session, programa: Programa, primeira: MusicaEncontrada, quantidade: int, rotulo_bloco: str | None = None
+    db: Session,
+    programa: Programa,
+    primeira: MusicaEncontrada,
+    quantidade: int,
+    rotulo_bloco: str | None = None,
+    citadas: list[MusicaEncontrada] | None = None,
 ) -> list[MusicaEncontrada]:
+    # citadas (musicas que o locutor comentou na fala, ver _musicas_citadas_na_fala) entram
+    # sempre, logo depois da anunciada -- mesmo passando da quantidade pedida pela tag
+    # [BLOCO_MUSICAS:N]; so' o que faltar pra completar N e' sorteado.
     musicas = [primeira]
     usados = {primeira.video_id}
+    for citada in citadas or []:
+        if citada.video_id not in usados:
+            musicas.append(citada)
+            usados.add(citada.video_id)
     tentativas = 0
     while len(musicas) < quantidade and tentativas < quantidade * 3:
         tentativas += 1
@@ -1467,6 +1480,73 @@ def _montar_bloco_musicas(
         musicas.append(extra)
         usados.add(extra.video_id)
     return musicas
+
+
+# Linha do historico com as faixas que tocaram num bloco (ver linhaMusicasHistorico em
+# useLiveEngine.ts) -- usada pra nao confundir comentario sobre o que acabou de tocar com musica
+# nova que o locutor prometeu.
+_MUSICAS_TOCADAS_HISTORICO_RE = re.compile(r"\[Música\(s\) tocada\(s\) nesse bloco: (.+?)\]")
+_MAX_MUSICAS_CITADAS = 3
+
+
+def _musicas_citadas_na_fala(
+    db: Session,
+    programa: Programa,
+    fala: str,
+    historico: list[str],
+    ja_no_bloco: list[MusicaEncontrada] | None = None,
+) -> list[MusicaEncontrada]:
+    """Musicas especificas que o locutor citou/comentou na fala e que ainda nao tocaram,
+    resolvidas pra tocar logo depois dela. Sem isso o locutor comentava uma musica (ou prometia
+    'daqui a pouco vem aquela do fulano'), mudava de assunto e ela nunca tocava -- a musica do
+    bloco era escolhida antes da fala, sem saber o que ele ia dizer. Musica que ja tocou nesta
+    sessao nao volta (e' comentario sobre o que acabou de tocar), e citada que nao existe no
+    YouTube so' gera log -- nao trava o bloco."""
+    ja_no_bloco = ja_no_bloco or []
+    ignorar = [f"{m.titulo} - {m.canal}" for m in ja_no_bloco]
+    for linha in historico[-6:]:
+        ignorar += [t.strip() for achado in _MUSICAS_TOCADAS_HISTORICO_RE.findall(linha) for t in achado.split(",")]
+    citadas = extrair_musicas_citadas(fala, ignorar)[:_MAX_MUSICAS_CITADAS]
+    if not citadas:
+        return []
+
+    ids_tocadas, titulos_tocados, canais_tocados = _historico_musicas(programa.id)
+    ids_tocadas |= {m.video_id for m in ja_no_bloco}
+    resolvidas: list[MusicaEncontrada] = []
+    for citada in citadas:
+        encontrada = None
+        parsed = dividir_artista_titulo(citada)
+        if parsed is not None:
+            artista, titulo = parsed
+            encontrada = resolver_musica_catalogada(
+                db,
+                titulo,
+                artista,
+                bloqueados=programa.musicas_bloqueadas,
+                evitar_video_ids=ids_tocadas,
+                titulos_tocados=titulos_tocados,
+                canais_recentes=canais_tocados,
+                origem="citada_locutor",
+            )
+        if encontrada is None:
+            encontrada = buscar_musica(
+                citada.replace(" - ", " "),
+                bloqueados=programa.musicas_bloqueadas,
+                evitar_video_ids=ids_tocadas,
+                titulos_tocados=titulos_tocados,
+                canais_recentes=canais_tocados,
+                exigir_cantada=True,
+                exigir_canal_oficial=True,
+            )
+        if encontrada is None or encontrada.video_id in ids_tocadas:
+            logger.warning("live_musica_citada_sem_faixa programa_id=%s citada=%r", programa.id, citada)
+            continue
+        resolvidas.append(encontrada)
+        ids_tocadas.add(encontrada.video_id)
+        titulos_tocados.add(_titulo_normalizado(encontrada.titulo))
+        _registrar_musica_tocada(programa.id, encontrada)
+        _registrar_historico_persistente(db, programa.id, encontrada, citada, origem="citada_locutor")
+    return resolvidas
 
 
 def _buscar_musica_para_bloco(
@@ -2452,6 +2532,18 @@ def gerar_proxima_fala(
             # de LLM extra, vira gancho disponivel pro comentario logo em seguida.
             registrar_callback_musica(programa.id, f"{musica.titulo} - {musica.canal}", contexto_musica)
 
+    if categoria == "musica" and musica is not None and not formato_musical:
+        system_prompt_linhas.append(
+            "Toda música específica que você citar pelo nome nesta fala vai tocar de verdade, em sequência, "
+            "logo depois da anunciada -- então só cite outra música se quiser mesmo que ela toque agora."
+        )
+    elif categoria != "musica":
+        system_prompt_linhas.append(
+            "Se você citar, comentar ou prometer uma música específica pelo nome nesta fala (fora as que já "
+            "tocaram), ela vai tocar de verdade logo depois da sua fala. Então só cite música que faça sentido "
+            "tocar agora e, se citar, feche a fala chamando essa música em vez de mudar de assunto depois dela."
+        )
+
     if categoria == "musica" and musica is not None:
         system_prompt_linhas.append(
             "Se sentir que o momento pede embalar o programa sem interrupção, você pode emendar mais músicas "
@@ -2612,7 +2704,20 @@ def gerar_proxima_fala(
         if formato_musical:
             quantidade = 1
         if musica is not None:
-            musicas_bloco = _montar_bloco_musicas(db, programa, musica, quantidade, tipo)
+            # Musica que o locutor citou alem da anunciada tambem toca no bloco (ver
+            # _musicas_citadas_na_fala) -- formato musical mantem uma faixa so' por bloco.
+            citadas = (
+                [] if formato_musical
+                else _musicas_citadas_na_fala(db, programa, fala, dados.historico, ja_no_bloco=[musica])
+            )
+            musicas_bloco = _montar_bloco_musicas(db, programa, musica, quantidade, tipo, citadas=citadas)
+    elif fala.strip():
+        # Fora do bloco de musica o locutor tambem comenta/promete musica (comentario, chamada de
+        # ouvinte, abertura...) -- se citou uma especifica, ela toca logo depois da fala, em vez
+        # de ficar prometida e nunca tocar.
+        musicas_bloco = _musicas_citadas_na_fala(db, programa, fala, dados.historico)
+        if musicas_bloco:
+            musica = musicas_bloco[0]
 
     if fala.strip():
         _registrar_fala_gerada(programa.id, categoria, fala)

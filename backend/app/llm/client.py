@@ -3,6 +3,7 @@ import logging
 from anthropic import Anthropic
 
 from app.config.settings import settings
+from app.llm.json_utils import extrair_json
 from app.util.texto import sem_acento as _sem_acento
 
 logger = logging.getLogger("radialista.llm")
@@ -379,3 +380,32 @@ def resumir_contexto_musica(titulo: str, canal: str, descricao: str, tags: list[
     if not resposta or resposta.lower().startswith("insuficiente"):
         return ""
     return resposta
+
+
+_MUSICAS_CITADAS_SYSTEM_PROMPT = (
+    "Voce recebe a fala de um locutor de radio. Liste as musicas ESPECIFICAS (com titulo de "
+    "musica identificavel) que o locutor cita, comenta, recomenda ou promete tocar na fala -- "
+    "nao conte artista citado sem nome de musica, genero, album nem expressao generica tipo "
+    "'musica boa' ou 'os sucessos'. Ignore as musicas listadas como 'ja tocaram' (o locutor so' "
+    "esta comentando o que acabou de tocar). Responda so' com JSON no formato "
+    "{\"musicas\": [\"Artista - Titulo\"]}, na ordem em que aparecem na fala; quando nao souber o "
+    "artista com certeza, use so' o titulo. Sem nenhuma musica especifica, responda "
+    "{\"musicas\": []}."
+)
+
+
+def extrair_musicas_citadas(fala: str, ja_tocadas: list[str] | None = None) -> list[str]:
+    """Musicas especificas citadas pelo locutor numa fala (ver _musicas_citadas_na_fala em
+    app.live.router), pra garantir que musica comentada no ar toque de verdade logo depois da
+    fala. Nunca deve derrubar o ao vivo: qualquer falha ou resposta invalida vira lista vazia, e
+    o bloco segue como antes."""
+    mensagem = f"Fala: {fala}"
+    if ja_tocadas:
+        mensagem += f"\nJa tocaram (ignore): {'; '.join(ja_tocadas)}"
+    try:
+        resposta = gerar_classificacao(_MUSICAS_CITADAS_SYSTEM_PROMPT, mensagem, max_tokens=200)
+        musicas = (extrair_json(resposta) or {}).get("musicas") or []
+    except Exception:
+        logger.warning("Falha ao extrair musicas citadas na fala", exc_info=True)
+        return []
+    return [str(m).strip() for m in musicas if isinstance(m, str) and str(m).strip()]

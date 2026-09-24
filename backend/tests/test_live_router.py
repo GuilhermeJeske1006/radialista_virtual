@@ -3012,3 +3012,94 @@ def test_voz_padrao_pendente_bloqueia_sintese(client, account, auth_headers, rad
     resposta = client.post(f'/live/{radialista.id}/tts', json={'texto': 'Olá'}, headers=auth_headers(account.id))
     assert resposta.status_code == 409
     sintetizar.assert_not_called()
+
+
+@freeze_time(AGORA_UTC)
+def test_musica_citada_em_comentario_toca_depois_da_fala(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    radio_config, programa = radialista_e_programa
+    programa.estrutura_blocos = ["comentario"]
+    db_session.commit()
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta",
+        lambda system, msg: "E falando em saudade, bora ouvir Evidencias do Chitaozinho e Xororo.",
+    )
+    recebido = {}
+
+    def fake_extrair(fala, ja_tocadas=None):
+        recebido["ja_tocadas"] = ja_tocadas
+        return ["Chitaozinho e Xororo - Evidencias"]
+
+    monkeypatch.setattr("app.live.router.extrair_musicas_citadas", fake_extrair)
+    monkeypatch.setattr(
+        "app.live.router.resolver_musica_catalogada",
+        lambda db, titulo, artista, **kw: MusicaEncontrada(video_id="evid1", titulo="Evidencias", canal="Chitaozinho e Xororo"),
+    )
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": ["musica: vamos nessa [Música(s) tocada(s) nesse bloco: Tocando - Artista X]"], "total_falas": 1},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["tipo"] == "comentario"
+    assert corpo["video_id"] == "evid1"
+    assert [m["video_id"] for m in corpo["musicas"]] == ["evid1"]
+    assert "Tocando - Artista X" in recebido["ja_tocadas"]
+    assert db_session.query(MusicaHistorico).filter_by(video_id="evid1", origem="citada_locutor").count() == 1
+
+
+@freeze_time(AGORA_UTC)
+def test_musica_citada_sem_faixa_nao_trava_comentario(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    radio_config, programa = radialista_e_programa
+    programa.estrutura_blocos = ["comentario"]
+    db_session.commit()
+    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: "Lembrei de Musica Inexistente.")
+    monkeypatch.setattr("app.live.router.extrair_musicas_citadas", lambda fala, ja_tocadas=None: ["Musica Inexistente"])
+    monkeypatch.setattr("app.live.router.buscar_musica", lambda query, **kw: None)
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": ["musica: oi"], "total_falas": 1},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["video_id"] is None
+    assert corpo["musicas"] == []
+
+
+def test_bloco_musica_toca_tambem_as_musicas_citadas(
+    client, account, auth_headers, radialista_e_programa, monkeypatch
+):
+    radio_config, programa = radialista_e_programa
+    monkeypatch.setattr(
+        "app.live.router.gerar_resposta",
+        lambda system, msg: "Vai Musica Teste e depois a Outra Citada, que eu adoro!",
+    )
+    monkeypatch.setattr(
+        "app.live.router.buscar_musica",
+        lambda query, **kwargs: (
+            MusicaEncontrada(video_id="cit1", titulo="Outra Citada", canal="Banda Y")
+            if "Outra Citada" in query
+            else MusicaEncontrada(video_id="abc123", titulo="Musica Teste", canal="Canal Teste")
+        ),
+    )
+    monkeypatch.setattr(
+        "app.live.router.extrair_musicas_citadas",
+        lambda fala, ja_tocadas=None: ["Outra Citada"] if "Musica Teste - Canal Teste" in (ja_tocadas or []) else [],
+    )
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": ["abertura: oi"], "total_falas": 1},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["video_id"] == "abc123"
+    assert [m["video_id"] for m in corpo["musicas"]] == ["abc123", "cit1"]
