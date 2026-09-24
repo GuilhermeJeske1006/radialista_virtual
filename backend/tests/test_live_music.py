@@ -142,9 +142,8 @@ def test_buscar_musica_pula_cover_caseiro_e_karaoke(monkeypatch):
     assert resultado.video_id == "id3"
 
 
-def test_buscar_musica_preferir_cantada_pula_instrumental(monkeypatch):
-    """preferir_cantada=True evita versao instrumental quando a musica vai tocar pros ouvintes
-    -- ver docstring de buscar_musica em app.live.music."""
+def test_buscar_musica_exigir_cantada_pula_instrumental(monkeypatch):
+    """exigir_cantada=True: no ar so' toca musica cantada -- ver docstring de buscar_musica."""
     monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
     itens = [
         _item("id1", "Minha Musica (Instrumental)", "Canal Instrumental"),
@@ -153,24 +152,31 @@ def test_buscar_musica_preferir_cantada_pula_instrumental(monkeypatch):
     monkeypatch.setattr("app.live.music._buscar_itens", lambda query: itens)
     monkeypatch.setattr("app.live.music._buscar_duracoes", lambda ids: {})
 
-    resultado = buscar_musica("minha musica", preferir_cantada=True)
+    resultado = buscar_musica("minha musica", exigir_cantada=True)
     assert resultado.video_id == "id2"
 
 
-def test_buscar_musica_preferir_cantada_relaxa_como_ultimo_recurso(monkeypatch):
-    """So' instrumental disponivel: relaxa em vez de travar a busca -- preferencia,
-    nunca bloqueio duro, mesma logica ja usada pra genero/duracao/limite de canal."""
+@pytest.mark.parametrize("titulo", [
+    "Minha Musica (Instrumental)",
+    "Minha Musica - Karaokê",
+    "Minha Musica | Versão Piano",
+    "Minha Musica Lofi Remix",
+    "Minha Musica Type Beat",
+    "Minha Musica (Sem Voz) Base Para Cantar",
+])
+def test_buscar_musica_exigir_cantada_nunca_relaxa(monkeypatch, titulo):
+    """So' versao sem voz disponivel: prefere nao achar nada a tocar faixa "so' pra soltar no ar"
+    -- bloqueio duro, ao contrario de genero/duracao/limite de canal."""
     monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
-    itens = [_item("id1", "Minha Musica (Instrumental)", "Canal Instrumental")]
+    itens = [_item("id1", titulo, "Minha Musica - Topic")]
     monkeypatch.setattr("app.live.music._buscar_itens", lambda query: itens)
     monkeypatch.setattr("app.live.music._buscar_duracoes", lambda ids: {})
 
-    resultado = buscar_musica("minha musica", preferir_cantada=True)
-    assert resultado.video_id == "id1"
+    assert buscar_musica("minha musica", exigir_cantada=True) is None
 
 
-def test_buscar_musica_sem_preferir_cantada_aceita_instrumental(monkeypatch):
-    """Default (preferir_cantada=False, ex: buscar_musica_fundo) nao filtra instrumental --
+def test_buscar_musica_sem_exigir_cantada_aceita_instrumental(monkeypatch):
+    """Default (exigir_cantada=False, ex: buscar_musica_fundo) nao filtra instrumental --
     musica de fundo QUER instrumental."""
     monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
     itens = [_item("id1", "Minha Musica (Instrumental)", "Canal Instrumental")]
@@ -420,3 +426,20 @@ def test_buscar_metadados_musica_cacheia_por_video_id(monkeypatch):
     segunda = _buscar_metadados_musica("id-cache")
     assert primeira == segunda == {"descricao": "desc", "tags": ["a"], "ano": "2020"}
     assert len(chamadas_http) == 1  # segunda chamada veio do cache, nao bateu na API de novo
+
+
+
+def test_buscar_musica_nunca_devolve_video_marcado_quebrado(monkeypatch):
+    """Video que falhou no player do painel (ver marcar_video_quebrado) nao volta em busca nenhuma."""
+    from app.live.music import marcar_video_quebrado
+
+    monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
+    itens = [_item("quebrado1", "Evidencias", "Canal"), _item("ok1", "Evidencias", "Outro Canal")]
+    monkeypatch.setattr("app.live.music._buscar_itens", lambda query: itens)
+    monkeypatch.setattr("app.live.music._buscar_duracoes", lambda ids: {})
+    marcar_video_quebrado("quebrado1")
+
+    evitar = {"tocado1"}
+    resultado = buscar_musica("evidencias", evitar_video_ids=evitar)
+    assert resultado.video_id == "ok1"
+    assert evitar == {"tocado1"}  # nao muta o historico da sessao do caller

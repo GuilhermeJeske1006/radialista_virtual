@@ -298,7 +298,8 @@ _SUGESTAO_MUSICA_SYSTEM_PROMPT = (
     "desse genero, no formato exato 'Artista - Nome da Musica', sem aspas, sem numeracao, sem "
     "explicacao. Escolha sempre uma faixa avulsa (nunca um disco, playlist, coletanea ou 'os "
     "melhores de'), de preferencia bem popular, pra maximizar a chance dela existir com faixa "
-    "propria (nao so' em compilacao) numa busca de video."
+    "propria (nao so' em compilacao) numa busca de video. Sempre uma musica CANTADA, com voz e "
+    "letra -- nunca instrumental."
 )
 
 

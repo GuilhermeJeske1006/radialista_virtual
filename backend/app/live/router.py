@@ -26,9 +26,9 @@ from app.config.settings import settings
 from app.db.database import SessionLocal, get_db
 from app.guardrails.http_rate_limit import limite_excedido
 from app.guardrails.schedule import encontrar_programa_atual, minutos_restantes
-from app.live.music import MusicaEncontrada, _titulo_normalizado, buscar_musica, buscar_musica_fundo
+from app.live.music import MusicaEncontrada, _titulo_normalizado, buscar_musica, buscar_musica_fundo, marcar_video_quebrado
 from app.live.formato import ROTEIRO_MUSICAL, ROTEIRO_PADRAO, contar_palavras, direcao_musical, musical_companhia, orcamento_fala
-from app.live.song_service import dividir_artista_titulo, resolver_musica_catalogada
+from app.live.song_service import dividir_artista_titulo, esquecer_video_catalogado, resolver_musica_catalogada
 from app.live.spotify import buscar_faixas_por_categoria
 from app.llm.client import (
     classificar_categoria_bloco,
@@ -215,6 +215,16 @@ class MusicaFundoResponse(BaseModel):
     inicio_segundos: int = 0
     fim_segundos: int | None = None
     duracao_segundos: int | None = None
+
+
+class MusicaSubstitutaRequest(BaseModel):
+    video_id: str = Field(min_length=1, max_length=64)
+    titulo: str = Field(default="", max_length=300)
+    motivo: str | None = Field(default=None, max_length=100)
+
+
+class MusicaSubstitutaResponse(MusicaFundoResponse):
+    canal: str = ""
 
 
 class RadialistaNoArResponse(BaseModel):
@@ -1216,8 +1226,8 @@ def _escolher_query_musica(
     Combina curadoria do admin (musicas_permitidas, pesada pela posicao -- primeiro item da
     lista conta mais) com o que o publico mais pediu de verdade pelo WhatsApp (ver
     _pedidos_publico_mais_frequentes), numa escolha ponderada. So cai pro genero generico da
-    radio quando nenhum dos dois tem dado nenhum; e so cai pra instrumental generico quando a
-    radio nao configurou genero nenhum. Devolve (query, genero_pra_filtrar, musica_catalogada)
+    radio quando nenhum dos dois tem dado nenhum; e so cai pra busca generica cantada
+    (QUERY_MUSICA_GENERICA) quando a radio nao configurou genero nenhum. Devolve (query, genero_pra_filtrar, musica_catalogada)
     -- genero so vem preenchido na queda pro genero generico, porque musica_permitida/pedido do
     publico ja e' uma query especifica o suficiente (nome de musica/artista), nao precisa de
     filtro extra. musica_catalogada vem preenchida quando a sugestao da LLM ja bate com uma
@@ -1253,7 +1263,7 @@ def _escolher_query_musica(
         ponderado abaixo insiste em reoferecer o item de maior peso (posicao 1 da lista do admin,
         ou pedido mais frequente) mesmo depois dele ja ter tocado; _via_catalogo/buscar_musica
         bloqueiam a repeticao em si, mas so' depois de gastar a tentativa e cair no fallback
-        generico 'musica instrumental'. Texto fora do formato 'Artista - Titulo' nao da pra
+        generico (QUERY_MUSICA_GENERICA). Texto fora do formato 'Artista - Titulo' nao da pra
         checar aqui, segue candidato (mesmo comportamento de antes)."""
         parsed = dividir_artista_titulo(texto)
         if parsed is None:
@@ -1307,7 +1317,13 @@ def _escolher_query_musica(
             return sugestao, None, _via_catalogo(sugestao, "llm_texto_livre")
         return f"{genero} musica", genero, None
 
-    return "musica instrumental", None, None
+    return QUERY_MUSICA_GENERICA, None, None
+
+
+# Ultimo recurso de busca quando nada especifico (curadoria/pedido/genero) achou faixa -- antes era
+# "musica instrumental", o que botava no ar justamente faixa sem voz "so' pra soltar no ar". No
+# ar so' toca musica cantada (ver exigir_cantada em app.live.music).
+QUERY_MUSICA_GENERICA = "sucessos musica brasileira"
 
 
 def _normalizar_query_musica(texto: str) -> str:
@@ -1482,26 +1498,27 @@ def _buscar_musica_para_bloco(
             evitar_video_ids=ids_tocadas,
             titulos_tocados=titulos_tocados,
             canais_recentes=canais_tocados,
-            preferir_cantada=True,
+            exigir_cantada=True,
             # genero_filtro so' vem preenchido na busca generica por genero (sem faixa
             # especifica, ver _escolher_query_musica/genero_bloco acima) -- so' exige canal
             # oficial quando a query e' uma musica especifica (curadoria do admin/pedido do
             # publico), nao trava o bloco genero-so' sem musica.
             exigir_canal_oficial=genero_filtro is None,
         )
-    if musica is None and query.strip().lower() != "musica instrumental":
+    if musica is None and query.strip().lower() != QUERY_MUSICA_GENERICA:
         # query especifica (curadoria do admin, pedido do publico ou genero/rotulo do bloco) nao
         # achou nada -- sem isso, o locutor recebia instrucao pra anunciar um genero/artista
         # "permitido" mesmo com `musica` None, e a fala saia prometendo uma faixa que nunca
         # tocava (ver ramo `else` do anuncio de musica em gerar_proxima_fala). Tenta mais uma
         # vez com a query mais generica possivel antes de desistir de vez.
-        query_fallback = "musica instrumental"
+        query_fallback = QUERY_MUSICA_GENERICA
         musica = buscar_musica(
             query_fallback,
             bloqueados=programa.musicas_bloqueadas,
             evitar_video_ids=ids_tocadas,
             titulos_tocados=titulos_tocados,
             canais_recentes=canais_tocados,
+            exigir_cantada=True,
         )
         if musica is not None:
             query = query_fallback
@@ -1509,7 +1526,7 @@ def _buscar_musica_para_bloco(
         # Nada achou nada, nem a query especifica nem o retry generico -- ultimo recurso antes
         # de desistir do bloco de verdade (ver _fallback_curado_genero): tenta faixas da lista
         # Spotify cacheada por genero, curadoria pronta muito mais provavel de existir no
-        # YouTube do que "musica instrumental" sem genero nenhum.
+        # YouTube do que a busca generica sem genero nenhum.
         fallback = _fallback_curado_genero(db, programa, ids_tocadas, titulos_tocados, canais_tocados)
         if fallback is not None:
             musica, query = fallback
@@ -1873,7 +1890,7 @@ def gerar_proxima_fala(
             evitar_video_ids=ids_tocadas,
             titulos_tocados=titulos_tocados,
             canais_recentes=canais_tocados,
-            preferir_cantada=True,
+            exigir_cantada=True,
             exigir_canal_oficial=True,
         )
         if musica is not None:
@@ -2818,6 +2835,80 @@ def buscar_musica_de_fundo(
     return MusicaFundoResponse(
         video_id=musica.video_id,
         titulo=musica.titulo,
+        inicio_segundos=musica.inicio_segundos,
+        fim_segundos=musica.fim_segundos,
+        duracao_segundos=musica.duracao_segundos,
+    )
+
+
+# Erros do IFrame API do YouTube que sao do VIDEO (100 removido/privado, 101/150 dono bloqueou
+# embed) -- so' esses barram o video pra sempre. "nao_iniciou"/erro 5 (HTML5) podem ser do
+# navegador/rede do painel, entao so' trocam a faixa desta vez (ela ja' esta' no historico da
+# sessao, nao volta nesta transmissao) sem condenar o video no catalogo.
+_MOTIVOS_VIDEO_QUEBRADO = {"erro_100", "erro_101", "erro_150"}
+
+
+@router.post("/{radialista_id}/programas/{programa_id}/musica-substituta", response_model=MusicaSubstitutaResponse)
+def buscar_musica_substituta(
+    radialista_id: int,
+    programa_id: int,
+    dados: MusicaSubstitutaRequest,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Chamado pelo painel quando o player do YouTube nao consegue tocar a faixa escolhida
+    (video removido/privado, embed bloqueado, nunca comecou a tocar). Em erro do proprio video
+    marca ele como quebrado (nunca mais volta numa busca, nem pelo catalogo) e devolve outra versao da MESMA
+    musica -- o locutor ja anunciou ela -- ou, se nao houver, outra faixa do programa. Sem isso
+    o bloco de musica era pulado em silencio: musica chamada e nunca tocada."""
+    radialista = _buscar_radialista(db, account, radialista_id)
+    programa = _buscar_programa(db, radialista, programa_id)
+    if limite_excedido(f"live_musica_substituta:{account.id}", limite=20, janela_segundos=60):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Muitas requisicoes. Tente novamente em instantes.")
+
+    logger.warning(
+        "Musica nao tocou no painel, buscando substituta: programa_id=%s video_id=%s titulo=%r motivo=%s",
+        programa.id, dados.video_id, dados.titulo, dados.motivo,
+    )
+    if dados.motivo in _MOTIVOS_VIDEO_QUEBRADO:
+        marcar_video_quebrado(dados.video_id)
+        esquecer_video_catalogado(db, dados.video_id)
+
+    ids_tocadas, titulos_tocados, canais_tocados = _historico_musicas(programa.id)
+    ids_radio, titulos_radio = _musicas_recentes_da_radio(db, programa.radio_config_id)
+    ids_tocadas |= ids_radio
+    # a faixa que falhou ja' entrou no historico ao ser escolhida -- tira o titulo dela pra outra
+    # versao da mesma musica poder substituir (o video quebrado segue barrado por video_id).
+    titulos_tocados = (titulos_tocados | titulos_radio) - {_titulo_normalizado(dados.titulo)}
+
+    musica = None
+    if dados.titulo.strip():
+        # canal oficial primeiro (mesmo criterio da escolha original); se so' o oficial existia e
+        # e' ele que esta' bloqueado, aceita outra versao em vez de deixar o bloco mudo.
+        for exigir_oficial in (True, False):
+            musica = buscar_musica(
+                dados.titulo,
+                bloqueados=programa.musicas_bloqueadas,
+                evitar_video_ids=ids_tocadas,
+                titulos_tocados=titulos_tocados,
+                canais_recentes=canais_tocados,
+                exigir_cantada=True,
+                exigir_canal_oficial=exigir_oficial,
+            )
+            if musica is not None:
+                break
+        if musica is not None:
+            _registrar_musica_tocada(programa.id, musica)
+            _registrar_historico_persistente(db, programa.id, musica, dados.titulo, origem="substituta")
+    if musica is None:
+        musica = _buscar_musica_para_bloco(db, programa)
+    if musica is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nenhuma musica substituta encontrada")
+
+    return MusicaSubstitutaResponse(
+        video_id=musica.video_id,
+        titulo=musica.titulo,
+        canal=musica.canal,
         inicio_segundos=musica.inicio_segundos,
         fim_segundos=musica.fim_segundos,
         duracao_segundos=musica.duracao_segundos,

@@ -42,7 +42,7 @@ _DURACAO_MAX_SEGUNDOS = 8 * 60
 
 # Teto ABSOLUTO, esse sim nunca relaxado (ver duracao_invalida) -- diferente do teto acima, que
 # so' evita quando ha alternativa mais curta pro MESMO pedido resolvido (titulo+artista). Existe
-# pra cobrir a busca SEM pedido especifico (query generica tipo "musica instrumental", usada
+# pra cobrir a busca SEM pedido especifico (query generica tipo "sucessos musica brasileira", usada
 # quando a radio nao tem genero configurado -- ver _buscar_musica_para_bloco): nesse caso o
 # YouTube devolve quase so' mix ambiente/"focus music"/"study music" de horas de duracao (mesmo
 # problema que buscar_musica_fundo ja tratava pra query "instrumental radio fundo"), entao TODO
@@ -58,6 +58,24 @@ _DURACAO_MAX_ABSOLUTA_SEGUNDOS = 20 * 60
 # YouTube devolve quase so' mix de 1-3h+ (compilacao "radio" e' literalmente isso), entao evitar
 # duracao longa aqui zeraria praticamente todo candidato dessa busca especifica.
 _DURACAO_MAX_FUNDO_SEGUNDOS = 4 * 60 * 60
+
+
+# Videos que falharam no player do painel (removido/privado, embed bloqueado pelo dono -- erros
+# 100/101/150 do IFrame API -- ou que nunca chegaram a tocar). A busca da API (videoEmbeddable)
+# nao garante que o embed funciona de verdade (canal VEVO/"- Topic" bloqueia com frequencia), e o
+# video resolvido fica salvo no catalogo (ver Musica.youtube_video_id) -- sem essa lista, a mesma
+# faixa quebrada voltava toda vez que a musica fosse sugerida de novo, e o bloco ficava mudo.
+_CHAVE_VIDEOS_QUEBRADOS = "youtube:videos_quebrados"
+_TTL_VIDEOS_QUEBRADOS_SEGUNDOS = 30 * 24 * 60 * 60
+
+
+def marcar_video_quebrado(video_id: str) -> None:
+    redis_client.sadd(_CHAVE_VIDEOS_QUEBRADOS, video_id)
+    redis_client.expire(_CHAVE_VIDEOS_QUEBRADOS, _TTL_VIDEOS_QUEBRADOS_SEGUNDOS)
+
+
+def videos_quebrados() -> set[str]:
+    return set(redis_client.smembers(_CHAVE_VIDEOS_QUEBRADOS))
 
 
 # Palavras que nao carregam sentido de genero sozinhas -- ignoradas ao extrair as palavras-chave
@@ -128,6 +146,24 @@ TERMOS_QUALIDADE_DUVIDOSA = [
     "gravado em casa", "gravado no quarto", "voz e violão", "voz e violao",
     "só violão", "so violao", "instrumental cover",
 ]
+
+# Versao sem voz cantada -- no ar so' toca musica cantada (ver exigir_cantada em buscar_musica):
+# faixa "so' pra soltar no ar" (instrumental, base de karaoke, beat, lofi, versao so' de piano
+# etc.) nao e' musica pro ouvinte. Comparado sem acento (ver eh_instrumental).
+TERMOS_INSTRUMENTAL = [
+    "instrumental", "karaoke", "playback", "backing track", "sem voz", "sem letra",
+    "no vocals", "without vocals", "only music", "type beat", "beat instrumental",
+    "base para cantar", "base pra cantar", "lofi", "lo-fi", "lo fi",
+    "versao piano", "piano version", "piano cover", "guitar cover", "sax cover",
+    "violin cover", "cover violino", "cover saxofone", "orquestrado", "orchestral version",
+]
+
+
+def eh_instrumental(texto: str) -> bool:
+    """True quando titulo/canal indicam versao sem voz cantada (ver TERMOS_INSTRUMENTAL)."""
+    texto_sem_acento = _sem_acento(texto.lower())
+    return any(termo in texto_sem_acento for termo in TERMOS_INSTRUMENTAL)
+
 
 # Reaction/talent-show: cobre de programa tipo AGT/The Voice comentado por reagente
 # ("Grammy Member Reacts", "SMASHES IT!") -- e' a performance embrulhada em comentario/
@@ -365,7 +401,7 @@ def buscar_musica(
     limite_por_canal: int = _LIMITE_PADRAO_POR_CANAL,
     duracao_max_segundos: int = _DURACAO_MAX_SEGUNDOS,
     duracao_absoluta_max_segundos: int | None = _DURACAO_MAX_ABSOLUTA_SEGUNDOS,
-    preferir_cantada: bool = False,
+    exigir_cantada: bool = False,
     exigir_canal_oficial: bool = False,
 ) -> MusicaEncontrada | None:
     """Busca a musica priorizando versao de estudio; se nao achar, cai pra versao ao vivo.
@@ -389,11 +425,11 @@ def buscar_musica(
     mistura generos regionais proximos). So relaxa (aceita qualquer genero) como ultimo
     recurso, mesma logica de "preferencia, nunca bloqueio duro" do limite por canal/duracao.
 
-    preferir_cantada evita versao instrumental quando a musica vai tocar pros ouvintes (o
-    locutor anuncia a faixa por nome/artista, instrumental sem voz quebra a expectativa) --
-    False por padrao porque buscar_musica_fundo QUER instrumental (musica de fundo enquanto
-    o locutor fala). Mesma logica de preferencia, nunca bloqueio duro: relaxa antes do
-    genero (instrumental do genero certo ainda bate mais que vocal fora do genero).
+    exigir_cantada e' BLOQUEIO DURO (nunca relaxa): musica que vai pro ar e' sempre cantada --
+    versao instrumental/karaoke/beat/lofi (ver TERMOS_INSTRUMENTAL) e' faixa "so' pra soltar no
+    ar", nao musica pro ouvinte. Prefere nao achar nada (caller cai pro proximo fallback) a
+    tocar instrumental. False por padrao porque buscar_musica_fundo QUER instrumental (cama
+    baixinha enquanto o locutor fala).
 
     exigir_canal_oficial e' BLOQUEIO DURO (nunca relaxa, ao contrario de todo o resto acima):
     quando True, so' aceita resultado de canal oficial do artista/gravadora (ver
@@ -409,7 +445,8 @@ def buscar_musica(
         return None
 
     bloqueados_lower = [b.lower() for b in (bloqueados or [])]
-    evitar_video_ids = evitar_video_ids or set()
+    # uniao (nao mutacao) -- o set do caller e' o historico da sessao, nao pode ganhar os quebrados
+    evitar_video_ids = (evitar_video_ids or set()) | videos_quebrados()
     titulos_tocados = titulos_tocados or set()
     canais_recentes = canais_recentes or {}
     palavras_genero = _palavras_chave_genero(genero) if genero else []
@@ -421,7 +458,6 @@ def buscar_musica(
         duracoes: dict[str, int],
         respeitar_duracao: bool = True,
         respeitar_genero: bool = True,
-        respeitar_vocal: bool = True,
     ) -> MusicaEncontrada | None:
         def repetido(canal: str) -> bool:
             return respeitar_limite_canal and canais_recentes.get(canal.lower(), 0) >= limite_por_canal
@@ -430,9 +466,7 @@ def buscar_musica(
             return _titulo_normalizado(titulo) in titulos_tocados
 
         def vocal_invalido(texto: str) -> bool:
-            if not respeitar_vocal or not preferir_cantada:
-                return False
-            return "instrumental" in texto
+            return exigir_cantada and eh_instrumental(texto)
 
         def genero_invalido(texto_sem_acento: str) -> bool:
             if not respeitar_genero or not palavras_genero:
@@ -528,7 +562,7 @@ def buscar_musica(
             if eh_ao_vivo and (not permitir_ao_vivo or not _eh_canal_oficial(canal)):
                 # ao vivo so' e' aceitavel de canal oficial/grande produtora (selo/VEVO/"- Topic")
                 # -- gravacao de show por canal qualquer e' exatamente o audio duvidoso que
-                # preferir_cantada/TERMOS_QUALIDADE_DUVIDOSA ja tentam barrar, so' que pelo
+                # exigir_cantada/TERMOS_QUALIDADE_DUVIDOSA ja tentam barrar, so' que pelo
                 # lado "ao vivo" em vez de "caseiro".
                 continue
             inicio = SEGUNDOS_PULAR_AO_VIVO if eh_ao_vivo else 0
@@ -551,46 +585,40 @@ def buscar_musica(
     for respeitar_genero in (True, False):
         if not palavras_genero and not respeitar_genero:
             break  # sem genero pedido, relaxar de novo e' repetir a mesma busca a toa.
-        for respeitar_vocal in (True, False):
-            if not preferir_cantada and not respeitar_vocal:
-                break  # nao foi pedido vocal, relaxar de novo e' repetir a mesma busca a toa.
-            for respeitar_duracao in (True, False):
-                for respeitar_limite_canal in (True, False):
-                    resultado = escolher(
-                        itens_estudio,
-                        permitir_ao_vivo=False,
-                        respeitar_limite_canal=respeitar_limite_canal,
-                        duracoes=duracoes,
-                        respeitar_duracao=respeitar_duracao,
-                        respeitar_genero=respeitar_genero,
-                        respeitar_vocal=respeitar_vocal,
-                    )
-                    if resultado:
-                        return _preencher_extras(resultado, duracoes)
+        for respeitar_duracao in (True, False):
+            for respeitar_limite_canal in (True, False):
+                resultado = escolher(
+                    itens_estudio,
+                    permitir_ao_vivo=False,
+                    respeitar_limite_canal=respeitar_limite_canal,
+                    duracoes=duracoes,
+                    respeitar_duracao=respeitar_duracao,
+                    respeitar_genero=respeitar_genero,
+                )
+                if resultado:
+                    return _preencher_extras(resultado, duracoes)
 
-                    resultado = escolher(
-                        itens_geral,
-                        permitir_ao_vivo=False,
-                        respeitar_limite_canal=respeitar_limite_canal,
-                        duracoes=duracoes,
-                        respeitar_duracao=respeitar_duracao,
-                        respeitar_genero=respeitar_genero,
-                        respeitar_vocal=respeitar_vocal,
-                    )
-                    if resultado:
-                        return _preencher_extras(resultado, duracoes)
+                resultado = escolher(
+                    itens_geral,
+                    permitir_ao_vivo=False,
+                    respeitar_limite_canal=respeitar_limite_canal,
+                    duracoes=duracoes,
+                    respeitar_duracao=respeitar_duracao,
+                    respeitar_genero=respeitar_genero,
+                )
+                if resultado:
+                    return _preencher_extras(resultado, duracoes)
 
-                    resultado = escolher(
-                        itens_geral,
-                        permitir_ao_vivo=True,
-                        respeitar_limite_canal=respeitar_limite_canal,
-                        duracoes=duracoes,
-                        respeitar_duracao=respeitar_duracao,
-                        respeitar_genero=respeitar_genero,
-                        respeitar_vocal=respeitar_vocal,
-                    )
-                    if resultado:
-                        return _preencher_extras(resultado, duracoes)
+                resultado = escolher(
+                    itens_geral,
+                    permitir_ao_vivo=True,
+                    respeitar_limite_canal=respeitar_limite_canal,
+                    duracoes=duracoes,
+                    respeitar_duracao=respeitar_duracao,
+                    respeitar_genero=respeitar_genero,
+                )
+                if resultado:
+                    return _preencher_extras(resultado, duracoes)
 
     logger.warning("Nenhuma musica encontrada: query=%r genero=%r", query, genero)
     return None

@@ -487,6 +487,79 @@ def test_musica_de_fundo_usa_escolha_do_programa(
     assert chamadas == ["Lofi Chill Beats - Instrumental"]
 
 
+def test_musica_substituta_erro_do_video_marca_quebrado_e_troca_versao(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    from app.live.music import videos_quebrados
+    from app.models.musica import Musica
+
+    radio_config, programa = radialista_e_programa
+    db_session.add(Musica(
+        titulo="Evidencias", artista="Chitaozinho", titulo_normalizado="evidencias",
+        artista_normalizado="chitaozinho", youtube_video_id="quebrado1", status="resolvida",
+    ))
+    db_session.commit()
+
+    buscas = []
+
+    def fake_buscar_musica(query, titulos_tocados=None, exigir_canal_oficial=False, **kwargs):
+        buscas.append((query, exigir_canal_oficial, set(titulos_tocados or ())))
+        if exigir_canal_oficial:
+            return None
+        return MusicaEncontrada(video_id="novo1", titulo="Evidencias (Ao Vivo)", canal="Fa Clube")
+
+    monkeypatch.setattr("app.live.router.buscar_musica", fake_buscar_musica)
+    monkeypatch.setattr("app.live.router._historico_musicas", lambda _id: ({"quebrado1"}, {"evidencias"}, {}))
+
+    resposta = client.post(
+        f"/live/{radio_config.id}/programas/{programa.id}/musica-substituta",
+        json={"video_id": "quebrado1", "titulo": "Evidencias", "motivo": "erro_150"},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["video_id"] == "novo1"
+    assert "quebrado1" in videos_quebrados()
+    assert db_session.query(Musica).one().youtube_video_id is None
+    # oficial primeiro, depois qualquer versao; titulo da faixa que falhou liberado pra outra versao
+    assert [(q, oficial) for q, oficial, _ in buscas] == [("Evidencias", True), ("Evidencias", False)]
+    assert all("evidencias" not in titulos for _, _, titulos in buscas)
+
+
+def test_musica_substituta_nao_iniciou_nao_condena_video(
+    client, account, auth_headers, radialista_e_programa, monkeypatch
+):
+    from app.live.music import videos_quebrados
+
+    radio_config, programa = radialista_e_programa
+    monkeypatch.setattr("app.live.router.buscar_musica", lambda *a, **k: None)
+    monkeypatch.setattr(
+        "app.live.router._buscar_musica_para_bloco",
+        lambda db, programa: MusicaEncontrada(video_id="outra1", titulo="Outra", canal="Canal"),
+    )
+
+    resposta = client.post(
+        f"/live/{radio_config.id}/programas/{programa.id}/musica-substituta",
+        json={"video_id": "lento1", "titulo": "Lenta", "motivo": "nao_iniciou"},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["video_id"] == "outra1"
+    assert "lento1" not in videos_quebrados()
+
+
+def test_musica_substituta_sem_resultado_404(client, account, auth_headers, radialista_e_programa, monkeypatch):
+    radio_config, programa = radialista_e_programa
+    monkeypatch.setattr("app.live.router.buscar_musica", lambda *a, **k: None)
+    monkeypatch.setattr("app.live.router._buscar_musica_para_bloco", lambda db, programa: None)
+
+    resposta = client.post(
+        f"/live/{radio_config.id}/programas/{programa.id}/musica-substituta",
+        json={"video_id": "x1", "titulo": "X", "motivo": "erro_100"},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 404
+
+
 def test_tts_endpoint_nao_habilitado_503(client, account, auth_headers, radialista_e_programa):
     radio_config, _ = radialista_e_programa
     resposta = client.post(
@@ -973,8 +1046,9 @@ def test_busca_automatica_sem_resultado_cai_pro_fallback_generico(
     monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: "Vamos ouvir uma boa!")
 
     def _fake_buscar_musica(query, **kwargs):
-        if query == "musica instrumental":
-            return MusicaEncontrada(video_id="id-fallback", titulo="Instrumental Generica", canal="Canal Z")
+        if query == "sucessos musica brasileira":
+            assert kwargs.get("exigir_cantada") is True
+            return MusicaEncontrada(video_id="id-fallback", titulo="Sucesso Generico", canal="Canal Z")
         return None
 
     monkeypatch.setattr("app.live.router.buscar_musica", _fake_buscar_musica)
@@ -989,11 +1063,11 @@ def test_busca_automatica_sem_resultado_cai_pro_fallback_generico(
     corpo = resposta.json()
     assert corpo["tipo"] == "musica"
     assert corpo["video_id"] == "id-fallback"
-    assert corpo["titulo_musica"] == "Instrumental Generica"
+    assert corpo["titulo_musica"] == "Sucesso Generico"
 
     registro = db_session.query(MusicaHistorico).filter_by(programa_id=programa.id).one()
     assert registro.origem == "auto"
-    assert registro.query_normalizada == "musica instrumental"
+    assert registro.query_normalizada == "sucessos musica brasileira"
 
 
 @freeze_time(AGORA_UTC)
@@ -1362,7 +1436,7 @@ def test_escolher_query_musica_usa_lista_spotify_quando_disponivel(
 def test_buscar_musica_para_bloco_usa_fallback_curado_quando_tudo_falha(
     db_session, radialista_e_programa, monkeypatch
 ):
-    """Quando nem a query especifica nem o retry generico ('musica instrumental') acham nada no
+    """Quando nem a query especifica nem o retry generico (QUERY_MUSICA_GENERICA) acham nada no
     YouTube, o bloco nao fica vazio de cara -- primeiro tenta, uma a uma, faixas da lista
     Spotify cacheada por genero (ver _fallback_curado_genero em app.live.router)."""
     _, programa = radialista_e_programa

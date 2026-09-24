@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.config.redis_client import redis_client
 from app.live.audio_analysis import obter_fim_seguro
-from app.live.music import MusicaEncontrada, _sem_acento, _titulo_normalizado, buscar_musica
+from app.live.music import MusicaEncontrada, _sem_acento, _titulo_normalizado, buscar_musica, eh_instrumental, videos_quebrados
 from app.models.musica import Musica
 
 logger = logging.getLogger("radialista.song_service")
@@ -134,6 +134,15 @@ def _persistir_resultado_youtube(db: Session, musica: Musica, resultado: MusicaE
     db.commit()
 
 
+def esquecer_video_catalogado(db: Session, video_id: str) -> None:
+    """Volta pra "pendente" toda Musica resolvida pra um video que nao toca mais (ver
+    marcar_video_quebrado em app.live.music) -- a proxima sugestao dela resolve de novo."""
+    for musica in db.query(Musica).filter(Musica.youtube_video_id == video_id).all():
+        musica.youtube_video_id = None
+        musica.status = "pendente"
+    db.commit()
+
+
 def resolver_musica_catalogada(
     db: Session,
     titulo: str,
@@ -157,6 +166,14 @@ def resolver_musica_catalogada(
     _confianca_da_origem); nao influencia a busca em si.
     """
     musica_db = buscar_ou_criar_musica(db, titulo, artista)
+    if musica_db.youtube_video_id and (
+        musica_db.youtube_video_id in videos_quebrados()
+        or eh_instrumental(f"{musica_db.youtube_titulo or ''} {musica_db.youtube_canal or ''}")
+    ):
+        # video salvo parou de tocar no painel (ver marcar_video_quebrado) ou e' versao sem voz
+        # resolvida antes do filtro de cantada virar obrigatorio -- resolve de novo em vez de
+        # devolver pra sempre a mesma faixa que nao toca / nao e' cantada.
+        esquecer_video_catalogado(db, musica_db.youtube_video_id)
     evitar_video_ids = evitar_video_ids or set()
     titulos_tocados = titulos_tocados or set()
 
@@ -175,7 +192,7 @@ def resolver_musica_catalogada(
                     evitar_video_ids=evitar_video_ids,
                     titulos_tocados=titulos_tocados,
                     canais_recentes=canais_recentes,
-                    preferir_cantada=True,
+                    exigir_cantada=True,
                     exigir_canal_oficial=True,
                 )
                 if resultado is None:

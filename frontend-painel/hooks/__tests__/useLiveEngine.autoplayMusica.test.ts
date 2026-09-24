@@ -39,7 +39,11 @@ class AudioTeste {
   terminar() { this.ended = true; this.onended?.(); }
 }
 
-type EventosYT = { onReady?: (e: { target: MusicaTeste }) => void; onStateChange: (e: { data: number; target: MusicaTeste }) => void };
+type EventosYT = {
+  onReady?: (e: { target: MusicaTeste }) => void;
+  onStateChange: (e: { data: number; target: MusicaTeste }) => void;
+  onError?: (e: { data: number }) => void;
+};
 const musicas: MusicaTeste[] = [];
 class MusicaTeste {
   unMute = vi.fn();
@@ -48,9 +52,10 @@ class MusicaTeste {
   stopVideo() {}
   destroy() {}
   getVolume() { return 0; }
-  constructor(_id: string, public config: { events: EventosYT }) { musicas.push(this); }
+  constructor(_id: string, public config: { videoId: string; events: EventosYT }) { musicas.push(this); }
   tocando() { this.config.events.onStateChange({ data: 1, target: this }); }
   terminar() { this.config.events.onStateChange({ data: 0, target: this }); }
+  falhar(codigo: number) { this.config.events.onError?.({ data: codigo }); }
 }
 
 let interagiu = false;
@@ -171,4 +176,55 @@ it("autoplay liberado no navegador: música sai com som sem nenhum clique", asyn
   await act(async () => { musicas[0].tocando(); });
   expect(musicas[0].unMute).toHaveBeenCalledTimes(1);
   expect(result.current.audioBloqueado).toBe(false);
+});
+
+// Video removido/embed bloqueado (onError) ou que nunca comeca: a musica chamada precisa tocar --
+// o painel pede uma substituta ao backend e toca ela em vez de pular o bloco mudo.
+const substituta = { video_id: "musica-2", titulo: "Canção (outra versão)", inicio_segundos: 0, fim_segundos: null };
+
+function mockSubstituta() {
+  const padrao = mocks.api.getMockImplementation()!;
+  mocks.api.mockImplementation((path: string, opts?: RequestInit) =>
+    path.endsWith("/musica-substituta") ? Promise.resolve(substituta) : padrao(path, opts));
+}
+
+it("erro do YouTube na música: toca a substituta devolvida pelo backend", async () => {
+  interagiu = true;
+  mockSubstituta();
+  mocks.proxima.mockResolvedValueOnce(musica());
+  await iniciar();
+
+  await act(async () => { musicas[0].falhar(150); });
+  const chamada = mocks.api.mock.calls.find(([path]) => String(path).endsWith("/musica-substituta"));
+  expect(JSON.parse(String(chamada?.[1]?.body))).toEqual({ video_id: "musica-1", titulo: "Canção", motivo: "erro_150" });
+  expect(musicas).toHaveLength(2);
+  expect(musicas[1].config.videoId).toBe("musica-2");
+});
+
+it("música que nunca começa a tocar: insiste uma vez e depois troca pela substituta", async () => {
+  interagiu = true;
+  mockSubstituta();
+  mocks.proxima.mockResolvedValueOnce(musica());
+  await iniciar();
+
+  await act(async () => { await vi.advanceTimersByTimeAsync(12000); });
+  expect(musicas[0].playVideo).toHaveBeenCalled();
+  expect(musicas).toHaveLength(1);
+  await act(async () => { await vi.advanceTimersByTimeAsync(12000); });
+  const chamada = mocks.api.mock.calls.find(([path]) => String(path).endsWith("/musica-substituta"));
+  expect(JSON.parse(String(chamada?.[1]?.body)).motivo).toBe("nao_iniciou");
+  expect(musicas).toHaveLength(2);
+  expect(musicas[1].config.videoId).toBe("musica-2");
+});
+
+it("música que começou a tocar não é trocada pela vigia de início", async () => {
+  interagiu = true;
+  mockSubstituta();
+  mocks.proxima.mockResolvedValueOnce(musica());
+  await iniciar();
+
+  await act(async () => { musicas[0].tocando(); });
+  await act(async () => { await vi.advanceTimersByTimeAsync(30000); });
+  expect(mocks.api.mock.calls.some(([path]) => String(path).endsWith("/musica-substituta"))).toBe(false);
+  expect(musicas).toHaveLength(1);
 });

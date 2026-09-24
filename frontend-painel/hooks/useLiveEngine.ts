@@ -642,6 +642,10 @@ export function useLiveEngine() {
   const FADE_DUCK_MS = 900;
   const FADE_DUCK_ENTRADA_MS = 150;
   const FADE_MUSICA_MS = 1500;
+  // quanto esperar o player chegar em PLAYING antes de insistir/desistir (ver tocarMusica)
+  const MUSICA_VIGIA_INICIO_MS = 12000;
+  // teto de trocas por faixa que nao toca -- evita loop se o YouTube estiver fora do ar
+  const MAX_MUSICAS_SUBSTITUTAS = 2;
   const FADE_MUSICA_SAIDA_S = FADE_MUSICA_MS / 1000;
 
   // Rampa o volume de um player do YouTube ate' `alvo` em vez do salto instantaneo de setVolume --
@@ -820,14 +824,16 @@ export function useLiveEngine() {
 
   // Toca uma faixa e devolve quanto tempo (segundos, relogio de parede) ela ficou
   // realmente no ar -- duracao REAL, igual reproduzirAudioPreparado, pra somar por
-  // bloco (ver atualizarDuracaoFala).
+  // bloco (ver atualizarDuracaoFala). `falha` vem preenchida quando o player nao conseguiu
+  // tocar a faixa (erro do YouTube ou nunca comecou) -- o caller troca por uma substituta
+  // (ver tocarMusicaComSubstituta) em vez de pular o bloco mudo.
   function tocarMusica(
     videoId: string,
     titulo: string,
     inicioSegundos = 0,
     fimSegundos: number | null = null,
     aoConcluir?: () => void
-  ): Promise<number> {
+  ): Promise<{ segundos: number; falha?: string }> {
     const TIMEOUT_SEGURANCA_MS = 6 * 60 * 1000;
     const POLL_FIM_MS = 500;
     const inicio = Date.now();
@@ -835,19 +841,22 @@ export function useLiveEngine() {
     return new Promise((resolvePromise) => {
       async function iniciar() {
         if (typeof window === "undefined" || !ytApiPromiseRef.current) {
-          resolvePromise(0);
+          console.error("Player do YouTube indisponivel, musica nao tocou:", videoId, titulo);
+          resolvePromise({ segundos: 0 });
           return;
         }
 
         try {
           await ytApiPromiseRef.current;
         } catch {
-          resolvePromise(0);
+          console.error("API do YouTube nao carregou, musica nao tocou:", videoId, titulo);
+          resolvePromise({ segundos: 0 });
           return;
         }
 
         if (!window.YT || !window.YT.Player) {
-          resolvePromise(0);
+          console.error("API do YouTube nao carregou, musica nao tocou:", videoId, titulo);
+          resolvePromise({ segundos: 0 });
           return;
         }
 
@@ -856,13 +865,16 @@ export function useLiveEngine() {
         setEstagioAtual("musica");
 
         let finalizado = false;
+        let comecou = false;
         let timeoutId: ReturnType<typeof setTimeout>;
+        let vigiaInicioId: ReturnType<typeof setTimeout> | undefined;
         let intervaloFimId: ReturnType<typeof setInterval> | undefined;
-        const finalizar = (concluiu = false) => {
+        const finalizar = (concluiu = false, falha?: string) => {
           if (finalizado) return;
           if (concluiu && musicDesmutadoRef.current) aoConcluir?.();
           finalizado = true;
           clearTimeout(timeoutId);
+          if (vigiaInicioId) clearTimeout(vigiaInicioId);
           if (intervaloFimId) clearInterval(intervaloFimId);
           musicStopRef.current = null;
           removerDesbloqueioAudio("musica");
@@ -878,10 +890,32 @@ export function useLiveEngine() {
           setMusicaAtual(null);
           setMusicaFimSegundos(null);
           setEstagioAtual("idle");
-          resolvePromise((Date.now() - inicio) / 1000);
+          resolvePromise({ segundos: (Date.now() - inicio) / 1000, falha });
         };
-        timeoutId = setTimeout(finalizar, TIMEOUT_SEGURANCA_MS);
-        musicStopRef.current = finalizar;
+        timeoutId = setTimeout(() => finalizar(), TIMEOUT_SEGURANCA_MS);
+        musicStopRef.current = () => finalizar();
+
+        // vigia de inicio: player que nunca chega em PLAYING (video preso carregando, bloqueio
+        // sem onError) antes deixava o bloco mudo ate' o timeout de 6min. Insiste no playVideo
+        // uma vez e, se mesmo assim nao comecar, desiste pra o caller tocar uma substituta. Com a
+        // aba em segundo plano o navegador pode segurar o inicio -- ai' so' reagenda.
+        const vigiarInicio = (tentativa: number) => {
+          vigiaInicioId = setTimeout(() => {
+            if (finalizado || comecou) return;
+            if (typeof document !== "undefined" && document.hidden) return vigiarInicio(tentativa);
+            if (tentativa === 0) {
+              try {
+                musicPlayerRef.current?.playVideo?.();
+              } catch {
+                // ignora -- a proxima checagem decide
+              }
+              return vigiarInicio(1);
+            }
+            console.error("Musica nao comecou a tocar no player do YouTube:", videoId, titulo);
+            finalizar(false, "nao_iniciou");
+          }, MUSICA_VIGIA_INICIO_MS);
+        };
+        vigiarInicio(0);
 
         if (musicPlayerRef.current) {
           try {
@@ -925,6 +959,7 @@ export function useLiveEngine() {
               }
             },
             onStateChange: (evento: any) => {
+              if (evento.data === window.YT.PlayerState.PLAYING) comecou = true;
               if (evento.data === window.YT.PlayerState.ENDED) finalizar(true);
               // so' desmuta/inicia o fade cruzado quando a musica realmente comecar a tocar --
               // ver o mesmo cuidado no player de fundo (iniciarMusicaFundo) sobre por que
@@ -953,7 +988,7 @@ export function useLiveEngine() {
             // pista nenhuma de qual desses era (ver post-mortem que motivou isso)
             onError: (evento: any) => {
               console.error("Erro ao tocar musica no player do YouTube:", videoId, titulo, evento?.data);
-              finalizar();
+              finalizar(false, `erro_${evento?.data ?? "desconhecido"}`);
             },
           },
         });
@@ -961,6 +996,40 @@ export function useLiveEngine() {
 
       iniciar();
     });
+  }
+
+  // Toca a faixa e, se o player nao conseguir (video removido/embed bloqueado/nunca comecou),
+  // pede uma substituta ao backend (outra versao da mesma musica, ou outra faixa do programa) e
+  // toca ela -- musica chamada pelo locutor precisa tocar, nao pode sumir do bloco em silencio.
+  async function tocarMusicaComSubstituta(
+    faixa: { video_id: string; titulo: string; inicio_segundos?: number; fim_segundos?: number | null },
+    ativa: () => boolean,
+    aoConcluir?: () => void
+  ): Promise<number> {
+    let segundos = 0;
+    let atual = faixa;
+    for (let tentativa = 0; ; tentativa++) {
+      const resultado = await tocarMusica(
+        atual.video_id, atual.titulo, atual.inicio_segundos ?? 0, atual.fim_segundos ?? null, aoConcluir
+      );
+      segundos += resultado.segundos;
+      if (!resultado.falha || tentativa >= MAX_MUSICAS_SUBSTITUTAS || !ativa()) return segundos;
+      try {
+        atual = await apiFetch<{
+          video_id: string;
+          titulo: string;
+          inicio_segundos?: number;
+          fim_segundos?: number | null;
+        }>(`/live/${radialistaIdRef.current}/programas/${programaIdRef.current}/musica-substituta`, {
+          method: "POST",
+          body: JSON.stringify({ video_id: atual.video_id, titulo: atual.titulo, motivo: resultado.falha }),
+        });
+      } catch (err) {
+        console.error("Sem musica substituta pra faixa que nao tocou:", atual.video_id, err);
+        return segundos;
+      }
+      if (!ativa()) return segundos;
+    }
   }
 
   // Sufixo com titulo+canal de cada musica do bloco, pro historico mandado ao backend --
@@ -1323,11 +1392,9 @@ export function useLiveEngine() {
               ];
         for (const musica of bloco) {
           if (!programaAtivoRef.current || execucaoAtualRef.current !== minhaExecucao) break;
-          duracaoBlocoSegundos += await tocarMusica(
-            musica.video_id,
-            musica.titulo,
-            musica.inicio_segundos ?? 0,
-            musica.fim_segundos ?? null,
+          duracaoBlocoSegundos += await tocarMusicaComSubstituta(
+            musica,
+            () => programaAtivoRef.current && execucaoAtualRef.current === minhaExecucao,
             () => { if (musica.video_id === novaFala.video_id) participacaoConcluida = true; }
           );
         }

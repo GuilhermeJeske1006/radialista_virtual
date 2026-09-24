@@ -7,7 +7,7 @@ import httpx
 
 from app.config.redis_client import redis_client
 from app.config.settings import settings
-from app.live.music import _sem_acento, _titulo_normalizado
+from app.live.music import _sem_acento, _titulo_normalizado, eh_instrumental
 
 logger = logging.getLogger("radialista.spotify")
 
@@ -176,7 +176,8 @@ def _buscar_faixas_do_spotify(genero: str) -> list[tuple[str, str]]:
     for artista in _buscar_artistas_do_genero(token, genero):
         for artista_nome, titulo in _faixas_do_artista(token, artista["name"]):
             chave = (artista_nome.lower(), titulo.lower())
-            if chave in vistos:
+            # no ar so' toca musica cantada (ver exigir_cantada em app.live.music)
+            if chave in vistos or eh_instrumental(titulo):
                 continue
             vistos.add(chave)
             faixas.append((artista_nome, titulo))

@@ -128,3 +128,29 @@ def test_resolver_musica_catalogada_sem_resultado_youtube_nao_persiste(db_sessio
     assert resultado is None
     musica = db_session.query(Musica).one()
     assert musica.youtube_video_id is None
+
+
+def test_resolver_musica_catalogada_resolve_de_novo_video_instrumental_salvo(db_session, monkeypatch):
+    """Catalogo resolvido antes do filtro de cantada virar obrigatorio pode ter guardado versao
+    instrumental -- nao devolve ela, busca de novo (ja com exigir_cantada)."""
+    from app.live.song_service import resolver_musica_catalogada
+    from app.models.musica import Musica
+
+    db_session.add(Musica(
+        titulo="Evidencias", artista="Chitaozinho", titulo_normalizado="evidencias",
+        artista_normalizado="chitaozinho", youtube_video_id="instr1",
+        youtube_titulo="Evidencias (Instrumental)", youtube_canal="Canal", status="resolvida",
+    ))
+    db_session.commit()
+    chamadas = []
+
+    def fake_buscar(query, **kwargs):
+        chamadas.append(kwargs.get("exigir_cantada"))
+        return MusicaEncontrada(video_id="cantada1", titulo="Evidencias", canal="Chitaozinho - Topic")
+
+    monkeypatch.setattr("app.live.song_service.buscar_musica", fake_buscar)
+    monkeypatch.setattr("app.live.song_service.obter_fim_seguro", lambda video_id, duracao: None)
+
+    resultado = resolver_musica_catalogada(db_session, "Evidencias", "Chitaozinho")
+    assert resultado.video_id == "cantada1"
+    assert chamadas == [True]
