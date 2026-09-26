@@ -1,9 +1,6 @@
-"""Avisa o admin da conta (notificacao in-app e, se o sinal for de estouro de verdade, e-mail)
-quando o uso se aproxima ou passa do limite do plano -- empurra upgrade/compra antes que o
-bloqueio (402 em app/config/router.py e app/tts/router.py) pegue o atendimento no meio.
-
-So' avalia conta com marca consolidada (ver app/billing/consolidacao.py); onboarding
-incompleto e' outro problema, empurrar upsell nela e' ruido.
+"""Avisa o admin da conta (notificacao in-app) quando o total comprometido chega a 90% do
+limite financeiro (ver app/billing/upsell.py) -- da tempo de ajustar o limite antes que o
+bloqueio (402 em app/billing/flex.py::autorizar) pause as geracoes no meio do programa.
 
 Uso: python -m app.billing.alertar_upsell
 

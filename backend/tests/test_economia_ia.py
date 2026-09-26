@@ -6,31 +6,14 @@ import time
 from fastapi import HTTPException
 from freezegun import freeze_time
 import pytest
-from sqlalchemy import create_engine, select
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import select
 
 from app.billing import consumo_ia
 from app.billing.contexto_ia import atual, contexto_conta, tarefa_com_contexto
 from app.config.settings import settings
 from app.llm import client as llm
-from app.models.consumo_ia import ConsumoIA, OrcamentoIA
 from app.models.consumo_flex import ContaConsumo
 from app.tts.cache import cache_audio
-
-
-@pytest.fixture
-def livro(tmp_path, monkeypatch):
-    engine = create_engine(f"sqlite:///{tmp_path / 'custos.db'}")
-    OrcamentoIA.__table__.create(engine)
-    ConsumoIA.__table__.create(engine)
-    factory = sessionmaker(bind=engine)
-    monkeypatch.setattr(consumo_ia, "SessionLocal", factory)
-    monkeypatch.setattr(settings, "ia_orcamento_bloquear", True)
-    monkeypatch.setattr(settings, "ia_cambio_brl_usd", 1)
-    monkeypatch.setattr(settings, "ia_reserva_fracao", 0)
-    monkeypatch.setattr(settings, "ia_orcamentos_brl", {"starter": 10, "growth": 20})
-    yield factory
-    engine.dispose()
 
 
 @dataclass

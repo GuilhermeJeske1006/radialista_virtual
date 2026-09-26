@@ -58,8 +58,6 @@ __all__ = [
     "ConversaOuvinte",
     "MensagemOuvinte",
     "FunnelEvent",
-    "ConsumoIA",
-    "OrcamentoIA",
 ]
 
 from app.models.conversa_ouvinte import ConversaOuvinte
@@ -67,7 +65,5 @@ from app.models.conversa_ouvinte import ConversaOuvinte
 from app.models.mensagem_ouvinte import MensagemOuvinte
 
 from app.funnel.service import FunnelEvent
-
-from app.models.consumo_ia import ConsumoIA, OrcamentoIA
 
 from app.models.consumo_flex import TarifaIA, ContaConsumo, UsoIA, FaturaConsumo, EventoCobranca

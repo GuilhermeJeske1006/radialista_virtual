@@ -7,7 +7,7 @@ from app.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
-# Paleta do manual da marca (rebrand-locufy.sh) -- fundo e superfícies do Azul
+# Paleta do manual da marca (mesmos tokens do painel, frontend-painel/app/globals.css) -- fundo e superfícies do Azul
 # Estúdio Profissional, acento no meio do gradiente do logo, laranja para
 # alerta/destrutivo. Fontes ficam no stack padrão do sistema: cliente de
 # e-mail não carrega a Sama Latin/Gotham Rounded licenciadas do painel.

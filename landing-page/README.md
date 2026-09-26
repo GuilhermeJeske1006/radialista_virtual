@@ -36,7 +36,7 @@ Parâmetros UTM (`source`, `medium`, `campaign`, `content`, `term`) são preserv
 
 ## Imagens e marca
 
-- Logo horizontal branca e símbolo com gradiente vêm de `frontend-painel/public/Logos/`, preservando a arte oficial. As versões usadas estão incorporadas a `assets/`.
+- Logo horizontal branca e símbolo com gradiente vêm do kit oficial da marca, preservando a arte. As versões usadas estão incorporadas a `assets/` (o painel mantém só as logos horizontais em `frontend-painel/public/Logos/`).
 - Hero e galeria: capturas novas do painel atual, com dados demonstrativos interceptados somente no navegador. Nenhuma conta real foi alterada.
 - Quatro imagens com tratamento editorial: voz/personalidade, grade preenchida, biblioteca de vinhetas e transmissão ao vivo. Enquadramento frontal, texto legível e acabamento azul consistente. Detalhes e origem de cada uma em [design/README.md](design/README.md).
 - Galeria ampliada em seções alternadas, com links diretos às imagens e diálogo acessível quando há JavaScript.
