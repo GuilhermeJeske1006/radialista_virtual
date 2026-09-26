@@ -30,6 +30,7 @@ import { ROTEIRO_MUSICAL } from "../lib/formatoPrograma";
 import { BibliotecaAudioItem } from "../lib/bibliotecaAudio";
 import { CORES_BLOCO, kindDoBloco } from "../lib/blocoVisual";
 import { LocufySpin } from "./LocufyLogo";
+import { useAvisoAlteracoes } from "../lib/useAvisoAlteracoes";
 
 const inputClass =
   "w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20";
@@ -64,6 +65,8 @@ export default function EditarProgramaForm({
   onExcluido,
 }: EditarProgramaFormProps) {
   const [programa, setPrograma] = useState<Programa | null>(null);
+  // Última versão salva/carregada -- diferença em relação a `programa` = alteração pendente.
+  const [original, setOriginal] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState("");
@@ -102,14 +105,18 @@ export default function EditarProgramaForm({
 
   useEffect(() => {
     if (idEfetivo === null) {
-      setPrograma(
-        normalizarPrograma({ id: 0, radio_config_id: radioConfigId ?? 0, ...PROGRAMA_VAZIO, ...valoresIniciais })
-      );
+      const vazio = normalizarPrograma({ id: 0, radio_config_id: radioConfigId ?? 0, ...PROGRAMA_VAZIO, ...valoresIniciais });
+      setPrograma(vazio);
+      setOriginal(JSON.stringify(vazio));
       setCarregando(false);
     } else {
       setCarregando(true);
       apiFetch<Programa>(`/config/programas/${idEfetivo}`)
-        .then((dados) => setPrograma(normalizarPrograma(dados)))
+        .then((dados) => {
+          const normalizado = normalizarPrograma(dados);
+          setPrograma(normalizado);
+          setOriginal(JSON.stringify(normalizado));
+        })
         .catch((err) => setErro(err instanceof ApiError ? err.message : "Erro ao carregar programa"))
         .finally(() => setCarregando(false));
     }
@@ -130,9 +137,12 @@ export default function EditarProgramaForm({
   function recarregarEstrutura() {
     if (idEfetivo === null) return;
     apiFetch<Programa>(`/config/programas/${idEfetivo}`)
-      .then((dados) =>
-        setPrograma((atual) => (atual ? { ...atual, estrutura_blocos: normalizarPrograma(dados).estrutura_blocos } : atual))
-      )
+      .then((dados) => {
+        const estrutura_blocos = normalizarPrograma(dados).estrutura_blocos;
+        setPrograma((atual) => (atual ? { ...atual, estrutura_blocos } : atual));
+        // Mudança feita pelo backend, não pela pessoa: não conta como alteração pendente.
+        setOriginal((anterior) => (anterior ? JSON.stringify({ ...JSON.parse(anterior), estrutura_blocos }) : anterior));
+      })
       .catch(() => {});
     apiFetch<BibliotecaAudioItem[]>("/biblioteca-audio")
       .then(setVinhetas)
@@ -143,7 +153,7 @@ export default function EditarProgramaForm({
     e.preventDefault();
     if (!programa) return;
     if (criando && !radioConfigId) {
-      setErro("Radialista nao identificado -- volte e tente de novo.");
+      setErro("Radialista não identificado — volte e tente de novo.");
       return;
     }
     setSalvando(true);
@@ -163,7 +173,9 @@ export default function EditarProgramaForm({
         setIdCriado(atualizado.id);
         marcarVinhetasCriadas(atualizado.id);
       }
-      setPrograma(normalizarPrograma(atualizado));
+      const salvo = normalizarPrograma(atualizado);
+      setPrograma(salvo);
+      setOriginal(JSON.stringify(salvo));
       setMensagem(criando ? "Programa criado." : "Programa salvo.");
       onSalvo?.(atualizado);
     } catch (err) {
@@ -197,8 +209,8 @@ export default function EditarProgramaForm({
       setAvisosIA(preview.avisos);
       setMensagem(
         preview.campos_corrigidos.length > 0
-          ? `Programa gerado com IA -- os campos ${preview.campos_corrigidos.join(", ")} vieram com erro e usaram um valor padrão, revise-os. Nada foi salvo ainda.`
-          : "Programa gerado com IA -- revise e ajuste o que quiser, depois clique em Salvar."
+          ? `Programa gerado com IA — os campos ${preview.campos_corrigidos.join(", ")} vieram com erro e usaram um valor padrão, revise-os. Nada foi salvo ainda.`
+          : "Programa gerado com IA — revise e ajuste o que quiser, depois clique em Salvar."
       );
     } catch (err) {
       setErroIA(err instanceof ApiError ? err.message : "Erro ao gerar programa com IA");
@@ -223,8 +235,8 @@ export default function EditarProgramaForm({
       setInstrucaoAjuste("");
       setMensagem(
         preview.campos_corrigidos.length > 0
-          ? `Ajuste aplicado -- os campos ${preview.campos_corrigidos.join(", ")} vieram com erro e usaram um valor padrão, revise-os. Nada foi salvo ainda.`
-          : "Ajuste aplicado -- revise e clique em Salvar pra confirmar."
+          ? `Ajuste aplicado — os campos ${preview.campos_corrigidos.join(", ")} vieram com erro e usaram um valor padrão, revise-os. Nada foi salvo ainda.`
+          : "Ajuste aplicado — revise e clique em Salvar pra confirmar."
       );
     } catch (err) {
       setErroIA(err instanceof ApiError ? err.message : "Erro ao ajustar com IA");
@@ -245,10 +257,13 @@ export default function EditarProgramaForm({
     }
   }
 
+  const alteracoesPendentes = programa !== null && original !== "" && JSON.stringify(programa) !== original;
+  useAvisoAlteracoes(alteracoesPendentes);
+
   if (carregando) {
     return (
       <p className="flex items-center gap-2 text-sm text-fg/65">
-        <LocufySpin size={16} /> Carregando...
+        <LocufySpin size={16} /> Carregando…
       </p>
     );
   }
@@ -293,7 +308,7 @@ export default function EditarProgramaForm({
             <div>
               <p className="text-sm text-fg/70 mb-3">
                 Descreva o gênero, o tom e o horário do programa. A IA preenche tópicos, estrutura de blocos,
-                músicas e todo o resto -- depois é só revisar e ajustar.
+                músicas e todo o resto — depois é só revisar e ajustar.
               </p>
               {tipoRadioConta ? (
                 <p className="text-xs font-medium text-acento-claro bg-acento/10 rounded-xl px-3 py-2 mb-3">
@@ -301,7 +316,7 @@ export default function EditarProgramaForm({
                 </p>
               ) : (
                 <p className="text-xs text-fg/65 bg-fg/5 rounded-xl px-3 py-2 mb-3">
-                  Nenhum tipo de rádio configurado -- a IA vai depender só da descrição.{" "}
+                  Nenhum tipo de rádio configurado — a IA vai depender só da descrição.{" "}
                   <Link href="/configuracoes" className="font-medium text-acento-claro hover:underline">
                     Configurar tipo de rádio →
                   </Link>
@@ -312,7 +327,8 @@ export default function EditarProgramaForm({
                 onChange={(e) => setDescricaoIA(e.target.value)}
                 disabled={gerandoIA}
                 rows={3}
-                placeholder="Descrição (opcional). Ex: programa noturno, mais calmo e romântico, foco em modão"
+                aria-label="Descrição do programa (opcional)"
+                placeholder="Ex.: programa noturno, mais calmo e romântico, foco em modão…"
                 className={inputClass}
               />
               {erroIA && <p className="text-sm text-laranja mt-2">{erroIA}</p>}
@@ -321,7 +337,7 @@ export default function EditarProgramaForm({
                   type="button"
                   onClick={() => setIaAberto(false)}
                   disabled={gerandoIA}
-                  className="rounded-xl px-4 py-2 text-sm font-medium text-fg/60 hover:text-fg disabled:opacity-60"
+                  className="rounded-xl px-4 py-2 text-sm font-medium text-fg/65 hover:text-fg disabled:opacity-60"
                 >
                   Cancelar
                 </button>
@@ -331,7 +347,7 @@ export default function EditarProgramaForm({
                   disabled={gerandoIA || (!descricaoIA.trim() && !tipoRadioConta)}
                   className="rounded-xl bg-acento px-4 py-2 text-sm font-medium text-on-brand hover:bg-acento/90 disabled:opacity-60"
                 >
-                  {gerandoIA ? "Gerando..." : "Gerar"}
+                  {gerandoIA ? "Gerando…" : "Gerar"}
                 </button>
               </div>
             </div>
@@ -345,7 +361,8 @@ export default function EditarProgramaForm({
           value={instrucaoAjuste}
           onChange={(e) => setInstrucaoAjuste(e.target.value)}
           disabled={ajustandoIA}
-          placeholder="Ajustar com IA -- ex.: mais sério, tira o bloco de notícia, começa às seis"
+          aria-label="Ajustar com IA"
+          placeholder="Ajustar com IA — ex.: mais sério, tira o bloco de notícia, começa às seis…"
           className="flex-1 min-w-[220px] rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20 disabled:opacity-60"
         />
         <button
@@ -354,7 +371,7 @@ export default function EditarProgramaForm({
           disabled={ajustandoIA || !instrucaoAjuste.trim()}
           className="rounded-xl border border-border-strong px-3 py-2 text-sm font-medium text-fg hover:bg-fg/10 disabled:opacity-60"
         >
-          {ajustandoIA ? "Ajustando..." : "Ajustar"}
+          {ajustandoIA ? "Ajustando…" : "Ajustar"}
         </button>
       </div>
 
@@ -382,16 +399,18 @@ export default function EditarProgramaForm({
         <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro">No ar</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className={labelClass}>Nome do programa</label>
+            <label htmlFor="editarprogramaform-nome-do-programa" className={labelClass}>Nome do programa</label>
             <input
+              id="editarprogramaform-nome-do-programa"
               className={inputClass}
               value={programa.nome}
               onChange={(e) => setPrograma({ ...programa, nome: e.target.value })}
             />
           </div>
           <div>
-            <label className={labelClass}>Horário de início</label>
+            <label htmlFor="editarprogramaform-horario-de-inicio" className={labelClass}>Horário de início</label>
             <input
+              id="editarprogramaform-horario-de-inicio"
               type="time"
               className={inputClass}
               value={programa.horario_inicio.slice(0, 5)}
@@ -399,8 +418,9 @@ export default function EditarProgramaForm({
             />
           </div>
           <div>
-            <label className={labelClass}>Horário de fim</label>
+            <label htmlFor="editarprogramaform-horario-de-fim" className={labelClass}>Horário de fim</label>
             <input
+              id="editarprogramaform-horario-de-fim"
               type="time"
               className={inputClass}
               value={programa.horario_fim.slice(0, 5)}
@@ -409,13 +429,14 @@ export default function EditarProgramaForm({
           </div>
         </div>
         <div>
-          <label className={labelClass}>Sobre o programa</label>
+          <label htmlFor="editarprogramaform-sobre-o-programa" className={labelClass}>Sobre o programa</label>
           <textarea
+            id="editarprogramaform-sobre-o-programa"
             rows={3}
             className={inputClass}
             value={programa.descricao}
             onChange={(e) => setPrograma({ ...programa, descricao: e.target.value })}
-            placeholder="Do que se trata esse programa: formato, proposta, publico -- da mais contexto pro agente alem do tom e dos topicos permitidos."
+            placeholder="Do que se trata este programa: formato, proposta, público — dá mais contexto ao radialista além do tom e dos tópicos permitidos…"
           />
         </div>
         <div>
@@ -452,8 +473,9 @@ export default function EditarProgramaForm({
 
           {programa.data_especifica ? (
             <div>
-              <label className={labelClass}>Data</label>
+              <label htmlFor="editarprogramaform-data" className={labelClass}>Data</label>
               <input
+                id="editarprogramaform-data"
                 type="date"
                 className={inputClass}
                 value={programa.data_especifica}
@@ -479,7 +501,22 @@ export default function EditarProgramaForm({
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-fg/65">Nenhum dia marcado = programa vai ao ar todos os dias.</p>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <p className={`text-xs ${programa.dias_semana.length === 0 ? "font-medium text-laranja" : "text-fg/65"}`}>
+                  {programa.dias_semana.length === 0
+                    ? "Nenhum dia marcado: o programa vai ao ar todos os dias."
+                    : "Sem nenhum dia marcado, o programa vai ao ar todos os dias."}
+                </p>
+                {programa.dias_semana.length !== 7 && (
+                  <button
+                    type="button"
+                    onClick={() => setPrograma({ ...programa, dias_semana: [0, 1, 2, 3, 4, 5, 6] })}
+                    className="text-xs font-medium text-acento-claro underline hover:text-acento-dim"
+                  >
+                    Marcar todos
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -528,8 +565,8 @@ export default function EditarProgramaForm({
             <option value="religioso">Religioso</option>
             <option value="comunitario">Comunitário</option>
           </select>
-          <p className="mt-1 text-xs text-fg/60">
-            Orienta o preenchimento inicial (roteiro sugerido, dosagem de notícia) -- você continua
+          <p className="mt-1 text-xs text-fg/65">
+            Orienta o preenchimento inicial (roteiro sugerido, dosagem de notícia) — você continua
             livre pra editar tudo manualmente depois.
           </p>
           {programa.perfil === "jornalismo" && (
@@ -618,7 +655,7 @@ export default function EditarProgramaForm({
               <p className="text-sm text-fg/65 mb-3">
                 {programa.perfil_programacao === "musical_companhia"
                   ? "O programa usará a sequência musical sugerida."
-                  : "Nenhum bloco montado ainda -- o programa não tem roteiro definido."}
+                  : "Nenhum bloco montado ainda — o programa não tem roteiro definido."}
               </p>
             )}
             <Link
@@ -658,8 +695,9 @@ export default function EditarProgramaForm({
         <hr className="border-border" />
         <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro">Persona e conteúdo</h3>
         <div>
-          <label className={labelClass}>Tom de voz</label>
+          <label htmlFor="editarprogramaform-tom-de-voz" className={labelClass}>Tom de voz</label>
           <textarea
+            id="editarprogramaform-tom-de-voz"
             className={inputClass}
             rows={3}
             value={programa.tom}
@@ -677,24 +715,27 @@ export default function EditarProgramaForm({
           onChange={(tags) => setPrograma({ ...programa, topicos_proibidos: tags })}
         />
         <div>
-          <label className={labelClass}>Mensagem de saudação</label>
+          <label htmlFor="editarprogramaform-mensagem-de-saudacao" className={labelClass}>Mensagem de saudação</label>
           <input
+            id="editarprogramaform-mensagem-de-saudacao"
             className={inputClass}
             value={programa.mensagem_saudacao}
             onChange={(e) => setPrograma({ ...programa, mensagem_saudacao: e.target.value })}
           />
         </div>
         <div>
-          <label className={labelClass}>Mensagem de recusa</label>
+          <label htmlFor="editarprogramaform-mensagem-de-recusa" className={labelClass}>Mensagem de recusa</label>
           <input
+            id="editarprogramaform-mensagem-de-recusa"
             className={inputClass}
             value={programa.mensagem_recusa}
             onChange={(e) => setPrograma({ ...programa, mensagem_recusa: e.target.value })}
           />
         </div>
         <div>
-          <label className={labelClass}>Limite de mensagens por hora</label>
+          <label htmlFor="editarprogramaform-limite-de-mensagens-por" className={labelClass}>Limite de mensagens por hora</label>
           <input
+            id="editarprogramaform-limite-de-mensagens-por"
             type="number"
             min={1}
             className={inputClass}
@@ -707,9 +748,9 @@ export default function EditarProgramaForm({
         <details className="group">
           <summary className="flex items-center justify-between cursor-pointer list-none py-1 [&::-webkit-details-marker]:hidden">
             <span className="font-mono text-xs uppercase tracking-wide text-acento-claro">
-              Músicas <span className="text-fg/40 normal-case font-sans">-- opcional, ajusta o que a IA toca</span>
+              Músicas <span className="text-fg/65 normal-case font-sans">— opcional, ajusta o que a IA toca</span>
             </span>
-            <span className="text-fg/40 transition-transform group-open:rotate-90">›</span>
+            <span className="text-fg/65 transition-transform group-open:rotate-90">›</span>
           </summary>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 mt-3">
             <TagInput
@@ -728,8 +769,9 @@ export default function EditarProgramaForm({
               onChange={(tags) => setPrograma({ ...programa, musicas_bloqueadas: tags })}
             />
             <div>
-              <label className={labelClass}>Busca de músicas</label>
+              <label htmlFor="editarprogramaform-busca-de-musicas" className={labelClass}>Busca de músicas</label>
               <textarea
+                id="editarprogramaform-busca-de-musicas"
                 className={inputClass}
                 rows={5}
                 placeholder="Ex.: sertanejo raiz e universitário dos anos 2000 até hoje, evitar remixes eletrônicos"
@@ -738,8 +780,9 @@ export default function EditarProgramaForm({
               />
             </div>
             <div>
-              <label className={labelClass}>Música de fundo (enquanto o locutor fala)</label>
+              <label htmlFor="editarprogramaform-musica-de-fundo-enquanto" className={labelClass}>Música de fundo (enquanto o radialista fala)</label>
               <input
+                id="editarprogramaform-musica-de-fundo-enquanto"
                 type="text"
                 className={inputClass}
                 placeholder="Ex.: Lofi Chill Beats - Instrumental. Vazio = sorteia pelo gênero"
@@ -754,21 +797,22 @@ export default function EditarProgramaForm({
         <details className="group">
           <summary className="flex items-center justify-between cursor-pointer list-none py-1 [&::-webkit-details-marker]:hidden">
             <span className="font-mono text-xs uppercase tracking-wide text-acento-claro">
-              Assuntos e notícias <span className="text-fg/40 normal-case font-sans">-- opcional</span>
+              Assuntos e notícias <span className="text-fg/65 normal-case font-sans">— opcional</span>
             </span>
-            <span className="text-fg/40 transition-transform group-open:rotate-90">›</span>
+            <span className="text-fg/65 transition-transform group-open:rotate-90">›</span>
           </summary>
           <div className="sm:col-span-2 mb-3">
-            <label className={labelClass}>O que rende conversa aqui</label>
+            <label htmlFor="editarprogramaform-o-que-rende-conversa" className={labelClass}>O que rende conversa aqui</label>
             <textarea
+              id="editarprogramaform-o-que-rende-conversa"
               className={inputClass}
               rows={2}
               placeholder="Ex.: trabalhador rural que sai de casa às cinco, ouve rádio indo pro serviço"
               value={programa.publico_alvo ?? ""}
               onChange={(e) => setPrograma({ ...programa, publico_alvo: e.target.value })}
             />
-            <p className="mt-1 text-xs text-fg/60">
-              Texto livre descrevendo quem de fato ouve este programa -- alimenta o banco de
+            <p className="mt-1 text-xs text-fg/65">
+              Texto livre descrevendo quem de fato ouve este programa — alimenta o banco de
               assuntos (ver Pauta do dia mais abaixo). Opcional: vazio, o sistema deriva um
               briefing a partir de horário, gênero musical, cidade e pedido do público.
             </p>
@@ -797,10 +841,10 @@ export default function EditarProgramaForm({
                 value={programa.dose_noticia ?? "jornalistica"}
                 onChange={(e) => setPrograma({ ...programa, dose_noticia: e.target.value as Programa["dose_noticia"] })}
               >
-                <option value="nenhuma">Nenhuma -- sem notícia neste programa</option>
-                <option value="pitada">Pitada -- raríssima, prioriza serviço/agenda leve</option>
-                <option value="equilibrada">Equilibrada -- alguma notícia, sem virar jornal</option>
-                <option value="jornalistica">Jornalística -- sem restrição de pauta</option>
+                <option value="nenhuma">Nenhuma — sem notícia neste programa</option>
+                <option value="pitada">Pitada — raríssima, prioriza serviço/agenda leve</option>
+                <option value="equilibrada">Equilibrada — alguma notícia, sem virar jornal</option>
+                <option value="jornalistica">Jornalística — sem restrição de pauta</option>
               </select>
             </div>
             <div>
@@ -811,13 +855,13 @@ export default function EditarProgramaForm({
                 value={programa.densidade_assunto ?? "leve"}
                 onChange={(e) => setPrograma({ ...programa, densidade_assunto: e.target.value as Programa["densidade_assunto"] })}
               >
-                <option value="leve">Leve -- papo solto, só usa a pauta quando render natural</option>
-                <option value="equilibrada">Equilibrada -- alterna papo livre e assunto com fato</option>
-                <option value="informado">Informado -- prioriza assunto com fato sobre papo sem pauta</option>
+                <option value="leve">Leve — papo solto, só usa a pauta quando render natural</option>
+                <option value="equilibrada">Equilibrada — alterna papo livre e assunto com fato</option>
+                <option value="informado">Informado — prioriza assunto com fato sobre papo sem pauta</option>
               </select>
             </div>
           </div>
-          <p className="mb-3 text-xs text-fg/60">
+          <p className="mb-3 text-xs text-fg/65">
             Para apresentar notícias, inclua um bloco de notícia/escalada/giro/serviço/plantão no
             roteiro e ative “Pode pesquisar” abaixo. Notícia de verdade vem das fontes com feed RSS
             cadastradas abaixo; sem pauta apurada, o sistema busca fontes indicadas aqui como
@@ -825,7 +869,7 @@ export default function EditarProgramaForm({
           </p>
           <div className="mb-4">
             <label className={labelClass}>
-              Fontes de notícia (feed RSS, compartilhadas por toda a rádio -- não só este programa)
+              Fontes de notícia (feed RSS, compartilhadas por toda a rádio — não só este programa)
             </label>
             <FontesNoticiaSection />
           </div>
@@ -845,9 +889,9 @@ export default function EditarProgramaForm({
         <details className="group">
           <summary className="flex items-center justify-between cursor-pointer list-none py-1 [&::-webkit-details-marker]:hidden">
             <span className="font-mono text-xs uppercase tracking-wide text-acento-claro">
-              Pesquisa externa <span className="text-fg/40 normal-case font-sans">-- opcional</span>
+              Pesquisa externa <span className="text-fg/65 normal-case font-sans">— opcional</span>
             </span>
-            <span className="text-fg/40 transition-transform group-open:rotate-90">›</span>
+            <span className="text-fg/65 transition-transform group-open:rotate-90">›</span>
           </summary>
           <label className="inline-flex items-center gap-2 text-sm font-medium text-fg/80 mt-3 mb-1">
             <input
@@ -858,7 +902,7 @@ export default function EditarProgramaForm({
             />
             Pode pesquisar
           </label>
-          <p className="mb-3 text-xs text-fg/60">
+          <p className="mb-3 text-xs text-fg/65">
             Busca notícias recentes antes dos blocos de notícia e comentário, usando a cidade e os temas do programa.
             As fontes de notícias têm prioridade; se estiverem vazias, serão usadas as fontes de pesquisa.
             Sem fontes cadastradas, a busca usa fontes públicas. Os links consultados aparecem no histórico do ao vivo.
@@ -870,8 +914,9 @@ export default function EditarProgramaForm({
               onChange={(tags) => setPrograma({ ...programa, fontes_pesquisa: tags })}
             />
             <div>
-              <label className={labelClass}>Regras de pesquisa</label>
+              <label htmlFor="editarprogramaform-regras-de-pesquisa" className={labelClass}>Regras de pesquisa</label>
               <textarea
+                id="editarprogramaform-regras-de-pesquisa"
                 className={inputClass}
                 rows={5}
                 placeholder="Ex.: buscar só em fontes de notícia locais, resumir em até 2 frases, sem opinião"
@@ -882,14 +927,16 @@ export default function EditarProgramaForm({
           </div>
         </details>
 
-        <div className="pt-2">
+        <div className="sticky bottom-0 z-10 -mx-6 -mb-6 flex flex-wrap items-center gap-3 rounded-b-3xl border-t border-border bg-surface/95 px-6 py-3 backdrop-blur">
           <button
             type="submit"
             disabled={salvando}
             className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {salvando ? "Salvando..." : "Salvar"}
+            {salvando ? "Salvando…" : criando ? "Criar programa" : "Salvar programa"}
           </button>
+          {alteracoesPendentes && <span className="text-xs text-laranja">Alterações não salvas</span>}
+          {mensagem && !alteracoesPendentes && <span role="status" className="text-xs text-ciano">{mensagem}</span>}
         </div>
       </form>
 

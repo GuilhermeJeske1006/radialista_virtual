@@ -24,7 +24,7 @@ export default function PrivacidadePage() {
 
       <main className="max-w-3xl mx-auto px-4 py-12">
         <h1 className="font-display text-2xl font-bold text-fg mb-2">Política de Privacidade</h1>
-        <p className="text-sm text-fg/50 mb-10">Última atualização: {ATUALIZADO_EM}</p>
+        <p className="text-sm text-fg/65 mb-10">Última atualização: {ATUALIZADO_EM}</p>
 
         <div className="space-y-8 text-sm leading-relaxed text-fg/80">
           <section>
@@ -81,7 +81,7 @@ export default function PrivacidadePage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse mt-2">
                 <thead>
-                  <tr className="border-b border-border text-fg/60">
+                  <tr className="border-b border-border text-fg/65">
                     <th className="py-2 pr-4 font-medium">Cookie</th>
                     <th className="py-2 pr-4 font-medium">Finalidade</th>
                     <th className="py-2 font-medium">Duração</th>
@@ -104,7 +104,7 @@ export default function PrivacidadePage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse mt-2">
                 <thead>
-                  <tr className="border-b border-border text-fg/60">
+                  <tr className="border-b border-border text-fg/65">
                     <th className="py-2 pr-4 font-medium">Provedor</th>
                     <th className="py-2 font-medium">Finalidade</th>
                   </tr>

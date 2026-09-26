@@ -112,9 +112,9 @@ export default function NotificationBell() {
             )}
           </div>
           <div className="max-h-80 overflow-y-auto">
-            {carregando && <p className="px-4 py-6 text-center text-xs text-fg/50">Carregando...</p>}
+            {carregando && <p className="px-4 py-6 text-center text-xs text-fg/65">Carregando…</p>}
             {!carregando && notificacoes.length === 0 && (
-              <p className="px-4 py-6 text-center text-xs text-fg/50">Nenhuma notificação por aqui.</p>
+              <p className="px-4 py-6 text-center text-xs text-fg/65">Nenhuma notificação por aqui.</p>
             )}
             {notificacoes.map((n) => (
               <button
@@ -122,11 +122,11 @@ export default function NotificationBell() {
                 type="button"
                 onClick={() => clicarNotificacao(n)}
                 className={`block w-full border-b border-border px-4 py-3 text-left text-sm last:border-b-0 hover:bg-fg/5 ${
-                  n.lida ? "text-fg/60" : "text-fg"
+                  n.lida ? "text-fg/65" : "text-fg"
                 }`}
               >
                 <span className="font-medium">{n.titulo}</span>
-                <p className="mt-0.5 text-xs text-fg/60">{n.mensagem}</p>
+                <p className="mt-0.5 text-xs text-fg/65">{n.mensagem}</p>
               </button>
             ))}
           </div>

@@ -47,14 +47,17 @@ export function GraficoBarras({
           {hover.total === 1 ? rotuloSingular : rotuloPlural} · {formatarDataLonga(hover.data)}
         </div>
       )}
+      {/* O SVG estica na largura (preserveAspectRatio="none"); por isso as datas ficam fora dele,
+          em HTML, senão o texto sai deformado e cortado nas pontas. */}
+      <div style={{ maxWidth: largura * 3, margin: "0 auto" }}>
       <svg
-        viewBox={`0 0 ${largura} ${altura + 20}`}
+        viewBox={`0 0 ${largura} ${altura}`}
         width="100%"
-        height={altura + 20}
+        height={altura}
         preserveAspectRatio="none"
         role="img"
         aria-label={ariaLabel}
-        style={{ maxWidth: largura * 3, display: "block", margin: "0 auto" }}
+        style={{ display: "block" }}
       >
         {/* linha de base -- unica gridline, recessiva */}
         <line
@@ -94,22 +97,18 @@ export function GraficoBarras({
                 onMouseEnter={() => setHoverIndex(indice)}
                 onMouseLeave={() => setHoverIndex(null)}
               />
-              {indicesRotulados.has(indice) && (
-                <text
-                  x={x + larguraBarra / 2}
-                  y={altura + 14}
-                  textAnchor="middle"
-                  fontSize={9}
-                  fill="var(--color-fg)"
-                  opacity={0.45}
-                >
-                  {formatarDataCurta(ponto.data)}
-                </text>
-              )}
             </g>
           );
         })}
       </svg>
+      {serie.length > 0 && (
+        <div className="mt-1.5 flex justify-between text-[11px] text-fg/65 tabular-nums" aria-hidden="true">
+          {[...indicesRotulados].sort((a, b) => a - b).map((indice) => (
+            <span key={indice}>{formatarDataCurta(serie[indice].data)}</span>
+          ))}
+        </div>
+      )}
+      </div>
     </div>
   );
 }

@@ -79,7 +79,7 @@ export default function AdminEmpresaDetalhePage() {
     return (
       <AdminShell title="Empresa">
         <p className="flex items-center gap-2 text-sm text-fg/65">
-          <LocufySpin size={16} /> Carregando...
+          <LocufySpin size={16} /> Carregando…
         </p>
       </AdminShell>
     );
@@ -126,8 +126,9 @@ export default function AdminEmpresaDetalhePage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1">
-              <label className="block text-xs font-medium text-fg/65 mb-1">Plano</label>
+              <label htmlFor="[id]-plano" className="block text-xs font-medium text-fg/65 mb-1">Plano</label>
               <select
+                id="[id]-plano"
                 value={planoSelecionado}
                 onChange={(e) => setPlanoSelecionado(e.target.value)}
                 className={inputClass}
@@ -140,8 +141,9 @@ export default function AdminEmpresaDetalhePage() {
               </select>
             </div>
             <div className="flex-1">
-              <label className="block text-xs font-medium text-fg/65 mb-1">Status</label>
+              <label htmlFor="[id]-status" className="block text-xs font-medium text-fg/65 mb-1">Status</label>
               <select
+                id="[id]-status"
                 value={statusSelecionado}
                 onChange={(e) => setStatusSelecionado(e.target.value)}
                 className={inputClass}

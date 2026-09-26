@@ -207,7 +207,7 @@ export default function VinhetasProgramaSection({ programaId, onEstruturaMudou }
   if (vinhetas === null) {
     return (
       <p className="flex items-center gap-2 text-sm text-fg/65">
-        <LocufySpin size={16} /> Carregando vinhetas...
+        <LocufySpin size={16} /> Carregando vinhetas…
       </p>
     );
   }
@@ -228,7 +228,7 @@ export default function VinhetasProgramaSection({ programaId, onEstruturaMudou }
           pronta, o ao vivo fala o texto dela na hora, sem trilha.
         </p>
         {origemTrilha && (
-          <span className="rounded-full border border-border-strong px-2 py-0.5 text-[10px] uppercase tracking-wide text-fg/60">
+          <span className="rounded-full border border-border-strong px-2 py-0.5 text-[10px] uppercase tracking-wide text-fg/65">
             {TRILHA_LABEL[origemTrilha]}
           </span>
         )}
@@ -250,11 +250,11 @@ export default function VinhetasProgramaSection({ programaId, onEstruturaMudou }
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0">
                   <span className="text-sm font-medium text-fg">{PAPEL_LABEL[papel]}</span>
-                  <span className="ml-2 text-xs text-fg/50">{PAPEL_DICA[papel]}</span>
+                  <span className="ml-2 text-xs text-fg/65">{PAPEL_DICA[papel]}</span>
                 </div>
                 {emAndamento ? (
                   <span className="flex items-center gap-1.5 text-xs text-fg/65">
-                    <LocufySpin size={14} /> Gerando trilha e mixando...
+                    <LocufySpin size={14} /> Gerando trilha e mixando…
                   </span>
                 ) : v.tem_audio ? (
                   <button
@@ -326,7 +326,7 @@ export default function VinhetasProgramaSection({ programaId, onEstruturaMudou }
                 </label>
                 {ocupado === `remix-${v.id}` && (
                   <span className="flex items-center gap-1.5 text-xs text-fg/65">
-                    <LocufySpin size={14} /> Remixando...
+                    <LocufySpin size={14} /> Remixando…
                   </span>
                 )}
               </div>
@@ -336,8 +336,13 @@ export default function VinhetasProgramaSection({ programaId, onEstruturaMudou }
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => setConfirmandoRegerar(true)} disabled={!!ocupado} className={botaoSecundario}>
-          Gerar de novo
+        <button
+          type="button"
+          onClick={() => (vinhetas.length > 0 ? setConfirmandoRegerar(true) : regerar())}
+          disabled={!!ocupado}
+          className={botaoSecundario}
+        >
+          {vinhetas.length > 0 ? "Gerar de novo" : "Gerar vinhetas"}
         </button>
         {vinhetas.length > 0 && (
           <>
@@ -373,7 +378,7 @@ export default function VinhetasProgramaSection({ programaId, onEstruturaMudou }
         )}
         {(ocupado === "trilha-banco" || ocupado === "upload" || ocupado === "regerar") && (
           <span className="flex items-center gap-1.5 text-xs text-fg/65">
-            <LocufySpin size={14} /> Aguarde...
+            <LocufySpin size={14} /> Aguarde…
           </span>
         )}
       </div>

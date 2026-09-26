@@ -69,7 +69,7 @@ export default function SuporteChat() {
     <div className="fixed bottom-5 right-5 z-40 flex h-[32rem] w-96 max-w-[calc(100vw-2.5rem)] flex-col rounded-3xl border border-border-strong bg-surface shadow-lg">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <span className="font-display text-sm font-bold text-fg">Suporte Locufy</span>
-        <button type="button" onClick={() => setAberto(false)} className="text-fg/50 hover:text-fg" title="Fechar">
+        <button type="button" onClick={() => setAberto(false)} className="text-fg/65 hover:text-fg" title="Fechar">
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -88,8 +88,8 @@ export default function SuporteChat() {
           </div>
         ))}
         {enviando && (
-          <p className="flex items-center gap-2 text-xs text-fg/50">
-            <LocufySpin size={14} /> Pensando...
+          <p className="flex items-center gap-2 text-xs text-fg/65">
+            <LocufySpin size={14} /> Pensando…
           </p>
         )}
         {erro && <p className="text-xs text-laranja">{erro}</p>}
@@ -102,7 +102,7 @@ export default function SuporteChat() {
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
           disabled={enviando}
-          placeholder="Digite sua dúvida..."
+          placeholder="Digite sua dúvida…"
           className="flex-1 rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/50 focus:outline-none focus:ring-2 focus:ring-acento-claro/30 disabled:opacity-60"
         />
         <button

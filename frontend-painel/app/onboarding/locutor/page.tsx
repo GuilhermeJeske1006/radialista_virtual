@@ -9,6 +9,7 @@ import { invalidarConfiguracaoInicial } from "../../../lib/useConfiguracaoInicia
 import { ConfiguracaoIA, DIAS_SEMANA_LABEL, Radialista, RadioPerfil, TipoRadio, Voz } from "../../../lib/types";
 import { LocufySpin } from "../../../components/LocufyLogo";
 import CombinacaoSelect from "../../../components/CombinacaoSelect";
+import { AvisoPagamento, useExigirAssinatura } from "../../../components/AssinaturaGate";
 import { Combinacao, consumoMensalEstimado, nomeModelo, reais, reaisPreciso } from "../../../lib/combinacoes";
 
 function formatarDias(dias: number[], dataEspecifica: string | null): string {
@@ -29,6 +30,7 @@ export default function LocutorOnboardingPage() {
   const [criado, setCriado] = useState<ConfiguracaoIA | null>(null);
   const [verificandoSetup, setVerificandoSetup] = useState(true);
   const [jaConfigurado, setJaConfigurado] = useState(false);
+  const { exigir, modal: modalAssinatura } = useExigirAssinatura();
 
   useEffect(() => {
     apiFetch<RadioPerfil>("/config/radio")
@@ -40,7 +42,7 @@ export default function LocutorOnboardingPage() {
     apiFetch<Voz[]>("/tts/voices")
       .then(setVozes)
       .catch(() => {});
-    // se a rádio ja' tem um locutor com voz definida, esse wizard ja' foi concluido antes --
+    // se a rádio ja' tem um radialista com voz definida, esse wizard ja' foi concluido antes --
     // mostrar de novo o CTA de gerar so' levaria a um 402 (limite de agentes atingido) sem
     // explicar por que, entao pula direto pro proximo passo do onboarding.
     apiFetch<Radialista[]>("/config/radialistas")
@@ -70,7 +72,7 @@ export default function LocutorOnboardingPage() {
       if (err instanceof ApiError && err.status === 402) {
         setPrecisaUpgrade(err.message || "Não foi possível autorizar esta geração.");
       } else {
-        setErro(err instanceof ApiError ? err.message : "Erro ao gerar locutor com IA");
+        setErro(err instanceof ApiError ? err.message : "Erro ao gerar radialista com IA");
       }
     } finally {
       setGerando(false);
@@ -79,9 +81,9 @@ export default function LocutorOnboardingPage() {
 
   if (verificandoSetup) {
     return (
-      <AppShell title="Seu primeiro locutor" maxWidthClassName="max-w-lg">
+      <AppShell title="Seu primeiro radialista" maxWidthClassName="max-w-lg">
         <p className="flex items-center gap-2 text-sm text-fg/65">
-          <LocufySpin size={16} /> Carregando...
+          <LocufySpin size={16} /> Carregando…
         </p>
       </AppShell>
     );
@@ -89,12 +91,12 @@ export default function LocutorOnboardingPage() {
 
   if (jaConfigurado && !criado) {
     return (
-      <AppShell title="Seu primeiro locutor" maxWidthClassName="max-w-lg">
+      <AppShell title="Seu primeiro radialista" maxWidthClassName="max-w-lg">
         <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
-          <h2 className="font-display text-base font-bold text-fg mb-1">Seu locutor já está pronto</h2>
+          <h2 className="font-display text-base font-bold text-fg mb-1">Seu radialista já está pronto</h2>
           <p className="text-sm text-fg/65 mb-5">
-            Você já configurou um locutor com voz definida. Continue pra conectar o WhatsApp, ou ajuste a
-            persona dele quando quiser em Radialistas.
+            Você já configurou um radialista com voz definida. Continue para o próximo passo ou ajuste a
+            personalidade dele quando quiser em Radialistas.
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
             <Link
@@ -117,7 +119,7 @@ export default function LocutorOnboardingPage() {
 
   if (criado) {
     return (
-      <AppShell title="Locutor criado" maxWidthClassName="max-w-lg">
+      <AppShell title="Radialista criado" maxWidthClassName="max-w-lg">
         <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
           <div className="flex items-center gap-2 mb-4">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ciano text-on-brand">
@@ -130,7 +132,7 @@ export default function LocutorOnboardingPage() {
 
           <dl className="space-y-3 mb-6">
             <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-fg/65">Locutor</dt>
+              <dt className="text-xs font-medium uppercase tracking-wide text-fg/65">Radialista</dt>
               <dd className="text-sm font-medium text-fg">{criado.radialista.nome_locutor}</dd>
             </div>
             {vozGerada && (
@@ -168,7 +170,7 @@ export default function LocutorOnboardingPage() {
               <div>
                 <dt className="text-xs font-medium uppercase tracking-wide text-fg/65">Valor desta geração</dt>
                 <dd className="text-sm text-fg">
-                  {reaisPreciso(criado.custo_geracao_brl)} (locutor, programa e textos das vinhetas). O áudio das
+                  {reaisPreciso(criado.custo_geracao_brl)} (radialista, programa e textos das vinhetas). O áudio das
                   vinhetas aparece no extrato quando ficar pronto.
                 </dd>
               </div>
@@ -185,7 +187,7 @@ export default function LocutorOnboardingPage() {
             Criamos 3 vinhetas com trilha para este programa e colocamos na programação.
           </p>
           <p className="text-xs text-fg/65 mb-4">
-            Dá pra ajustar tudo isso depois -- tom de voz, tópicos, músicas e o roteiro do programa.
+            Dá pra ajustar tudo isso depois — tom de voz, tópicos, músicas e o roteiro do programa.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3">
@@ -208,32 +210,36 @@ export default function LocutorOnboardingPage() {
   }
 
   return (
-    <AppShell title="Seu primeiro locutor" maxWidthClassName="max-w-3xl">
+    <AppShell title="Seu primeiro radialista" maxWidthClassName="max-w-3xl">
       <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
-        <h2 className="font-display text-lg font-bold text-fg mb-1">Vamos criar seu primeiro locutor</h2>
+        <h2 className="font-display text-lg font-bold text-fg mb-1">Vamos criar seu primeiro radialista</h2>
         <p className="text-sm text-fg/65 mb-5">
           {tipoRadioConta
             ? `Baseado no perfil "${labelTipoRadioConta ?? tipoRadioConta}" que você escolheu, já preparamos um ponto de partida.`
-            : "Descreva sua rádio (ou pule direto) e a IA já prepara um locutor e um programa prontos."}
+            : "Descreva sua rádio (ou pule direto) e a IA já prepara um radialista e um programa prontos."}
         </p>
 
         <div className="rounded-xl border border-acento-claro/30 bg-acento/5 p-4 mb-4">
           <p className="text-sm font-medium text-fg mb-1">✨ Gerar automaticamente</p>
           <p className="text-xs text-fg/65 mb-3">Nome, voz e programa prontos em segundos. Você revisa e ajusta o que quiser depois.</p>
+          <label htmlFor="onboarding-descricao" className="mb-1.5 block text-xs font-medium text-fg/80">
+            Descreva sua rádio ou programa (opcional)
+          </label>
           <textarea
+            id="onboarding-descricao"
             value={descricao}
             onChange={(e) => setDescricao(e.target.value)}
             disabled={gerando}
             rows={3}
-            placeholder="Descrição (opcional). Ex: programa de manhã, animado, com bloco de recado ao ouvinte"
+            placeholder="Ex.: programa de manhã, animado, com bloco de recado ao ouvinte…"
             className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2.5 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:ring-2 focus:ring-acento-claro/40 disabled:opacity-60 mb-3"
           />
           <div className="mb-3">
-            <CombinacaoSelect value={combinacao?.id ?? null} onChange={setCombinacao} disabled={gerando} />
+            <CombinacaoSelect value={combinacao?.id ?? null} onChange={setCombinacao} disabled={gerando} compacto />
           </div>
           {combinacao && (
             <p role="status" className="rounded-lg bg-fg/5 px-3 py-2 text-xs text-fg/80 mb-3">
-              Seu locutor vai usar <strong className="text-fg">{combinacao.nome}</strong>: texto{" "}
+              Seu radialista vai usar <strong className="text-fg">{combinacao.nome}</strong>: texto{" "}
               <span translate="no">{nomeModelo(combinacao.modelo_texto)}</span> e voz{" "}
               <span translate="no">{nomeModelo(combinacao.modelo_voz)}</span> · ≈ {reais(combinacao.preco_hora_brl)} por
               hora de programa.
@@ -241,23 +247,17 @@ export default function LocutorOnboardingPage() {
           )}
           {erro && <p className="text-sm text-laranja mb-3">{erro}</p>}
           {precisaUpgrade && (
-            <p className="text-sm text-laranja mb-3">
-              {precisaUpgrade}{" "}
-              <Link href="/billing" className="font-medium underline">
-                Ver assinatura e consumo
-              </Link>
-              .
-            </p>
+            <AvisoPagamento mensagem={precisaUpgrade} onClose={() => setPrecisaUpgrade("")} onAssinado={() => void gerar()} />
           )}
           <button
             type="button"
-            onClick={gerar}
+            onClick={() => exigir(() => void gerar())}
             disabled={gerando}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-acento px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-acento/90 disabled:opacity-60"
           >
             {gerando ? (
               <>
-                <LocufySpin size={14} /> Gerando...
+                <LocufySpin size={14} /> Gerando…
               </>
             ) : combinacao ? (
               `Gerar agora com ${combinacao.nome} →`
@@ -273,6 +273,7 @@ export default function LocutorOnboardingPage() {
           </Link>
         </div>
       </div>
+      {modalAssinatura}
     </AppShell>
   );
 }

@@ -296,7 +296,7 @@ export default function VinhetagemPage() {
       <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
         <p className="text-sm text-fg/65 max-w-2xl">
           Crie categorias (cada uma já marcada como biblioteca ou propaganda) e adicione as inserções dentro de cada
-          uma -- o tipo é sempre o da categoria escolhida. Vinhetas de biblioteca aparecem como botões no cartwall do{" "}
+          uma — o tipo é sempre o da categoria escolhida. Vinhetas de biblioteca aparecem como botões no cartwall do{" "}
           <Link href="/live" className="text-acento-claro underline hover:text-acento-dim">
             Ao Vivo
           </Link>
@@ -317,7 +317,7 @@ export default function VinhetagemPage() {
 
       {carregando ? (
         <p className="flex items-center gap-2 text-sm text-fg/65">
-          <LocufySpin size={16} /> Carregando...
+          <LocufySpin size={16} /> Carregando…
         </p>
       ) : categorias.length === 0 && vinhetas.length === 0 && propagandas.length === 0 ? (
         <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
@@ -414,7 +414,7 @@ export default function VinhetagemPage() {
                           setFiltros((atual) => ({ ...atual, [chave]: e.target.value }));
                           mudarPagina(1);
                         }}
-                        placeholder="Filtrar por nome..."
+                        placeholder="Filtrar por nome…"
                         className={`${inputClass} mb-3`}
                       />
                     )}
@@ -447,7 +447,7 @@ export default function VinhetagemPage() {
                                   ? "Gerada para o programa"
                                   : entrada.item.status === "erro"
                                     ? "Gerada para o programa · sem áudio mixado"
-                                    : "Gerando trilha e mixando..."}
+                                    : "Gerando trilha e mixando…"}
                               </p>
                             )}
                           </div>
@@ -483,7 +483,7 @@ export default function VinhetagemPage() {
                             </p>
                             <p className="text-xs text-fg/65 font-mono">
                               {entrada.item.tipo_conteudo === "texto"
-                                ? "Texto (TTS)"
+                                ? "Texto lido pela voz do radialista"
                                 : `Áudio${entrada.item.audio_nome_original ? ` · ${entrada.item.audio_nome_original}` : ""}`}
                             </p>
                           </div>
@@ -545,8 +545,9 @@ export default function VinhetagemPage() {
         {formCategoria && (
           <form onSubmit={salvarCategoria} className="space-y-4">
             <div>
-              <label className={labelClass}>Nome da categoria</label>
+              <label htmlFor="vinhetagem-nome-da-categoria" className={labelClass}>Nome da categoria</label>
               <input
+                id="vinhetagem-nome-da-categoria"
                 type="text"
                 required
                 value={formCategoria.nome}
@@ -583,7 +584,7 @@ export default function VinhetagemPage() {
               <button
                 type="button"
                 onClick={() => setFormCategoria(null)}
-                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
+                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/65 hover:text-fg"
               >
                 Cancelar
               </button>
@@ -592,7 +593,7 @@ export default function VinhetagemPage() {
                 disabled={salvando}
                 className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60"
               >
-                {salvando ? "Salvando..." : "Salvar"}
+                {salvando ? "Salvando…" : "Salvar"}
               </button>
             </div>
           </form>
@@ -607,8 +608,9 @@ export default function VinhetagemPage() {
         {formInsercao && (
           <form onSubmit={salvarInsercao} className="space-y-4">
             <div>
-              <label className={labelClass}>Nome</label>
+              <label htmlFor="vinhetagem-nome" className={labelClass}>Nome</label>
               <input
+                id="vinhetagem-nome"
                 type="text"
                 required
                 value={formInsercao.nome}
@@ -635,8 +637,9 @@ export default function VinhetagemPage() {
               <>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className={labelClass}>Cor do card (opcional)</label>
+                    <label htmlFor="vinhetagem-cor-do-card-opcional" className={labelClass}>Cor do card (opcional)</label>
                     <input
+                      id="vinhetagem-cor-do-card-opcional"
                       type="color"
                       value={formInsercao.cor || "#e8a33d"}
                       onChange={(e) => setFormInsercao({ ...formInsercao, cor: e.target.value })}
@@ -644,8 +647,9 @@ export default function VinhetagemPage() {
                     />
                   </div>
                   <div>
-                    <label className={labelClass}>Ordem no cartwall</label>
+                    <label htmlFor="vinhetagem-ordem-no-cartwall" className={labelClass}>Ordem no cartwall</label>
                     <input
+                      id="vinhetagem-ordem-no-cartwall"
                       type="number"
                       value={formInsercao.ordem}
                       onChange={(e) => setFormInsercao({ ...formInsercao, ordem: Number(e.target.value) })}
@@ -654,8 +658,9 @@ export default function VinhetagemPage() {
                   </div>
                 </div>
                 <div>
-                  <label className={labelClass}>Arquivo de áudio (mp3, m4a, wav ou ogg, até 15MB)</label>
+                  <label htmlFor="vinhetagem-arquivo-de-audio-mp3" className={labelClass}>Arquivo de áudio (mp3, m4a, wav ou ogg, até 15MB)</label>
                   <input
+                    id="vinhetagem-arquivo-de-audio-mp3"
                     type="file"
                     accept="audio/*,.mp3,.m4a,.wav,.ogg"
                     onChange={(e) => setFormInsercao({ ...formInsercao, arquivo: e.target.files?.[0] ?? null })}
@@ -687,7 +692,7 @@ export default function VinhetagemPage() {
                         checked={formInsercao.tipo_conteudo === "texto"}
                         onChange={() => setFormInsercao({ ...formInsercao, tipo_conteudo: "texto" })}
                       />
-                      Texto (locutor lê ao vivo)
+                      Texto (o radialista lê ao vivo)
                     </label>
                     <label className="flex items-center gap-1.5">
                       <input
@@ -703,14 +708,15 @@ export default function VinhetagemPage() {
                 {formInsercao.tipo_conteudo === "texto" ? (
                   <div className="space-y-4">
                     <div>
-                      <label className={labelClass}>Texto do anúncio</label>
+                      <label htmlFor="vinhetagem-texto-do-anuncio" className={labelClass}>Texto do anúncio</label>
                       <textarea
+                        id="vinhetagem-texto-do-anuncio"
                         required
                         rows={4}
                         value={formInsercao.texto}
                         onChange={(e) => setFormInsercao({ ...formInsercao, texto: e.target.value })}
                         className={inputClass}
-                        placeholder="Texto exato que o locutor vai ler, sem parafrasear."
+                        placeholder="Texto exato que o radialista vai ler, sem parafrasear…"
                       />
                     </div>
                     {radialistas.length > 1 && (
@@ -728,8 +734,9 @@ export default function VinhetagemPage() {
                   </div>
                 ) : (
                   <div>
-                    <label className={labelClass}>Arquivo de áudio (mp3, m4a, wav ou ogg, até 15MB)</label>
+                    <label htmlFor="vinhetagem-arquivo-de-audio-mp3-2" className={labelClass}>Arquivo de áudio (mp3, m4a, wav ou ogg, até 15MB)</label>
                     <input
+                      id="vinhetagem-arquivo-de-audio-mp3-2"
                       type="file"
                       accept="audio/*,.mp3,.m4a,.wav,.ogg"
                       onChange={(e) => setFormInsercao({ ...formInsercao, arquivo: e.target.files?.[0] ?? null })}
@@ -760,7 +767,7 @@ export default function VinhetagemPage() {
               <button
                 type="button"
                 onClick={() => setFormInsercao(null)}
-                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
+                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/65 hover:text-fg"
               >
                 Cancelar
               </button>
@@ -769,7 +776,7 @@ export default function VinhetagemPage() {
                 disabled={salvando}
                 className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60"
               >
-                {salvando ? "Salvando..." : "Salvar"}
+                {salvando ? "Salvando…" : "Salvar"}
               </button>
             </div>
           </form>

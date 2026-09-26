@@ -49,8 +49,9 @@ export default function EsqueciSenhaPage() {
               </p>
               <form onSubmit={enviar} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-fg/80 mb-1.5">E-mail</label>
+                  <label htmlFor="esqueci-senha-e-mail" className="block text-sm font-medium text-fg/80 mb-1.5">E-mail</label>
                   <input
+                    id="esqueci-senha-e-mail"
                     type="email"
                     required
                     placeholder="Ex.: email@dominio.com"
@@ -67,7 +68,7 @@ export default function EsqueciSenhaPage() {
                 >
                   {carregando ? (
                     <>
-                      <LocufySpin size={14} /> Enviando...
+                      <LocufySpin size={14} /> Enviando…
                     </>
                   ) : (
                     "Enviar link"

@@ -48,7 +48,7 @@ export default function Modal({ open, onClose, title, children, maxWidthClassNam
             type="button"
             onClick={onClose}
             aria-label="Fechar"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-fg/50 hover:bg-fg/5 hover:text-fg transition-colors"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-fg/65 hover:bg-fg/5 hover:text-fg transition-colors"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" className="h-4 w-4">
               <path d="M6 6l12 12M18 6L6 18" />

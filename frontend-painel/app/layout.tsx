@@ -33,7 +33,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: "#131C2E" };
 
-const TEMA_INICIAL_SCRIPT = `(function(){try{var t=localStorage.getItem("locufy-theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();`;
+// Sem escolha salva, segue o sistema operacional (mesma regra da landing); escolha manual prevalece.
+const TEMA_INICIAL_SCRIPT = `(function(){var t=null;try{t=localStorage.getItem("locufy-theme");}catch(e){}if(t==="light"||(t!=="dark"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches))document.documentElement.setAttribute("data-theme","light");})();`;
 
 const SW_REGISTER_SCRIPT = `if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){});});}`;
 

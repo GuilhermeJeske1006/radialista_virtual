@@ -70,7 +70,7 @@ describe("VinhetasProgramaSection", () => {
 
     expect(await screen.findByText("Abertura")).toBeInTheDocument();
     expect(screen.getByText("Trilha gerada por IA")).toBeInTheDocument();
-    expect(screen.getByText("Gerando trilha e mixando...")).toBeInTheDocument();
+    expect(screen.getByText("Gerando trilha e mixando…")).toBeInTheDocument();
     expect(screen.getByText("Voz IA indisponível")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Ouvir/ })).toBeInTheDocument();
     // banco vazio: botao desabilitado

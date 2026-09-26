@@ -88,7 +88,7 @@ export default function BibliotecaAudioPanel({
 
     try {
       if (form.id === null) {
-        if (form.arquivos.length === 0) throw new ApiError(400, "Selecione ao menos um arquivo de audio");
+        if (form.arquivos.length === 0) throw new ApiError(400, "Selecione ao menos um arquivo de áudio");
         form.arquivos.forEach((arquivo) => dados.append("arquivos", arquivo));
         await apiFetchForm<BibliotecaAudioItem[]>("/biblioteca-audio", dados, "POST");
       } else {
@@ -133,7 +133,7 @@ export default function BibliotecaAudioPanel({
       };
       audio.play();
     } catch (err) {
-      setErro(err instanceof ApiError ? err.message : "Erro ao tocar audio");
+      setErro(err instanceof ApiError ? err.message : "Erro ao tocar áudio");
       setTocandoId(null);
     }
   }
@@ -150,13 +150,13 @@ export default function BibliotecaAudioPanel({
           + Áudio
         </button>
       </div>
-      <p className="text-xs text-fg/65 mb-3">Cadastro de vinhetas e efeitos -- toque em Cartwall pra disparar.</p>
+      <p className="text-xs text-fg/65 mb-3">Cadastro de vinhetas e efeitos — toque em Cartwall pra disparar.</p>
 
       {erro && <p className="text-xs text-laranja mb-3">{erro}</p>}
 
       {carregando ? (
         <p className="flex items-center gap-2 text-sm text-fg/65">
-          <LocufySpin size={16} /> Carregando...
+          <LocufySpin size={16} /> Carregando…
         </p>
       ) : itens.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border-strong p-5 text-center">
@@ -184,7 +184,7 @@ export default function BibliotecaAudioPanel({
                           ? "text-laranja hover:text-laranja animate-pulse"
                           : "text-acento-claro hover:text-acento-dim"
                       }`}
-                      title={programaAtivo ? "Inserir agora na transmissao ao vivo (corta o audio atual)" : "Tocar preview"}
+                      title={programaAtivo ? "Inserir agora na transmissão ao vivo (corta o áudio atual)" : "Ouvir prévia"}
                     >
                       {tocandoId === item.id ? <LocufySpin size={14} /> : programaAtivo ? "⏺" : "▶"}
                     </button>
@@ -222,8 +222,9 @@ export default function BibliotecaAudioPanel({
         {form && (
           <form onSubmit={salvar} className="space-y-4">
             <div>
-              <label className={labelClass}>Nome</label>
+              <label htmlFor="bibliotecaaudiopanel-nome" className={labelClass}>Nome</label>
               <input
+                id="bibliotecaaudiopanel-nome"
                 type="text"
                 required={form.id !== null || form.arquivos.length <= 1}
                 value={form.nome}
@@ -238,8 +239,9 @@ export default function BibliotecaAudioPanel({
               )}
             </div>
             <div>
-              <label className={labelClass}>Categoria</label>
+              <label htmlFor="bibliotecaaudiopanel-categoria" className={labelClass}>Categoria</label>
               <select
+                id="bibliotecaaudiopanel-categoria"
                 aria-label="Categoria"
                 value={form.categoria_id ?? ""}
                 onChange={(e) => setForm({ ...form, categoria_id: e.target.value ? Number(e.target.value) : null })}
@@ -260,8 +262,9 @@ export default function BibliotecaAudioPanel({
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={labelClass}>Cor do card (opcional)</label>
+                <label htmlFor="bibliotecaaudiopanel-cor-do-card-opcional" className={labelClass}>Cor do card (opcional)</label>
                 <input
+                  id="bibliotecaaudiopanel-cor-do-card-opcional"
                   type="color"
                   value={form.cor || "#e8a33d"}
                   onChange={(e) => setForm({ ...form, cor: e.target.value })}
@@ -269,8 +272,9 @@ export default function BibliotecaAudioPanel({
                 />
               </div>
               <div>
-                <label className={labelClass}>Ordem no cartwall</label>
+                <label htmlFor="bibliotecaaudiopanel-ordem-no-cartwall" className={labelClass}>Ordem no cartwall</label>
                 <input
+                  id="bibliotecaaudiopanel-ordem-no-cartwall"
                   type="number"
                   value={form.ordem}
                   onChange={(e) => setForm({ ...form, ordem: Number(e.target.value) })}
@@ -291,8 +295,8 @@ export default function BibliotecaAudioPanel({
               />
               <p className="text-xs text-fg/65 mt-1.5">
                 {form.id !== null
-                  ? "Deixe em branco pra manter o áudio atual."
-                  : "Obrigatório. Selecione vários arquivos pra criar uma vinheta pra cada um."}
+                  ? "Deixe em branco para manter o áudio atual."
+                  : "Obrigatório. Selecione vários arquivos para criar uma vinheta para cada um."}
               </p>
             </div>
             {form.id !== null && (
@@ -309,7 +313,7 @@ export default function BibliotecaAudioPanel({
               <button
                 type="button"
                 onClick={() => setForm(null)}
-                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
+                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/65 hover:text-fg"
               >
                 Cancelar
               </button>
@@ -318,7 +322,7 @@ export default function BibliotecaAudioPanel({
                 disabled={salvando}
                 className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60"
               >
-                {salvando ? "Salvando..." : "Salvar"}
+                {salvando ? "Salvando…" : "Salvar"}
               </button>
             </div>
           </form>

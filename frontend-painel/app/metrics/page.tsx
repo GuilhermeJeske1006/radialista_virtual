@@ -131,8 +131,9 @@ export default function MetricsPage() {
       <div className="flex flex-wrap items-end justify-between gap-4 mb-5">
         {radialistas.length > 1 ? (
           <div>
-            <label className="block text-sm font-medium text-fg/80 mb-1.5">Radialista</label>
+            <label htmlFor="metrics-radialista" className="block text-sm font-medium text-fg/80 mb-1.5">Radialista</label>
             <select
+              id="metrics-radialista"
               aria-label="Radialista"
               value={radialistaId ?? ""}
               onChange={(e) => setRadialistaId(Number(e.target.value))}
@@ -152,8 +153,9 @@ export default function MetricsPage() {
         {radialistas.length > 0 && (
           <div className="flex items-end gap-2">
             <div>
-              <label className="block text-sm font-medium text-fg/80 mb-1.5">Período do CSV</label>
+              <label htmlFor="metrics-periodo-do-csv" className="block text-sm font-medium text-fg/80 mb-1.5">Período do CSV</label>
               <select
+                id="metrics-periodo-do-csv"
                 aria-label="Período do CSV"
                 value={periodoExport}
                 onChange={(e) => setPeriodoExport(e.target.value)}
@@ -172,7 +174,7 @@ export default function MetricsPage() {
               disabled={exportando}
               className="rounded-xl border border-border-strong px-4 py-2 text-sm font-medium text-fg hover:bg-fg/5 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {exportando ? "Exportando..." : "Exportar CSV"}
+              {exportando ? "Exportando…" : "Exportar CSV"}
             </button>
           </div>
         )}
@@ -182,7 +184,7 @@ export default function MetricsPage() {
 
       {carregando ? (
         <p className="flex items-center gap-2 text-sm text-fg/65">
-          <LocufySpin size={16} /> Carregando...
+          <LocufySpin size={16} /> Carregando…
         </p>
       ) : radialistas.length === 0 ? (
         <p className="text-sm text-fg/65">Cadastre um radialista para acompanhar as métricas.</p>

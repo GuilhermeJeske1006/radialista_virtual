@@ -10,7 +10,7 @@ beforeEach(() => { api.mockReset(); respostas(); });
 it("mostra consumo, previsão e exposição em reais", async () => {
   render(<ConsumoIACard plano="flex" />);
   expect(await screen.findByText(/79,90/)).toBeInTheDocument();
-  expect(screen.getByText(/Exposição total/)).toHaveTextContent("12,00");
+  expect(screen.getByText(/Total comprometido/)).toHaveTextContent("12,00");
   expect(screen.queryByText(/pacotes/i)).not.toBeInTheDocument();
 });
 it("erro de consulta não vira consumo zero e permite tentar novamente", async () => {

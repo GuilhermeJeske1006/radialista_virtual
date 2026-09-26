@@ -25,6 +25,9 @@ type Props = {
   catalogo?: CatalogoCombinacoes;
   // Na própria tela de Assinatura não faz sentido dizer "troque depois em Assinatura".
   dicaTroca?: boolean;
+  // Primeiro contato (onboarding): só a escolhida mostra exemplo, estimativa e custo; as outras
+  // ficam numa linha cada, e o guia dos modelos fica recolhido.
+  compacto?: boolean;
 };
 
 function Modelo({ id }: { id: string }) {
@@ -50,7 +53,7 @@ function Estimativa({ c, programa, horasReferencia }: { c: Combinacao; programa?
 }
 
 const FUNCOES = [
-  { funcao: "texto", titulo: "Modelos de texto", papel: "escrevem o que o locutor fala" },
+  { funcao: "texto", titulo: "Modelos de texto", papel: "escrevem o que o radialista fala" },
   { funcao: "voz", titulo: "Modelos de voz", papel: "transformam esse texto em áudio" },
 ] as const;
 
@@ -93,7 +96,7 @@ function Custo({ c }: { c: Combinacao }) {
       <div className="mt-2 space-y-2">
         {partes && (
           <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-0.5 tabular-nums">
-            <dt>Texto do locutor (<Modelo id={c.modelo_texto} />)</dt>
+            <dt>Texto do radialista (<Modelo id={c.modelo_texto} />)</dt>
             <dd className="text-right">{reais(partes.texto)}/h</dd>
             <dt>Classificações automáticas (tom, tema, músicas)</dt>
             <dd className="text-right">{reais(partes.classificacao)}/h</dd>
@@ -111,7 +114,7 @@ function Custo({ c }: { c: Combinacao }) {
   );
 }
 
-export default function CombinacaoSelect({ value, onChange, programa, disabled, catalogo: catalogoInicial, dicaTroca = true }: Props) {
+export default function CombinacaoSelect({ value, onChange, programa, disabled, catalogo: catalogoInicial, dicaTroca = true, compacto = false }: Props) {
   const [catalogo, setCatalogo] = useState<CatalogoCombinacoes | null>(catalogoInicial ?? null);
   const [erro, setErro] = useState(false);
   // Grupo de rádio próprio por instância: duas listas na mesma tela não se misturam.
@@ -143,7 +146,7 @@ export default function CombinacaoSelect({ value, onChange, programa, disabled, 
   if (erro) {
     return (
       <p role="status" className="text-xs text-fg/65">
-        Não foi possível carregar as combinações de modelos. O locutor será gerado com a configuração padrão.
+        Não foi possível carregar as combinações de modelos. O radialista será gerado com a configuração padrão.
       </p>
     );
   }
@@ -153,7 +156,7 @@ export default function CombinacaoSelect({ value, onChange, programa, disabled, 
   if (catalogo.combinacoes.length === 0) {
     return (
       <p role="status" className="text-xs text-fg/65">
-        As combinações de modelos ficam disponíveis após a publicação das tarifas. O locutor usa a configuração padrão.
+        As combinações de modelos ficam disponíveis após a publicação das tarifas. O radialista usa a configuração padrão.
       </p>
     );
   }
@@ -164,12 +167,22 @@ export default function CombinacaoSelect({ value, onChange, programa, disabled, 
   const pedidoComum = pedidos.size === 1 ? [...pedidos][0] : null;
   return (
     <fieldset disabled={disabled} className="@container space-y-2">
-      <legend className="text-sm font-medium text-fg">Como seu locutor escreve e fala</legend>
+      <legend className="text-sm font-medium text-fg">Como seu radialista escreve e fala</legend>
       <p className="text-xs text-fg/65 mb-1">
-        Seu locutor usa dois modelos de IA: um de texto, que escreve o que ele fala, e um de voz, que transforma esse
-        texto em áudio. Cada combinação junta um de cada.{dicaTroca && " Dá pra trocar depois, por programa, em Assinatura."}
+        Seu radialista usa dois modelos de IA: um de texto, que escreve o que ele fala, e um de voz, que transforma esse
+        texto em áudio. Cada combinação junta um de cada.{dicaTroca && " Dá para trocar depois, por programa, em Assinatura."}
       </p>
-      {catalogo.modelos && <GuiaModelos modelos={catalogo.modelos} />}
+      {catalogo.modelos &&
+        (compacto ? (
+          <details className="rounded-xl bg-fg/5 px-3 py-2 text-xs">
+            <summary className="cursor-pointer font-medium text-fg hover:text-acento-claro">O que muda entre os modelos?</summary>
+            <div className="mt-2">
+              <GuiaModelos modelos={catalogo.modelos} />
+            </div>
+          </details>
+        ) : (
+          <GuiaModelos modelos={catalogo.modelos} />
+        ))}
       {pedidoComum && (
         <p className="text-xs text-fg/80">
           Para comparar, todas receberam o mesmo pedido: <span className="italic">“{pedidoComum}”</span> Ouça o áudio e
@@ -177,7 +190,7 @@ export default function CombinacaoSelect({ value, onChange, programa, disabled, 
         </p>
       )}
       {/* Duas colunas quando o espaço permite comparar lado a lado (onboarding, página de assinatura). */}
-      <div className="grid gap-2 @2xl:grid-cols-2">
+      <div className={`grid gap-2 @2xl:grid-cols-2 ${compacto ? "items-start" : ""}`}>
         {catalogo.combinacoes.map((c) => {
           const selecionada = c.id === value;
           return (
@@ -214,7 +227,7 @@ export default function CombinacaoSelect({ value, onChange, programa, disabled, 
                   <span className="block text-xs text-fg/80 mt-1">{c.descricao}</span>
                 </span>
               </label>
-              <div className="space-y-2 pl-6">
+              {(!compacto || selecionada) && <div className="space-y-2 pl-6">
                 {c.exemplo && (
                   <div className="space-y-1.5">
                     <audio
@@ -236,14 +249,14 @@ export default function CombinacaoSelect({ value, onChange, programa, disabled, 
                 )}
                 <Estimativa c={c} programa={programa} horasReferencia={horasReferencia} />
                 <Custo c={c} />
-                <p className="text-xs text-fg/60">Limitações: {c.limitacoes}</p>
-              </div>
+                <p className="text-xs text-fg/65">Limitações: {c.limitacoes}</p>
+              </div>}
             </div>
           );
         })}
       </div>
-      <p className="text-xs text-fg/60">
-        {catalogo.premissas} Exemplos gravados com a voz padrão do Locufy; o seu locutor pode usar outra voz. Ouvir os
+      <p className="text-xs text-fg/65">
+        {catalogo.premissas} Exemplos gravados com a voz padrão do Locufy; o seu radialista pode usar outra voz. Ouvir os
         exemplos é gratuito. Mensalidade de {reais(catalogo.mensalidade_brl)} à parte.
       </p>
     </fieldset>

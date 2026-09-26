@@ -151,7 +151,7 @@ export default function VozCloneModal({ onCriada, onFechar }: Props) {
   const bloqueado = !!ocupado || gravando || iniciando;
   return <Modal open onClose={() => { if (!ocupado) onFechar(); }} title="Clonar voz" maxWidthClassName="max-w-xl">
     <div role="dialog" aria-label="Clonar voz" aria-modal="true" className="space-y-4">
-      <p className="text-sm text-fg/70">Envie 60–120 segundos de fala do mesmo locutor, em até 5 arquivos. Grave sem música ou eco, a cerca de um palmo do microfone, mantendo distância e volume constantes. Use o jeito de falar que deseja ouvir na rádio.</p>
+      <p className="text-sm text-fg/70">Envie 60–120 segundos de fala da mesma pessoa, em até 5 arquivos. Grave sem música ou eco, a cerca de um palmo do microfone, mantendo distância e volume constantes. Use o jeito de falar que deseja ouvir na rádio.</p>
       <label className="block text-sm">Nome da voz
         <input className="mt-1 w-full rounded-xl border border-border-strong bg-bg p-2" value={nome} onChange={(e) => setNome(e.target.value)} maxLength={100} disabled={!!ocupado} placeholder="Ex.: Minha voz de rádio" />
       </label>

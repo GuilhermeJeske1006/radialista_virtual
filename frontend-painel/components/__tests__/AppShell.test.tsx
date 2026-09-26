@@ -14,7 +14,10 @@ vi.mock("../../lib/useConta", () => ({
   useConta: () => ({ nome: "Rádio Teste", role: "membro" }),
   limparContaCache,
 }));
-vi.mock("../../lib/useConfiguracaoInicial", () => ({ useConfiguracaoInicialCompleta: () => true }));
+vi.mock("../../lib/useConfiguracaoInicial", () => ({
+  useConfiguracaoInicialCompleta: () => true,
+  useConfiguracaoInicial: () => ({ radialistaPronto: true, programaAtivo: true, whatsappConectado: true, completa: true }),
+}));
 vi.mock("../NotificationBell", () => ({ default: () => null }));
 vi.mock("../OnboardingTour", () => ({ default: () => null }));
 vi.mock("../SuporteChat", () => ({ default: () => null }));
@@ -33,6 +36,20 @@ describe("navegação da conta", () => {
     expect(apiFetch).toHaveBeenCalledWith("/auth/logout", { method: "POST" });
     expect(limparContaCache).toHaveBeenCalled();
     expect(push).toHaveBeenCalledWith("/login");
+  });
+
+  it("cabeçalho acende 'No ar' pelo horário da grade quando a tela não informa", async () => {
+    apiFetch.mockImplementation((path: string) =>
+      Promise.resolve(path === "/live/no-ar" ? { no_ar: true, radialista_id: 1, radialista_nome: "Marina", programa_id: 1, programa_nome: "Manhã" } : undefined)
+    );
+    render(<AppShell title="Perfil">Conteúdo</AppShell>);
+    expect(await screen.findByText("No ar")).toBeInTheDocument();
+    apiFetch.mockResolvedValue(undefined);
+  });
+
+  it("tela pode forçar o estado (ao vivo transmitindo)", () => {
+    render(<AppShell title="Ao vivo" noAr>Conteúdo</AppShell>);
+    expect(screen.getByText("No ar")).toBeInTheDocument();
   });
 
   it("fecha o menu da conta com Escape e devolve o foco ao botão", async () => {

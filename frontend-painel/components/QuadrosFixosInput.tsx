@@ -43,7 +43,7 @@ export default function QuadrosFixosInput({ quadros, onChange }: Props) {
     <div>
       <label className="block text-sm font-medium text-fg/80 mb-1.5">Quadros fixos</label>
       <p className="text-xs text-fg/65 mb-3">
-        Quadros com identidade fixa (ex.: &quot;Curiosidade das 10&quot;) -- o nome do quadro precisa aparecer
+        Quadros com identidade fixa (ex.: &quot;Curiosidade das 10&quot;) — o nome do quadro precisa aparecer
         também na sequência do programa, acima. Cada vez que o bloco sair no roteiro, um item do pool abaixo é
         sorteado em rotação.
       </p>

@@ -66,7 +66,7 @@ function Formulario({ onSuccess }: { onSuccess: () => void }) {
       >
         {enviando ? (
           <>
-            <LocufySpin size={14} /> Processando...
+            <LocufySpin size={14} /> Processando…
           </>
         ) : (
           "Confirmar pagamento"
@@ -81,10 +81,13 @@ type CheckoutModalProps = {
   onClose: () => void;
   onSuccess: () => void;
   // Endpoint de billing que cria a assinatura/payment intent e devolve { client_secret }
-  // (ex.: /billing/checkout, /billing/agentes-extras/checkout, /billing/excedente-mensagens/checkout).
+  // (ex.: /billing/checkout).
   // O mesmo endpoint aceita "usar_cartao_salvo" pra reusar o ultimo cartao sem PaymentElement.
   endpoint: string;
   body?: Record<string, unknown>;
+  titulo?: string;
+  // O que está sendo contratado, acima do cartão -- a pessoa confere o valor antes de pagar.
+  resumo?: React.ReactNode;
 };
 
 // Checkout transparente de verdade: formulario proprio (Tailwind, LocufySpin, texto de
@@ -92,7 +95,7 @@ type CheckoutModalProps = {
 // (<PaymentElement>, obrigatorio por PCI compliance), estilizado via `appearance` pra
 // combinar com o tema. O client_secret vem de uma Subscription/PaymentIntent criada direto
 // via API (ver stripe_client.py), nao de uma Checkout Session -- sem UI pronta do Stripe.
-export default function CheckoutModal({ open, onClose, onSuccess, endpoint, body }: CheckoutModalProps) {
+export default function CheckoutModal({ open, onClose, onSuccess, endpoint, body, titulo = "Pagamento", resumo }: CheckoutModalProps) {
   // undefined == ainda checando se tem cartao salvo pra oferecer reuso.
   const [cartaoSalvo, setCartaoSalvo] = useState<Cartao | null | undefined>(undefined);
   const [modo, setModo] = useState<"salvo" | "novo">("novo");
@@ -155,7 +158,7 @@ export default function CheckoutModal({ open, onClose, onSuccess, endpoint, body
         if (paymentIntent.status === "succeeded" || paymentIntent.status === "processing") {
           onSuccess();
         } else {
-          setErro("Nao foi possivel confirmar o pagamento com o cartao salvo.");
+          setErro("Não foi possível confirmar o pagamento com o cartão salvo.");
           setProcessandoSalvo(false);
         }
       } catch (err) {
@@ -177,7 +180,8 @@ export default function CheckoutModal({ open, onClose, onSuccess, endpoint, body
     : undefined;
 
   return (
-    <Modal open={open} onClose={onClose} title="Pagamento" maxWidthClassName="max-w-lg">
+    <Modal open={open} onClose={onClose} title={titulo} maxWidthClassName="max-w-lg">
+      {resumo}
       {cartaoSalvo && (
         <div className="mb-4 flex gap-2">
           <button
@@ -210,14 +214,14 @@ export default function CheckoutModal({ open, onClose, onSuccess, endpoint, body
       {modo === "salvo" ? (
         processandoSalvo && !erro && (
           <p className="flex items-center gap-2 text-sm text-fg/65">
-            <LocufySpin size={16} /> Processando com o cartão •••• {cartaoSalvo?.final}...
+            <LocufySpin size={16} /> Processando com o cartão •••• {cartaoSalvo?.final}…
           </p>
         )
       ) : (
         <>
           {!clientSecret && !erro && (
             <p className="flex items-center gap-2 text-sm text-fg/65">
-              <LocufySpin size={16} /> Carregando...
+              <LocufySpin size={16} /> Carregando…
             </p>
           )}
           {clientSecret && options && (

@@ -190,7 +190,7 @@ export default function RoteiroBlocosEditor({
               indiceArrastandoSobre === 0 ? "border-acento-claro/60 bg-acento/5" : "border-border-strong"
             }`}
           >
-            Sequência vazia -- o ao vivo usa o roteiro padrão (abertura, música, comentário, notícia, chamada ao
+            Sequência vazia — o ao vivo usa o roteiro padrão (abertura, música, comentário, notícia, chamada ao
             ouvinte). Arraste um item da paleta ao lado pra começar.
           </div>
         ) : (
@@ -288,14 +288,14 @@ export default function RoteiroBlocosEditor({
             {ciclosNaJanela !== null && (
               <p className="text-xs text-fg/65 mt-1">
                 Na janela do programa ({formatarDuracaoBloco(janelaSegundos!)}), isso dá aproximadamente{" "}
-                {ciclosNaJanela < 1 ? ciclosNaJanela.toFixed(1) : Math.round(ciclosNaJanela)} volta(s) -- estimativa,
+                {ciclosNaJanela < 1 ? ciclosNaJanela.toFixed(1) : Math.round(ciclosNaJanela)} volta(s) — estimativa,
                 o motor real varia por prosódia e blocos extra da IA.
               </p>
             )}
             {Object.keys(contagemPorTipo).length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-3">
                 {Object.entries(contagemPorTipo).map(([r, qtd]) => (
-                  <span key={r} className="rounded-full bg-fg/5 px-2.5 py-1 font-mono text-xs font-medium text-fg/60">
+                  <span key={r} className="rounded-full bg-fg/5 px-2.5 py-1 font-mono text-xs font-medium text-fg/65">
                     {r} × {qtd}
                   </span>
                 ))}
@@ -311,7 +311,7 @@ export default function RoteiroBlocosEditor({
             type="text"
             value={filtroPaleta}
             onChange={(e) => setFiltroPaleta(e.target.value)}
-            placeholder="Buscar na paleta..."
+            placeholder="Buscar na paleta…"
             className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
           />
         </div>

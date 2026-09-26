@@ -55,7 +55,7 @@ export default function CartwallPanel({ itens, duckMusicaFundo }: Props) {
       };
       await audio.play();
     } catch (err) {
-      setErro(err instanceof ApiError ? err.message : "Erro ao tocar audio");
+      setErro(err instanceof ApiError ? err.message : "Erro ao tocar áudio");
       duckMusicaFundo(false);
       setTocandoId(null);
     } finally {
@@ -79,7 +79,7 @@ export default function CartwallPanel({ itens, duckMusicaFundo }: Props) {
 
       {itens.length === 0 ? (
         <p className="text-sm text-fg/65">
-          Nenhum áudio ativo na biblioteca ainda. Cadastre em Biblioteca (aqui do lado) ou em /vinhetagem pra eles
+          Nenhum áudio ativo na biblioteca ainda. Cadastre na Biblioteca (aqui ao lado) ou em Vinhetagem para eles
           aparecerem aqui como botões.
         </p>
       ) : (
@@ -91,6 +91,7 @@ export default function CartwallPanel({ itens, duckMusicaFundo }: Props) {
                 key={item.id}
                 type="button"
                 onClick={() => tocar(item)}
+                title={item.nome}
                 style={item.cor ? { borderColor: item.cor } : undefined}
                 className={`rounded-3xl border p-3 text-left shadow-theme-xs transition-colors ${
                   ativo
@@ -98,7 +99,7 @@ export default function CartwallPanel({ itens, duckMusicaFundo }: Props) {
                     : "bg-surface border-border-strong hover:border-acento-claro/40"
                 }`}
               >
-                <p className="text-sm font-medium text-fg truncate">{item.nome}</p>
+                <p className="text-sm font-medium text-fg line-clamp-2 break-words">{item.nome}</p>
                 <p className="mt-1 flex items-center gap-1.5 font-mono text-xs text-fg/65">
                   {carregandoId === item.id ? (
                     <LocufySpin size={12} />

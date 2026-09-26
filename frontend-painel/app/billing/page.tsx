@@ -41,8 +41,8 @@ export default function BillingPage() {
           {status ? rotuloStatusAssinatura(status) : "Carregando…"}
         </p>
       </div>
-      <p className="mt-3 text-sm text-fg/80">WhatsApp completo, programas, vozes e vinhetas. Sem franquia ou pacotes de mensagens. O preço de cada processamento é o custo de referência das unidades medidas, convertido pelo câmbio da tarifa, com acréscimo de 100%.</p>
-      <p className="mt-2 text-sm text-fg/65">Primeira mensalidade na adesão. Na renovação: mensalidade do próximo período + consumo do período encerrado. Sem consumo, apenas {reais(MENSALIDADE_BRL)}.</p>
+      <p className="mt-3 text-sm text-fg/80">WhatsApp completo, programas, vozes e vinhetas. Sem franquia ou pacotes de mensagens. O uso de IA depende da combinação de modelos de cada programa: veja abaixo o preço por hora de programa de cada uma e acompanhe o gasto no extrato.</p>
+      <p className="mt-2 text-sm text-fg/65">Primeira mensalidade na adesão. Na renovação: mensalidade do próximo período + uso do período encerrado. Sem uso, apenas {reais(MENSALIDADE_BRL)}. O limite financeiro impede surpresas na fatura.</p>
       <div className="mt-4">
         {(status === "trial" || status === "cancelado")
           ? <button type="button" className={BOTAO} onClick={() => setCheckout(true)}>Assinar Locufy Flex</button>

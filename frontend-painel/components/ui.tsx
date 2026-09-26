@@ -41,7 +41,7 @@ type BotaoProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 const VARIANTES: Record<NonNullable<BotaoProps["variante"]>, string> = {
   primario: "bg-acento text-on-brand hover:bg-brand-600",
   secundario: "border border-border-strong text-fg hover:bg-fg/5",
-  fantasma: "text-fg/60 hover:bg-fg/5 hover:text-fg",
+  fantasma: "text-fg/65 hover:bg-fg/5 hover:text-fg",
   destrutivo: "bg-laranja text-grafite hover:opacity-90",
 };
 
@@ -63,7 +63,7 @@ export function Chip({
   tom?: "neutro" | "acento" | "ciano" | "laranja";
 }) {
   const tons = {
-    neutro: "bg-fg/5 text-fg/60",
+    neutro: "bg-fg/5 text-fg/65",
     acento: "bg-acento/15 text-acento-claro",
     ciano: "bg-ciano/15 text-ciano",
     laranja: "bg-laranja/15 text-laranja",
@@ -88,7 +88,7 @@ export function Vazio({
   return (
     <div className="rounded-3xl border border-dashed border-border-strong px-6 py-12 text-center">
       <p className="font-display text-base font-semibold text-fg">{titulo}</p>
-      <p className="mt-1 text-sm text-fg/55">{descricao}</p>
+      <p className="mt-1 text-sm text-fg/65">{descricao}</p>
       {acao && <div className="mt-5 flex justify-center">{acao}</div>}
     </div>
   );

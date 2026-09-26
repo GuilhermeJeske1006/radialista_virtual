@@ -75,7 +75,7 @@ export default function PlaylistCentral({
             disabled={gerandoFala}
             className="shrink-0 rounded-xl border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/5 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {gerandoFala ? "Gerando..." : "Proxima fala"}
+            {gerandoFala ? "Gerando…" : "Próxima fala"}
           </button>
         </div>
 
@@ -89,7 +89,7 @@ export default function PlaylistCentral({
             <h2 className="font-display text-lg font-bold text-fg">Programa no ar</h2>
           )}
           <p className="text-sm text-fg/65 mt-1">
-            O agente gera chamadas, comentarios, noticias e blocos musicais conforme a configuracao do programa.
+            O radialista gera chamadas, comentários, notícias e blocos musicais conforme a configuração do programa.
           </p>
         </div>
 
@@ -124,15 +124,15 @@ export default function PlaylistCentral({
 
       <section className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-base font-bold text-fg">Historico de falas</h2>
-          <span className="font-mono text-xs text-fg/65">{falasPrograma.length} nesta transmissao</span>
+          <h2 className="font-display text-base font-bold text-fg">Histórico de falas</h2>
+          <span className="font-mono text-xs text-fg/65">{falasPrograma.length} nesta transmissão</span>
         </div>
         <div className="rounded-xl border border-border bg-bg p-4 min-h-32 max-h-96 overflow-y-auto">
           {falasPrograma.length === 0 ? (
             <p className="text-sm text-fg/65">
               {programaAtivo
-                ? "Gerando a primeira fala..."
-                : "Clique em comecar transmissao acima, ou aguarde o horario agendado comecar."}
+                ? "Gerando a primeira fala…"
+                : "Clique em Começar transmissão acima ou aguarde o horário agendado."}
             </p>
           ) : (
             <div className="space-y-3">
@@ -153,7 +153,7 @@ export default function PlaylistCentral({
                     {fala.duracao_segundos != null && (
                       <span
                         className="font-mono text-xs text-fg/65"
-                        title="Duracao real do bloco (fala + musica), medida ao vivo"
+                        title="Duração real do bloco (fala + música), medida ao vivo"
                       >
                         · {formatarDuracao(fala.duracao_segundos)}
                       </span>
@@ -165,7 +165,7 @@ export default function PlaylistCentral({
                     )}
                     {index === 0 && gerandoFala && (
                       <span className="flex items-center gap-1.5 text-xs text-fg/65 italic">
-                        <LocufySpin size={12} /> gerando proxima...
+                        <LocufySpin size={12} /> gerando a próxima…
                       </span>
                     )}
                   </div>

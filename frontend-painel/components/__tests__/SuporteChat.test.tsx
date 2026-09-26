@@ -19,7 +19,7 @@ vi.mock("../../lib/api", () => ({
 describe("SuporteChat", () => {
   it("comeca fechado, mostrando so o botao flutuante", () => {
     render(<SuporteChat />);
-    expect(screen.queryByPlaceholderText("Digite sua dúvida...")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Digite sua dúvida…")).not.toBeInTheDocument();
     expect(screen.getByTitle("Suporte")).toBeInTheDocument();
   });
 
@@ -30,7 +30,7 @@ describe("SuporteChat", () => {
     render(<SuporteChat />);
     await user.click(screen.getByTitle("Suporte"));
 
-    const input = screen.getByPlaceholderText("Digite sua dúvida...");
+    const input = screen.getByPlaceholderText("Digite sua dúvida…");
     await user.type(input, "como conecto o whatsapp?");
     await user.click(screen.getByRole("button", { name: "Enviar" }));
 
@@ -51,7 +51,7 @@ describe("SuporteChat", () => {
 
     render(<SuporteChat />);
     await user.click(screen.getByTitle("Suporte"));
-    await user.type(screen.getByPlaceholderText("Digite sua dúvida..."), "oi");
+    await user.type(screen.getByPlaceholderText("Digite sua dúvida…"), "oi");
     await user.click(screen.getByRole("button", { name: "Enviar" }));
 
     expect(await screen.findByText("Não consegui responder agora. Tenta de novo em instantes.")).toBeInTheDocument();

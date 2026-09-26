@@ -5,7 +5,7 @@ import ThemeToggle from "../../components/ThemeToggle";
 
 export const metadata: Metadata = {
   title: "Central de Ajuda — Locufy",
-  description: "Documentação da Locufy: como configurar seu radialista virtual, programação, WhatsApp, equipe e planos.",
+  description: "Documentação da Locufy: como configurar seu radialista virtual, programação, WhatsApp, equipe, assinatura e consumo.",
 };
 
 type Secao = { id: string; titulo: string };
@@ -36,7 +36,7 @@ const NAV: Grupo[] = [
     titulo: "Conta",
     secoes: [
       { id: "equipe", titulo: "Equipe" },
-      { id: "assinatura", titulo: "Assinatura e planos" },
+      { id: "assinatura", titulo: "Assinatura e consumo" },
       { id: "dados-radio", titulo: "Configuração" },
       { id: "perfil", titulo: "Perfil" },
     ],
@@ -72,7 +72,7 @@ function Shot({ src, legenda }: { src: string; legenda: string }) {
         alt={legenda}
         className="w-full rounded-xl border border-border-strong shadow-theme-xs"
       />
-      <figcaption className="mt-1.5 text-xs text-fg/50">{legenda}</figcaption>
+      <figcaption className="mt-1.5 text-xs text-fg/65">{legenda}</figcaption>
     </figure>
   );
 }
@@ -93,7 +93,7 @@ export default function AjudaPage() {
         <nav className="hidden md:block sticky top-12 self-start space-y-6">
           {NAV.map((grupo) => (
             <div key={grupo.titulo}>
-              <div className="text-xs font-medium uppercase tracking-wide text-fg/50 mb-2 font-mono">
+              <div className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-2 font-mono">
                 {grupo.titulo}
               </div>
               <ul className="space-y-1">
@@ -113,7 +113,7 @@ export default function AjudaPage() {
           <h1 className="font-display text-2xl font-bold text-fg mb-2">Central de Ajuda</h1>
           <p className="text-sm text-fg/65 mb-10">
             Como configurar e operar sua rádio na Locufy. Não achou o que precisa? Escreva pra{" "}
-            <a href="mailto:contato@locufy.com" className="text-acento-claro hover:text-acento-dim">
+            <a href="mailto:contato@locufy.com" className="text-acento-claro underline hover:text-acento-dim">
               contato@locufy.com
             </a>
             .
@@ -128,29 +128,29 @@ export default function AjudaPage() {
               </p>
               <ol className="list-decimal pl-5 mt-2 space-y-1">
                 <li>
-                  <strong className="text-fg">Preencher dados da rádio</strong> — nome e frequência,
-                  em <em>Conta → Configuração</em>.
-                </li>
-                <li>
-                  <strong className="text-fg">Cadastrar o radialista</strong> — dê um nome e descreva
-                  o perfil (gênero musical, tom, público); a Locufy gera a personalidade e o primeiro
-                  programa automaticamente via IA.
+                  <strong className="text-fg">Criar o radialista</strong> — descreva o perfil (gênero
+                  musical, tom, público) e a Locufy gera nome, voz, personalidade e o primeiro programa.
+                  Ou configure cada campo manualmente.
                 </li>
                 <li>
                   <strong className="text-fg">Cadastrar o programa</strong> — confira ou ajuste
-                  horários, tom e tópicos gerados em <em>Conteúdo → Programas</em>. É preciso ao
-                  menos um programa ativo.
+                  horários, tom e tópicos em <em>Conteúdo → Programas</em>. É preciso ao menos um
+                  programa ativo.
                 </li>
                 <li>
-                  <strong className="text-fg">Conectar o WhatsApp</strong> — na tela de{" "}
-                  <em>Conversas</em>, clique em &quot;Conectar WhatsApp&quot; e escaneie o QR code
-                  pra ligar o número da rádio ao radialista.
+                  <strong className="text-fg">Conectar o WhatsApp</strong> — em{" "}
+                  <em>Conta → Configuração → WhatsApp da rádio</em>, clique em &quot;Conectar
+                  WhatsApp&quot; e escaneie o QR code com o celular da rádio.
+                </li>
+                <li>
+                  <strong className="text-fg">Instalar o app e liberar o som</strong> — em cada
+                  computador que toca a rádio, para o ao vivo sair sozinho, sem precisar clicar.
                 </li>
               </ol>
               <p className="mt-2">
-                Cadastrar vinhetagem é o único passo opcional do checklist. Enquanto o setup não
-                termina, a barra lateral também numera (1/2/3) os links de Locutores, Programas e Ao
-                Vivo pra guiar a ordem.
+                Os mesmos quatro passos aparecem no guia do canto da tela e no progresso da barra
+                lateral. Completar os dados da rádio e cadastrar vinhetagem são opcionais. Criar a
+                conta não tem custo: a assinatura é pedida na primeira geração com IA.
               </p>
               <Shot src="dashboard" legenda="Visão geral logo após criar a conta, com o checklist de setup." />
             </section>
@@ -164,18 +164,19 @@ export default function AjudaPage() {
               </p>
               <Shot
                 src="radialistas-vazio"
-                legenda="Tela de Locutores logo após criar a conta, com o radialista inicial pronto pra configurar."
+                legenda="Tela de Radialistas logo após criar a conta, com o radialista inicial pronto para configurar."
               />
               <p className="mt-2">
-                A voz vem de um catálogo pré-definido; nos planos Growth e Professional é possível
-                clonar uma voz real enviando uma amostra de áudio (clonagem de voz ElevenLabs).
+                A voz vem de um catálogo pré-definido; também é possível clonar uma voz real enviando
+                uma amostra de áudio, desde que você tenha autorização para usar essa voz.
               </p>
               <p className="mt-2">
-                Quantos radialistas sua conta pode ter depende do plano (veja{" "}
-                <a href="#assinatura" className="text-acento-claro hover:text-acento-dim">
-                  Assinatura e planos
+                Você pode ter vários radialistas e até dez no mesmo programa. Não há cobrança por
+                radialista: o que entra na conta é o uso de IA de cada geração (veja{" "}
+                <a href="#assinatura" className="text-acento-claro underline hover:text-acento-dim">
+                  Assinatura e consumo
                 </a>
-                ); é possível comprar radialistas extras além do limite do plano.
+                ).
               </p>
               <Shot src="radialista-detalhe" legenda="Tela de edição do radialista: nome, voz e programação." />
             </section>
@@ -218,12 +219,12 @@ export default function AjudaPage() {
               <H2 id="conversas">Conversas e WhatsApp</H2>
               <p>
                 Cada conta tem um único número de WhatsApp, compartilhado por todos os radialistas da
-                rádio. Conecte na tela de <em>Conversas</em>, clicando em &quot;Conectar
-                WhatsApp&quot; e escaneando o QR code. Se a sessão cair, avisamos o admin por e-mail
+                rádio. Conecte em <em>Conta → Configuração → WhatsApp da rádio</em>, clicando em
+                &quot;Conectar WhatsApp&quot; e escaneando o QR code. Se a sessão cair, avisamos o admin por e-mail
                 automaticamente até a reconexão. Pra trocar de número, use &quot;Desconectar
                 WhatsApp&quot; e escaneie um QR code novo.
               </p>
-              <Shot src="whatsapp-antes-conectar" legenda="Tela de Conversas antes de escanear o QR code." />
+              <Shot src="whatsapp-antes-conectar" legenda="Conexão do WhatsApp antes de escanear o QR code." />
               <p className="mt-2">
                 A mesma tela mostra o histórico das mensagens trocadas entre ouvintes e o radialista,
                 com filtro por período (últimos 7, 30 ou 90 dias) — útil pra revisar como a IA está
@@ -247,10 +248,10 @@ export default function AjudaPage() {
               <H2 id="metricas">Métricas</H2>
               <p>
                 Volume de mensagens recebidas (total, últimos 7 e últimos 30 dias, por dia e por
-                status), com o mesmo filtro de período e exportação em CSV de Conversas. Pra ver o
-                consumo frente à franquia mensal do plano, acesse{" "}
-                <a href="#assinatura" className="text-acento-claro hover:text-acento-dim">
-                  Assinatura e planos
+                status), com o mesmo filtro de período e exportação em CSV de Conversas. Para ver o
+                uso de IA e o limite financeiro, acesse{" "}
+                <a href="#assinatura" className="text-acento-claro underline hover:text-acento-dim">
+                  Assinatura e consumo
                 </a>
                 .
               </p>
@@ -270,54 +271,31 @@ export default function AjudaPage() {
             </section>
 
             <section>
-              <H2 id="assinatura">Assinatura e planos</H2>
+              <H2 id="assinatura">Assinatura e consumo</H2>
               <p>
-                Só administradores acessam esta tela (<em>Conta → Assinatura</em>). Três planos,
-                cobrados por assinatura recorrente, com período de teste gratuito:
+                Só administradores acessam esta tela (<em>Conta → Assinatura</em>). A Locufy tem um
+                plano só, o <strong className="text-fg">Locufy Flex</strong>: R$ 69,90 por mês de acesso
+                mais o uso de IA, cobrado no fim do ciclo.
               </p>
-              <div className="overflow-x-auto mt-2">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-border text-fg/60">
-                      <th className="py-2 pr-4 font-medium">Plano</th>
-                      <th className="py-2 pr-4 font-medium">Radialistas</th>
-                      <th className="py-2 pr-4 font-medium">Mensagens/mês</th>
-                      <th className="py-2 pr-4 font-medium">Co-apresentadores</th>
-                      <th className="py-2 font-medium">Clonagem de voz</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b border-border">
-                      <td className="py-2 pr-4">Starter</td>
-                      <td className="py-2 pr-4">1</td>
-                      <td className="py-2 pr-4">1.000</td>
-                      <td className="py-2 pr-4">1</td>
-                      <td className="py-2">—</td>
-                    </tr>
-                    <tr className="border-b border-border">
-                      <td className="py-2 pr-4">Growth</td>
-                      <td className="py-2 pr-4">3</td>
-                      <td className="py-2 pr-4">3.000</td>
-                      <td className="py-2 pr-4">2</td>
-                      <td className="py-2">Sim</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 pr-4">Professional</td>
-                      <td className="py-2 pr-4">5</td>
-                      <td className="py-2 pr-4">7.500</td>
-                      <td className="py-2 pr-4">3</td>
-                      <td className="py-2">Sim</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              <ul className="list-disc pl-5 mt-2 space-y-1">
+                <li>WhatsApp completo, sem franquia nem pacotes de mensagens.</li>
+                <li>
+                  O uso é medido por geração (texto, voz, transcrição) e depende da combinação de modelos
+                  escolhida para cada programa. A tela mostra o preço por hora de programa de cada
+                  combinação antes de você escolher.
+                </li>
+                <li>
+                  Você define um <strong className="text-fg">limite financeiro</strong> mensal; ao atingir,
+                  novas gerações pausam até você aumentar o limite ou o ciclo virar.
+                </li>
+                <li>Reproduzir áudio já gerado (vinhetas, falas prontas) não gera nova cobrança.</li>
+                <li>O extrato lista cada uso; as faturas ficam no histórico.</li>
+              </ul>
               <p className="mt-2">
-                Radialista extra além do limite do plano e excedente de mensagens acima da franquia
-                são cobrados à parte, com o valor exibido na tela de Assinatura antes de confirmar.
-                O cancelamento pode ser feito a qualquer momento e vale até o fim do período já
-                pago.
+                O cancelamento pode ser feito a qualquer momento pelo portal de pagamento e vale até o
+                fim do período já pago.
               </p>
-              <Shot src="assinatura" legenda="Comparativo de planos na tela de Assinatura." />
+              <Shot src="assinatura" legenda="Tela de Assinatura e consumo." />
             </section>
 
             <section>
@@ -365,7 +343,7 @@ export default function AjudaPage() {
                     Sim — as respostas e roteiros são gerados por IA de forma probabilística e podem
                     conter imprecisões. Vale revisar programas antes de deixar tópicos sensíveis
                     liberados. Detalhes em{" "}
-                    <Link href="/termos" className="text-acento-claro hover:text-acento-dim">
+                    <Link href="/termos" className="text-acento-claro underline hover:text-acento-dim">
                       Termos de Uso
                     </Link>
                     .
@@ -374,18 +352,18 @@ export default function AjudaPage() {
                 <div>
                   <p className="font-medium text-fg">Posso ter mais de um radialista?</p>
                   <p>
-                    Sim, até o limite do seu plano (veja{" "}
-                    <a href="#assinatura" className="text-acento-claro hover:text-acento-dim">
-                      Assinatura e planos
+                    Sim, sem custo por radialista. O que entra na conta é o uso de IA (veja{" "}
+                    <a href="#assinatura" className="text-acento-claro underline hover:text-acento-dim">
+                      Assinatura e consumo
                     </a>
-                    ); dá pra comprar radialistas extras além do limite.
+                    ).
                   </p>
                 </div>
                 <div>
                   <p className="font-medium text-fg">O conteúdo que envio é usado pra treinar IA?</p>
                   <p>
                     Não. Veja como tratamos seus dados na{" "}
-                    <Link href="/privacidade" className="text-acento-claro hover:text-acento-dim">
+                    <Link href="/privacidade" className="text-acento-claro underline hover:text-acento-dim">
                       Política de Privacidade
                     </Link>
                     .
@@ -395,7 +373,7 @@ export default function AjudaPage() {
                   <p className="font-medium text-fg">O que acontece se a sessão do WhatsApp cair?</p>
                   <p>
                     O admin da conta recebe um alerta por e-mail; basta reconectar escaneando o QR
-                    code de novo na tela de <em>Conversas</em>.
+                    code de novo em <em>Conta → Configuração → WhatsApp da rádio</em>.
                   </p>
                 </div>
                 <div>

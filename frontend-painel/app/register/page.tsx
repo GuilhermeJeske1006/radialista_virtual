@@ -4,11 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { apiFetch, ApiError } from "../../lib/api";
 import { RADIALISTA_VAZIO, Radialista } from "../../lib/types";
-import { PLANOS, formatarReais } from "../../lib/planos";
+import { PRECO_MENSAL_FLEX, formatarReais } from "../../lib/planos";
 import { LocufyLogo, LocufySpin } from "../../components/LocufyLogo";
 import ThemeToggle from "../../components/ThemeToggle";
 import { captureCampaign, trackFunnel } from "../../lib/funnel";
-import CheckoutModal from "../../components/CheckoutModal";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -43,11 +42,9 @@ export default function RegisterPage() {
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [nomeRadio, setNomeRadio] = useState("");
-  const [planoId, setPlanoId] = useState("flex");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
-  const [mostrarCheckout, setMostrarCheckout] = useState(false);
-  const [passo, setPasso] = useState<1 | 2 | 3>(1);
+  const [passo, setPasso] = useState<1 | 2>(1);
   const [campoErros, setCampoErros] = useState<CampoErros>({});
   const [tocado, setTocado] = useState<Record<keyof CampoErros, boolean>>({
     nome: false,
@@ -60,10 +57,8 @@ export default function RegisterPage() {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const initialStep = useRef(true);
   useEffect(() => {
-    const selected = new URLSearchParams(window.location.search).get("plano");
-    if (PLANOS.some(p => p.id === selected)) setPlanoId(selected!);
     captureCampaign();
-    trackFunnel("register_started", { plano: PLANOS.some(p => p.id === selected) ? selected! : "flex" });
+    trackFunnel("register_started", { plano: "flex" });
   }, []);
   useEffect(() => {
     if (initialStep.current) { initialStep.current = false; return; }
@@ -119,9 +114,7 @@ export default function RegisterPage() {
       confirmarSenha: true,
       nomeRadio: true,
     });
-    const primeiroErro = Object.values(erros).find((m) => m);
-    if (primeiroErro) {
-      setErro(primeiroErro);
+    if (Object.values(erros).some((m) => m)) {
       focarErro(erros);
       return false;
     }
@@ -137,13 +130,11 @@ export default function RegisterPage() {
     };
     setCampoErros((c) => ({ ...c, ...erros }));
     setTocado((t) => ({ ...t, nome: true, email: true, senha: true, confirmarSenha: true }));
-    const primeiroErro = Object.values(erros).find((m) => m);
-    if (primeiroErro) {
-      setErro(primeiroErro);
+    setErro("");
+    if (Object.values(erros).some((m) => m)) {
       focarErro(erros);
       return false;
     }
-    setErro("");
     return true;
   }
 
@@ -151,32 +142,29 @@ export default function RegisterPage() {
     const erros = { nomeRadio: validarNomeRadio(nomeRadio) };
     setCampoErros((c) => ({ ...c, ...erros }));
     setTocado((t) => ({ ...t, nomeRadio: true }));
-    const primeiroErro = Object.values(erros).find((m) => m);
-    if (primeiroErro) {
-      setErro(primeiroErro);
+    setErro("");
+    if (Object.values(erros).some((m) => m)) {
       focarErro(erros);
       return false;
     }
-    setErro("");
     return true;
   }
 
   function avancar() {
-    if (passo === 1 && validarPasso1()) { trackFunnel("register_account_step", { plano: planoId }); setPasso(2); }
-    else if (passo === 2 && validarPasso2()) { trackFunnel("register_radio_step", { plano: planoId }); setPasso(3); }
+    if (passo === 1 && validarPasso1()) { trackFunnel("register_account_step", { plano: "flex" }); setPasso(2); }
   }
 
   function voltar() {
     setErro("");
-    if (passo === 2) setPasso(1);
-    else if (passo === 3) setPasso(2);
+    setPasso(1);
   }
 
   async function concluir(e: React.FormEvent) {
     e.preventDefault();
     setErro("");
-    if (passo !== 3) { avancar(); return; }
-    if (!validar()) return;
+    if (passo !== 2) { avancar(); return; }
+    if (!validarPasso2() || !validar()) return;
+    trackFunnel("register_radio_step", { plano: "flex" });
     setCarregando(true);
     let contaCriada = false;
     try {
@@ -203,10 +191,9 @@ export default function RegisterPage() {
         });
       }
 
-      // conta, radio e radialista prontos -- abre o checkout transparente embutido na
-      // pagina; POST /billing/checkout so' e' chamado dentro do CheckoutModal.
-      setMostrarCheckout(true);
-      setCarregando(false);
+      // Conta pronta: vai direto criar o primeiro radialista. O pagamento é pedido na primeira
+      // geração com IA (ver components/AssinaturaGate.tsx), depois de a pessoa ver o produto.
+      window.location.href = "/onboarding/locutor";
     } catch (err) {
       if (contaCriada) {
         // conta ja existe (registro deu certo) -- mostrar "erro ao criar conta" aqui seria
@@ -220,14 +207,7 @@ export default function RegisterPage() {
     }
   }
 
-  const formInvalido =
-    !!validarNome(nome) ||
-    !!validarEmail(email) ||
-    !!validarSenha(senha) ||
-    !!validarConfirmarSenha(senha, confirmarSenha) ||
-    !!validarNomeRadio(nomeRadio);
-
-  const PASSOS = ["Seus dados", "Sua rádio", "Seu plano"];
+  const PASSOS = ["Seus dados", "Sua rádio"];
   const fields: { key: keyof CampoErros; label: string; type: string; value: string; change: (v: string) => void; autoComplete: string }[] = [
     { key: "nome", label: "Seu nome", type: "text", value: nome, change: onChangeNome, autoComplete: "name" },
     { key: "email", label: "E-mail", type: "email", value: email, change: onChangeEmail, autoComplete: "email" },
@@ -237,7 +217,7 @@ export default function RegisterPage() {
   const inputClass = "w-full rounded-xl border border-border-strong bg-bg px-3 py-3 text-base text-fg focus:outline-none focus:ring-2 focus:ring-acento-claro";
   return (
     <main className="min-h-screen bg-bg flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-4xl">
+      <div className="w-full max-w-2xl">
         <div className="flex items-center justify-center gap-3 mb-6">
           <LocufyLogo wordmarkClassName="text-2xl" /><ThemeToggle />
         </div>
@@ -248,9 +228,9 @@ export default function RegisterPage() {
             </li>)}
           </ol>
           <h1 ref={headingRef} tabIndex={-1} className="font-display text-xl font-bold text-fg mb-2 outline-none">
-            {passo === 1 ? "Crie sua conta" : passo === 2 ? "Qual é o nome da sua rádio?" : "Confirme o plano da sua rádio"}
+            {passo === 1 ? "Crie sua conta" : "Qual é o nome da sua rádio?"}
           </h1>
-          <p className="text-sm text-fg/65 mb-6">{passo === 1 ? "Informe seus dados de acesso. Você escolhe o plano antes de pagar." : passo === 2 ? "Por enquanto, só precisamos do nome. Voz, programação e os outros dados podem ser configurados depois." : "O pagamento abre aqui mesmo, em um ambiente seguro. Confira os valores antes de confirmar."}</p>
+          <p className="text-sm text-fg/65 mb-6">{passo === 1 ? "Informe seus dados de acesso. Criar a conta não tem custo." : "Por enquanto, só precisamos do nome. Voz, programação e os outros dados você configura em seguida."}</p>
           {passo === 1 && <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {fields.map(field => {
               const error = tocado[field.key] && campoErros[field.key];
@@ -267,39 +247,25 @@ export default function RegisterPage() {
           </div>}
           {passo === 2 && <div className="max-w-lg">
             <label htmlFor="nomeRadio" className="block text-sm font-medium text-fg mb-2">Nome da rádio</label>
-            <input id="nomeRadio" name="nomeRadio" required autoComplete="organization" value={nomeRadio} placeholder="Ex.: Rádio Cidade FM"
+            <input id="nomeRadio" name="nomeRadio" required autoComplete="organization" value={nomeRadio} placeholder="Ex.: Rádio Cidade FM…"
               onChange={e => onChangeNomeRadio(e.target.value)} onBlur={() => { onChangeNomeRadio(nomeRadio); marcarTocado("nomeRadio"); }}
               aria-invalid={!!(tocado.nomeRadio && campoErros.nomeRadio)} aria-describedby={tocado.nomeRadio && campoErros.nomeRadio ? "nomeRadio-erro" : undefined} className={inputClass} />
             {tocado.nomeRadio && campoErros.nomeRadio && <p id="nomeRadio-erro" className="mt-2 text-sm text-laranja">{campoErros.nomeRadio}</p>}
           </div>}
-          {passo === 3 && <fieldset>
-            <legend className="sr-only">Escolha seu plano mensal</legend>
-            <div className="grid max-w-xl gap-4">
-              {PLANOS.map(plano => <label key={plano.id} className={`relative cursor-pointer rounded-xl border p-4 focus-within:ring-2 focus-within:ring-acento-claro ${planoId === plano.id ? "border-acento-claro bg-bg" : "border-border-strong"}`}>
-                <span className="flex items-center gap-2 font-semibold text-fg">
-                  <input type="radio" name="plano" value={plano.id} checked={planoId === plano.id} onChange={() => { setPlanoId(plano.id); trackFunnel("plan_selected", { plano: plano.id }); }} className="accent-brand-500 h-5 w-5" />{plano.nome}
-                </span>
-                <span className="block text-sm text-fg/65 mt-2 min-h-12">{plano.descricao}</span>
-                <span className="block text-2xl font-bold text-fg mt-4">R$ {formatarReais(plano.preco)}<span className="text-sm font-normal">/mês + uso</span></span>
-                <span className="block text-sm text-fg mt-4">{plano.agentes} {plano.agentes === 1 ? "radialista virtual" : "radialistas virtuais"}</span>
-                <span className="block text-sm text-fg mt-1">WhatsApp completo, sem franquia de mensagens</span>
-                <span className="block text-sm text-fg mt-1">Até {plano.radialistasPorPrograma} {plano.radialistasPorPrograma === 1 ? "radialista" : "radialistas"} por programa</span>
-                <span className="block text-sm text-fg mt-1">Clonagem de voz disponível</span>
-              </label>)}
-            </div>
-            <p className="text-sm text-fg/65 mt-4">R$ 69,90 por mês + uso pós-pago. Sem franquia de mensagens. O preço do processamento usa as unidades e tarifas do modelo escolhido, com acréscimo de 100% sobre o custo de referência.</p>
-          </fieldset>}
-          {erro && <p role="alert" className="mt-5 text-sm text-laranja">{erro}</p>}
+          {passo === 2 && <div className="mt-6 max-w-lg rounded-xl border border-border-strong bg-bg p-4 text-sm">
+            <p className="font-semibold text-fg">Como funciona a cobrança</p>
+            <p className="mt-1 text-fg/80">Você configura o radialista e ouve as amostras sem pagar. Para gerar com IA e ir ao ar, ative o Locufy Flex: <span className="font-semibold text-fg tabular-nums">R$ {formatarReais(PRECO_MENSAL_FLEX)}/mês</span> + uso de IA, com limite financeiro definido por você.</p>
+          </div>}
+          <p role="alert" className={erro ? "mt-5 text-sm text-laranja" : "sr-only"}>{erro}</p>
           <div className="flex justify-between gap-3 mt-8">
-            {passo > 1 ? <button type="button" onClick={voltar} disabled={carregando} className="rounded-xl border border-border-strong px-4 py-3 text-fg">Voltar</button> : <span />}
-            <button type="submit" disabled={carregando || (passo === 3 && formInvalido)} className="flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-on-brand hover:bg-brand-600 disabled:opacity-60">
-              {carregando ? <><LocufySpin size={14} /> Criando conta...</> : passo < 3 ? "Continuar" : "Criar conta e ir para pagamento"}
+            {passo > 1 ? <button type="button" onClick={voltar} disabled={carregando} className="rounded-xl border border-border-strong px-4 py-3 text-sm font-medium text-fg hover:bg-fg/5">Voltar</button> : <span />}
+            <button type="submit" disabled={carregando} className="flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-on-brand hover:bg-brand-600 disabled:opacity-60">
+              {carregando ? <><LocufySpin size={14} /> Criando conta…</> : passo === 1 ? "Continuar" : "Criar conta"}
             </button>
           </div>
         </form>
         <p className="mt-6 text-center text-sm text-fg/65">Já tem conta? <Link href="/login" className="text-acento-claro underline">Entrar</Link></p>
         <p className="mt-3 text-center text-xs text-fg/65">Ao criar conta, você concorda com os <Link href="/termos" className="underline">Termos de Uso</Link> e a <Link href="/privacidade" className="underline">Política de Privacidade</Link>.</p>
-        <CheckoutModal open={mostrarCheckout} onClose={() => { setMostrarCheckout(false); window.location.href = "/billing"; }} onSuccess={() => { window.location.href = "/dashboard"; }} endpoint="/billing/checkout" body={{ plano_id: planoId }} />
       </div>
     </main>
   );

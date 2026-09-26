@@ -20,8 +20,8 @@ export function limiteRadialistasPorPrograma(planoId: string | null | undefined)
   return PLANOS.find((p) => p.id === planoId)?.radialistasPorPrograma ?? 10;
 }
 
-export const PRECO_AGENTE_ADICIONAL = 100;
-export const PRECO_EXCEDENTE_1000_MSG = 50;
+// Mensalidade do Locufy Flex (espelha PRECO_POR_PLANO em backend/app/planos.py).
+export const PRECO_MENSAL_FLEX = PLANOS[0].preco;
 
 // Espelha LimitesPlano.clonagem_voz em backend/app/planos.py -- so usado pra decidir se
 // mostra o recurso na UI; o backend e' quem de fato bloqueia (402) se tentar sem o plano.
@@ -30,8 +30,10 @@ export function permiteClonagemVoz(planoId: string | null | undefined): boolean 
   return !!planoId;
 }
 
+// Inteiro sai sem centavos (R$ 1.000); fracionado sempre com duas casas (R$ 69,90, nunca 69,9).
 export function formatarReais(valor: number) {
-  return valor.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
+  const casas = Number.isInteger(valor) ? 0 : 2;
+  return valor.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: 2 });
 }
 
 // Espelha o retorno de GET /billing/cartao (ver stripe_client.obter_cartao_mais_recente).

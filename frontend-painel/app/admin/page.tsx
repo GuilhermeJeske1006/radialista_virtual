@@ -115,7 +115,7 @@ export default function AdminPage() {
             >
               <input
                 type="text"
-                placeholder="Buscar por nome da rádio..."
+                placeholder="Buscar por nome da rádio…"
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
                 className="rounded-xl border border-border-strong bg-bg px-3 py-1.5 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
@@ -147,7 +147,7 @@ export default function AdminPage() {
 
           {carregando ? (
             <p className="flex items-center gap-2 text-sm text-fg/65">
-              <LocufySpin size={16} /> Carregando...
+              <LocufySpin size={16} /> Carregando…
             </p>
           ) : (
             <div className="overflow-x-auto">

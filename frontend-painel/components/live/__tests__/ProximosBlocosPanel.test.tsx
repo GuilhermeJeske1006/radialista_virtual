@@ -92,7 +92,7 @@ describe("ProximosBlocosPanel", () => {
 
 it("prévia musical acompanha o ciclo do backend e não promete comentários extras", async () => {
   const { rerender } = render(<ProximosBlocosPanel programa={programa({ perfil_programacao: "musical_companhia" })} totalFalas={0} />);
-  await screen.findByText("Proximos blocos");
+  await screen.findByText("Próximos blocos");
   let textos = textosDosBlocos();
   expect(textos[0]).toContain("Abertura");
   expect(textos[1]).toContain("Música");

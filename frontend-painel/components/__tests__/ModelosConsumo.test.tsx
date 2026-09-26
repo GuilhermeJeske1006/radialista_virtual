@@ -58,7 +58,7 @@ it("mostra o modelo em uso de cada configuração e de onde ele vem", async () =
   const manha = await linha("Manhã");
   expect(within(manha).getByText("Premium")).toBeInTheDocument();
   expect(within(manha).getByText("Padrão do Locufy")).toBeInTheDocument();
-  expect(within(await linha("Tarde")).getByText("Herdada do locutor")).toBeInTheDocument();
+  expect(within(await linha("Tarde")).getByText("Herdada do radialista")).toBeInTheDocument();
   expect(within(await linha("Noite")).getByText("Escolha sua")).toBeInTheDocument();
 });
 

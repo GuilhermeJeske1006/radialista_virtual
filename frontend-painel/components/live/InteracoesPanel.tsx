@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { apiFetch, ApiError } from "../../lib/api";
 import { STATUS_STYLE, STATUS_LABEL } from "../../lib/statusInteracao";
 import { LocufyLed, LocufySpin } from "../LocufyLogo";
+import { formatarTelefone } from "../../lib/telefone";
 
 type Interaction = {
   id: number;
@@ -52,7 +53,7 @@ export default function InteracoesPanel({ radialistaId, nomeLocutor, pulso, onNo
         setInteracoes(dados);
         setErro("");
       } catch (err) {
-        if (ativo) setErro(err instanceof ApiError ? err.message : "Erro ao carregar interacoes");
+        if (ativo) setErro(err instanceof ApiError ? err.message : "Erro ao carregar interações");
       } finally {
         if (ativo) setCarregando(false);
       }
@@ -81,18 +82,18 @@ export default function InteracoesPanel({ radialistaId, nomeLocutor, pulso, onNo
 
       {carregando ? (
         <p className="flex items-center gap-2 text-sm text-fg/65">
-          <LocufySpin size={16} /> Carregando conversas...
+          <LocufySpin size={16} /> Carregando conversas…
         </p>
       ) : interacoes.length === 0 ? (
         <p className="text-sm text-fg/65">
-          Nenhuma interacao ainda. Assim que um ouvinte mandar mensagem no WhatsApp, ela aparece aqui.
+          Nenhuma interação ainda. Assim que um ouvinte mandar mensagem no WhatsApp, ela aparece aqui.
         </p>
       ) : (
-        <div className="space-y-3 max-h-96 overflow-y-auto pr-1 -mr-1">
+        <div tabIndex={0} role="region" aria-label="Mensagens recentes dos ouvintes" className="space-y-3 max-h-96 overflow-y-auto pr-1 -mr-1 rounded-xl focus-visible:outline-2 focus-visible:outline-acento-claro">
           {interacoes.map((it) => (
             <article key={it.id} className="rounded-xl border border-border-strong p-4">
               <div className="flex items-center justify-between font-mono text-xs text-fg/65 mb-2">
-                <span>{it.nome ? `${it.nome} · ${it.telefone}` : `Ouvinte ${it.telefone}`}</span>
+                <span>{it.nome ? `${it.nome} · ${formatarTelefone(it.telefone)}` : `Ouvinte ${formatarTelefone(it.telefone)}`}</span>
                 <span>{formatarHora(it.criado_em)}</span>
               </div>
 
@@ -111,7 +112,7 @@ export default function InteracoesPanel({ radialistaId, nomeLocutor, pulso, onNo
               <div className="mt-3">
                 <span
                   className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${
-                    STATUS_STYLE[it.status] ?? "bg-fg/10 text-fg/60"
+                    STATUS_STYLE[it.status] ?? "bg-fg/10 text-fg/65"
                   }`}
                 >
                   {STATUS_LABEL[it.status] ?? it.status}

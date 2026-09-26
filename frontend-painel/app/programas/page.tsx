@@ -96,7 +96,7 @@ export default function ProgramasPage() {
 
       {carregando ? (
         <p className="flex items-center gap-2 text-sm text-fg/65">
-          <LocufySpin size={16} /> Carregando...
+          <LocufySpin size={16} /> Carregando…
         </p>
       ) : programas.length === 0 ? (
         <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
@@ -177,7 +177,7 @@ export default function ProgramasPage() {
               <button
                 type="button"
                 onClick={() => setEscolhendoRadialista(false)}
-                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
+                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/65 hover:text-fg"
               >
                 Cancelar
               </button>

@@ -96,7 +96,7 @@ describe("/onboarding", () => {
     mocks.configuracao.mockResolvedValue({ ...pronto, whatsappConectado: false, completa: false });
     render(<OnboardingPage />);
     await act(async () => {});
-    expect(mocks.replace).toHaveBeenCalledWith("/conversas");
+    expect(mocks.replace).toHaveBeenCalledWith("/configuracoes#whatsapp");
   });
 
   it("conta pronta mas app não configurado neste aparelho: vai pro passo do app", async () => {

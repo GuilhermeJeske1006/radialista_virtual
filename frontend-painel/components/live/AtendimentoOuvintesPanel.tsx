@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../../lib/api";
+import { formatarTelefone } from "../../lib/telefone";
 
 type Pedido = { id: number; nome: string; tipo: string; estado: string; programa_id: number | null; transmissao: string | null; mensagem_usuario: string; texto_autorizado: string; musica_query: string | null; motivo: string; eventos?: {acao: string; em: string; usuario_id: number | null; programa_id: number | null}[] };
 type Conversa = { id: number; nome: string; telefone: string; humano: boolean; historico: {role: string; content: string}[] };
@@ -90,13 +91,13 @@ export default function AtendimentoOuvintesPanel() {
     {erro && <p role="alert" className="text-sm text-laranja">{erro}</p>}
     <p className="text-xs text-fg/65">Últimos 30 dias: {Object.entries(contagens).map(([estado, n]) => `${ESTADOS[estado] || estado}: ${n}`).join(" · ") || "Sem pedidos"}</p>
     {envios.length > 0 && <details><summary className="text-sm cursor-pointer">Respostas sem confirmação de envio ({envios.length})</summary>{envios.map(e => <div key={e.id} className="space-y-2 border border-border p-3 rounded mt-2">
-      <p className="text-sm">{e.nome || e.telefone}: {e.texto}</p>
+      <p className="text-sm">{e.nome || formatarTelefone(e.telefone)}: {e.texto}</p>
       <label className="flex gap-2 text-xs"><input type="checkbox" checked={!!conferidos[e.id]} onChange={ev => setConferidos({...conferidos, [e.id]: ev.target.checked})} />Conferi no WhatsApp que esta resposta não foi entregue.</label>
       <button className={botao} disabled={ocupado || !conferidos[e.id]} onClick={() => alterar(`/ouvintes/envios-pendentes/${e.id}/reenviar`, "POST", {confirmei_nao_entregue: true})}>Tentar enviar novamente</button>
     </div>)}</details>}
     <details><summary className="cursor-pointer text-sm font-medium">Conversas recentes ({conversas.length})</summary>
       <div className="mt-3 space-y-3 max-h-96 overflow-y-auto">{conversas.map(c => <details key={c.id} className="border border-border rounded p-3">
-        <summary className="text-sm cursor-pointer">{c.nome || c.telefone} · {c.humano ? "Com a equipe" : "Com o agente"}</summary>
+        <summary className="text-sm cursor-pointer">{c.nome || formatarTelefone(c.telefone)} · {c.humano ? "Com a equipe" : "Com o radialista"}</summary>
         <div className="space-y-2 my-3">{c.historico.map((m, i) => <p className="text-xs whitespace-pre-wrap" key={i}><strong>{m.role === "user" ? "Ouvinte" : "Rádio"}:</strong> {m.content}</p>)}</div>
         <button className={botao} disabled={ocupado} onClick={() => alterar(`/ouvintes/conversas/${c.id}`, "PATCH", {humano: !c.humano})}>{c.humano ? "Devolver ao agente" : "Assumir e pausar agente"}</button>
         {c.humano && <p className="text-xs mt-2">Continue a conversa pelo WhatsApp conectado da rádio.</p>}

@@ -35,7 +35,7 @@ it("gera o locutor com a combinação escolhida e mostra os valores", async () =
   render(<LocutorOnboardingPage />);
   await userEvent.click(await screen.findByRole("radio", { name: /Ágil/ }));
   // Resumo da escolha antes de gerar, para o cliente validar.
-  expect(screen.getByText(/Seu locutor vai usar/)).toHaveTextContent(
+  expect(screen.getByText(/Seu radialista vai usar/)).toHaveTextContent(
     /Ágil: texto Claude Sonnet 5 e voz ElevenLabs Flash 2.5 · ≈ R\$\s1,00 por hora de programa/,
   );
   await userEvent.click(screen.getByRole("button", { name: "Gerar agora com Ágil →" }));

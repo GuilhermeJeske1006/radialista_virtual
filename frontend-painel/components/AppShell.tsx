@@ -9,19 +9,22 @@ import SuporteChat from "./SuporteChat";
 import { apiFetch } from "../lib/api";
 import { limparContaCache, useConta } from "../lib/useConta";
 import { useConfiguracaoInicialCompleta } from "../lib/useConfiguracaoInicial";
+import { useNoAr } from "../lib/useNoAr";
 import { LocufyMark, LocufyWaveform } from "./LocufyLogo";
 import { LINK_AJUDA, LINK_PERFIL, NAV_LINKS } from "./nav";
 import ThemeToggle from "./ThemeToggle";
+import AssinaturaPendenteAviso from "./AssinaturaPendenteAviso";
 
 export default function AppShell({
   title,
   children,
-  noAr = false,
+  noAr: noArDaTela,
   maxWidthClassName = "max-w-4xl",
 }: {
   title: string;
   children: React.ReactNode;
-  /** Programa transmitindo agora — acende o indicador no header. */
+  /** Programa transmitindo agora — acende o indicador no header. Sem valor, usa o horário da
+   * grade (/live/no-ar) com WhatsApp conectado, a mesma regra do card do dashboard. */
   noAr?: boolean;
   maxWidthClassName?: string;
 }) {
@@ -29,9 +32,9 @@ export default function AppShell({
   const router = useRouter();
   const conta = useConta();
   const setupCompleto = useConfiguracaoInicialCompleta();
-  const links = NAV_LINKS.filter((link) => !link.adminOnly || conta?.role === "admin").map((link) =>
-    link.numeroSetup && !setupCompleto ? { ...link, label: `${link.numeroSetup}. ${link.label}` } : link
-  );
+  const { noAr: noArDaGrade } = useNoAr();
+  const noAr = noArDaTela ?? noArDaGrade;
+  const links = NAV_LINKS.filter((link) => !link.adminOnly || conta?.role === "admin");
   // acompanha o recolhimento automático da sidebar na tela Ao Vivo (ver Sidebar.tsx)
   const sidebarColapsada = pathname === "/live";
 
@@ -60,7 +63,7 @@ export default function AppShell({
                   ar, e o chip apaga quando não tem. */}
               <span
                 className={`hidden sm:flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${
-                  noAr ? "bg-ciano/15 text-ciano" : "text-fg/40"
+                  noAr ? "bg-ciano/15 text-ciano" : "text-fg/65"
                 }`}
               >
                 {noAr ? <LocufyWaveform bars={5} className="h-3" /> : null}
@@ -82,7 +85,7 @@ export default function AppShell({
                   href={link.href}
                   aria-current={ativo ? "page" : undefined}
                   className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap transition-colors ${
-                    ativo ? "bg-acento text-on-brand" : "bg-fg/5 text-fg/60"
+                    ativo ? "bg-acento text-on-brand" : "bg-fg/5 text-fg/65"
                   }`}
                 >
                   {link.label}
@@ -92,7 +95,7 @@ export default function AppShell({
             <button
               type="button"
               onClick={sair}
-              className="shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap bg-fg/5 text-fg/60 hover:bg-fg/10 transition-colors"
+              className="shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap bg-fg/5 text-fg/65 hover:bg-fg/10 transition-colors"
             >
               Sair
             </button>
@@ -100,7 +103,10 @@ export default function AppShell({
         </header>
 
         <main className="flex-1 px-4 sm:px-6 py-6">
-          <div className={`${maxWidthClassName} mx-auto`}>{children}</div>
+          <div className={`${maxWidthClassName} mx-auto`}>
+            {pathname !== "/billing" && <AssinaturaPendenteAviso />}
+            {children}
+          </div>
         </main>
       </div>
       {!setupCompleto && <OnboardingTour />}

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import AppShell from "../../components/AppShell";
-import CheckoutModal from "../../components/CheckoutModal";
+import { AvisoPagamento, useExigirAssinatura } from "../../components/AssinaturaGate";
 import TagInput from "../../components/TagInput";
 import VoiceSelect from "../../components/VoiceSelect";
 import { apiFetch, ApiError } from "../../lib/api";
@@ -20,7 +20,6 @@ import {
 import { setRadialistaAtualId } from "../../lib/radialistas";
 import { marcarVinhetasCriadas } from "../../components/VinhetasProgramaSection";
 import { LocufySpin } from "../../components/LocufyLogo";
-import { PRECO_AGENTE_ADICIONAL, formatarReais } from "../../lib/planos";
 import CombinacaoSelect from "../../components/CombinacaoSelect";
 import { Combinacao, reaisPreciso } from "../../lib/combinacoes";
 
@@ -54,7 +53,7 @@ export default function RadialistasPage() {
   const [descricaoIA, setDescricaoIA] = useState("");
   const [gerandoIA, setGerandoIA] = useState(false);
   const [erroIA, setErroIA] = useState("");
-  const [checkoutAgenteExtraAberto, setCheckoutAgenteExtraAberto] = useState(false);
+  const { exigir, modal: modalAssinatura } = useExigirAssinatura();
   // Nao nulo = geracao ja voltou do preview e esta na tela de revisao (nada gravado ainda,
   // ver Fase 2 do plano de melhoria) -- radialistaEdit/programaEdit sao a copia editavel.
   const [proposta, setProposta] = useState<ConfiguracaoIAPreview | null>(null);
@@ -122,7 +121,12 @@ export default function RadialistasPage() {
       setProgramaEdit(preview.programa);
       setGeracaoId(preview.geracao_id);
     } catch (err) {
-      setErroIA(err instanceof ApiError ? err.message : "Erro ao gerar configuração com IA");
+      if (err instanceof ApiError && err.status === 402) {
+        fecharModalIA();
+        setMensagemUpgrade(err.message);
+      } else {
+        setErroIA(err instanceof ApiError ? err.message : "Erro ao gerar configuração com IA");
+      }
     } finally {
       setGerandoIA(false);
     }
@@ -194,10 +198,10 @@ export default function RadialistasPage() {
   }
 
   return (
-    <AppShell title="Locutores" maxWidthClassName="max-w-4xl">
+    <AppShell title="Radialistas" maxWidthClassName="max-w-4xl">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5">
         <p className="text-sm text-fg/65">
-          Seus locutores de IA. Clique num deles pra editar a persona, a voz e os programas.
+          Seus radialistas de IA. Clique em um deles para editar a personalidade, a voz e os programas.
         </p>
         <div className="flex items-center gap-2 shrink-0">
           <button
@@ -224,7 +228,7 @@ export default function RadialistasPage() {
 
       {carregando ? (
         <p className="flex items-center gap-2 text-sm text-fg/65">
-          <LocufySpin size={16} /> Carregando...
+          <LocufySpin size={16} /> Carregando…
         </p>
       ) : radialistas.length === 0 ? (
         <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
@@ -272,8 +276,8 @@ export default function RadialistasPage() {
           >
             <h2 className="font-display text-base font-bold text-fg mb-2">Gerar radialista com IA</h2>
             <p className="text-sm text-fg/70 mb-4">
-              Descreva o gênero musical, o tom e o público do programa. A IA preenche a persona do
-              locutor, os tópicos, a estrutura de blocos e todo o resto — depois é só revisar e ajustar,
+              Descreva o gênero musical, o tom e o público do programa. A IA preenche a personalidade do
+              radialista, os tópicos, a estrutura de blocos e todo o resto — depois é só revisar e ajustar,
               nada é criado ainda.
             </p>
             {tipoRadioConta ? (
@@ -293,7 +297,8 @@ export default function RadialistasPage() {
               onChange={(e) => setDescricaoIA(e.target.value)}
               disabled={gerandoIA}
               rows={4}
-              placeholder="Descrição (opcional). Ex: programa de manhã, mais animado, com bloco de recado"
+              aria-label="Descrição do programa (opcional)"
+              placeholder="Ex.: programa de manhã, mais animado, com bloco de recado…"
               className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2.5 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:ring-2 focus:ring-acento-claro/40 disabled:opacity-60"
             />
             <div className="mt-2 space-y-1.5">
@@ -303,7 +308,7 @@ export default function RadialistasPage() {
                 ["Público", CHIPS_PUBLICO],
               ].map(([grupo, chips]) => (
                 <div key={grupo as string} className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-xs text-fg/50 shrink-0">{grupo}:</span>
+                  <span className="text-xs text-fg/65 shrink-0">{grupo}:</span>
                   {(chips as string[]).map((chip) => (
                     <button
                       key={chip}
@@ -319,7 +324,7 @@ export default function RadialistasPage() {
               ))}
             </div>
             {(radioPerfil?.nome_radio || radioPerfil?.frequencia || radioPerfil?.cidade) && (
-              <p className="text-xs text-fg/50 mt-3">
+              <p className="text-xs text-fg/65 mt-3">
                 Vou considerar: {[radioPerfil.nome_radio, radioPerfil.frequencia, radioPerfil.cidade]
                   .filter(Boolean)
                   .join(", ")}
@@ -337,17 +342,17 @@ export default function RadialistasPage() {
                 type="button"
                 onClick={fecharModalIA}
                 disabled={gerandoIA}
-                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg disabled:opacity-60"
+                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/65 hover:text-fg disabled:opacity-60"
               >
                 Cancelar
               </button>
               <button
                 type="button"
-                onClick={gerarPreview}
+                onClick={() => exigir(() => void gerarPreview())}
                 disabled={gerandoIA || (!descricaoIA.trim() && !tipoRadioConta)}
                 className="rounded-xl bg-acento px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-acento/90 disabled:opacity-60"
               >
-                {gerandoIA ? "Gerando..." : "Gerar"}
+                {gerandoIA ? "Gerando…" : "Gerar"}
               </button>
             </div>
           </div>
@@ -362,13 +367,13 @@ export default function RadialistasPage() {
           >
             <h2 className="font-display text-base font-bold text-fg mb-1">Revise antes de criar</h2>
             <p className="text-sm text-fg/70 mb-4">
-              Nada foi criado ainda. Ajuste o que quiser e confirme -- o roteiro completo do programa
+              Nada foi criado ainda. Ajuste o que quiser e confirme — o roteiro completo do programa
               (estrutura de blocos, tópicos, notícias etc.) você continua editando depois de criar.
             </p>
 
             {proposta.campos_corrigidos.length > 0 && (
               <p className="text-xs font-medium text-acento-claro bg-acento/10 rounded-xl px-3 py-2 mb-4">
-                Estes campos vieram com erro e usaram um valor padrão -- confira:{" "}
+                Estes campos vieram com erro e usaram um valor padrão — confira:{" "}
                 {proposta.campos_corrigidos.join(", ")}
               </p>
             )}
@@ -380,11 +385,12 @@ export default function RadialistasPage() {
               </ul>
             )}
 
-            <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro mb-2">Locutor</h3>
+            <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro mb-2">Radialista</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">Nome do locutor</label>
+                <label htmlFor="ia-nome-radialista" className="block text-sm font-medium text-fg/80 mb-1.5">Nome do radialista</label>
                 <input
+                  id="ia-nome-radialista"
                   className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
                   value={radialistaEdit.nome_locutor}
                   onChange={(e) => setRadialistaEdit({ ...radialistaEdit, nome_locutor: e.target.value })}
@@ -399,8 +405,9 @@ export default function RadialistasPage() {
               </div>
             </div>
             <div className="mb-5">
-              <label className="block text-sm font-medium text-fg/80 mb-1.5">Personalidade</label>
+              <label htmlFor="ia-personalidade" className="block text-sm font-medium text-fg/80 mb-1.5">Personalidade</label>
               <textarea
+                id="ia-personalidade"
                 rows={3}
                 className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
                 value={radialistaEdit.personalidade}
@@ -412,16 +419,18 @@ export default function RadialistasPage() {
             <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro mb-2">Programa</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">Nome do programa</label>
+                <label htmlFor="ia-nome-programa" className="block text-sm font-medium text-fg/80 mb-1.5">Nome do programa</label>
                 <input
+                  id="ia-nome-programa"
                   className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
                   value={programaEdit.nome}
                   onChange={(e) => setProgramaEdit({ ...programaEdit, nome: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">Início</label>
+                <label htmlFor="ia-inicio" className="block text-sm font-medium text-fg/80 mb-1.5">Início</label>
                 <input
+                  id="ia-inicio"
                   type="time"
                   className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
                   value={programaEdit.horario_inicio.slice(0, 5)}
@@ -429,8 +438,9 @@ export default function RadialistasPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-fg/80 mb-1.5">Fim</label>
+                <label htmlFor="ia-fim" className="block text-sm font-medium text-fg/80 mb-1.5">Fim</label>
                 <input
+                  id="ia-fim"
                   type="time"
                   className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
                   value={programaEdit.horario_fim.slice(0, 5)}
@@ -458,11 +468,16 @@ export default function RadialistasPage() {
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-fg/65 mt-1">Nenhum dia marcado = todos os dias.</p>
+              <p className={`text-xs mt-1 ${programaEdit.dias_semana.length === 0 ? "font-medium text-laranja" : "text-fg/65"}`}>
+                {programaEdit.dias_semana.length === 0
+                  ? "Nenhum dia marcado: o programa vai ao ar todos os dias."
+                  : "Sem nenhum dia marcado, o programa vai ao ar todos os dias."}
+              </p>
             </div>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-fg/80 mb-1.5">Tom</label>
+              <label htmlFor="ia-tom" className="block text-sm font-medium text-fg/80 mb-1.5">Tom</label>
               <textarea
+                id="ia-tom"
                 rows={2}
                 className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
                 value={programaEdit.tom}
@@ -540,7 +555,8 @@ export default function RadialistasPage() {
                 value={instrucaoAjuste}
                 onChange={(e) => setInstrucaoAjuste(e.target.value)}
                 disabled={processandoRefinamento || criandoFinal}
-                placeholder="Ex.: mais sério, tira o bloco de notícia, começa às seis"
+                aria-label="Pedido de ajuste para a IA"
+                placeholder="Ex.: mais sério, tira o bloco de notícia, começa às seis…"
                 className="flex-1 min-w-[220px] rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20 disabled:opacity-60"
               />
               <button
@@ -549,7 +565,7 @@ export default function RadialistasPage() {
                 disabled={processandoRefinamento || criandoFinal || !instrucaoAjuste.trim()}
                 className="rounded-xl border border-border-strong px-3 py-2 text-sm font-medium text-fg hover:bg-fg/10 disabled:opacity-60"
               >
-                {processandoRefinamento ? "Ajustando..." : "Ajustar"}
+                {processandoRefinamento ? "Ajustando…" : "Ajustar"}
               </button>
             </div>
 
@@ -559,7 +575,7 @@ export default function RadialistasPage() {
                 type="button"
                 onClick={fecharModalIA}
                 disabled={criandoFinal}
-                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg disabled:opacity-60"
+                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/65 hover:text-fg disabled:opacity-60"
               >
                 Cancelar
               </button>
@@ -574,7 +590,7 @@ export default function RadialistasPage() {
                 disabled={gerandoIA || criandoFinal || processandoRefinamento}
                 className="rounded-xl border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/10 disabled:opacity-60"
               >
-                {gerandoIA ? "Gerando..." : "Gerar tudo de novo"}
+                {gerandoIA ? "Gerando…" : "Gerar tudo de novo"}
               </button>
               <button
                 type="button"
@@ -582,7 +598,7 @@ export default function RadialistasPage() {
                 disabled={criandoFinal || gerandoIA || processandoRefinamento}
                 className="rounded-xl bg-acento px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-acento/90 disabled:opacity-60"
               >
-                {criandoFinal ? "Criando..." : "Criar radialista e programa"}
+                {criandoFinal ? "Criando…" : "Criar radialista e programa"}
               </button>
             </div>
           </div>
@@ -590,59 +606,10 @@ export default function RadialistasPage() {
       )}
 
       {mensagemUpgrade && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-grafite/50 px-4"
-          onClick={() => setMensagemUpgrade("")}
-        >
-          <div
-            className="w-full max-w-sm rounded-3xl border border-border-strong bg-surface p-6 shadow-theme-xs"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-display text-base font-bold text-fg mb-2">Limite de agentes atingido</h2>
-            <p className="text-sm text-fg/70 mb-5">{mensagemUpgrade}</p>
-            <p className="text-sm text-fg/70 mb-5">
-              Adicione este agente agora por{" "}
-              <span className="font-semibold text-fg">R$ {formatarReais(PRECO_AGENTE_ADICIONAL)}/mês</span>, sem
-              trocar de plano — ele entra no ar assim que o pagamento confirmar.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setMensagemUpgrade("")}
-                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
-              >
-                Fechar
-              </button>
-              <Link
-                href="/billing"
-                className="rounded-xl border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/10"
-              >
-                Ver planos
-              </Link>
-              <button
-                type="button"
-                onClick={() => setCheckoutAgenteExtraAberto(true)}
-                className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600"
-              >
-                Adicionar agente extra
-              </button>
-            </div>
-          </div>
-        </div>
+        <AvisoPagamento mensagem={mensagemUpgrade} onClose={() => setMensagemUpgrade("")} onAssinado={carregar} />
       )}
 
-      {checkoutAgenteExtraAberto && (
-        <CheckoutModal
-          open
-          endpoint="/billing/agentes-extras/checkout"
-          onClose={() => setCheckoutAgenteExtraAberto(false)}
-          onSuccess={() => {
-            setCheckoutAgenteExtraAberto(false);
-            setMensagemUpgrade("");
-            carregar();
-          }}
-        />
-      )}
+      {modalAssinatura}
     </AppShell>
   );
 }

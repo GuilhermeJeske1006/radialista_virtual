@@ -102,7 +102,7 @@ export default function FontesNoticiaSection() {
   if (carregando) {
     return (
       <p className="flex items-center gap-2 text-sm text-fg/65">
-        <LocufySpin size={16} /> Carregando fontes de notícia...
+        <LocufySpin size={16} /> Carregando fontes de notícia…
       </p>
     );
   }
@@ -169,7 +169,7 @@ export default function FontesNoticiaSection() {
                 disabled={salvandoId === fonte.id}
                 className="rounded-xl border border-border-strong px-3 py-1.5 text-xs font-medium text-fg/80 hover:bg-fg/5 disabled:opacity-60"
               >
-                {salvandoId === fonte.id ? "Salvando..." : "Salvar"}
+                {salvandoId === fonte.id ? "Salvando…" : "Salvar"}
               </button>
             </div>
           </div>
@@ -210,7 +210,7 @@ export default function FontesNoticiaSection() {
           disabled={salvandoId === "nova" || !novaFonte.nome.trim()}
           className="rounded-xl border border-border-strong px-3 py-1.5 text-xs font-medium text-fg/80 hover:bg-fg/5 disabled:opacity-60"
         >
-          {salvandoId === "nova" ? "Adicionando..." : "+ Adicionar fonte"}
+          {salvandoId === "nova" ? "Adicionando…" : "+ Adicionar fonte"}
         </button>
       </div>
 
@@ -220,7 +220,7 @@ export default function FontesNoticiaSection() {
         disabled={gerandoSeeds}
         className="text-xs font-medium text-acento-claro hover:text-acento-dim disabled:opacity-60"
       >
-        {gerandoSeeds ? "Gerando..." : "Sugerir fontes oficiais pela cidade da rádio"}
+        {gerandoSeeds ? "Gerando…" : "Sugerir fontes oficiais pela cidade da rádio"}
       </button>
     </div>
   );

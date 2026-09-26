@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import ConfirmDialog from "./ConfirmDialog";
-import CheckoutModal from "./CheckoutModal";
+import { AvisoPagamento } from "./AssinaturaGate";
 import VoiceSelect from "./VoiceSelect";
 import TagInput from "./TagInput";
 import { apiFetch, ApiError } from "../lib/api";
@@ -11,7 +11,7 @@ import { setRadialistaAtualId } from "../lib/radialistas";
 import { invalidarConfiguracaoInicial } from "../lib/useConfiguracaoInicial";
 import { DIAS_SEMANA_LABEL, RADIALISTA_VAZIO, Programa, Radialista } from "../lib/types";
 import { LocufySpin } from "./LocufyLogo";
-import { PRECO_AGENTE_ADICIONAL, formatarReais } from "../lib/planos";
+import { useAvisoAlteracoes } from "../lib/useAvisoAlteracoes";
 
 const inputClass =
   "w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20";
@@ -61,8 +61,9 @@ export default function EditarRadialistaForm({
   const [erro, setErro] = useState("");
   const [confirmandoExclusaoRadialista, setConfirmandoExclusaoRadialista] = useState(false);
   const [programaParaExcluir, setProgramaParaExcluir] = useState<Programa | null>(null);
-  const [mensagemLimiteAgentes, setMensagemLimiteAgentes] = useState("");
-  const [checkoutAgenteExtraAberto, setCheckoutAgenteExtraAberto] = useState(false);
+  const [mensagemPagamento, setMensagemPagamento] = useState("");
+  // Última versão salva/carregada -- diferença em relação a `config` = alteração pendente.
+  const [original, setOriginal] = useState("");
 
   // Depois que o POST de criacao roda (dentro de salvar()), guarda o id criado aqui --
   // radialistaId (prop) continua null enquanto o pai (pagina/modal) nao navegar/atualizar,
@@ -80,7 +81,9 @@ export default function EditarRadialistaForm({
 
   useEffect(() => {
     if (idEfetivo === null) {
-      setConfig({ id: 0, ativo: true, ...RADIALISTA_VAZIO });
+      const vazio = { id: 0, ativo: true, ...RADIALISTA_VAZIO };
+      setConfig(vazio);
+      setOriginal(JSON.stringify(vazio));
       setProgramas([]);
       setCarregando(false);
       return;
@@ -88,7 +91,10 @@ export default function EditarRadialistaForm({
     setRadialistaAtualId(idEfetivo);
     setCarregando(true);
     apiFetch<Radialista>(`/config/radialistas/${idEfetivo}`)
-      .then(setConfig)
+      .then((r) => {
+        setConfig(r);
+        setOriginal(JSON.stringify(r));
+      })
       .catch((err) => setErro(err instanceof ApiError ? err.message : "Erro ao carregar radialista"))
       .finally(() => setCarregando(false));
     carregarProgramas();
@@ -116,12 +122,13 @@ export default function EditarRadialistaForm({
         setRadialistaAtualId(atualizado.id);
       }
       setConfig(atualizado);
+      setOriginal(JSON.stringify(atualizado));
       setMensagem(criando ? "Radialista criado." : "Configuração salva.");
       invalidarConfiguracaoInicial();
       onSalvo?.(atualizado);
     } catch (err) {
-      if (criando && err instanceof ApiError && err.status === 402) {
-        setMensagemLimiteAgentes(err.message);
+      if (err instanceof ApiError && err.status === 402) {
+        setMensagemPagamento(err.message);
       } else {
         setErro(err instanceof ApiError ? err.message : "Erro ao salvar");
       }
@@ -164,10 +171,13 @@ export default function EditarRadialistaForm({
     }
   }
 
+  const alteracoesPendentes = config !== null && original !== "" && JSON.stringify(config) !== original;
+  useAvisoAlteracoes(alteracoesPendentes);
+
   if (carregando) {
     return (
       <p className="flex items-center gap-2 text-sm text-fg/65">
-        <LocufySpin size={16} /> Carregando...
+        <LocufySpin size={16} /> Carregando…
       </p>
     );
   }
@@ -178,18 +188,18 @@ export default function EditarRadialistaForm({
 
   return (
     <div className="space-y-5">
-      {erro && <p className="text-sm text-laranja">{erro}</p>}
-      {mensagem && <p className="text-sm text-ciano">{mensagem}</p>}
+      {erro && <p role="alert" className="text-sm text-laranja">{erro}</p>}
+      {mensagem && <p role="status" className="text-sm text-ciano">{mensagem}</p>}
 
       <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
         <div className="flex flex-col gap-1 mb-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="font-display text-base font-bold text-fg">
-              {criando ? "Novo radialista" : "Identidade do locutor"}
+              {criando ? "Novo radialista" : "Identidade do radialista"}
             </h2>
             <p className="text-sm text-fg/65">
               Atende pelo WhatsApp da rádio.{" "}
-              <Link href="/conversas" className="text-acento-claro hover:underline">
+              <Link href="/configuracoes#whatsapp" className="text-acento-claro underline hover:text-acento-dim">
                 Gerenciar conexão
               </Link>
             </p>
@@ -208,8 +218,10 @@ export default function EditarRadialistaForm({
         <form onSubmit={salvar} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>Nome do locutor</label>
+              <label htmlFor="radialista-nome" className={labelClass}>Nome do radialista</label>
               <input
+                id="radialista-nome"
+                autoComplete="off"
                 className={inputClass}
                 value={config.nome_locutor}
                 onChange={(e) => setConfig({ ...config, nome_locutor: e.target.value })}
@@ -221,8 +233,9 @@ export default function EditarRadialistaForm({
             </div>
           </div>
           <div>
-            <label className={labelClass}>Fuso horário</label>
+            <label htmlFor="radialista-fuso" className={labelClass}>Fuso horário</label>
             <select
+              id="radialista-fuso"
               className={inputClass}
               value={config.timezone}
               onChange={(e) => setConfig({ ...config, timezone: e.target.value })}
@@ -235,32 +248,34 @@ export default function EditarRadialistaForm({
             </select>
           </div>
           <div>
-            <label className={labelClass}>Personalidade</label>
+            <label htmlFor="radialista-personalidade" className={labelClass}>Personalidade</label>
             <textarea
+              id="radialista-personalidade"
               className={inputClass}
               rows={4}
-              placeholder="Descreva como o locutor deve se comportar: personalidade, características, jeito de falar, humor, etc."
+              placeholder="Descreva como o radialista deve se comportar: personalidade, características, jeito de falar, humor…"
               value={config.personalidade}
               onChange={(e) => setConfig({ ...config, personalidade: e.target.value })}
             />
           </div>
           <div>
-            <label className={labelClass}>Biografia</label>
+            <label htmlFor="radialista-biografia" className={labelClass}>Biografia</label>
             <textarea
+              id="radialista-biografia"
               className={inputClass}
               rows={3}
-              placeholder="Poucos fatos pessoais fixos e reais: de onde é, há quanto tempo trabalha na rádio, time que torce, hobby. Esses fatos nunca mudam entre programas."
+              placeholder="Poucos fatos pessoais fixos: de onde é, há quanto tempo trabalha na rádio, time que torce, hobby. Não mudam entre programas…"
               value={config.biografia}
               onChange={(e) => setConfig({ ...config, biografia: e.target.value })}
             />
           </div>
           <TagInput
-            label="Traços marcantes (1-2 marcas registradas: implicância boba, piada interna)"
+            label="Traços marcantes (1 ou 2 marcas registradas: implicância boba, piada interna)"
             tags={config.tracos_marcantes}
             onChange={(tags) => setConfig({ ...config, tracos_marcantes: tags })}
           />
           <TagInput
-            label="Fatos do dia (pool sorteado uma vez por sessão ao vivo, ex.: 'hoje eu vim de bicicleta')"
+            label="Fatos do dia (um é sorteado a cada transmissão, ex.: “hoje eu vim de bicicleta”)"
             tags={config.fatos_do_dia}
             onChange={(tags) => setConfig({ ...config, fatos_do_dia: tags })}
           />
@@ -273,14 +288,15 @@ export default function EditarRadialistaForm({
             />
             Responder automaticamente no WhatsApp
           </label>
-          <div className="pt-2">
+          <div className="sticky bottom-0 -mx-6 -mb-6 flex items-center gap-3 rounded-b-3xl border-t border-border bg-surface/95 px-6 py-3 backdrop-blur">
             <button
               type="submit"
               disabled={salvando}
               className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {salvando ? "Salvando..." : "Salvar"}
+              {salvando ? "Salvando…" : criando ? "Criar radialista" : "Salvar radialista"}
             </button>
+            {alteracoesPendentes && <span className="text-xs text-laranja">Alterações não salvas</span>}
           </div>
         </form>
       </div>
@@ -288,7 +304,7 @@ export default function EditarRadialistaForm({
       {criando ? (
         <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
           <h2 className="font-display text-base font-bold text-fg mb-1">Programação</h2>
-          <p className="text-sm text-fg/65">Salve o radialista pra poder cadastrar os programas dele.</p>
+          <p className="text-sm text-fg/65">Salve o radialista para cadastrar os programas dele.</p>
         </div>
       ) : (
         <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
@@ -367,59 +383,8 @@ export default function EditarRadialistaForm({
         </div>
       )}
 
-      {mensagemLimiteAgentes && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-grafite/50 px-4"
-          onClick={() => setMensagemLimiteAgentes("")}
-        >
-          <div
-            className="w-full max-w-sm rounded-3xl border border-border-strong bg-surface p-6 shadow-theme-xs"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-display text-base font-bold text-fg mb-2">Limite de agentes atingido</h2>
-            <p className="text-sm text-fg/70 mb-5">{mensagemLimiteAgentes}</p>
-            <p className="text-sm text-fg/70 mb-5">
-              Adicione este agente agora por{" "}
-              <span className="font-semibold text-fg">R$ {formatarReais(PRECO_AGENTE_ADICIONAL)}/mês</span>, sem
-              trocar de plano — ele entra no ar assim que o pagamento confirmar.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setMensagemLimiteAgentes("")}
-                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
-              >
-                Fechar
-              </button>
-              <Link
-                href="/billing"
-                className="rounded-xl border border-border-strong px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/10"
-              >
-                Ver planos
-              </Link>
-              <button
-                type="button"
-                onClick={() => setCheckoutAgenteExtraAberto(true)}
-                className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600"
-              >
-                Adicionar agente extra
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {checkoutAgenteExtraAberto && (
-        <CheckoutModal
-          open
-          endpoint="/billing/agentes-extras/checkout"
-          onClose={() => setCheckoutAgenteExtraAberto(false)}
-          onSuccess={() => {
-            setCheckoutAgenteExtraAberto(false);
-            setMensagemLimiteAgentes("");
-            setMensagem("Agente extra ativado. Salve de novo pra concluir.");
-          }}
-        />
+      {mensagemPagamento && (
+        <AvisoPagamento mensagem={mensagemPagamento} onClose={() => setMensagemPagamento("")} />
       )}
 
       <ConfirmDialog

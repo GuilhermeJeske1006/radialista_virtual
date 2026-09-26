@@ -21,7 +21,7 @@ const CAMPO = "block w-full rounded-xl border border-border-strong bg-bg px-3 py
 const BOTAO = "rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed";
 const BOTAO_SECUNDARIO = "rounded-xl border border-border-strong px-4 py-2 text-sm font-medium text-fg hover:bg-fg/5 disabled:opacity-60 disabled:cursor-not-allowed";
 const POR_PAGINA = 6;
-const ORIGEM: Record<Origem, string> = { propria: "Escolha sua", locutor: "Herdada do locutor", padrao: "Padrão do Locufy" };
+const ORIGEM: Record<Origem, string> = { propria: "Escolha sua", locutor: "Herdada do radialista", padrao: "Padrão do Locufy" };
 
 function horario(p: ProgramaConta) {
   const faixa = `${p.horario_inicio.slice(0, 5)}–${p.horario_fim.slice(0, 5)}`;

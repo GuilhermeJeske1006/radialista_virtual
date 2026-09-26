@@ -96,7 +96,7 @@ export default function ProgramaSelector({
               >
                 <option value="">
                   {carregandoProgramas
-                    ? "Carregando programas..."
+                    ? "Carregando programas…"
                     : programasTodos.length === 0
                       ? "Nenhum programa cadastrado"
                       : "Selecione um programa"}
@@ -121,9 +121,9 @@ export default function ProgramaSelector({
                   type="button"
                   onClick={onIniciar}
                   disabled={!programaId || gerandoFala}
-                  className="rounded-xl bg-laranja px-4 py-2.5 text-sm font-medium text-fg hover:bg-laranja/90 disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
+                  className="rounded-xl bg-laranja px-4 py-2.5 text-sm font-semibold text-grafite hover:bg-laranja/90 disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
                 >
-                  Comecar transmissao
+                  Começar transmissão
                 </button>
               ) : (
                 <button
@@ -131,7 +131,7 @@ export default function ProgramaSelector({
                   onClick={onPausar}
                   className="rounded-xl border border-border-strong bg-fg/5 px-4 py-2.5 text-sm font-medium text-fg hover:bg-fg/10 shrink-0"
                 >
-                  Pausar transmissao
+                  Pausar transmissão
                 </button>
               )}
             </div>
@@ -144,16 +144,16 @@ export default function ProgramaSelector({
               aoVivoAtivo ? "bg-ciano/10 text-ciano" : "bg-acento/10 text-acento-claro"
             }`}
           >
-            {aoVivoAtivo ? "Agente online" : "Aguardando conexao"}
+            {aoVivoAtivo ? "Radialista online" : "Aguardando conexão"}
           </span>
           {programaSelecionado && (
             <span
               className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                 programaSelecionadoNoAr ? "bg-ciano/10 text-ciano" : "bg-acento/10 text-acento-claro"
               }`}
-              title="Horario programado deste programa, independente de a transmissao estar ligada"
+              title="Horário programado deste programa, independente de a transmissão estar ligada"
             >
-              {programaSelecionadoNoAr ? "Dentro do horario" : "Fora do horario"}
+              {programaSelecionadoNoAr ? "Dentro do horário" : "Fora do horário"}
             </span>
           )}
         </div>
@@ -162,10 +162,10 @@ export default function ProgramaSelector({
       {programaSelecionado && (
         <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
           <span className="rounded-full bg-fg/5 px-2.5 py-1 font-mono text-xs font-medium text-fg/70">
-            Voz: {radialistaSelecionado?.voz_id ? "Personalizada" : "Padrao do servidor"}
+            Voz: {radialistaSelecionado?.voz_id ? "Personalizada" : "Padrão do Locufy"}
           </span>
           <span className="rounded-full bg-fg/5 px-2.5 py-1 font-mono text-xs font-medium text-fg/70">
-            Generos:{" "}
+            Gêneros:{" "}
             {programaSelecionado.generos_musicais.length > 0
               ? programaSelecionado.generos_musicais.slice(0, 3).join(", ")
               : "livre"}

@@ -4,7 +4,7 @@
  *
  * Os ícones são monoline de traço 1.75 com ponta arredondada, o mesmo desenho
  * do símbolo da marca. Cada um nomeia o que a pessoa faz ali, não como o
- * sistema chama: microfone para locutores, ondas para transmissão.
+ * sistema chama: microfone para radialistas, ondas para transmissão.
  */
 
 export type NavGroup = "Principal" | "Conteúdo" | "Conta";
@@ -16,9 +16,6 @@ export type NavLink = {
   icon: React.ReactNode;
   /** ausente pros links fora da navegação principal (Ajuda, Perfil, Sair). */
   group?: NavGroup;
-  /** 1/2/3 -- ganha o prefixo numérico enquanto o setup inicial não termina
-   * (ver useConfiguracaoInicialCompleta). */
-  numeroSetup?: number;
 };
 
 export function NavIcone({ children, className = "h-5 w-5 shrink-0" }: { children: React.ReactNode; className?: string }) {
@@ -56,7 +53,6 @@ export const NAV_LINKS: NavLink[] = [
     href: "/live",
     group: "Principal",
     label: "Ao vivo",
-    numeroSetup: 3,
     icon: (
       <>
         <circle cx="12" cy="12" r="2" />
@@ -92,8 +88,7 @@ export const NAV_LINKS: NavLink[] = [
   {
     href: "/radialista",
     group: "Conteúdo",
-    label: "Locutores",
-    numeroSetup: 1,
+    label: "Radialistas",
     icon: (
       <>
         <rect x="9" y="3" width="6" height="10" rx="3" />
@@ -106,7 +101,6 @@ export const NAV_LINKS: NavLink[] = [
     href: "/programas",
     group: "Conteúdo",
     label: "Programas",
-    numeroSetup: 2,
     icon: (
       <>
         <path d="M9 6h11M9 12h11M9 18h11" />

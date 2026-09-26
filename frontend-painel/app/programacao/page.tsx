@@ -101,7 +101,7 @@ export default function ProgramacaoPage() {
       {programaPadraoNaoEditado && (
         <div className="flex items-center justify-between gap-4 rounded-xl border border-acento-claro/30 bg-acento/10 px-4 py-3 mb-4">
           <p className="text-sm text-fg/80">
-            "{programas[0].nome}" ainda está no ar 24h, todos os dias -- é só o ponto de partida criado no
+            "{programas[0].nome}" ainda está no ar 24h, todos os dias — é só o ponto de partida criado no
             cadastro. Divida em horários reais quando tiver outros programas pra colocar na grade.
           </p>
           <button
@@ -130,7 +130,7 @@ export default function ProgramacaoPage() {
 
       {carregando ? (
         <p className="flex items-center gap-2 text-sm text-fg/65">
-          <LocufySpin size={16} /> Carregando...
+          <LocufySpin size={16} /> Carregando…
         </p>
       ) : radialistas.length === 0 ? (
         <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
@@ -177,7 +177,7 @@ export default function ProgramacaoPage() {
               <button
                 type="button"
                 onClick={() => setEscolhaPendente(null)}
-                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
+                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/65 hover:text-fg"
               >
                 Cancelar
               </button>

@@ -18,7 +18,7 @@ export const PASSOS_TOUR: PassoTour[] = [
     numero: 1,
     titulo: "Crie seu radialista",
     texto:
-      "Gere um locutor com IA em segundos (nome, voz e personalidade prontos) ou cadastre cada campo manualmente.",
+      "Gere um radialista com IA em segundos (nome, voz e personalidade prontos) ou cadastre cada campo manualmente.",
     cta: "Criar radialista",
     href: "/onboarding/locutor",
     feito: (e) => e.radialistaPronto,
@@ -38,7 +38,7 @@ export const PASSOS_TOUR: PassoTour[] = [
     texto:
       "Escaneie o QR Code com o número que vai atender os ouvintes. Só depois disso o radialista responde de verdade.",
     cta: "Conectar WhatsApp",
-    href: "/conversas",
+    href: "/configuracoes#whatsapp",
     feito: (e) => e.whatsappConectado,
   },
   {
@@ -51,6 +51,11 @@ export const PASSOS_TOUR: PassoTour[] = [
     feito: (e) => e.appPronto,
   },
 ];
+
+/** Caminho da página do passo, sem âncora (ex.: /configuracoes#whatsapp -> /configuracoes). */
+export function paginaDoPasso(passo: PassoTour): string {
+  return passo.href.split("#")[0];
+}
 
 export function passoAtual(estado: EstadoTour): PassoTour | null {
   return PASSOS_TOUR.find((p) => !p.feito(estado)) ?? null;

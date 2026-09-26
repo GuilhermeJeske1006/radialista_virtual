@@ -21,6 +21,7 @@ import { useLiveEngine } from "../../hooks/useLiveEngine";
 import InstalarAppAviso from "../../components/live/InstalarAppAviso";
 import { useAoVivoUnico } from "../../lib/aoVivoUnico";
 import { rodandoComoApp } from "../../lib/instalarApp";
+import { useExigirAssinatura } from "../../components/AssinaturaGate";
 
 // numero de blocos seguidos sem locucao (so' cama musical) a partir do qual o alerta vira
 // persistente na tela -- abaixo disso pode ser so' um solavanco pontual da ElevenLabs (ja
@@ -44,6 +45,7 @@ export default function LivePage() {
     router.replace("/dashboard?app=instalado");
   });
 
+  const { exigir, modal: modalAssinatura } = useExigirAssinatura();
   const [pulso, setPulso] = useState(false);
   const [bibliotecaItens, setBibliotecaItens] = useState<BibliotecaAudioItem[]>([]);
   const [carregandoBiblioteca, setCarregandoBiblioteca] = useState(true);
@@ -74,10 +76,10 @@ export default function LivePage() {
     setTimeout(() => setPulso(false), 700);
   }
 
-  const nomeLocutor = engine.radialistaSelecionado?.nome_locutor || "Locutor";
+  const nomeLocutor = engine.radialistaSelecionado?.nome_locutor || "Radialista";
 
   return (
-    <AppShell title="Ao vivo" maxWidthClassName="max-w-[1600px]">
+    <AppShell title="Ao vivo" maxWidthClassName="max-w-[1600px]" noAr={engine.programaAtivo}>
       <div id="yt-players-root" className="pointer-events-none fixed left-[-9999px] top-0 h-px w-px overflow-hidden">
         <div id="yt-live-player" />
         <div id="yt-bg-player" />
@@ -86,9 +88,8 @@ export default function LivePage() {
       {engine.falhasAudioConsecutivas >= LIMIAR_ALERTA_FALHA_AUDIO && (
         <div className="mb-4 rounded-xl border border-laranja bg-laranja/10 px-4 py-3">
           <p className="text-sm font-medium text-laranja">
-            Sintese de voz falhando ha {engine.falhasAudioConsecutivas} blocos seguidos -- o programa esta
-            no ar so' com musica, sem locucao. Verifique a ElevenLabs (chave de API, limite de uso) ou a
-            conexao do backend.
+            A voz falhou em {engine.falhasAudioConsecutivas} blocos seguidos — o programa está no ar só com
+            música, sem locução. Confira o limite financeiro em Assinatura ou fale com o suporte.
           </p>
         </div>
       )}
@@ -98,18 +99,18 @@ export default function LivePage() {
       {engine.audioBloqueado && (
         <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-laranja bg-laranja/10 px-4 py-3">
           <p className="text-sm font-medium text-laranja flex-1 min-w-[12rem]">
-            O navegador bloqueou o som porque a pagina ainda nao recebeu nenhum clique. Voz e musica
-            estao esperando -- clique em qualquer lugar da pagina ou no botao.{" "}
+            O navegador bloqueou o som porque a página ainda não recebeu nenhum clique. Voz e música
+            estão esperando — clique em qualquer lugar da página ou no botão.{" "}
             {emJanelaDeApp ? (
               <>
-                Este atalho do app nao liberou o som.{" "}
+                Este atalho do app não liberou o som.{" "}
                 <Link href="/onboarding/app" className="underline">
                   Veja como reinstalar
                 </Link>
                 .
               </>
             ) : (
-              "Pra nao precisar clicar, instale o Locufy como app."
+              "Para não precisar clicar, instale o Locufy como app."
             )}
           </p>
           <button
@@ -128,8 +129,8 @@ export default function LivePage() {
           {erroBiblioteca && <p className="text-sm text-laranja">{erroBiblioteca}</p>}
           {engine.abaEmSegundoPlano && (
             <p className="text-sm text-laranja">
-              Aba em segundo plano -- o navegador pode pausar o ao vivo. Mantenha esta aba aberta e em foco pra
-              transmissao nao parar.
+              Aba em segundo plano — o navegador pode pausar o ao vivo. Mantenha esta aba aberta e em foco para
+              a transmissão não parar.
             </p>
           )}
           {engine.avisoGravacao && <p className="text-sm text-ciano">{engine.avisoGravacao}</p>}
@@ -149,7 +150,7 @@ export default function LivePage() {
           radialistaSelecionado={engine.radialistaSelecionado}
           programaSelecionadoNoAr={engine.programaSelecionadoNoAr}
           onSelecionar={(opcao) => engine.selecionarPrograma(opcao)}
-          onIniciar={() => engine.iniciarPrograma()}
+          onIniciar={() => exigir(() => engine.iniciarPrograma())}
           onPausar={() => engine.pausarPrograma(true)}
           onEditarRadialista={setModalRadialistaId}
           onEditarPrograma={(radialistaId, programaId) => setModalPrograma({ radialistaId, programaId })}
@@ -180,13 +181,14 @@ export default function LivePage() {
             </>
           ) : (
             <p className="text-sm text-fg/65">
-              Selecione um programa acima para carregar os dados do locutor e liberar a transmissao.
+              Selecione um programa acima para carregar os dados do radialista e liberar a transmissão.
             </p>
           )}
         </section>
       ) : (
         <div className="mt-5 grid grid-cols-1 xl:grid-cols-[280px_minmax(0,1fr)_340px] gap-5 items-start">
-          <div className="space-y-5">
+          {/* No celular (uma coluna), o que está tocando vem antes da biblioteca. */}
+          <div className="space-y-5 order-2 xl:order-1">
             <BibliotecaAudioPanel
               itens={bibliotecaItens}
               categorias={categorias}
@@ -197,7 +199,7 @@ export default function LivePage() {
             />
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-5 order-1 xl:order-2">
             <PlaylistCentral
               programaAtivo={engine.programaAtivo}
               musicaAtual={engine.musicaAtual}
@@ -213,7 +215,7 @@ export default function LivePage() {
             />
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-5 order-3">
             <CartwallPanel
               itens={bibliotecaItens.filter((i) => i.ativo && temAudio(i))}
               duckMusicaFundo={engine.duckMusicaFundo}
@@ -264,6 +266,7 @@ export default function LivePage() {
           />
         )}
       </Modal>
+      {modalAssinatura}
     </AppShell>
   );
 }

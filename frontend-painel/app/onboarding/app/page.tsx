@@ -71,7 +71,7 @@ export default function OnboardingAppPage() {
                 : "border-border-strong text-fg/65"
           }`}
         >
-          {statusSom === "testando" && "Testando o som automático neste navegador..."}
+          {statusSom === "testando" && "Testando o som automático neste navegador…"}
           {statusSom === "liberado" && "✓ Som automático liberado neste navegador. A rádio toca sem ninguém clicar."}
           {statusSom === "bloqueado" && "Som automático bloqueado neste navegador: sem clique, a voz e a música ficam mudas."}
           {statusSom === "inconclusivo" && (

@@ -59,8 +59,9 @@ function AceitarConviteForm() {
   return (
     <form onSubmit={enviar} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-fg/80 mb-1.5">Seu nome</label>
+        <label htmlFor="convite-seu-nome" className="block text-sm font-medium text-fg/80 mb-1.5">Seu nome</label>
         <input
+          id="convite-seu-nome"
           type="text"
           required
           value={nome}
@@ -69,8 +70,9 @@ function AceitarConviteForm() {
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-fg/80 mb-1.5">Senha</label>
+        <label htmlFor="convite-senha" className="block text-sm font-medium text-fg/80 mb-1.5">Senha</label>
         <input
+          id="convite-senha"
           type="password"
           required
           minLength={8}
@@ -80,8 +82,9 @@ function AceitarConviteForm() {
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-fg/80 mb-1.5">Confirmar senha</label>
+        <label htmlFor="convite-confirmar-senha" className="block text-sm font-medium text-fg/80 mb-1.5">Confirmar senha</label>
         <input
+          id="convite-confirmar-senha"
           type="password"
           required
           minLength={8}
@@ -98,7 +101,7 @@ function AceitarConviteForm() {
       >
         {carregando ? (
           <>
-            <LocufySpin size={14} /> Entrando...
+            <LocufySpin size={14} /> Entrando…
           </>
         ) : (
           "Entrar na equipe"

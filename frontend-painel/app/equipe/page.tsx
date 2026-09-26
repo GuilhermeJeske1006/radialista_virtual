@@ -134,7 +134,7 @@ export default function EquipePage() {
     return (
       <AppShell title="Equipe">
         <p className="flex items-center gap-2 text-sm text-fg/65">
-          <LocufySpin size={16} /> Carregando...
+          <LocufySpin size={16} /> Carregando…
         </p>
       </AppShell>
     );
@@ -174,7 +174,7 @@ export default function EquipePage() {
               disabled={convidando}
               className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
             >
-              {convidando ? "Enviando..." : "Enviar convite"}
+              {convidando ? "Enviando…" : "Enviar convite"}
             </button>
           </div>
           <p className="mt-3 text-xs text-fg/65">

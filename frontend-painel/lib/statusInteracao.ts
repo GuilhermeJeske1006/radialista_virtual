@@ -2,8 +2,8 @@
 // usado tanto na thread de conversas quanto no breakdown de metricas, pra manter os dois com
 // a mesma leitura (mesma cor = mesmo significado em qualquer tela do painel).
 export const STATUS_LABEL: Record<string, string> = {
-  fila_musica: "Pedido de música enviado ao locutor",
-  fila_abraco: "Recado/abraço enviado ao locutor",
+  fila_musica: "Pedido de música enviado ao radialista",
+  fila_abraco: "Recado/abraço enviado ao radialista",
   bloqueado_horario: "Bloqueada — fora do horário do programa",
   bloqueado_rate_limit: "Bloqueada — limite de mensagens por hora",
   bloqueado_conteudo: "Bloqueada — conteúdo não permitido",

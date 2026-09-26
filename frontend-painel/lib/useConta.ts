@@ -26,6 +26,12 @@ export function limparContaCache(): void {
   buscaEmVoo = null;
 }
 
+/** Busca a conta de novo e avisa quem está montado -- depois do checkout o status muda. */
+export function recarregarConta(): Promise<Conta> {
+  buscaEmVoo = null;
+  return buscarConta();
+}
+
 export function useConta(): Conta | null {
   const [conta, setConta] = useState<Conta | null>(contaCache);
 

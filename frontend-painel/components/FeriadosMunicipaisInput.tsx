@@ -32,7 +32,7 @@ export default function FeriadosMunicipaisInput({ feriados, onChange }: Props) {
     <div>
       <label className="block text-sm font-medium text-fg/80 mb-1.5">Feriados municipais</label>
       <p className="text-xs text-fg/65 mb-2">
-        Feriados só da sua cidade (formato MM-DD) -- os feriados nacionais já são calculados automaticamente.
+        Feriados só da sua cidade (formato MM-DD) — os feriados nacionais já são calculados automaticamente.
       </p>
       {feriados.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-2">

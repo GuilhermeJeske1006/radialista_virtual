@@ -62,7 +62,7 @@ export default function HistoricoFilaPanel({ radialistaId }: Props) {
         if (ativo) setDados(resposta);
       })
       .catch((err) => {
-        if (ativo) setErro(err instanceof ApiError ? err.message : "Erro ao carregar historico da fila");
+        if (ativo) setErro(err instanceof ApiError ? err.message : "Erro ao carregar histórico da fila");
       })
       .finally(() => {
         if (ativo) setCarregando(false);
@@ -100,12 +100,12 @@ export default function HistoricoFilaPanel({ radialistaId }: Props) {
 
       {carregando ? (
         <p className="flex items-center gap-2 text-sm text-fg/65">
-          <LocufySpin size={16} /> Carregando...
+          <LocufySpin size={16} /> Carregando…
         </p>
       ) : !dados || dados.pedidos.length === 0 ? (
         <p className="text-sm text-fg/65">Nenhum pedido nesse filtro.</p>
       ) : (
-        <div className="space-y-2 max-h-72 overflow-y-auto pr-1 -mr-1">
+        <div tabIndex={0} role="region" aria-label="Pedidos da fila" className="space-y-2 max-h-72 overflow-y-auto pr-1 -mr-1 rounded-xl focus-visible:outline-2 focus-visible:outline-acento-claro">
           {dados.pedidos.map((pedido) => (
             <div key={pedido.id} className="rounded-xl border border-border px-3 py-2">
               <div className="flex items-center justify-between gap-2 mb-1">

@@ -71,7 +71,7 @@ export default function PautaDoDiaSection({ programaId }: PautaDoDiaSectionProps
   if (carregando) {
     return (
       <p className="flex items-center gap-2 text-sm text-fg/65">
-        <LocufySpin size={16} /> Carregando pauta do dia...
+        <LocufySpin size={16} /> Carregando pauta do dia…
       </p>
     );
   }
@@ -80,7 +80,7 @@ export default function PautaDoDiaSection({ programaId }: PautaDoDiaSectionProps
     <div className="space-y-3">
       <p className="text-xs text-fg/65">
         Ganchos de conversa que o sistema já casou com este programa (notícia, música, pedido de
-        ouvinte, reserva estratégica) -- o comentário ao vivo escolhe entre eles automaticamente.
+        ouvinte, reserva estratégica) — o comentário ao vivo escolhe entre eles automaticamente.
         Fixe pra garantir prioridade ou descarte o que não fizer sentido.
       </p>
 
@@ -91,15 +91,15 @@ export default function PautaDoDiaSection({ programaId }: PautaDoDiaSectionProps
           <div key={item.id} className="rounded-xl border border-border-strong p-3 space-y-1.5">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <span className="mr-2 rounded-full border border-border-strong px-2 py-0.5 text-[10px] uppercase tracking-wide text-fg/60">
+                <span className="mr-2 rounded-full border border-border-strong px-2 py-0.5 text-[10px] uppercase tracking-wide text-fg/65">
                   {ORIGEM_LABEL[item.origem] ?? item.origem}
                 </span>
                 <span className="text-sm font-medium text-fg">{item.titulo}</span>
               </div>
-              <span className="shrink-0 text-xs text-fg/50">score {item.score.toFixed(1)}</span>
+              <span className="shrink-0 text-xs text-fg/65">score {item.score.toFixed(1)}</span>
             </div>
             <p className="text-sm text-fg/80">{item.gancho}</p>
-            {item.ponte && <p className="text-xs italic text-fg/60">{item.ponte}</p>}
+            {item.ponte && <p className="text-xs italic text-fg/65">{item.ponte}</p>}
             <div className="flex items-center gap-3 pt-1">
               <button
                 type="button"

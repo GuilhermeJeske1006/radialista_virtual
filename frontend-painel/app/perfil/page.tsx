@@ -126,7 +126,7 @@ export default function PerfilPage() {
     return (
       <AppShell title="Perfil">
         <p className="flex items-center gap-2 text-sm text-fg/65">
-          <LocufySpin size={16} /> Carregando...
+          <LocufySpin size={16} /> Carregando…
         </p>
       </AppShell>
     );
@@ -166,7 +166,7 @@ export default function PerfilPage() {
               disabled={salvandoNome || nome.trim() === conta.nome}
               className="rounded-xl border border-border-strong px-4 py-2 text-sm font-medium text-fg hover:bg-fg/5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {salvandoNome ? "Salvando..." : "Salvar"}
+              {salvandoNome ? "Salvando…" : "Salvar"}
             </button>
           </form>
           {erroNome && <p className="text-sm text-laranja mb-4">{erroNome}</p>}
@@ -249,7 +249,7 @@ export default function PerfilPage() {
               disabled={salvandoSenha}
               className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {salvandoSenha ? "Salvando..." : "Alterar senha"}
+              {salvandoSenha ? "Salvando…" : "Alterar senha"}
             </button>
           </div>
         </form>

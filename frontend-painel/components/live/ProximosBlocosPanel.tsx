@@ -95,7 +95,7 @@ export default function ProximosBlocosPanel({ programa, totalFalas, variant = "c
             className={`shrink-0 whitespace-nowrap rounded-xl border px-3 py-1.5 text-xs ${
               i === 0
                 ? "bg-acento/10 border-acento-claro/30 text-acento-claro font-semibold"
-                : "bg-bg border-border-strong text-fg/60"
+                : "bg-bg border-border-strong text-fg/65"
             }`}
           >
             {i === 0 && "▶ "}
@@ -126,7 +126,7 @@ export default function ProximosBlocosPanel({ programa, totalFalas, variant = "c
           <div className="pointer-events-none absolute right-0 top-0 bottom-1.5 w-10 bg-linear-to-l from-surface to-transparent" />
         </div>
         {!musical && programa.ia_pode_adicionar_blocos && (
-          <p className="text-xs text-fg/65 mt-2">A IA pode ocasionalmente inserir um comentario extra fora dessa sequencia.</p>
+          <p className="text-xs text-fg/65 mt-2">A IA pode ocasionalmente inserir um comentário extra fora dessa sequência.</p>
         )}
       </div>
     );
@@ -134,15 +134,15 @@ export default function ProximosBlocosPanel({ programa, totalFalas, variant = "c
 
   return (
     <section className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
-      <h2 className="font-display text-base font-bold text-fg">Proximos blocos</h2>
+      <h2 className="font-display text-base font-bold text-fg">Próximos blocos</h2>
       <p className="text-sm text-fg/65 mt-1">
-        Sequencia planejada pra grade deste programa. So os tipos -- o conteudo real (texto, musica) so e' gerado
+        Sequência planejada para este programa. Só os tipos — o conteúdo real (texto, música) só é gerado
         na hora de ir ao ar.
       </p>
       {lista}
       {!musical && programa.ia_pode_adicionar_blocos && (
         <p className="text-xs text-fg/65 mt-3">
-          A IA pode ocasionalmente inserir um comentario extra fora dessa sequencia.
+          A IA pode ocasionalmente inserir um comentário extra fora dessa sequência.
         </p>
       )}
     </section>

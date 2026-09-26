@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { DIAS_SEMANA_LABEL, Programa, Radialista } from "../../lib/types";
 import { corPorIndice, MINUTOS_DIA, segmentosDoPrograma } from "../../lib/gradeSemanal";
 
@@ -35,6 +35,17 @@ export default function GradeSemanalView({
   onClickSlotVazio,
 }: Props) {
   const indicePorRadialista = Object.fromEntries(radialistasOrdenados.map((r, i) => [r.id, i]));
+  const rolagemRef = useRef<HTMLDivElement>(null);
+  const jaRolou = useRef(false);
+
+  // Abre na hora do primeiro programa da semana, não na madrugada vazia (00h).
+  useEffect(() => {
+    if (jaRolou.current || programas.length === 0 || !rolagemRef.current) return;
+    const inicio = Math.min(...programas.flatMap((p) => segmentosDoPrograma(p).map((s) => s.inicioMin)));
+    if (!Number.isFinite(inicio)) return;
+    rolagemRef.current.scrollTop = Math.max(0, (inicio / 60 - 0.5) * ALTURA_HORA_PX);
+    jaRolou.current = true;
+  }, [programas]);
 
   return (
     <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs overflow-hidden">
@@ -52,13 +63,13 @@ export default function GradeSemanalView({
             ))}
           </div>
 
-          <div className="max-h-[calc(100vh-16rem)] overflow-y-auto">
+          <div ref={rolagemRef} className="max-h-[calc(100vh-16rem)] overflow-y-auto">
             <div className="grid grid-cols-[56px_repeat(7,1fr)]">
               <div className="relative" style={{ height: ALTURA_TOTAL_PX }}>
                 {HORAS.map((h) => (
                   <div
                     key={h}
-                    className="absolute right-2 -translate-y-1/2 font-mono text-[10px] text-fg/65"
+                    className={`absolute right-2 font-mono text-[10px] text-fg/65 ${h === 0 ? "" : "-translate-y-1/2"}`}
                     style={{ top: h * ALTURA_HORA_PX }}
                   >
                     {String(h).padStart(2, "0")}h
@@ -137,7 +148,7 @@ function DiaColuna({
               onClickPrograma(programa);
             }}
             title={`${programa.nome} · ${programa.radialista.nome_locutor} · ${formatarFaixa(programa)}`}
-            className={`absolute left-0.5 right-0.5 rounded-md border px-1.5 py-0.5 text-left overflow-hidden ${cor.borda} ${cor.fundo} hover:brightness-110`}
+            className={`absolute left-0.5 right-0.5 flex flex-col justify-start rounded-md border px-1.5 py-1 text-left overflow-hidden ${cor.borda} ${cor.fundo} hover:brightness-110`}
             style={{ top, height: altura }}
           >
             <p className={`text-[11px] font-medium leading-tight truncate ${cor.texto} ${!programa.ativo ? "opacity-45" : ""}`}>

@@ -72,7 +72,7 @@ export default function GradeProgramacaoForm({ programaId }: Props) {
   if (carregando) {
     return (
       <p className="flex items-center gap-2 text-sm text-fg/65">
-        <LocufySpin size={16} /> Carregando...
+        <LocufySpin size={16} /> Carregando…
       </p>
     );
   }
@@ -86,7 +86,7 @@ export default function GradeProgramacaoForm({ programaId }: Props) {
       <h2 className="font-display text-lg font-bold text-fg mb-1">Roteiro do programa · {programa.nome}</h2>
       <p className="text-sm text-fg/65 mb-5">
         Arraste vinhetas, propagandas e blocos automáticos da paleta pra sequência (ou clique pra adicionar no
-        fim). O ao vivo segue essa sequência em loop. Durações abaixo são estimativas -- o motor real varia por
+        fim). O ao vivo segue essa sequência em loop. Durações abaixo são estimativas — o motor real varia por
         prosódia e a IA pode inserir blocos extra.
       </p>
 
@@ -108,14 +108,14 @@ export default function GradeProgramacaoForm({ programaId }: Props) {
         disabled={salvando}
         className="mt-4 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60"
       >
-        {salvando ? "Salvando..." : "Salvar programação"}
+        {salvando ? "Salvando…" : "Salvar programação"}
       </button>
 
       <hr className="border-border my-5" />
       <section>
         <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro mb-2">Elenco do programa</h3>
         <p className="text-xs text-fg/65 mb-2">
-          Quem participa do diálogo -- o motor já monta a conversa entre todos automaticamente, sem precisar
+          Quem participa do diálogo — o motor já monta a conversa entre todos automaticamente, sem precisar
           apontar radialista por bloco.
         </p>
         <RadialistasProgramaSection programaId={programaId} />

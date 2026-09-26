@@ -57,14 +57,15 @@ function RedefinirSenhaForm() {
   }
 
   if (sucesso) {
-    return <p className="text-sm text-fg/70">Senha redefinida! Redirecionando para o login...</p>;
+    return <p className="text-sm text-fg/70">Senha redefinida! Redirecionando para o login…</p>;
   }
 
   return (
     <form onSubmit={enviar} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-fg/80 mb-1.5">Nova senha</label>
+        <label htmlFor="redefinir-senha-nova-senha" className="block text-sm font-medium text-fg/80 mb-1.5">Nova senha</label>
         <input
+          id="redefinir-senha-nova-senha"
           type="password"
           required
           minLength={8}
@@ -74,8 +75,9 @@ function RedefinirSenhaForm() {
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-fg/80 mb-1.5">Confirmar nova senha</label>
+        <label htmlFor="redefinir-senha-confirmar-nova-senha" className="block text-sm font-medium text-fg/80 mb-1.5">Confirmar nova senha</label>
         <input
+          id="redefinir-senha-confirmar-nova-senha"
           type="password"
           required
           minLength={8}
@@ -92,7 +94,7 @@ function RedefinirSenhaForm() {
       >
         {carregando ? (
           <>
-            <LocufySpin size={14} /> Salvando...
+            <LocufySpin size={14} /> Salvando…
           </>
         ) : (
           "Redefinir senha"

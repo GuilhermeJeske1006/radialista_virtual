@@ -96,12 +96,12 @@ export default function VoiceSelect({ value, onChange }: Props) {
             onChange={() => onChange(null)}
             className="h-4 w-4 shrink-0 accent-acento-claro"
           />
-          <span className="text-fg/85">Voz padrão do servidor</span>
+          <span className="text-fg/85">Voz padrão do Locufy</span>
         </label>
 
         {vozesClonadas.length > 0 && (
           <>
-            <p className="px-2.5 pt-3 pb-1 text-xs font-semibold tracking-wide text-fg/50 uppercase">
+            <p className="px-2.5 pt-3 pb-1 text-xs font-semibold tracking-wide text-fg/65 uppercase">
               Minhas vozes clonadas
             </p>
             {vozesClonadas.map((v) =>
@@ -151,7 +151,7 @@ export default function VoiceSelect({ value, onChange }: Props) {
                     <span className="min-w-0 truncate text-fg/85">
                       {v.nome}
                       {v.requer_verificacao && (
-                        <span className="text-fg/55"> · aguardando verificação</span>
+                        <span className="text-fg/65"> · aguardando verificação</span>
                       )}
                     </span>
                   </label>
@@ -171,7 +171,7 @@ export default function VoiceSelect({ value, onChange }: Props) {
                         type="button"
                         onClick={() => iniciarEdicao(v)}
                         title="Renomear"
-                        className="rounded-md p-1 text-fg/55 hover:bg-fg/10 hover:text-fg"
+                        className="rounded-md p-1 text-fg/65 hover:bg-fg/10 hover:text-fg"
                       >
                         ✏️
                       </button>
@@ -179,7 +179,7 @@ export default function VoiceSelect({ value, onChange }: Props) {
                         type="button"
                         onClick={() => excluirVozClonada(v)}
                         title="Excluir"
-                        className="rounded-md p-1 text-fg/55 hover:bg-laranja/10 hover:text-laranja"
+                        className="rounded-md p-1 text-fg/65 hover:bg-laranja/10 hover:text-laranja"
                       >
                         🗑️
                       </button>
@@ -193,7 +193,7 @@ export default function VoiceSelect({ value, onChange }: Props) {
 
         {vozesCompartilhadas.length > 0 && (
           <>
-            <p className="px-2.5 pt-3 pb-1 text-xs font-semibold tracking-wide text-fg/50 uppercase">
+            <p className="px-2.5 pt-3 pb-1 text-xs font-semibold tracking-wide text-fg/65 uppercase">
               Vozes clonadas compartilhadas
             </p>
             {vozesCompartilhadas.map((v) => (
@@ -220,7 +220,7 @@ export default function VoiceSelect({ value, onChange }: Props) {
           </>
         )}
 
-        <p className="px-2.5 pt-3 pb-1 text-xs font-semibold tracking-wide text-fg/50 uppercase">
+        <p className="px-2.5 pt-3 pb-1 text-xs font-semibold tracking-wide text-fg/65 uppercase">
           Catálogo (com amostra de áudio)
         </p>
         {vozes.map((v) => (

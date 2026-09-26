@@ -1,16 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import AppShell from "../../components/AppShell";
-import ConfirmDialog from "../../components/ConfirmDialog";
+import WhatsAppConexao from "../../components/WhatsAppConexao";
 import { apiFetch, apiFetchDownload, ApiError } from "../../lib/api";
 import { STATUS_COR, STATUS_LABEL } from "../../lib/statusInteracao";
-import { invalidarConfiguracaoInicial } from "../../lib/useConfiguracaoInicial";
-import { LocufyLed, LocufySpin } from "../../components/LocufyLogo";
+import { LocufySpin } from "../../components/LocufyLogo";
+import { formatarTelefone } from "../../lib/telefone";
 
-type QrResponse = { data?: { QRCode?: string } };
-type StatusResponse = { data?: { loggedIn?: boolean; connected?: boolean } };
 
 type Interacao = {
   id: number;
@@ -111,15 +109,6 @@ const OPCOES_PERIODO = [
 ];
 
 export default function ConversasPage() {
-  const [qrCode, setQrCode] = useState<string | null>(null);
-  const [conectado, setConectado] = useState(false);
-  const [conectando, setConectando] = useState(false);
-  const [verificandoConexao, setVerificandoConexao] = useState(true);
-  const [erroConexao, setErroConexao] = useState("");
-  const [desconectando, setDesconectando] = useState(false);
-  const [confirmandoDesconexao, setConfirmandoDesconexao] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   const [conversas, setConversas] = useState<Conversa[]>([]);
   const [carregandoConversas, setCarregandoConversas] = useState(true);
   const [paginaConversas, setPaginaConversas] = useState(1);
@@ -134,77 +123,6 @@ export default function ConversasPage() {
   const [periodoExport, setPeriodoExport] = useState("30");
   const [exportando, setExportando] = useState(false);
   const [erroExport, setErroExport] = useState("");
-
-  function pararPoll() {
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-  }
-
-  async function verificarConexao() {
-    try {
-      const status = await apiFetch<StatusResponse>("/onboarding/status");
-      const ok = status.data?.loggedIn ?? false;
-      if (ok) {
-        setConectado(true);
-        setQrCode(null);
-        pararPoll();
-        invalidarConfiguracaoInicial();
-      } else {
-        setConectado(false);
-      }
-    } catch {
-      // ignora falha de poll isolada, tenta de novo no proximo tick
-    } finally {
-      setVerificandoConexao(false);
-    }
-  }
-
-  useEffect(() => {
-    verificarConexao();
-    return pararPoll;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function conectarWhatsapp() {
-    setConectando(true);
-    setErroConexao("");
-    try {
-      await apiFetch("/onboarding/wuzapi-user", { method: "POST" });
-      await apiFetch("/onboarding/connect", { method: "POST" });
-
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      const qr = await apiFetch<QrResponse>("/onboarding/qrcode");
-      const imagem = qr.data?.QRCode;
-      if (imagem) {
-        setQrCode(imagem);
-      }
-
-      pararPoll();
-      pollRef.current = setInterval(verificarConexao, 3000);
-    } catch (err) {
-      setErroConexao(err instanceof ApiError ? err.message : "Erro ao conectar com o WhatsApp");
-    } finally {
-      setConectando(false);
-    }
-  }
-
-  async function desconectarWhatsapp() {
-    setDesconectando(true);
-    setErroConexao("");
-    try {
-      await apiFetch("/onboarding/logout", { method: "POST" });
-      setConectado(false);
-      setQrCode(null);
-      invalidarConfiguracaoInicial();
-    } catch (err) {
-      setErroConexao(err instanceof ApiError ? err.message : "Erro ao desconectar o WhatsApp");
-    } finally {
-      setDesconectando(false);
-      setConfirmandoDesconexao(false);
-    }
-  }
 
   async function exportarCsv() {
     setExportando(true);
@@ -269,93 +187,38 @@ export default function ConversasPage() {
   return (
     <AppShell title="Conversas" maxWidthClassName="max-w-4xl">
       <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-4 mb-4">
-        {verificandoConexao ? (
-          <p className="flex items-center gap-2 text-sm text-fg/65">
-            <LocufySpin size={16} /> Verificando conexão do WhatsApp...
-          </p>
-        ) : conectado ? (
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-ciano/10 text-ciano border border-ciano/25 px-2.5 py-0.5 text-xs font-medium">
-              <LocufyLed color="ciano" pulse={false} /> WhatsApp conectado
-            </span>
-            <button
-              type="button"
-              onClick={() => setConfirmandoDesconexao(true)}
-              className="text-xs font-medium text-laranja hover:text-laranja/80"
-            >
-              Desconectar WhatsApp
-            </button>
-          </div>
-        ) : (
-          <div>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm text-fg/80">
-                <span className="font-medium text-laranja">WhatsApp desconectado</span> — os ouvintes não
-                estão sendo atendidos.
-              </p>
-              <button
-                onClick={conectarWhatsapp}
-                disabled={conectando}
-                className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {conectando ? "Gerando..." : "Conectar WhatsApp"}
-              </button>
-            </div>
-            {qrCode && (
-              <div className="flex justify-center mt-4">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={qrCode}
-                  alt="QR Code do WhatsApp"
-                  className="max-w-64 rounded-xl bg-branco p-2 border border-border-strong"
-                />
-              </div>
-            )}
-          </div>
-        )}
-        {erroConexao && <p className="text-sm text-laranja mt-3">{erroConexao}</p>}
+        <WhatsAppConexao compacta />
       </div>
 
-      <ConfirmDialog
-        open={confirmandoDesconexao}
-        title="Desconectar WhatsApp"
-        mensagem="Isso desliga o número do WhatsApp da rádio. Os radialistas param de atender os ouvintes até você conectar de novo escaneando um novo QR Code."
-        onConfirmar={desconectarWhatsapp}
-        onCancelar={() => !desconectando && setConfirmandoDesconexao(false)}
-      />
-
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-4">
-        <p className="text-sm text-fg/65">
-          Conversas dos ouvintes, separadas por número, e o que o sistema fez com cada mensagem. Pra ver
-          totais e gráficos,{" "}
-          <Link href="/metrics" className="text-acento-claro hover:text-acento-dim font-medium">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <p className="text-sm text-fg/65 min-w-0 flex-1">
+          Conversas dos ouvintes, separadas por número, e o que o sistema fez com cada mensagem. Para ver totais e
+          gráficos,{" "}
+          <Link href="/metrics" className="text-acento-claro hover:text-acento-dim font-medium underline">
             acesse Métricas
           </Link>
           .
         </p>
-        <div className="flex items-end gap-2">
-          <div>
-            <label className="block text-sm font-medium text-fg/80 mb-1.5">Período do CSV</label>
-            <select
-              aria-label="Período do CSV"
-              value={periodoExport}
-              onChange={(e) => setPeriodoExport(e.target.value)}
-              className="rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
-            >
-              {OPCOES_PERIODO.map((opcao) => (
-                <option key={opcao.valor} value={opcao.valor}>
-                  {opcao.label}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="flex items-center gap-2">
+          <select
+            aria-label="Período da exportação"
+            value={periodoExport}
+            onChange={(e) => setPeriodoExport(e.target.value)}
+            className="rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
+          >
+            {OPCOES_PERIODO.map((opcao) => (
+              <option key={opcao.valor} value={opcao.valor}>
+                {opcao.label}
+              </option>
+            ))}
+          </select>
           <button
             type="button"
             onClick={exportarCsv}
             disabled={exportando}
             className="rounded-xl border border-border-strong px-4 py-2 text-sm font-medium text-fg hover:bg-fg/5 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {exportando ? "Exportando..." : "Exportar CSV"}
+            {exportando ? "Exportando…" : "Exportar CSV"}
           </button>
         </div>
       </div>
@@ -371,7 +234,7 @@ export default function ConversasPage() {
           <div className="flex-1 overflow-y-auto divide-y divide-border-strong">
             {carregandoConversas ? (
               <p className="flex items-center gap-2 text-sm text-fg/65 p-4">
-                <LocufySpin size={16} /> Carregando...
+                <LocufySpin size={16} /> Carregando…
               </p>
             ) : conversas.length === 0 ? (
               <p className="text-sm text-fg/65 p-4">Nenhuma conversa ainda.</p>
@@ -389,14 +252,14 @@ export default function ConversasPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-medium text-fg truncate">
-                          {conversa.nome || conversa.telefone}
+                          {conversa.nome || formatarTelefone(conversa.telefone)}
                         </span>
                         <span className="text-[11px] text-fg/65 shrink-0">{formatarHora(conversa.ultima_em)}</span>
                       </div>
                       <p className="text-xs text-fg/65 truncate mt-0.5">{conversa.ultima_mensagem}</p>
                       <div className="flex items-center justify-between mt-1">
                         <span className="text-[11px] text-fg/65 truncate min-w-0">
-                          {conversa.nome ? `${conversa.telefone} · ` : ""}
+                          {conversa.nome ? `${formatarTelefone(conversa.telefone)} · ` : ""}
                           {conversa.radialista_nome}
                         </span>
                         <span className="text-[11px] rounded-full bg-surface-2 px-1.5 py-0.5 text-fg/65 shrink-0">
@@ -451,8 +314,8 @@ export default function ConversasPage() {
                 </button>
                 <Avatar telefone={telefoneSelecionado} nome={nomeSelecionado} tamanho={40} />
                 <div>
-                  <p className="text-sm font-medium text-fg">{nomeSelecionado || telefoneSelecionado}</p>
-                  {nomeSelecionado && <p className="text-xs text-fg/65">{telefoneSelecionado}</p>}
+                  <p className="text-sm font-medium text-fg">{nomeSelecionado || formatarTelefone(telefoneSelecionado)}</p>
+                  {nomeSelecionado && <p className="text-xs text-fg/65">{formatarTelefone(telefoneSelecionado)}</p>}
                 </div>
               </div>
 
@@ -469,7 +332,7 @@ export default function ConversasPage() {
 
                 {carregandoMensagens ? (
                   <p className="flex items-center gap-2 text-sm text-fg/65 m-auto">
-                    <LocufySpin size={16} /> Carregando...
+                    <LocufySpin size={16} /> Carregando…
                   </p>
                 ) : (
                   mensagens.map((mensagem) => {

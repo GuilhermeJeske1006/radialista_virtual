@@ -9,6 +9,10 @@ import { LocufyLed, LocufySpin } from "../../components/LocufyLogo";
 import { GraficoBarras, PontoSerie } from "../../components/GraficoBarras";
 import { UpsellBanner } from "../../components/UpsellBanner";
 import { useAppConfigurado } from "../../lib/instalarApp";
+import { useNoAr } from "../../lib/useNoAr";
+import { PASSOS_TOUR } from "../../lib/tour";
+import { rotuloStatusAssinatura } from "../../lib/rotulosConsumo";
+import { reais } from "../../lib/combinacoes";
 
 const ATALHOS = [
   {
@@ -34,7 +38,7 @@ const ATALHOS = [
   {
     href: "/billing",
     label: "Assinatura",
-    descricao: "Plano e cobrança",
+    descricao: "Consumo, limite e faturas",
   },
   {
     href: "/perfil",
@@ -43,15 +47,7 @@ const ATALHOS = [
   },
 ];
 
-type NoArResponse = {
-  no_ar: boolean;
-  radialista_id: number | null;
-  radialista_nome: string | null;
-  programa_id: number | null;
-  programa_nome: string | null;
-};
-
-const INTERVALO_NO_AR_MS = 30_000;
+type ConsumoCiclo = { consumo_brl: number; orcamento_brl: number; previsao_brl: number };
 
 export default function DashboardPage() {
   const [conta, setConta] = useState<Conta | null>(null);
@@ -59,7 +55,8 @@ export default function DashboardPage() {
   const [radioConta, setRadioConta] = useState<RadioConta | null>(null);
   const [programas, setProgramas] = useState<Programa[]>([]);
   const [patrocinadores, setPatrocinadores] = useState<Patrocinador[]>([]);
-  const [noAr, setNoAr] = useState<NoArResponse | null>(null);
+  const { estado: noAr, noAr: realmenteNoAr } = useNoAr();
+  const [consumo, setConsumo] = useState<ConsumoCiclo | null>(null);
   const [mensagens7Dias, setMensagens7Dias] = useState<number | null>(null);
   const [mensagensPorDia, setMensagensPorDia] = useState<PontoSerie[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -132,17 +129,11 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    function buscarNoAr() {
-      apiFetch<NoArResponse>("/live/no-ar")
-        .then(setNoAr)
-        .catch(() => {
-          // ignora falha isolada, mantem o ultimo estado conhecido
-        });
-    }
-
-    buscarNoAr();
-    const intervalo = setInterval(buscarNoAr, INTERVALO_NO_AR_MS);
-    return () => clearInterval(intervalo);
+    apiFetch<ConsumoCiclo>("/billing/consumo-ia")
+      .then((c) => {
+        if (c && typeof c.consumo_brl === "number") setConsumo(c);
+      })
+      .catch(() => {});
   }, []);
 
   const whatsappConectado = Boolean(radioConta?.wuzapi_token);
@@ -153,50 +144,76 @@ export default function DashboardPage() {
   const temProgramaAtivo = programasAtivos > 0;
   const patrocinadoresAtivos = patrocinadores.filter((p) => p.ativo).length;
   const temPatrocinador = patrocinadoresAtivos > 0;
-  // "no ar" pela janela de horario do programa nao basta -- sem WhatsApp conectado nao tem
-  // ouvinte de verdade podendo falar com o radialista, entao nao e' "ao vivo" de fato ainda.
-  const realmenteNoAr = Boolean(noAr?.no_ar) && whatsappConectado;
-
+  // Os quatro passos obrigatórios são os mesmos do tour e da barra lateral (lib/tour.ts).
+  const estadoSetup = {
+    radialistaPronto: temRadialistaPronto,
+    programaAtivo: temProgramaAtivo,
+    whatsappConectado,
+    completa: temRadialistaPronto && temProgramaAtivo && whatsappConectado,
+    appPronto,
+  };
   const TAREFAS_AO_VIVO = [
+    ...PASSOS_TOUR.map((p) => ({ feita: p.feito(estadoSetup), label: `${p.numero}. ${p.titulo}`, descricao: p.texto, href: p.href, opcional: false })),
     {
       feita: perfilPreenchido,
-      label: "Preencher dados da rádio",
-      descricao: "Nome e frequência da rádio configurados",
+      label: "Completar dados da rádio",
+      descricao: "Opcional — nome e frequência ajudam o radialista a se apresentar",
       href: "/configuracoes",
-    },
-    {
-      feita: temRadialistaPronto,
-      label: "Cadastrar radialista",
-      descricao: "Locutor ativo com voz definida",
-      href: "/radialista",
-    },
-    {
-      feita: temProgramaAtivo,
-      label: "Cadastrar programa",
-      descricao: "Ao menos um programa ativo na grade",
-      href: "/programas",
-    },
-    {
-      feita: whatsappConectado,
-      label: "Conectar WhatsApp",
-      descricao: "Número da rádio conectado para receber pedidos",
-      href: "/conversas",
-    },
-    {
-      feita: appPronto,
-      label: "Instalar app e liberar o som",
-      descricao: "Neste computador: a rádio toca sozinha, sem precisar clicar",
-      href: "/onboarding/app",
+      opcional: true,
     },
     {
       feita: temPatrocinador,
-      label: "Cadastrar Vinhetagem",
+      label: "Cadastrar vinhetagem",
       descricao: "Opcional — para inserir chamadas comerciais no ar",
       href: "/vinhetagem",
       opcional: true,
     },
   ];
   const pendentes = TAREFAS_AO_VIVO.filter((t) => !t.feita && !t.opcional).length;
+  const feitos = PASSOS_TOUR.length - pendentes;
+
+  const checklist = (
+    <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5 mb-6">
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <h2 className="font-display text-sm font-bold text-fg">
+          {pendentes === 0 ? "Pronto para o ao vivo" : "Configuração inicial"}
+        </h2>
+        <span className="text-xs font-medium text-fg/65 tabular-nums">
+          {pendentes === 0 ? "Tudo certo" : `${feitos} de ${PASSOS_TOUR.length} concluídos`}
+        </span>
+      </div>
+      <ul className="flex flex-col gap-2.5">
+        {TAREFAS_AO_VIVO.map((t) => (
+          <li key={t.label}>
+            <Link href={t.href} className="flex items-start gap-3 group rounded-xl -mx-2 px-2 py-1.5 hover:bg-fg/5">
+              <span
+                className={`mt-0.5 shrink-0 w-5 h-5 rounded-full border flex items-center justify-center ${
+                  t.feita ? "bg-ciano border-ciano text-on-brand" : "border-border-strong text-transparent"
+                }`}
+                aria-hidden="true"
+              >
+                <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M3 8l3 3 7-7" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+              <span className="flex-1">
+                <span
+                  className={`text-sm font-medium group-hover:text-acento-claro transition-colors ${
+                    t.feita ? "text-fg/65 line-through" : "text-fg"
+                  }`}
+                >
+                  {t.label}
+                  <span className="sr-only">{t.feita ? " (concluído)" : " (pendente)"}</span>
+                </span>
+                <span className="block text-xs text-fg/65">{t.descricao}</span>
+              </span>
+              {!t.feita && <span className="text-acento-claro shrink-0 text-sm" aria-hidden="true">→</span>}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 
   return (
     <AppShell title="Visão geral" maxWidthClassName="max-w-4xl">
@@ -207,7 +224,7 @@ export default function DashboardPage() {
       {aoVivoNoApp && (
         <div role="status" className="rounded-3xl border border-ciano bg-ciano/10 px-5 py-4 mb-6">
           <p className="text-sm font-medium text-ciano">
-            O ao vivo está rodando no app Locufy (janela própria, som liberado), então esta aba saiu do ar pra rádio não tocar em dobro.
+            O ao vivo está rodando no app Locufy (janela própria, som liberado), então esta aba saiu do ar para a rádio não tocar em dobro.
           </p>
           <p className="text-sm text-fg/65 mt-0.5">Pode fechar esta aba do navegador.</p>
         </div>
@@ -216,18 +233,14 @@ export default function DashboardPage() {
       {onboardingIncompleto && (
         <div className="flex items-start justify-between gap-4 rounded-3xl border border-acento-claro/40 bg-acento/10 px-5 py-4 mb-6">
           <div>
-            <p className="text-sm font-medium text-fg">Sua conta foi criada, mas a assinatura ainda não foi confirmada.</p>
+            <p className="text-sm font-medium text-fg">Sua conta foi criada, mas alguns dados podem não ter sido salvos.</p>
             <p className="text-sm text-fg/65 mt-0.5">
-              Alguns dados podem não ter sido salvos.{" "}
-              <Link href="/billing" className="text-acento-claro hover:text-acento-dim font-medium">
-                Finalizar assinatura
-              </Link>
-              {" "}· revise também{" "}
-              <Link href="/configuracoes" className="text-acento-claro hover:text-acento-dim font-medium">
+              Confira{" "}
+              <Link href="/configuracoes" className="text-acento-claro hover:text-acento-dim font-medium underline">
                 Configurações
               </Link>
               {" "}e{" "}
-              <Link href="/radialista" className="text-acento-claro hover:text-acento-dim font-medium">
+              <Link href="/radialista" className="text-acento-claro hover:text-acento-dim font-medium underline">
                 Radialistas
               </Link>
               .
@@ -237,7 +250,7 @@ export default function DashboardPage() {
             type="button"
             onClick={() => setOnboardingIncompleto(false)}
             aria-label="Dispensar aviso"
-            className="shrink-0 text-fg/50 hover:text-fg"
+            className="-m-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-fg/65 hover:bg-fg/5 hover:text-fg"
           >
             ✕
           </button>
@@ -246,10 +259,14 @@ export default function DashboardPage() {
 
       {carregando ? (
         <p className="flex items-center gap-2 text-sm text-fg/65">
-          <LocufySpin size={16} /> Carregando...
+          <LocufySpin size={16} /> Carregando…
         </p>
       ) : (
         <>
+          {/* No topo só enquanto falta passo da conta; o do app é por computador e não deve
+              empurrar o resto do painel de uma rádio que já opera pelo navegador. */}
+          {!estadoSetup.completa && checklist}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5">
               <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">Radialistas</p>
@@ -261,7 +278,7 @@ export default function DashboardPage() {
             <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5">
               <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">WhatsApp da rádio</p>
               <p className="flex items-center gap-2 font-display text-2xl font-bold text-fg">
-                <LocufyLed color={whatsappConectado ? "ciano" : "acento"} pulse={false} />
+                <LocufyLed color={whatsappConectado ? "ciano" : "laranja"} pulse={false} />
                 {whatsappConectado ? "Conectado" : "Não conectado"}
               </p>
             </div>
@@ -280,11 +297,26 @@ export default function DashboardPage() {
                 </p>
               )}
             </div>
-            <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5">
-              <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">Plano</p>
-              <p className="font-display text-2xl font-bold text-fg capitalize">{conta?.plano ?? "-"}</p>
-              <p className="text-xs text-fg/65 mt-0.5 capitalize">{conta?.plano_status ?? ""}</p>
-            </div>
+            <Link
+              href="/billing"
+              className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5 hover:border-acento-claro/40 transition-colors"
+            >
+              <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">Uso de IA no ciclo</p>
+              <p className="font-display text-2xl font-bold text-fg tabular-nums">{consumo ? reais(consumo.consumo_brl) : "—"}</p>
+              <p className="text-xs text-fg/65 mt-0.5">
+                {consumo && consumo.orcamento_brl > 0
+                  ? `de ${reais(consumo.orcamento_brl)} de limite · ${rotuloStatusAssinatura(conta?.plano_status ?? "")}`
+                  : `Locufy Flex · ${rotuloStatusAssinatura(conta?.plano_status ?? "")}`}
+              </p>
+              {consumo && consumo.orcamento_brl > 0 && (
+                <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-fg/10" aria-hidden="true">
+                  <span
+                    className={`block h-full rounded-full ${consumo.consumo_brl / consumo.orcamento_brl >= 0.8 ? "bg-laranja" : "bg-ciano"}`}
+                    style={{ width: `${Math.min(100, (consumo.consumo_brl / consumo.orcamento_brl) * 100)}%` }}
+                  />
+                </span>
+              )}
+            </Link>
             <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5">
               <p className="text-xs font-medium uppercase tracking-wide text-fg/65 mb-1">Programas</p>
               <p className="font-display text-2xl font-bold text-fg">{programas.length}</p>
@@ -321,41 +353,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-5 mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <p className="font-display text-sm font-bold text-fg">Pronto para o ao vivo</p>
-              <span className="text-xs font-medium text-fg/65">
-                {pendentes === 0 ? "Tudo certo" : `${pendentes} pendente${pendentes > 1 ? "s" : ""}`}
-              </span>
-            </div>
-            <ul className="flex flex-col gap-2.5">
-              {TAREFAS_AO_VIVO.map((t) => (
-                <li key={t.label}>
-                  <Link href={t.href} className="flex items-start gap-3 group">
-                    <span
-                      className={`mt-0.5 shrink-0 w-4 h-4 rounded-full border flex items-center justify-center ${
-                        t.feita ? "bg-ciano border-ciano text-on-brand" : "border-border-strong text-transparent"
-                      }`}
-                    >
-                      <svg viewBox="0 0 16 16" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <path d="M3 8l3 3 7-7" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </span>
-                    <span className="flex-1">
-                      <span
-                        className={`text-sm font-medium group-hover:text-acento-claro transition-colors ${
-                          t.feita ? "text-fg/65 line-through" : "text-fg"
-                        }`}
-                      >
-                        {t.label}
-                      </span>
-                      <span className="block text-xs text-fg/65">{t.descricao}</span>
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {estadoSetup.completa && checklist}
 
           {/* So' em telas pequenas: no desktop a sidebar (sempre visivel) ja' cobre os
               mesmos destinos, sem precisar rolar a pagina pra achar um atalho redundante. */}

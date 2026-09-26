@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { apiFetch, ApiError } from "../lib/api";
 import { PAPEIS_SUGERIDOS, Radialista, RadialistaPrograma } from "../lib/types";
 import { LocufySpin } from "./LocufyLogo";
@@ -91,7 +90,7 @@ export default function RadialistasProgramaSection({ programaId }: Props) {
   if (carregando) {
     return (
       <p className="flex items-center gap-2 text-sm text-fg/65">
-        <LocufySpin size={16} /> Carregando radialistas...
+        <LocufySpin size={16} /> Carregando radialistas…
       </p>
     );
   }
@@ -173,7 +172,7 @@ export default function RadialistasProgramaSection({ programaId }: Props) {
                 disabled={salvandoId === item.radio_config_id}
                 className="rounded-xl border border-border-strong px-3 py-1.5 text-xs font-medium text-fg/80 hover:bg-fg/5 disabled:opacity-60"
               >
-                {salvandoId === item.radio_config_id ? "Salvando..." : "Salvar"}
+                {salvandoId === item.radio_config_id ? "Salvando…" : "Salvar papel"}
               </button>
             </div>
           </div>
@@ -214,16 +213,10 @@ export default function RadialistasProgramaSection({ programaId }: Props) {
               <button
                 type="button"
                 onClick={() => setMensagemLimite("")}
-                className="rounded-xl px-4 py-2.5 text-sm font-medium text-fg/60 hover:text-fg"
-              >
-                Fechar
-              </button>
-              <Link
-                href="/billing"
                 className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600"
               >
-                Ver planos
-              </Link>
+                Entendi
+              </button>
             </div>
           </div>
         </div>

@@ -75,7 +75,7 @@ export default function InstalarAppAviso() {
             Instalar Locufy
           </button>
         )}
-        <button type="button" onClick={dispensar} className="px-3 py-2 text-sm text-fg/60 hover:text-fg">
+        <button type="button" onClick={dispensar} className="px-3 py-2 text-sm text-fg/65 hover:text-fg">
           Agora não
         </button>
       </div>

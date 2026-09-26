@@ -24,7 +24,7 @@ export default function OnboardingPage() {
 
   return (
     <p className="flex items-center justify-center gap-2 p-10 text-sm text-fg/65">
-      <LocufySpin size={16} /> Carregando...
+      <LocufySpin size={16} /> Carregando…
     </p>
   );
 }

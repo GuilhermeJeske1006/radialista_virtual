@@ -75,14 +75,14 @@ export default function ConsumoIACard({ plano }: { plano?: string }) {
             <dd className="mt-1 text-2xl font-bold text-fg tabular-nums">{reais(valor)}</dd>
           </div>)}
       </dl>
-      <p className="text-sm text-fg/80">Exposição total: <span className="tabular-nums">{reais(consumo.comprometido_brl)}</span>. Inclui reservas e consumo ainda não pago de ciclos anteriores.</p>
-      <form onSubmit={e => { e.preventDefault(); void salvar(); }} className="flex flex-wrap items-end gap-3">
-        <label className="block text-sm font-medium text-fg/80">Limite financeiro (R$)
+      <p className="text-sm text-fg/80">Total comprometido: <span className="tabular-nums">{reais(consumo.comprometido_brl)}</span>. Soma o uso deste ciclo, operações em andamento e uso ainda não pago de ciclos anteriores. É esse total que o limite financeiro controla.</p>
+      <form id="limite" onSubmit={e => { e.preventDefault(); void salvar(); }} className="scroll-mt-24 flex flex-wrap items-end gap-3">
+        <label className="block text-sm font-medium text-fg/80">Limite financeiro mensal (R$)
           <input type="number" name="limite_brl" inputMode="decimal" autoComplete="off" min="0" max="100000" step="0.01" required value={limite} onChange={e => setLimite(e.target.value)} className={`${INPUT} mt-1.5 w-40`} />
         </label>
         <button disabled={salvando} className={BOTAO}>{salvando ? "Salvando…" : "Salvar limite"}</button>
       </form>
-      <p className="text-xs text-fg/65">{consumo.regra_cambio} A previsão não inclui operações em andamento. Reproduzir áudios prontos não gera nova cobrança.</p>
+      <p className="text-xs text-fg/65">Ao atingir o limite, novas gerações com IA pausam até você aumentá-lo ou o ciclo virar. A previsão não inclui operações em andamento. Reproduzir áudios prontos não gera nova cobrança. {consumo.regra_cambio}</p>
     </>}
 
     <div className="space-y-3 border-t border-border-strong pt-6">
@@ -100,20 +100,19 @@ export default function ConsumoIACard({ plano }: { plano?: string }) {
           </div>
           <p className="text-xs text-fg/65"><span translate="no">{nomeModelo(u.modelo)}</span> · {rotuloEstadoUso(u.estado)}</p>
           <p className="mt-1 tabular-nums break-words">{resumirUnidades(u.unidades)}</p>
-          <p className="mt-1 text-xs text-fg/65 tabular-nums">{dataHora(u.iniciado_em)} · tarifa {tarifa(u.tarifa)}</p>
+          <p className="mt-1 text-xs text-fg/65 tabular-nums">{dataHora(u.iniciado_em)}</p>
         </li>)}</ul>
         <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="text-xs uppercase tracking-wide text-fg/65"><tr>
-              {["Data", "Funcionalidade / modelo", "Unidades", "Tarifa"].map(t => <th key={t} scope="col" className="p-2 font-medium">{t}</th>)}
+              {["Data", "O que foi gerado", "Quantidade"].map(t => <th key={t} scope="col" className="p-2 font-medium">{t}</th>)}
               <th scope="col" className="p-2 font-medium text-right">Preço</th>
               <th scope="col" className="p-2 font-medium">Estado</th>
             </tr></thead>
-            <tbody>{usos.map(u => <tr key={u.id} className="border-t border-border-strong align-top">
+            <tbody>{usos.map(u => <tr key={u.id} title={`Tarifa ${tarifa(u.tarifa)}`} className="border-t border-border-strong align-top">
               <td className="p-2 whitespace-nowrap tabular-nums">{dataHora(u.iniciado_em)}</td>
               <td className="p-2">{rotuloFuncionalidade(u.funcionalidade)}<br /><span className="text-fg/65" translate="no">{nomeModelo(u.modelo)}</span></td>
               <td className="p-2 tabular-nums">{resumirUnidades(u.unidades)}</td>
-              <td className="p-2 text-fg/65">{u.tarifa.versao}<br />Câmbio {formatarDecimal(u.tarifa.cambio)} · +{formatarDecimal(u.tarifa.acrescimo)}%</td>
               <td className="p-2 text-right tabular-nums">{reaisPreciso(u.preco_brl)}</td>
               <td className="p-2">{rotuloEstadoUso(u.estado)}</td>
             </tr>)}</tbody>

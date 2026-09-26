@@ -32,6 +32,11 @@ describe("formatarReais", () => {
     expect(formatarReais(1000)).toBe("1.000");
     expect(formatarReais(399)).toBe("399");
   });
+
+  it("valor fracionado sempre com duas casas", () => {
+    expect(formatarReais(69.9)).toBe("69,90");
+    expect(formatarReais(1234.5)).toBe("1.234,50");
+  });
 });
 
 describe("labelBandeira", () => {

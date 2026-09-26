@@ -112,7 +112,7 @@ describe("RoteiroBlocosEditor", () => {
 
   it("busca na paleta filtra por nome, escondendo o que nao bate", async () => {
     renderEditor({ vinhetas: [vinhetaFixture], patrocinadores: [patrocinadorFixture] });
-    await userEvent.type(screen.getByPlaceholderText("Buscar na paleta..."), "Loja");
+    await userEvent.type(screen.getByPlaceholderText("Buscar na paleta…"), "Loja");
     expect(screen.queryByText("Vinheta QA")).not.toBeInTheDocument();
     expect(screen.getByText("Loja X")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "+ Abertura" })).not.toBeInTheDocument();

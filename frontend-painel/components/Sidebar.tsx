@@ -5,7 +5,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { apiFetch } from "../lib/api";
 import { limparContaCache, useConta } from "../lib/useConta";
-import { useConfiguracaoInicialCompleta } from "../lib/useConfiguracaoInicial";
+import { useConfiguracaoInicial } from "../lib/useConfiguracaoInicial";
+import { useAppConfigurado } from "../lib/instalarApp";
+import { PASSOS_TOUR } from "../lib/tour";
 import { LocufyMark } from "./LocufyLogo";
 import { ICONE_SAIR, LINK_AJUDA, LINK_PERFIL, NAV_LINKS, NavGroup, NavIcone } from "./nav";
 
@@ -64,7 +66,7 @@ function ContaMenu({ colapsada }: { colapsada: boolean }) {
           {(conta?.nome || conta?.email) && (
             <div className="px-3.5 py-2 mb-1 border-b border-border">
               {conta?.nome && <div className="text-sm font-semibold text-fg truncate">{conta.nome}</div>}
-              {conta?.email && <div className="text-xs text-fg/55 truncate">{conta.email}</div>}
+              {conta?.email && <div className="text-xs text-fg/65 truncate">{conta.email}</div>}
             </div>
           )}
           <div className="px-1.5 space-y-0.5">
@@ -109,10 +111,14 @@ export default function Sidebar() {
   const pathname = usePathname();
   const conta = useConta();
   const colapsada = pathname === "/live";
-  const setupCompleto = useConfiguracaoInicialCompleta();
-  const links = NAV_LINKS.filter((link) => !link.adminOnly || conta?.role === "admin").map((link) =>
-    link.numeroSetup && !setupCompleto ? { ...link, label: `${link.numeroSetup}. ${link.label}` } : link
-  );
+  const configuracao = useConfiguracaoInicial();
+  const appPronto = useAppConfigurado();
+  // Mesmos passos do tour e do checklist do dashboard (lib/tour.ts) -- um progresso só.
+  const passosFeitos = PASSOS_TOUR.filter((p) => p.feito({ ...configuracao, appPronto })).length;
+  // Some junto com o tour (AppShell): o passo do app é por computador e não deve ficar pendente
+  // para sempre numa rádio que já opera pelo navegador.
+  const setupPendente = !configuracao.completa;
+  const links = NAV_LINKS.filter((link) => !link.adminOnly || conta?.role === "admin");
   const grupos = ORDEM_GRUPOS.map((grupo) => ({
     grupo,
     links: links.filter((link) => link.group === grupo),
@@ -166,10 +172,33 @@ export default function Sidebar() {
         </div>
 
         <nav className={`flex-1 overflow-y-auto py-5 space-y-5 ${colapsada ? "px-3" : "px-4"}`}>
+          {setupPendente && !colapsada && (
+            <Link
+              href="/dashboard"
+              className="block rounded-2xl border border-acento-claro/30 bg-acento/10 px-4 py-3 text-sm hover:border-acento-claro/60"
+            >
+              <span className="flex items-center justify-between font-semibold text-fg">
+                Configuração inicial
+                <span className="tabular-nums text-acento-claro">
+                  {passosFeitos} de {PASSOS_TOUR.length}
+                </span>
+              </span>
+              <span
+                className="mt-2 block h-1.5 overflow-hidden rounded-full bg-fg/10"
+                role="progressbar"
+                aria-label="Progresso da configuração inicial"
+                aria-valuemin={0}
+                aria-valuemax={PASSOS_TOUR.length}
+                aria-valuenow={passosFeitos}
+              >
+                <span className="block h-full rounded-full bg-acento" style={{ width: `${(passosFeitos / PASSOS_TOUR.length) * 100}%` }} />
+              </span>
+            </Link>
+          )}
           {grupos.map(({ grupo, links: linksDoGrupo }) => (
             <div key={grupo}>
               {!colapsada && (
-                <div className="px-4 mb-2 text-xs font-semibold uppercase tracking-wide text-fg/45">{grupo}</div>
+                <div className="px-4 mb-2 text-xs font-semibold uppercase tracking-wide text-fg/65">{grupo}</div>
               )}
               <div className="space-y-1">
                 {linksDoGrupo.map((link) => (

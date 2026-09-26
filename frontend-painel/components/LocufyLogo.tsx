@@ -72,7 +72,7 @@ export function LocufyLed({ color = "acento" as "acento" | "ciano" | "laranja", 
   );
 }
 
-/** Indicador de carregamento no lugar do "Carregando..." de texto puro. */
+/** Indicador de carregamento no lugar do "Carregando…" de texto puro. */
 export function LocufySpin({ size = 20 }: { size?: number }) {
   return (
     <span className="inline-flex animate-spin" style={{ width: size, height: size }}>

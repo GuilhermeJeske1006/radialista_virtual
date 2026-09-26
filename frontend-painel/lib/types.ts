@@ -419,6 +419,9 @@ export type Conta = {
   plano: string;
   criado_em: string;
   tem_radio_config: boolean;
+  // Conta isenta de cobrança de IA (ver backend app/auth/router.py::ContaResponse) --
+  // gera sem assinatura ativa, então o painel não pede checkout.
+  cobranca_isenta?: boolean;
 };
 
 export type UsuarioEquipe = {
