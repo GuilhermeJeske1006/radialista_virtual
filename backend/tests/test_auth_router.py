@@ -25,6 +25,7 @@ def test_registro_cria_conta_radio_config_e_programa_padrao(client, db_session, 
     corpo = me.json()
     assert corpo["email"] == "fulano@example.com"
     assert corpo["tem_radio_config"] is True
+    assert corpo["cobranca_isenta"] is False
 
     categorias = client.get("/categorias-vinheta", headers={"Authorization": f"Bearer {token}"}).json()
     assert sorted((c["nome"], c["tipo"]) for c in categorias) == sorted([*CATEGORIAS_PADRAO, ("Cartwall", "biblioteca")])
@@ -266,3 +267,17 @@ def test_register_respeita_rate_limit_por_ip(client):
 
     bloqueado = _registrar(client, email="mais-um@example.com")
     assert bloqueado.status_code == 429
+
+
+def test_me_informa_conta_isenta_de_cobranca(client, db_session, monkeypatch, tmp_path):
+    from app.models.account import Account
+
+    monkeypatch.setattr(settings, "storage_backend", "local")
+    monkeypatch.setattr(settings, "upload_dir", str(tmp_path))
+    token = _registrar(client, email="isenta@example.com").json()["access_token"]
+    conta = db_session.query(Account).order_by(Account.id.desc()).first()
+    conta.cobranca_isenta = True
+    db_session.commit()
+
+    corpo = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"}).json()
+    assert corpo["cobranca_isenta"] is True

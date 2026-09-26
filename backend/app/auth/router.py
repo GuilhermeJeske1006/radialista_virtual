@@ -71,6 +71,9 @@ class ContaResponse(BaseModel):
     plano: str
     criado_em: datetime.datetime
     tem_radio_config: bool
+    # Conta isenta não paga uso de IA nem precisa de assinatura ativa para gerar
+    # (ver app/billing/contexto_ia.py::_isenta) -- o painel usa para não pedir checkout.
+    cobranca_isenta: bool = False
 
 
 class AlterarSenhaRequest(BaseModel):
@@ -252,6 +255,7 @@ def _conta_response(usuario: Usuario, db: Session) -> ContaResponse:
         plano=usuario.account.plano,
         criado_em=usuario.account.criado_em,
         tem_radio_config=tem_radio_config,
+        cobranca_isenta=bool(getattr(usuario.account, "cobranca_isenta", False)),
     )
 
 
