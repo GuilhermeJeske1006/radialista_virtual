@@ -87,3 +87,17 @@ def test_evento_outra_assinatura_nao_altera_conta(client,db_session,account_fact
     assert evento(client,'customer.subscription.deleted',{'id':'sub_outra','customer':'cus_1'}).status_code==200
     db_session.refresh(a); assert a.plano_status=='ativo'
     stripe_api.v1.subscriptions.retrieve.assert_not_called()
+
+
+@pytest.mark.parametrize('cartao',['pm_1',None])
+def test_fatura_final_do_cancelamento_cobra_cartao_da_assinatura(client,account_factory,stripe_api,monkeypatch,cartao):
+    # Cartão salvo só na assinatura: sem repassá-lo, a fatura avulsa ficaria em aberto sem cobrança.
+    account_factory(stripe_customer_id='cus_1',stripe_subscription_id='sub_1',plano_status='ativo')
+    monkeypatch.setattr(billing,'fechar',MagicMock())
+    stripe_api.v1.subscriptions.retrieve.return_value={'id':'sub_1','customer':'cus_1','status':'canceled',
+        'canceled_at':2000,'start_date':1000,'default_payment_method':cartao}
+    stripe_api.v1.invoices.create.return_value={'id':'in_final','status':'draft'}
+    assert evento(client,'customer.subscription.deleted',{'id':'sub_1','customer':'cus_1'}).status_code==200
+    params=stripe_api.v1.invoices.create.call_args.args[0]
+    assert params.get('default_payment_method')==cartao
+    billing.fechar.assert_called_once()

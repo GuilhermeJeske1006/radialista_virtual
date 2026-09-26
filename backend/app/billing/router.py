@@ -106,10 +106,14 @@ async def webhook_stripe(request: Request, db: Session = Depends(get_db)):
                 if anterior and anterior.fim.timestamp() == int(sub.get('canceled_at') or event['created']):
                     invoice = c.v1.invoices.retrieve(anterior.id)
                 else:
-                    invoice = c.v1.invoices.create({'customer': account.stripe_customer_id, 'auto_advance': False,
-                    'pending_invoice_items_behavior': 'exclude',
-                    'metadata': {'assinatura_cancelada': sub['id']}},
-                    options={'idempotency_key': f"cancelamento:{sub['id']}"})
+                    params = {'customer': account.stripe_customer_id, 'auto_advance': False,
+                        'pending_invoice_items_behavior': 'exclude',
+                        'metadata': {'assinatura_cancelada': sub['id']}}
+                    # Checkout salva o cartão só na assinatura (save_default_payment_method); fatura
+                    # avulsa usa o padrão do customer e, sem ele, ficaria em aberto sem cobrança.
+                    if sub.get('default_payment_method'):
+                        params['default_payment_method'] = sub['default_payment_method']
+                    invoice = c.v1.invoices.create(params, options={'idempotency_key': f"cancelamento:{sub['id']}"})
                 fim = int(sub.get('canceled_at') or event['created'])
                 invoice = dados_stripe(invoice)
                 invoice['period_start'] = int(sub.get('start_date') or fim)
