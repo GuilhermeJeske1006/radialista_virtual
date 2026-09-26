@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: "Como a Locufy coleta, usa e protege dados na plataforma de radialista virtual com IA.",
 };
 
-const ATUALIZADO_EM = "15 de setembro de 2026";
+const ATUALIZADO_EM = "26 de setembro de 2026";
 
 export default function PrivacidadePage() {
   return (
@@ -45,7 +45,8 @@ export default function PrivacidadePage() {
             <p className="mb-2"><strong className="text-fg">Dados de conta:</strong> nome, e-mail e senha (armazenada com hash, nunca em texto puro) de cada pessoa da equipe, e seu papel (admin ou membro).</p>
             <p className="mb-2"><strong className="text-fg">Dados da rádio (conta/tenant):</strong> nome, slogan, frequência, telefone, endereço e cidade informados no perfil da emissora.</p>
             <p className="mb-2"><strong className="text-fg">Conteúdo que você envia:</strong> descrições em texto usadas para gerar o radialista e a programação, áudios de patrocinadores e, quando aplicável, uma amostra de voz enviada para clonagem.</p>
-            <p className="mb-2"><strong className="text-fg">Mensagens de WhatsApp:</strong> quando você conecta um número, processamos o número de telefone e o conteúdo das mensagens trocadas entre os ouvintes e o radialista virtual, para gerar as respostas.</p>
+            <p className="mb-2"><strong className="text-fg">Mensagens de WhatsApp:</strong> quando você conecta um número, processamos o número de telefone e o conteúdo das mensagens trocadas entre os ouvintes e o radialista virtual (texto e áudio; mensagens de áudio são transcritas para texto), para gerar as respostas.</p>
+            <p className="mb-2"><strong className="text-fg">Dados de consumo:</strong> registro de cada uso de IA da conta (funcionalidade, modelo, quantidade medida, tarifa e valor), usado para cobrança, para o limite financeiro e para o extrato exibido no painel.</p>
             <p className="mb-2"><strong className="text-fg">Dados de pagamento:</strong> processados diretamente pela Stripe; não armazenamos número de cartão em nossos servidores, apenas identificadores de cliente/assinatura da Stripe.</p>
             <p className="mb-2"><strong className="text-fg">Medição própria de uso:</strong> registramos cliques em cadastro e WhatsApp, reprodução de demonstrações e etapas concluídas do cadastro. Os eventos incluem códigos de campanha e plano, sem o conteúdo dos formulários. Depois do cadastro, vinculamos à conta os eventos de criação, início do pagamento e confirmação da assinatura. Os códigos de campanha podem ficar no armazenamento da sessão do navegador até a aba ser encerrada. Respeitamos os sinais Do Not Track e Global Privacy Control para os eventos opcionais do navegador.</p>
             <p><strong className="text-fg">Dados técnicos:</strong> logs de erro de aplicação (via Sentry) para diagnóstico e estabilidade.</p>
@@ -54,7 +55,7 @@ export default function PrivacidadePage() {
           <section>
             <h2 className="font-display text-lg font-semibold text-fg mb-2">3. O que não coletamos</h2>
             <ul className="list-disc pl-5 space-y-1">
-              <li>Não usamos cookies de publicidade, rastreamento entre sites ou ferramentas de analytics de terceiros;</li>
+              <li>Não usamos cookies de publicidade, rastreamento entre sites ou ferramentas de analytics de terceiros — a única exceção são os cookies do player do YouTube na tela Ao Vivo (Seção 6);</li>
               <li>Não armazenamos número de cartão de crédito (isso fica só com a Stripe);</li>
               <li>Não usamos seu conteúdo enviado para treinar modelos de IA de terceiros.</li>
             </ul>
@@ -62,7 +63,7 @@ export default function PrivacidadePage() {
 
           <section>
             <h2 className="font-display text-lg font-semibold text-fg mb-2">4. Como usamos os dados</h2>
-            <p>Usamos os dados acima para: (i) operar o serviço — gerar configuração, roteiros, áudio e respostas de WhatsApp; (ii) processar cobrança; (iii) enviar e-mails operacionais (boas-vindas, alertas de conexão do WhatsApp, convites de equipe); (iv) monitorar e corrigir erros e avaliar as etapas de contratação; (v) cumprir obrigações legais.</p>
+            <p>Usamos os dados acima para: (i) operar o serviço — gerar configuração, roteiros, áudio e respostas de WhatsApp; (ii) processar cobrança, incluindo a medição do uso de IA, o limite financeiro e o extrato; (iii) enviar e-mails operacionais (boas-vindas, alertas de conexão do WhatsApp, convites de equipe); (iv) monitorar e corrigir erros e avaliar as etapas de contratação; (v) cumprir obrigações legais.</p>
           </section>
 
           <section>
@@ -70,7 +71,8 @@ export default function PrivacidadePage() {
             <p>
               Suas descrições e o conteúdo de mensagens de ouvintes são enviados à API da Anthropic
               (modelos Claude) para gerar texto e respostas, e à ElevenLabs para síntese e clonagem
-              de voz. Ambos processam os dados via API para atender ao seu pedido e, conforme os
+              de voz, transcrição de áudios recebidos no WhatsApp e geração de trilhas para
+              vinhetas. Ambos processam os dados via API para atender ao seu pedido e, conforme os
               termos desses provedores para uso via API, não usam esses dados para treinar seus
               modelos de propósito geral.
             </p>
@@ -93,10 +95,23 @@ export default function PrivacidadePage() {
                     <td className="py-2 pr-4">Manter você autenticado no painel</td>
                     <td className="py-2">7 dias</td>
                   </tr>
+                  <tr className="border-b border-border">
+                    <td className="py-2 pr-4">YouTube (Google)</td>
+                    <td className="py-2 pr-4">Definidos pelo player do YouTube ao tocar música na tela Ao Vivo</td>
+                    <td className="py-2">Definida pelo Google</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
-            <p className="mt-2">Esse é o único cookie que usamos — estritamente necessário, não é de rastreamento ou publicidade, então não exige banner de consentimento.</p>
+            <p className="mt-2">
+              O cookie de sessão é o único que a Locufy define — estritamente necessário, não é de
+              rastreamento ou publicidade. Na tela Ao Vivo, as músicas tocam pelo player oficial do
+              YouTube, que pode definir cookies próprios regidos pela{" "}
+              <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-acento-claro hover:text-acento-dim">
+                Política de Privacidade do Google
+              </a>
+              .
+            </p>
           </section>
 
           <section>
@@ -116,7 +131,7 @@ export default function PrivacidadePage() {
                   </tr>
                   <tr className="border-b border-border">
                     <td className="py-2 pr-4">ElevenLabs</td>
-                    <td className="py-2">Síntese e clonagem de voz</td>
+                    <td className="py-2">Síntese e clonagem de voz, transcrição de áudios do WhatsApp e geração de trilhas</td>
                   </tr>
                   <tr className="border-b border-border">
                     <td className="py-2 pr-4">WuzAPI</td>
@@ -124,7 +139,11 @@ export default function PrivacidadePage() {
                   </tr>
                   <tr className="border-b border-border">
                     <td className="py-2 pr-4">Stripe</td>
-                    <td className="py-2">Processamento de pagamento e cobrança</td>
+                    <td className="py-2">Processamento de pagamento e cobrança da mensalidade e do uso de IA</td>
+                  </tr>
+                  <tr className="border-b border-border">
+                    <td className="py-2 pr-4">YouTube (Google)</td>
+                    <td className="py-2">Busca e reprodução de músicas no Ao Vivo</td>
                   </tr>
                   <tr className="border-b border-border">
                     <td className="py-2 pr-4">AWS (S3)</td>
@@ -171,7 +190,7 @@ export default function PrivacidadePage() {
           <section>
             <h2 className="font-display text-lg font-semibold text-fg mb-2">10. Transferência internacional</h2>
             <p>
-              Alguns dos provedores listados na Seção 7 (Anthropic, ElevenLabs, AWS, Stripe, Sentry)
+              Alguns dos provedores listados na Seção 7 (Anthropic, ElevenLabs, AWS, Stripe, Sentry, Google)
               podem processar dados fora do Brasil. Nesses casos, exigimos que o processamento siga
               salvaguardas contratuais e padrões de segurança adequados exigidos pela LGPD.
             </p>

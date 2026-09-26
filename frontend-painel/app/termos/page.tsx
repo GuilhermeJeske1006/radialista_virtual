@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: "Termos de Uso da Locufy, plataforma de radialista virtual com inteligência artificial.",
 };
 
-const ATUALIZADO_EM = "15 de setembro de 2026";
+const ATUALIZADO_EM = "26 de setembro de 2026";
 
 export default function TermosPage() {
   return (
@@ -43,11 +43,13 @@ export default function TermosPage() {
           <section>
             <h2 className="font-display text-lg font-semibold text-fg mb-2">2. O Serviço</h2>
             <p>
-              A Locufy é um serviço pago por assinatura mensal (planos Starter, Growth e Professional),
-              com valores e condições apresentados antes do pagamento, que gera, a partir de uma descrição fornecida pela rádio,
-              a configuração de um ou mais radialistas virtuais e de sua programação (roteiros,
-              locução em áudio por síntese de voz e, quando ativado, atendimento automatizado via
-              WhatsApp aos ouvintes). Podemos ajustar, suspender ou descontinuar funcionalidades a
+              A Locufy é um serviço pago, contratado pelo plano Locufy Flex (mensalidade fixa mais
+              cobrança pelo uso de inteligência artificial, conforme a Seção 12), com valores e
+              condições apresentados antes do pagamento, que gera, a partir de uma descrição fornecida
+              pela rádio, a configuração de um ou mais radialistas virtuais e de sua programação
+              (roteiros, locução em áudio por síntese de voz, vinhetas e, quando ativado, atendimento
+              automatizado via WhatsApp aos ouvintes, inclusive com transcrição de mensagens de
+              áudio). Podemos ajustar, suspender ou descontinuar funcionalidades a
               qualquer momento, avisando com antecedência razoável sempre que possível.
             </p>
           </section>
@@ -89,7 +91,7 @@ export default function TermosPage() {
             <ul className="list-disc pl-5 mt-2 space-y-1">
               <li>Gerar ou veicular conteúdo ilegal, discurso de ódio, assédio ou material que exponha ou explore menores;</li>
               <li>Infringir direitos autorais, de imagem, de voz ou outros direitos de terceiros;</li>
-              <li>Fazer engenharia reversa, contornar limites de uso ou medidas de segurança do serviço;</li>
+              <li>Fazer engenharia reversa, contornar limites de uso, a medição de consumo ou medidas de segurança do serviço;</li>
               <li>Usar o canal de WhatsApp para spam, disparo em massa não solicitado ou burlar políticas do WhatsApp/Meta;</li>
               <li>Enviar conteúdo ou instruções que você não tem o direito legal de usar ou reproduzir.</li>
             </ul>
@@ -112,8 +114,8 @@ export default function TermosPage() {
           <section>
             <h2 className="font-display text-lg font-semibold text-fg mb-2">8. Clonagem de voz</h2>
             <p>
-              Planos Growth e Professional permitem enviar uma amostra de voz para clonagem (via
-              ElevenLabs Instant Voice Cloning). Ao enviar uma amostra, você declara que a pessoa
+              Você pode enviar uma amostra de voz para clonagem (via ElevenLabs Instant Voice
+              Cloning). Ao enviar uma amostra, você declara que a pessoa
               cuja voz está sendo clonada consentiu expressamente com esse uso, e que a voz clonada
               será usada apenas dentro da sua programação na Locufy.
             </p>
@@ -137,7 +139,9 @@ export default function TermosPage() {
               produzidos por modelos de IA de forma probabilística. Podem conter imprecisões,
               informações desatualizadas ou respostas inesperadas. A Locufy é uma ferramenta de
               produção de conteúdo, não uma fonte de veracidade factual — a responsabilidade editorial
-              final é sempre da rádio.
+              final é sempre da rádio. A qualidade varia conforme a combinação de modelos de texto e
+              voz escolhida para cada programa; as limitações conhecidas de cada combinação são
+              exibidas no painel antes da escolha.
             </p>
           </section>
 
@@ -146,25 +150,62 @@ export default function TermosPage() {
             <p>
               Para operar, a Locufy usa provedores de terceiros, cujos termos também se aplicam ao
               processarem dados enviados por você: Anthropic (geração de texto/roteiro via API
-              Claude), ElevenLabs (síntese e clonagem de voz), WuzAPI (integração com WhatsApp),
-              Stripe (cobrança), AWS (armazenamento de arquivos) e Sentry (monitoramento de erros).
-              Veja detalhes na nossa{" "}
+              Claude), ElevenLabs (síntese e clonagem de voz, transcrição de áudios recebidos no
+              WhatsApp e geração de trilhas para vinhetas), WuzAPI (integração com WhatsApp), Stripe
+              (cobrança), AWS (armazenamento de arquivos), Sentry (monitoramento de erros), Spotify
+              (identificação de músicas), YouTube (reprodução de músicas no Ao Vivo) e Open-Meteo
+              (previsão do tempo da cidade da rádio). Veja detalhes na nossa{" "}
               <Link href="/privacidade" className="text-acento-claro hover:text-acento-dim">
                 Política de Privacidade
               </Link>
               .
             </p>
+            <p className="mt-2">
+              As músicas tocadas no Ao Vivo são reproduzidas pelo player oficial do YouTube e estão
+              sujeitas aos Termos de Serviço do YouTube. A Locufy não licencia músicas: obter as
+              autorizações para execução pública das músicas na sua programação (por exemplo, junto
+              ao ECAD) é responsabilidade da rádio.
+            </p>
           </section>
 
           <section>
-            <h2 className="font-display text-lg font-semibold text-fg mb-2">12. Planos, cobrança e cancelamento</h2>
+            <h2 className="font-display text-lg font-semibold text-fg mb-2">12. Plano, cobrança e cancelamento</h2>
             <p>
-              Os planos Starter, Growth e Professional são cobrados por assinatura recorrente via
-              Stripe, com franquia mensal de mensagens e número de radialistas por plano; uso acima
-              da franquia ou agentes adicionais podem gerar cobrança extra, conforme exibido na tela
-              de billing antes da confirmação. Você pode cancelar a assinatura a qualquer momento; o
-              cancelamento produz efeito ao fim do período já pago, sem reembolso proporcional salvo
-              disposição legal em contrário.
+              A Locufy é contratada pelo plano Locufy Flex, cobrado via Stripe em duas partes: (i)
+              mensalidade fixa, paga antecipadamente — a primeira na adesão e as seguintes a cada
+              renovação; e (ii) uso de inteligência artificial (geração de texto, síntese de voz,
+              transcrição de áudio e geração de trilhas), medido por operação e cobrado na fatura de
+              renovação seguinte ao período em que ocorreu. Sem uso no período, é cobrada apenas a
+              mensalidade. O valor da mensalidade é exibido na tela de Assinatura antes da
+              contratação. Não há franquia de mensagens nem cobrança por radialista.
+            </p>
+            <p className="mt-2">
+              Cada uso é cobrado pela tarifa em reais vigente no momento da operação para o modelo
+              utilizado, publicada na tela de Assinatura e consumo. As tarifas consideram o custo dos
+              provedores de IA e o câmbio vigente quando foram publicadas; não são repasse exato da
+              fatura desses provedores. O custo depende da combinação de modelos de texto e voz
+              escolhida para cada programa ou radialista: estimativas de preço por hora exibidas no
+              painel são referência, e a cobrança segue o consumo efetivamente medido. Podemos
+              alterar tarifas publicando a nova tabela com antecedência razoável antes de ela entrar
+              em vigor; usos anteriores mantêm a tarifa vigente quando ocorreram. Reproduzir áudio já
+              gerado não gera nova cobrança.
+            </p>
+            <p className="mt-2">
+              Cada conta tem um limite financeiro para o uso de IA, que o administrador pode ajustar
+              no painel. O limite considera todo o uso ainda não pago, inclusive operações em
+              andamento. O painel avisa quando o uso chega a 90% do limite; ao atingi-lo, novas
+              gerações de IA podem ser pausadas até que o limite seja aumentado ou a fatura em aberto
+              seja paga. O extrato de consumo detalha cada uso (funcionalidade, modelo, tarifa e
+              valor), e as faturas ficam disponíveis no histórico. Dúvidas sobre valores cobrados
+              podem ser enviadas ao contato da Seção 20.
+            </p>
+            <p className="mt-2">
+              Se o pagamento de uma fatura não for concluído, a conta fica inadimplente e o uso de IA
+              pode ser suspenso até a regularização. Você pode cancelar a assinatura a qualquer
+              momento pelo portal de pagamento; o acesso continua até o fim do período de mensalidade
+              já pago, sem reembolso proporcional salvo disposição legal em contrário. No
+              cancelamento, é emitida uma fatura final apenas com o uso de IA ainda não cobrado, sem
+              nova mensalidade.
             </p>
           </section>
 
@@ -205,8 +246,8 @@ export default function TermosPage() {
             <p>
               Na máxima extensão permitida por lei, a Locufy não será responsável por danos
               indiretos, incidentais ou consequenciais. Nossa responsabilidade total por qualquer
-              reclamação relacionada ao serviço fica limitada ao valor pago por você nos 12 meses
-              anteriores ao fato gerador. Em jurisdições que não permitem essa limitação, ela se
+              reclamação relacionada ao serviço fica limitada ao total pago por você à Locufy
+              (mensalidades e uso de IA) nos 12 meses anteriores ao fato gerador. Em jurisdições que não permitem essa limitação, ela se
               aplica na maior extensão permitida por lei.
             </p>
           </section>
