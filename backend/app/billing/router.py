@@ -1,333 +1,124 @@
-import logging
-
 import stripe
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-
 from app.auth.dependencies import exigir_admin, get_current_account
-from app.billing.limites import (
-    limite_agentes_efetivo,
-    limite_mensagens_efetivo,
-    mensagens_extras_do_mes,
-    mensagens_respondidas_no_mes,
-    mes_referencia_atual,
-)
-from app.billing.stripe_client import (
-    CartaoSalvoNaoEncontrado,
-    criar_portal_sessao,
-    criar_sessao_checkout,
-    criar_sessao_checkout_agente_extra,
-    criar_sessao_checkout_excedente_mensagens,
-    obter_cartao_mais_recente,
-    plano_por_price_id,
-    trocar_plano_assinatura,
-)
-from app.config.redis_client import redis_client
+from app.billing.limites import mensagens_respondidas_no_mes
+from app.billing.stripe_client import cliente, criar_sessao_checkout, criar_portal_sessao, obter_cartao_mais_recente, dados_stripe
+from app.billing.fechamento import fechar, registrar_pagamento, periodo
+from app.billing.flex import conta_consumo
 from app.config.settings import settings
 from app.db.database import get_db
-from app.funnel.service import record_event
-from app.guardrails.http_rate_limit import limitar_por_ip
 from app.models.account import Account
-from app.models.compra_excedente import CompraExcedente
+from app.models.consumo_flex import EventoCobranca, FaturaConsumo
 from app.models.radio_config import RadioConfig
-from app.notificacoes.service import notificar_admins
-from app.planos import PLANOS
 
-logger = logging.getLogger("radialista.billing")
-router = APIRouter(prefix="/billing", tags=["billing"])
-
-
-class ExcedenteMensagensRequest(BaseModel):
-    blocos: int = Field(default=1, ge=1, le=50)
-    usar_cartao_salvo: bool = False
+router = APIRouter(prefix='/billing', tags=['billing'])
 
 
 class CheckoutRequest(BaseModel):
-    plano_id: str = "starter"
+    plano_id: str = 'flex'
     usar_cartao_salvo: bool = False
 
 
-class AgenteExtraCheckoutRequest(BaseModel):
-    usar_cartao_salvo: bool = False
+@router.post('/checkout')
+def checkout(dados: CheckoutRequest, account=Depends(get_current_account), db=Depends(get_db), _admin=Depends(exigir_admin)):
+    if dados.plano_id != 'flex':
+        raise HTTPException(400, 'O plano disponível é Locufy Flex')
+    if account.plano_status == 'ativo':
+        raise HTTPException(409, 'Assinatura já ativa')
+    sub = criar_sessao_checkout(account, 'flex', db, dados.usar_cartao_salvo)
+    secret = dados_stripe(sub.latest_invoice).get('confirmation_secret')
+    return {'client_secret': secret.get('client_secret') if secret else None}
 
 
-class TrocarPlanoRequest(BaseModel):
-    plano_id: str
-
-
-def _exigir_plano_ativo(account: Account) -> None:
-    if account.plano_status != "ativo":
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Assine um plano antes de comprar itens avulsos.",
-        )
-
-
-def _exigir_plano_valido(plano_id: str) -> None:
-    if plano_id not in PLANOS:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Plano invalido")
-
-
-def _status_plano(account: Account, db: Session) -> dict:
-    agentes_usados = db.query(RadioConfig).filter_by(account_id=account.id).count()
-    mensagens_usadas = mensagens_respondidas_no_mes(db, account.id)
-
-    return {
-        "plano_status": account.plano_status,
-        "plano": account.plano,
-        "agentes_usados": agentes_usados,
-        "agentes_limite": limite_agentes_efetivo(account),
-        "agentes_extras": account.agentes_extras,
-        "mensagens_usadas": mensagens_usadas,
-        "mensagens_limite": limite_mensagens_efetivo(db, account),
-        "mensagens_extras": mensagens_extras_do_mes(db, account.id),
-    }
-
-
-@router.post("/checkout")
-def checkout(
-    dados: CheckoutRequest,
-    account: Account = Depends(get_current_account),
-    db: Session = Depends(get_db),
-    _admin=Depends(exigir_admin),
-):
-    _exigir_plano_valido(dados.plano_id)
-    if account.plano_status == "ativo":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Voce ja tem uma assinatura ativa -- use a troca de plano.",
-        )
-    try:
-        assinatura = criar_sessao_checkout(account, dados.plano_id, db, usar_cartao_salvo=dados.usar_cartao_salvo)
-    except CartaoSalvoNaoEncontrado:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nenhum cartao salvo encontrado.")
-    record_event(db, "checkout_started", event_id=f"checkout:{assinatura.id}", account_id=account.id, plano=dados.plano_id)
-    db.commit()
-    return {"client_secret": assinatura.latest_invoice.payment_intent.client_secret}
-
-
-@router.post("/trocar-plano")
-def trocar_plano(
-    dados: TrocarPlanoRequest,
-    account: Account = Depends(get_current_account),
-    db: Session = Depends(get_db),
-    _admin=Depends(exigir_admin),
-):
-    _exigir_plano_valido(dados.plano_id)
-    if account.plano_status != "ativo" or not account.stripe_subscription_id:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Nenhuma assinatura ativa pra trocar de plano.",
-        )
-    if dados.plano_id == account.plano:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Voce ja esta nesse plano.")
-
-    trocar_plano_assinatura(account, dados.plano_id)
-    account.plano = dados.plano_id
-    db.commit()
-    return _status_plano(account, db)
-
-
-@router.post("/portal")
-def portal(account: Account = Depends(get_current_account), _admin=Depends(exigir_admin)):
+@router.post('/portal')
+def portal(account=Depends(get_current_account), _admin=Depends(exigir_admin)):
     if not account.stripe_customer_id:
-        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail="Assine um plano primeiro.")
-    sessao = criar_portal_sessao(account)
-    return {"url": sessao.url}
+        raise HTTPException(402, 'Assine primeiro')
+    return {'url': criar_portal_sessao(account).url}
 
 
-@router.post("/agentes-extras/checkout")
-def checkout_agente_extra(
-    dados: AgenteExtraCheckoutRequest = AgenteExtraCheckoutRequest(),
-    account: Account = Depends(get_current_account),
-    db: Session = Depends(get_db),
-    _admin=Depends(exigir_admin),
-):
-    _exigir_plano_ativo(account)
-    try:
-        assinatura = criar_sessao_checkout_agente_extra(account, db, usar_cartao_salvo=dados.usar_cartao_salvo)
-    except CartaoSalvoNaoEncontrado:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nenhum cartao salvo encontrado.")
-    return {"client_secret": assinatura.latest_invoice.payment_intent.client_secret}
+@router.get('/cartao')
+def cartao(account=Depends(get_current_account), _admin=Depends(exigir_admin)):
+    return {'cartao': obter_cartao_mais_recente(account)}
 
 
-@router.post("/excedente-mensagens/checkout")
-def checkout_excedente_mensagens(
-    dados: ExcedenteMensagensRequest,
-    account: Account = Depends(get_current_account),
-    db: Session = Depends(get_db),
-    _admin=Depends(exigir_admin),
-):
-    _exigir_plano_ativo(account)
-    try:
-        intent = criar_sessao_checkout_excedente_mensagens(
-            account, dados.blocos, db, usar_cartao_salvo=dados.usar_cartao_salvo
-        )
-    except CartaoSalvoNaoEncontrado:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nenhum cartao salvo encontrado.")
-    return {"client_secret": intent.client_secret}
+@router.get('/status')
+def status_plano(account=Depends(get_current_account), db=Depends(get_db)):
+    return {'plano': 'flex', 'plano_status': account.plano_status, 'mensalidade_brl': 69.90,
+        'agentes_usados': db.query(RadioConfig).filter_by(account_id=account.id).count(),
+        'agentes_limite': None, 'agentes_extras': 0,
+        'mensagens_usadas': mensagens_respondidas_no_mes(db, account.id),
+        'mensagens_limite': None, 'mensagens_extras': 0}
 
 
-@router.get("/status")
-def status_plano(account: Account = Depends(get_current_account), db: Session = Depends(get_db)):
-    return _status_plano(account, db)
+@router.post('/agentes-extras/checkout')
+@router.post('/excedente-mensagens/checkout')
+@router.post('/trocar-plano')
+def oferta_encerrada(_admin=Depends(exigir_admin)):
+    raise HTTPException(410, 'Locufy Flex inclui WhatsApp completo, sem pacotes ou planos adicionais')
 
 
-@router.get("/cartao")
-def cartao_mais_recente(account: Account = Depends(get_current_account), _admin=Depends(exigir_admin)):
-    return {"cartao": obter_cartao_mais_recente(account)}
+def assinatura_fatura(invoice):
+    return ((invoice.get('parent') or {}).get('subscription_details') or {}).get('subscription') or invoice.get('subscription')
 
 
-@router.post(
-    "/webhook",
-    dependencies=[Depends(limitar_por_ip("billing_webhook", limite=120, janela_segundos=60))],
-)
+@router.post('/webhook')
 async def webhook_stripe(request: Request, db: Session = Depends(get_db)):
-    payload = await request.body()
-    assinatura = request.headers.get("stripe-signature", "")
-
     try:
-        evento = stripe.Webhook.construct_event(payload, assinatura, settings.stripe_webhook_secret)
-    except (ValueError, stripe.error.SignatureVerificationError):
-        logger.warning("Webhook Stripe com payload/assinatura invalidos")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Payload invalido")
-
-    # Stripe reentrega o mesmo evento em retry (ex.: timeout na resposta). Sem isso,
-    # "agente_extra" e "excedente_mensagens" creditam em dobro por reentrega -- as demais
-    # ramificacoes so' fixam estado (idempotentes por natureza), mas dedupar por evento.id
-    # cobre todas de uma vez.
-    evento_id = evento.get("id")
-    if evento_id and not redis_client.set(f"stripe_webhook:processado:{evento_id}", "1", nx=True, ex=60 * 60 * 24 * 30):
-        logger.info("Webhook Stripe ja processado, ignorando reentrega: evento_id=%s", evento_id)
-        return {"status": "duplicado"}
-
-    tipo = evento["type"]
-    dados = evento["data"]["object"]
-    logger.info("Webhook Stripe recebido: tipo=%s", tipo)
-
-    if tipo == "invoice.paid":
-        # Assinatura (plano ou agente extra) criada direto via API (payment_behavior=
-        # default_incomplete, ver stripe_client.py) fica "incomplete" ate o pagamento da
-        # primeira invoice ser confirmado -- billing_reason=="subscription_create" so'
-        # acontece nessa primeira invoice, nunca em renovacao mensal (essa vem como
-        # "subscription_cycle"), entao serve de sinal de ativacao sem risco de repetir todo mes.
-        if dados.get("billing_reason") != "subscription_create":
-            return {"status": "ignorado"}
-
-        # A partir da API version usada nessa conta Stripe, invoice nao tem mais "subscription"/
-        # "subscription_details" no nivel raiz -- o line item (sempre 1, um price por
-        # assinatura) carrega o metadata da subscription e a referencia pra ela.
-        linhas = dados.get("lines", {}).get("data") or []
-        metadata = linhas[0].get("metadata", {}) if linhas else {}
-        subscription_id = None
-        if linhas:
-            detalhes_item = (linhas[0].get("parent") or {}).get("subscription_item_details") or {}
-            subscription_id = detalhes_item.get("subscription")
-
-        account_id = metadata.get("account_id")
-        account = db.get(Account, int(account_id)) if account_id else None
-        if account is None:
-            logger.warning("invoice.paid (subscription_create) sem account_id resolvivel")
-            return {"status": "ok"}
-
-        tipo_compra = metadata.get("tipo")
-        if tipo_compra == "assinatura":
-            account.plano_status = "ativo"
-            account.plano = metadata.get("plano", "starter")
-            account.stripe_subscription_id = subscription_id
-            _definir_ativo(db, account, True)
-            record_event(db, "subscription_confirmed", event_id=f"subscription:{subscription_id or dados.get('id')}", account_id=account.id, plano=account.plano, valor_centavos=int(dados.get("amount_paid") or 0) if dados.get("currency") == "brl" else 0)
-            db.commit()
-            logger.info("Assinatura ativada: account_id=%s plano=%s", account.id, account.plano)
-            notificar_admins(
-                db,
-                account,
-                "billing",
-                "Assinatura ativada",
-                f"Sua assinatura do plano {account.plano} foi ativada com sucesso.",
-                link="/billing",
-            )
-        elif tipo_compra == "agente_extra":
-            account.agentes_extras += 1
-            db.commit()
-            logger.info("Agente extra ativado: account_id=%s", account.id)
-
-    elif tipo == "payment_intent.succeeded":
-        metadata = dados.get("metadata", {})
-        if metadata.get("tipo") != "excedente_mensagens":
-            return {"status": "ignorado"}
-
-        account_id = metadata.get("account_id")
-        account = db.get(Account, int(account_id)) if account_id else None
-        if account is None:
-            logger.warning("payment_intent.succeeded (excedente) sem account_id resolvivel")
-            return {"status": "ok"}
-
-        blocos = int(metadata.get("blocos", "1"))
-        db.add(
-            CompraExcedente(
-                account_id=account.id,
-                quantidade=blocos * 1000,
-                mes_referencia=mes_referencia_atual(),
-            )
-        )
+        event = dados_stripe(stripe.Webhook.construct_event(await request.body(), request.headers.get('stripe-signature', ''), settings.stripe_webhook_secret))
+    except (ValueError, stripe.SignatureVerificationError):
+        raise HTTPException(400, 'Assinatura inválida') from None
+    if db.get(EventoCobranca, event['id']):
+        return {'status': 'duplicado'}
+    tipo, dados = event['type'], event['data']['object']
+    account = db.scalar(select(Account).where(Account.stripe_customer_id == dados.get('customer'))) if dados.get('customer') else None
+    if account:
+        # Serializa inclusive dois IDs de evento diferentes referentes à mesma fatura.
+        conta_consumo(db, account.id)
+        if db.get(EventoCobranca, event['id']):
+            return {'status': 'duplicado'}
+        c = cliente()
+        if tipo.startswith('invoice.'):
+            # Estado atual vence webhooks atrasados (paid seguido de payment_failed antigo).
+            invoice = dados_stripe(c.v1.invoices.retrieve(dados['id']))
+            if (assinatura_fatura(invoice) or (invoice.get('metadata') or {}).get('assinatura_cancelada')) == account.stripe_subscription_id:
+                if tipo == 'invoice.created' and invoice.get('billing_reason') != 'subscription_create':
+                    fechar(db, account, invoice, c)
+                elif tipo in ('invoice.paid', 'invoice.payment_failed', 'invoice.payment_action_required', 'invoice.finalized'):
+                    registrar_pagamento(db, account, invoice, pendente=tipo != 'invoice.finalized')
+                    for linha in invoice.get('lines', {}).get('data', []):
+                        if ((linha.get('parent') or {}).get('type') == 'subscription_item_details' or linha.get('type') == 'subscription') and linha.get('period'):
+                            conta = conta_consumo(db, account.id)
+                            inicio, fim = periodo(linha['period']['start']), periodo(linha['period']['end'])
+                            if conta.ciclo_fim is None or conta.ciclo_fim.replace(tzinfo=inicio.tzinfo) < fim:
+                                conta.ciclo_inicio, conta.ciclo_fim = inicio, fim
+        elif tipo in ('customer.subscription.updated', 'customer.subscription.deleted') and dados['id'] == account.stripe_subscription_id:
+            sub = dados_stripe(c.v1.subscriptions.retrieve(dados['id']))
+            if sub['status'] in ('canceled', 'unpaid', 'past_due'):
+                account.plano_status = 'cancelado' if sub['status'] == 'canceled' else 'inadimplente'
+            # Cancelamento: uma única fatura final, apenas uso, sem mensalidade futura.
+            if sub['status'] == 'canceled':
+                anterior = db.scalar(select(FaturaConsumo).where(FaturaConsumo.account_id == account.id, FaturaConsumo.assinatura == sub['id']).order_by(FaturaConsumo.fim.desc()).limit(1))
+                if anterior and anterior.fim.timestamp() == int(sub.get('canceled_at') or event['created']):
+                    invoice = c.v1.invoices.retrieve(anterior.id)
+                else:
+                    invoice = c.v1.invoices.create({'customer': account.stripe_customer_id, 'auto_advance': False,
+                    'pending_invoice_items_behavior': 'exclude',
+                    'metadata': {'assinatura_cancelada': sub['id']}},
+                    options={'idempotency_key': f"cancelamento:{sub['id']}"})
+                fim = int(sub.get('canceled_at') or event['created'])
+                invoice = dados_stripe(invoice)
+                invoice['period_start'] = int(sub.get('start_date') or fim)
+                invoice['period_end'] = fim
+                fechar(db, account, invoice, c)
+    try:
+        db.add(EventoCobranca(id=event['id'], tipo=tipo))
         db.commit()
-        logger.info("Excedente de mensagens creditado: account_id=%s blocos=%s", account.id, blocos)
-
-    elif tipo == "customer.subscription.deleted":
-        account = db.query(Account).filter_by(stripe_customer_id=dados.get("customer")).first()
-        # Um customer pode ter mais de uma subscription (a do plano + uma por agente extra
-        # comprado) -- so' a subscription principal (account.stripe_subscription_id) representa
-        # a assinatura em si. Cancelar so' um agente extra nao pode derrubar a conta inteira.
-        if account is not None and dados.get("id") == account.stripe_subscription_id:
-            account.plano_status = "cancelado"
-            _definir_ativo(db, account, False)
-            db.commit()
-            logger.info("Plano cancelado: account_id=%s", account.id)
-            notificar_admins(
-                db,
-                account,
-                "billing",
-                "Assinatura cancelada",
-                "Sua assinatura foi cancelada. Os agentes da radio foram desativados.",
-                link="/billing",
-                enviar_email=True,
-            )
-
-    elif tipo == "customer.subscription.updated":
-        novo_status = dados.get("status")
-        if novo_status not in ("canceled", "unpaid", "active", "trialing"):
-            return {"status": "ignorado"}
-
-        account = db.query(Account).filter_by(stripe_customer_id=dados.get("customer")).first()
-        # Mesmo motivo do subscription.deleted acima: ignora updates de subscriptions que nao
-        # sao a assinatura principal (ex.: subscription de agente extra mudando de status).
-        if account is not None and dados.get("id") == account.stripe_subscription_id:
-            if novo_status in ("canceled", "unpaid"):
-                account.plano_status = "cancelado"
-                _definir_ativo(db, account, False)
-                logger.info("Plano cancelado: account_id=%s", account.id)
-                titulo, mensagem = (
-                    ("Pagamento falhou", "Nao conseguimos processar o pagamento da sua assinatura.")
-                    if novo_status == "unpaid"
-                    else ("Assinatura cancelada", "Sua assinatura foi cancelada.")
-                )
-                notificar_admins(db, account, "billing", titulo, mensagem, link="/billing", enviar_email=True)
-            else:
-                # Preco pode ter mudado fora do nosso endpoint de troca (ex.: portal do
-                # Stripe, ou ajuste manual no dashboard) -- sincroniza o plano local com
-                # o price atual da assinatura em vez de confiar so' no que a gente setou.
-                itens = dados.get("items", {}).get("data") or []
-                price_id = itens[0].get("price", {}).get("id") if itens else None
-                plano_novo = plano_por_price_id(price_id)
-                if plano_novo and plano_novo != account.plano:
-                    account.plano = plano_novo
-                    logger.info("Plano sincronizado via webhook: account_id=%s plano=%s", account.id, plano_novo)
-            db.commit()
-
-    return {"status": "ok"}
-
-
-def _definir_ativo(db: Session, account: Account, ativo: bool) -> None:
-    db.query(RadioConfig).filter_by(account_id=account.id).update({"ativo": ativo})
+    except IntegrityError:
+        db.rollback()
+        return {'status': 'duplicado'}
+    return {'status': 'ok'}

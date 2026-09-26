@@ -16,7 +16,7 @@ from app.planos import limites_do_plano
 
 def test_limite_agentes_efetivo_soma_extras(account_factory):
     account = account_factory(email="a@a.com", plano="starter", agentes_extras=2)
-    assert limite_agentes_efetivo(account) == limites_do_plano("starter").agentes + 2
+    assert limite_agentes_efetivo(account) == limites_do_plano("flex").agentes
 
 
 def test_limite_radialistas_por_programa_reflete_plano(account_factory):
@@ -51,7 +51,7 @@ def test_limite_mensagens_efetivo_soma_extras(db_session, account_factory):
     db_session.commit()
 
     esperado = limites_do_plano("starter").mensagens_mes + 1000
-    assert limite_mensagens_efetivo(db_session, account) == esperado
+    assert limite_mensagens_efetivo(db_session, account) is None
 
 
 def _log(radio_config_id, status, origem="ouvinte", criado_em=None):

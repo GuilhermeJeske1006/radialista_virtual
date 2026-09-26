@@ -4,14 +4,15 @@ from anthropic import Anthropic
 
 from app.config.settings import settings
 from app.llm.json_utils import extrair_json
+from app.llm.economia import criar_mensagem, chave_classificacao, ler_classificacao, guardar_classificacao
 from app.util.texto import sem_acento as _sem_acento
 
 logger = logging.getLogger("radialista.llm")
 
-_client = Anthropic(api_key=settings.anthropic_api_key)
+_client = Anthropic(api_key=settings.anthropic_api_key, max_retries=0)
 
-MODEL = "claude-opus-5"
-CLASSIFICATION_MODEL = "claude-haiku-4-5"
+MODEL = settings.llm_model
+CLASSIFICATION_MODEL = settings.llm_classification_model
 
 
 def _cortar_ate_ultima_frase(texto: str) -> str:
@@ -28,11 +29,10 @@ def _cortar_ate_ultima_frase(texto: str) -> str:
 
 
 def gerar_resposta(system_prompt: str, mensagem_usuario: str) -> str:
-    response = _client.messages.create(
+    response = criar_mensagem(_client,
         model=MODEL,
         max_tokens=512,
-        thinking={"type": "disabled"},
-        output_config={"effort": "low"},
+        **({} if "haiku" in MODEL else {"thinking": {"type": "disabled"}, "output_config": {"effort": "low"}}),
         system=system_prompt,
         messages=[{"role": "user", "content": mensagem_usuario}],
     )
@@ -56,11 +56,10 @@ def gerar_resposta_chat(system_prompt: str, historico: list[dict[str, str]]) -> 
     """Como gerar_resposta, mas com historico multi-turn (usado no chat de suporte do painel --
     ver app.suporte.router) em vez de uma unica mensagem de usuario.
     """
-    response = _client.messages.create(
+    response = criar_mensagem(_client,
         model=MODEL,
         max_tokens=768,
-        thinking={"type": "disabled"},
-        output_config={"effort": "low"},
+        **({} if "haiku" in MODEL else {"thinking": {"type": "disabled"}, "output_config": {"effort": "low"}}),
         system=system_prompt,
         messages=historico,
     )
@@ -84,7 +83,18 @@ def gerar_classificacao(system_prompt: str, mensagem_usuario: str, max_tokens: i
     precisa passar um valor maior, senao a resposta trunca no meio de uma string e vira
     JSONDecodeError toda vez (visto em producao: 100% dos itens de feed falhando a curadoria).
     """
-    response = _client.messages.create(
+    # Este cliente também gera sugestões/criatividade (música, pautas, reserva).
+    # Cachear essas chamadas congelaria a variedade editorial. Só transformações
+    # factuais do mesmo texto entram no cache de resultado.
+    cache_permitido = system_prompt in {
+        _TOM_SYSTEM_PROMPT, _CATEGORIA_BLOCO_SYSTEM_PROMPT, _TEMA_SYSTEM_PROMPT,
+        _FIO_CONDUTOR_SYSTEM_PROMPT, _CONTEXTO_MUSICA_SYSTEM_PROMPT, _MUSICAS_CITADAS_SYSTEM_PROMPT,
+    }
+    chave = chave_classificacao(system_prompt, mensagem_usuario, max_tokens)
+    existente = ler_classificacao(chave) if cache_permitido else None
+    if existente is not None:
+        return existente
+    response = criar_mensagem(_client,
         model=CLASSIFICATION_MODEL,
         max_tokens=max_tokens,
         system=system_prompt,
@@ -93,6 +103,9 @@ def gerar_classificacao(system_prompt: str, mensagem_usuario: str, max_tokens: i
 
     for block in response.content:
         if block.type == "text":
+            json_valido = "json" not in system_prompt.lower() or extrair_json(block.text) is not None
+            if cache_permitido and json_valido and getattr(response, "stop_reason", "end_turn") == "end_turn":
+                guardar_classificacao(chave, block.text)
             return block.text
 
     return ""
@@ -104,7 +117,7 @@ def descrever_imagem(imagem_base64: str, mime_type: str) -> str:
     dele, mesmo padrao do audio transcrito por STT (ver app.stt.client), alimentando tanto os
     guardrails de conteudo (app.guardrails.content_filter) quanto o prompt de reacao contextual
     (ver Frente T)."""
-    response = _client.messages.create(
+    response = criar_mensagem(_client,
         model=CLASSIFICATION_MODEL,
         max_tokens=128,
         system=(
@@ -142,11 +155,10 @@ def gerar_configuracao(system_prompt: str, mensagem_usuario: str) -> str:
     define horas de programacao de uma vez -- o oposto do caso de uso de latencia/volume que
     justifica 'low' nas outras chamadas.
     """
-    response = _client.messages.create(
+    response = criar_mensagem(_client,
         model=MODEL,
         max_tokens=4096,
-        thinking={"type": "disabled"},
-        output_config={"effort": "high"},
+        **({} if "haiku" in MODEL else {"thinking": {"type": "disabled"}, "output_config": {"effort": "high"}}),
         system=system_prompt,
         messages=[{"role": "user", "content": mensagem_usuario}],
     )
@@ -171,11 +183,10 @@ def gerar_dialogo_multivoz(system_prompt: str, mensagem_usuario: str) -> str:
     tokens compativel com 2 a 4 falas curtas de dialogo, nao os 4096 de uma configuracao
     completa.
     """
-    response = _client.messages.create(
+    response = criar_mensagem(_client,
         model=MODEL,
         max_tokens=1024,
-        thinking={"type": "disabled"},
-        output_config={"effort": "low"},
+        **({} if "haiku" in MODEL else {"thinking": {"type": "disabled"}, "output_config": {"effort": "low"}}),
         system=system_prompt,
         messages=[{"role": "user", "content": mensagem_usuario}],
     )

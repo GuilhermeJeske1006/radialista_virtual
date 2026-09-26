@@ -1,19 +1,13 @@
-from app.planos import PLANO_PADRAO, PLANOS, limites_do_plano
+from app.planos import PLANO_PADRAO, PLANOS, limites_do_plano, PRECO_POR_PLANO
 
 
-def test_limites_do_plano_conhecido():
-    limites = limites_do_plano("growth")
-    assert limites.agentes == 3
-    assert limites.clonagem_voz is True
+def test_oferta_unica_flex():
+    assert set(PLANOS) == {'flex'}
+    assert PLANO_PADRAO == 'flex'
+    assert PRECO_POR_PLANO['flex'] == 69.9
+    assert limites_do_plano('flex').clonagem_voz
 
 
-def test_limites_do_plano_desconhecido_cai_no_padrao():
-    assert limites_do_plano("plano-inexistente") == PLANOS[PLANO_PADRAO]
-
-
-def test_starter_nao_tem_clonagem_de_voz():
-    assert limites_do_plano("starter").clonagem_voz is False
-
-
-def test_professional_tem_mais_agentes_que_growth():
-    assert limites_do_plano("professional").agentes > limites_do_plano("growth").agentes
+def test_identificador_antigo_nao_cria_outro_regime():
+    assert limites_do_plano('starter') == limites_do_plano('flex')
+    assert limites_do_plano('professional') == limites_do_plano('flex')

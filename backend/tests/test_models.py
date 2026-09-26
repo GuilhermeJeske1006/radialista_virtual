@@ -19,7 +19,7 @@ def test_account_tem_defaults_esperados(db_session):
     db_session.commit()
     db_session.refresh(account)
 
-    assert account.plano == "starter"
+    assert account.plano == "flex"
     assert account.plano_status == "trial"
     assert account.agentes_extras == 0
     assert account.criado_em is not None

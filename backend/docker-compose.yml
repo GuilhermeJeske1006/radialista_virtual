@@ -49,6 +49,7 @@ services:
       args:
         NEXT_PUBLIC_API_URL: /api
         INTERNAL_API_URL: http://backend:8000
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
     restart: unless-stopped
     depends_on:
       - backend

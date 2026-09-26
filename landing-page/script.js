@@ -4,7 +4,7 @@ const campaign = new URLSearchParams(location.search);
 const allowedParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
 document.querySelectorAll('[data-route]').forEach(link => {
   const target = new URL(link.dataset.route, `${appUrl.href.replace(/\/$/, '')}/`);
-  if (['starter', 'growth', 'professional'].includes(link.dataset.plan)) target.searchParams.set('plano', link.dataset.plan);
+  if (['flex'].includes(link.dataset.plan)) target.searchParams.set('plano', link.dataset.plan);
   if (link.dataset.route === 'register') {
     allowedParams.forEach(key => { if (campaign.has(key)) target.searchParams.set(key, campaign.get(key)); });
     link.addEventListener('click', () => {

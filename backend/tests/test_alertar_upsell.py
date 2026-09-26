@@ -63,6 +63,9 @@ def test_conta_nao_consolidada_ignora_mesmo_com_uso_alto(db_session):
 def test_agentes_cheio_envia_notificacao_e_email(db_session, monkeypatch):
     account = _conta_consolidada_com_admin(db_session, plano="starter", plano_status="ativo")
     account_id = account.id
+    from app.models.consumo_flex import ContaConsumo
+    db_session.add(ContaConsumo(account_id=account.id, limite=10000000, exposicao=9000000))
+    db_session.commit()
 
     enviados = []
     import app.notificacoes.service as notificacoes_service
@@ -77,12 +80,12 @@ def test_agentes_cheio_envia_notificacao_e_email(db_session, monkeypatch):
 
     notificacao = db_session.query(Notificacao).filter_by(tipo="upsell").first()
     assert notificacao is not None
-    assert notificacao.titulo == "Seus radialistas bateram o limite do plano"
-    assert enviados == ["admin@example.com"]
+    assert notificacao.titulo == "Consumo próximo do limite financeiro"
+    assert enviados == []
 
     db_session.expire_all()
     atualizada = db_session.get(Account, account_id)
-    assert atualizada.upsell_alerta_tipo == "agentes_cheio"
+    assert atualizada.upsell_alerta_tipo == "limite_financeiro"
     assert atualizada.upsell_alerta_mes == mes_referencia_atual()
 
 
@@ -148,6 +151,10 @@ def test_alerta_leve_nao_manda_email(db_session, monkeypatch):
         )
     db_session.commit()
 
+    from app.models.consumo_flex import ContaConsumo
+    db_session.add(ContaConsumo(account_id=account.id, limite=10000000, exposicao=9500000))
+    db_session.commit()
+
     import app.notificacoes.service as notificacoes_service
 
     enviados = []
@@ -160,7 +167,7 @@ def test_alerta_leve_nao_manda_email(db_session, monkeypatch):
     assert alertar_upsell_module.verificar_gatilhos_upsell() == 1
     assert enviados == []
     notificacao = db_session.query(Notificacao).filter_by(tipo="upsell").first()
-    assert notificacao.titulo == "Seu plano esta perto do limite de mensagens"
+    assert notificacao.titulo == "Consumo próximo do limite financeiro"
 
 
 def test_ignora_conta_trial(db_session):

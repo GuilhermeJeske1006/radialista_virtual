@@ -1,190 +1,73 @@
-import logging
-
 import stripe
-from sqlalchemy.orm import Session
-
+from fastapi import HTTPException
 from app.config.settings import settings
-from app.models.account import Account
-from app.planos import PRECO_AGENTE_ADICIONAL, PRECO_EXCEDENTE_1000_MSG
-
-logger = logging.getLogger("radialista.stripe")
-
-stripe.api_key = settings.stripe_secret_key
-
-# Um price recorrente por plano -- mantido aqui (nao em app/planos.py) porque e' o unico
-# lugar que fala com o Stripe; o resto do app so conhece o id do plano ("starter" etc).
-PRICE_ID_POR_PLANO = {
-    "starter": settings.stripe_price_id_starter,
-    "growth": settings.stripe_price_id_growth,
-    "professional": settings.stripe_price_id_professional,
-}
-PLANO_POR_PRICE_ID = {v: k for k, v in PRICE_ID_POR_PLANO.items() if v}
 
 
-def plano_por_price_id(price_id: str | None) -> str | None:
-    return PLANO_POR_PRICE_ID.get(price_id) if price_id else None
+def cliente():
+    return stripe.StripeClient(settings.stripe_secret_key, stripe_version='2026-08-26.dahlia')
+
+
+def plano_por_price_id(price_id):
+    return 'flex' if price_id and price_id == settings.stripe_price_id_flex else None
 
 
 class CartaoSalvoNaoEncontrado(Exception):
     pass
 
 
-def _payment_method_mais_recente(account: Account) -> "stripe.PaymentMethod | None":
+def _obter_ou_criar_customer(account, db):
+    if not account.stripe_customer_id:
+        c = cliente().v1.customers.create({'email': account.email, 'metadata': {'account_id': str(account.id)}},
+            options={'idempotency_key': f'customer:{account.id}'})
+        account.stripe_customer_id = c.id
+        db.commit()
+    return account.stripe_customer_id
+
+
+def criar_sessao_checkout(account, plano_id, db, usar_cartao_salvo=False):
+    if plano_id != 'flex' or not settings.stripe_price_id_flex:
+        raise HTTPException(503, 'Preço Locufy Flex ainda não configurado')
+    c = cliente()
+    price = c.v1.prices.retrieve(settings.stripe_price_id_flex)
+    if price.currency != 'brl' or price.unit_amount != 6990 or price.recurring.interval != 'month' or price.recurring.interval_count != 1:
+        raise HTTPException(503, 'Preço Stripe incompatível com Locufy Flex')
+    customer = _obter_ou_criar_customer(account, db)
+    if account.stripe_subscription_id:
+        subscription = c.v1.subscriptions.retrieve(account.stripe_subscription_id,
+            {'expand': ['latest_invoice.confirmation_secret']})
+        if subscription.status in ('incomplete', 'active', 'past_due', 'unpaid'):
+            return subscription
+    params = {'customer': customer, 'items': [{'price': settings.stripe_price_id_flex}],
+        'payment_behavior': 'default_incomplete',
+        'payment_settings': {'save_default_payment_method': 'on_subscription'},
+        'expand': ['latest_invoice.confirmation_secret'],
+        'metadata': {'tipo': 'assinatura', 'plano': 'flex', 'account_id': str(account.id)}}
+    if usar_cartao_salvo:
+        cards = c.v1.payment_methods.list({'customer': customer, 'type': 'card', 'limit': 1})
+        if not cards.data:
+            raise CartaoSalvoNaoEncontrado()
+        params['default_payment_method'] = cards.data[0].id
+    sub = c.v1.subscriptions.create(params, options={'idempotency_key': f'flex:{account.id}:{account.stripe_subscription_id or "primeira"}'})
+    account.stripe_subscription_id = sub.id
+    db.commit()
+    return sub
+
+
+def obter_cartao_mais_recente(account):
     if not account.stripe_customer_id:
         return None
-    metodos = stripe.PaymentMethod.list(customer=account.stripe_customer_id, type="card", limit=1)
-    return metodos.data[0] if metodos.data else None
-
-
-def _obter_ou_criar_customer(account: Account, db: Session) -> str:
-    if account.stripe_customer_id:
-        return account.stripe_customer_id
-    customer = stripe.Customer.create(email=account.email, metadata={"account_id": str(account.id)})
-    account.stripe_customer_id = customer.id
-    db.commit()
-    return customer.id
-
-
-# Subscription.create (diferente de Checkout Session) nao aceita price_data.product_data
-# pra criar produto na hora -- so' referencia um Product que ja existe. Id fixo (nao um
-# id gerado pelo Stripe) pra poder so' tentar buscar antes de criar, sem precisar guardar
-# esse id em lugar nenhum (nem settings, nem banco).
-_PRODUTO_AGENTE_EXTRA_ID = "locufy-agente-adicional"
-
-
-def _obter_ou_criar_produto_agente_extra() -> str:
-    try:
-        stripe.Product.retrieve(_PRODUTO_AGENTE_EXTRA_ID)
-    except stripe.error.InvalidRequestError:
-        stripe.Product.create(id=_PRODUTO_AGENTE_EXTRA_ID, name="Agente adicional")
-    return _PRODUTO_AGENTE_EXTRA_ID
-
-
-def criar_sessao_checkout(
-    account: Account, plano_id: str, db: Session, usar_cartao_salvo: bool = False
-) -> "stripe.Subscription":
-    # Subscription direto via API (payment_behavior=default_incomplete) em vez de Checkout
-    # Session -- o client_secret do PaymentIntent da primeira invoice alimenta um
-    # <PaymentElement> nosso, checkout transparente de verdade (nao o widget pronto do
-    # Stripe). Fica "incomplete" ate o frontend confirmar o pagamento; so' vira "active"
-    # (e a conta e' ativada) quando o webhook invoice.paid chegar.
-    logger.info("Criando assinatura pendente: account_id=%s plano=%s", account.id, plano_id)
-    customer_id = _obter_ou_criar_customer(account, db)
-    extras: dict = {}
-    if usar_cartao_salvo:
-        pm = _payment_method_mais_recente(account)
-        if pm is None:
-            raise CartaoSalvoNaoEncontrado()
-        # default_payment_method fixo faz a Subscription tentar cobrar a primeira invoice
-        # na hora com esse cartao -- sem PaymentElement, sem digitar cartao de novo. O
-        # client_secret devolvido ja' pode vir com status "succeeded" (paga na hora) ou
-        # "requires_action" (3DS), nunca "requires_payment_method".
-        extras["default_payment_method"] = pm.id
-    return stripe.Subscription.create(
-        customer=customer_id,
-        items=[{"price": PRICE_ID_POR_PLANO[plano_id]}],
-        payment_behavior="default_incomplete",
-        payment_settings={"save_default_payment_method": "on_subscription", "payment_method_types": ["card"]},
-        expand=["latest_invoice.payment_intent"],
-        metadata={"tipo": "assinatura", "plano": plano_id, "account_id": str(account.id)},
-        **extras,
-    )
-
-
-def trocar_plano_assinatura(account: Account, plano_id: str) -> None:
-    logger.info("Trocando plano da assinatura: account_id=%s plano_novo=%s", account.id, plano_id)
-    assinatura = stripe.Subscription.retrieve(account.stripe_subscription_id)
-    item_id = assinatura["items"]["data"][0]["id"]
-    stripe.Subscription.modify(
-        account.stripe_subscription_id,
-        items=[{"id": item_id, "price": PRICE_ID_POR_PLANO[plano_id]}],
-        proration_behavior="create_prorations",
-    )
-
-
-def criar_sessao_checkout_agente_extra(
-    account: Account, db: Session, usar_cartao_salvo: bool = False
-) -> "stripe.Subscription":
-    logger.info("Criando assinatura pendente (agente extra): account_id=%s", account.id)
-    customer_id = _obter_ou_criar_customer(account, db)
-    extras: dict = {}
-    if usar_cartao_salvo:
-        pm = _payment_method_mais_recente(account)
-        if pm is None:
-            raise CartaoSalvoNaoEncontrado()
-        extras["default_payment_method"] = pm.id
-    return stripe.Subscription.create(
-        customer=customer_id,
-        items=[
-            {
-                "price_data": {
-                    "currency": "brl",
-                    "product": _obter_ou_criar_produto_agente_extra(),
-                    "unit_amount": PRECO_AGENTE_ADICIONAL * 100,
-                    "recurring": {"interval": "month"},
-                },
-                "quantity": 1,
-            }
-        ],
-        payment_behavior="default_incomplete",
-        payment_settings={"save_default_payment_method": "on_subscription", "payment_method_types": ["card"]},
-        expand=["latest_invoice.payment_intent"],
-        metadata={"tipo": "agente_extra", "account_id": str(account.id)},
-        **extras,
-    )
-
-
-def criar_sessao_checkout_excedente_mensagens(
-    account: Account, blocos: int, db: Session, usar_cartao_salvo: bool = False
-) -> "stripe.PaymentIntent":
-    # Compra avulsa (nao recorrente) -- PaymentIntent direto, sem Subscription.
-    logger.info("Criando payment intent (excedente): account_id=%s blocos=%s", account.id, blocos)
-    customer_id = _obter_ou_criar_customer(account, db)
-    extras: dict = {}
-    if usar_cartao_salvo:
-        pm = _payment_method_mais_recente(account)
-        if pm is None:
-            raise CartaoSalvoNaoEncontrado()
-        # confirm direto com o cartao salvo (off_session: cliente ja' nao esta' preenchendo
-        # nenhum form de cartao nesse fluxo) -- se o banco exigir 3DS o Stripe levanta
-        # CardError com o payment_intent em "requires_action" anexado, que a gente devolve
-        # do mesmo jeito pro front completar so' a autenticacao (sem pedir cartao de novo).
-        extras = {"payment_method": pm.id, "confirm": True, "off_session": True}
-    try:
-        return stripe.PaymentIntent.create(
-            amount=PRECO_EXCEDENTE_1000_MSG * 100 * blocos,
-            currency="brl",
-            customer=customer_id,
-            payment_method_types=["card"],
-            metadata={"tipo": "excedente_mensagens", "blocos": str(blocos), "account_id": str(account.id)},
-            **extras,
-        )
-    except stripe.error.CardError as err:
-        intent = err.error.payment_intent if err.error else None
-        if intent is None or intent.get("status") != "requires_action":
-            raise
-        return intent
-
-
-def obter_cartao_mais_recente(account: Account) -> dict | None:
-    # So' bandeira/ultimos-4/validade -- o PAN e o CVC nunca voltam da API do Stripe pra
-    # nenhum PaymentMethod ja' salvo, entao nao ha risco de PCI em expor esse retorno.
-    # PaymentMethod.list vem ordenado por "created" decrescente, entao o primeiro item e'
-    # o cartao anexado na compra mais recente.
-    pm = _payment_method_mais_recente(account)
-    if pm is None:
+    cards = cliente().v1.payment_methods.list({'customer': account.stripe_customer_id, 'type': 'card', 'limit': 1})
+    if not cards.data:
         return None
-    return {
-        "bandeira": pm.card.brand,
-        "final": pm.card.last4,
-        "mes_expiracao": pm.card.exp_month,
-        "ano_expiracao": pm.card.exp_year,
-    }
+    card = cards.data[0].card
+    return {'bandeira': card.brand, 'final': card.last4, 'mes_expiracao': card.exp_month, 'ano_expiracao': card.exp_year}
 
 
-def criar_portal_sessao(account: Account) -> "stripe.billing_portal.Session":
-    logger.info("Criando sessao do portal de billing: account_id=%s", account.id)
-    return stripe.billing_portal.Session.create(
-        customer=account.stripe_customer_id,
-        return_url=f"{settings.frontend_url}/billing",
-    )
+def criar_portal_sessao(account):
+    return cliente().v1.billing_portal.sessions.create({'customer': account.stripe_customer_id,
+        'return_url': f'{settings.frontend_url}/billing'})
+
+
+def dados_stripe(obj):
+    # SDK 15 deixou de implementar o protocolo Mapping nos recursos.
+    return obj.to_dict() if isinstance(obj, stripe.StripeObject) else obj

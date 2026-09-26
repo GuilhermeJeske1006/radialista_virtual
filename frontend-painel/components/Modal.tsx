@@ -8,9 +8,11 @@ type ModalProps = {
   title: string;
   children: React.ReactNode;
   maxWidthClassName?: string;
+  // Ações fixas abaixo do conteúdo rolável (conteúdo longo não esconde os botões).
+  footer?: React.ReactNode;
 };
 
-export default function Modal({ open, onClose, title, children, maxWidthClassName = "max-w-2xl" }: ModalProps) {
+export default function Modal({ open, onClose, title, children, maxWidthClassName = "max-w-2xl", footer }: ModalProps) {
   useEffect(() => {
     if (!open) return;
 
@@ -35,10 +37,12 @@ export default function Modal({ open, onClose, title, children, maxWidthClassNam
       onClick={onClose}
     >
       <div
-        className={`my-auto w-full ${maxWidthClassName} overflow-hidden rounded-3xl border border-border-strong bg-surface shadow-theme-sm`}
+        className={`my-auto w-full ${maxWidthClassName} overflow-hidden rounded-3xl border border-border-strong bg-surface shadow-theme-sm ${
+          footer ? "flex max-h-[calc(100dvh-2rem)] flex-col sm:max-h-[calc(100dvh-4rem)]" : ""
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between gap-4 px-6 pt-5 pb-4">
+        <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-5 pb-4">
           <h2 className="font-display text-lg font-semibold text-fg">{title}</h2>
           <button
             type="button"
@@ -51,7 +55,8 @@ export default function Modal({ open, onClose, title, children, maxWidthClassNam
             </svg>
           </button>
         </div>
-        <div className="max-h-[calc(100vh-9rem)] overflow-y-auto px-6 pb-6">{children}</div>
+        <div className={`${footer ? "min-h-0 flex-1" : "max-h-[calc(100vh-9rem)]"} overflow-y-auto px-6 pb-6`}>{children}</div>
+        {footer && <div className="shrink-0 border-t border-border-strong px-6 py-4">{footer}</div>}
       </div>
     </div>
   );

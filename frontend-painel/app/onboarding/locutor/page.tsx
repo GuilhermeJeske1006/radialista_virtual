@@ -8,6 +8,8 @@ import { setRadialistaAtualId } from "../../../lib/radialistas";
 import { invalidarConfiguracaoInicial } from "../../../lib/useConfiguracaoInicial";
 import { ConfiguracaoIA, DIAS_SEMANA_LABEL, Radialista, RadioPerfil, TipoRadio, Voz } from "../../../lib/types";
 import { LocufySpin } from "../../../components/LocufyLogo";
+import CombinacaoSelect from "../../../components/CombinacaoSelect";
+import { Combinacao, consumoMensalEstimado, nomeModelo, reais, reaisPreciso } from "../../../lib/combinacoes";
 
 function formatarDias(dias: number[], dataEspecifica: string | null): string {
   if (dataEspecifica) return `Avulso em ${dataEspecifica.split("-").reverse().join("/")}`;
@@ -22,7 +24,8 @@ export default function LocutorOnboardingPage() {
   const [descricao, setDescricao] = useState("");
   const [gerando, setGerando] = useState(false);
   const [erro, setErro] = useState("");
-  const [precisaUpgrade, setPrecisaUpgrade] = useState(false);
+  const [precisaUpgrade, setPrecisaUpgrade] = useState("");
+  const [combinacao, setCombinacao] = useState<Combinacao | null>(null);
   const [criado, setCriado] = useState<ConfiguracaoIA | null>(null);
   const [verificandoSetup, setVerificandoSetup] = useState(true);
   const [jaConfigurado, setJaConfigurado] = useState(false);
@@ -54,18 +57,18 @@ export default function LocutorOnboardingPage() {
   async function gerar() {
     setGerando(true);
     setErro("");
-    setPrecisaUpgrade(false);
+    setPrecisaUpgrade("");
     try {
       const resultado = await apiFetch<ConfiguracaoIA>("/config/radialistas/gerar-ia", {
         method: "POST",
-        body: JSON.stringify({ descricao: descricao.trim() }),
+        body: JSON.stringify({ descricao: descricao.trim(), combinacao_id: combinacao?.id ?? null }),
       });
       setRadialistaAtualId(resultado.radialista.id);
       setCriado(resultado);
       invalidarConfiguracaoInicial();
     } catch (err) {
       if (err instanceof ApiError && err.status === 402) {
-        setPrecisaUpgrade(true);
+        setPrecisaUpgrade(err.message || "Não foi possível autorizar esta geração.");
       } else {
         setErro(err instanceof ApiError ? err.message : "Erro ao gerar locutor com IA");
       }
@@ -148,6 +151,28 @@ export default function LocutorOnboardingPage() {
                 {criado.programa.horario_inicio.slice(0, 5)} às {criado.programa.horario_fim.slice(0, 5)}
               </dd>
             </div>
+            {criado.combinacao && (
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-fg/65">Combinação</dt>
+                <dd className="text-sm text-fg">
+                  {criado.combinacao.nome} · Texto {nomeModelo(criado.combinacao.modelo_texto)} · Voz{" "}
+                  {nomeModelo(criado.combinacao.modelo_voz)}
+                </dd>
+                <dd className="text-sm text-fg">
+                  Uso estimado deste programa: ≈ {reais(consumoMensalEstimado(criado.combinacao, criado.programa))}/mês
+                  ({reais(criado.combinacao.preco_hora_brl)} por hora de programa), além da mensalidade.
+                </dd>
+              </div>
+            )}
+            {criado.custo_geracao_brl != null && (
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-fg/65">Valor desta geração</dt>
+                <dd className="text-sm text-fg">
+                  {reaisPreciso(criado.custo_geracao_brl)} (locutor, programa e textos das vinhetas). O áudio das
+                  vinhetas aparece no extrato quando ficar pronto.
+                </dd>
+              </div>
+            )}
             {criado.programa.generos_musicais.length > 0 && (
               <div>
                 <dt className="text-xs font-medium uppercase tracking-wide text-fg/65">Toca</dt>
@@ -183,7 +208,7 @@ export default function LocutorOnboardingPage() {
   }
 
   return (
-    <AppShell title="Seu primeiro locutor" maxWidthClassName="max-w-lg">
+    <AppShell title="Seu primeiro locutor" maxWidthClassName="max-w-3xl">
       <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
         <h2 className="font-display text-lg font-bold text-fg mb-1">Vamos criar seu primeiro locutor</h2>
         <p className="text-sm text-fg/65 mb-5">
@@ -203,12 +228,23 @@ export default function LocutorOnboardingPage() {
             placeholder="Descrição (opcional). Ex: programa de manhã, animado, com bloco de recado ao ouvinte"
             className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2.5 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:ring-2 focus:ring-acento-claro/40 disabled:opacity-60 mb-3"
           />
+          <div className="mb-3">
+            <CombinacaoSelect value={combinacao?.id ?? null} onChange={setCombinacao} disabled={gerando} />
+          </div>
+          {combinacao && (
+            <p role="status" className="rounded-lg bg-fg/5 px-3 py-2 text-xs text-fg/80 mb-3">
+              Seu locutor vai usar <strong className="text-fg">{combinacao.nome}</strong>: texto{" "}
+              <span translate="no">{nomeModelo(combinacao.modelo_texto)}</span> e voz{" "}
+              <span translate="no">{nomeModelo(combinacao.modelo_voz)}</span> · ≈ {reais(combinacao.preco_hora_brl)} por
+              hora de programa.
+            </p>
+          )}
           {erro && <p className="text-sm text-laranja mb-3">{erro}</p>}
           {precisaUpgrade && (
             <p className="text-sm text-laranja mb-3">
-              Limite de agentes do seu plano atingido.{" "}
+              {precisaUpgrade}{" "}
               <Link href="/billing" className="font-medium underline">
-                Ver planos
+                Ver assinatura e consumo
               </Link>
               .
             </p>
@@ -223,6 +259,8 @@ export default function LocutorOnboardingPage() {
               <>
                 <LocufySpin size={14} /> Gerando...
               </>
+            ) : combinacao ? (
+              `Gerar agora com ${combinacao.nome} →`
             ) : (
               "Gerar agora →"
             )}

@@ -9,7 +9,9 @@ vi.mock("../../lib/api", () => ({
   apiFetchComTimeout: mocks.proxima,
   apiFetchBlob: mocks.tts,
   apiFetchBlobComTimeout: mocks.tts,
-  ApiError: class extends Error {},
+  ApiError: class extends Error {
+    constructor(public status: number, message: string) { super(message); }
+  },
 }));
 vi.mock("../../lib/radialistas", () => ({ setRadialistaAtualId: vi.fn() }));
 
@@ -67,4 +69,21 @@ it("pausar durante a espera impede que uma fala pronta comece depois", async () 
   await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
   expect(mocks.audio).not.toHaveBeenCalled();
   expect(mocks.tts).not.toHaveBeenCalled();
+});
+
+it.each(["ReadTimeout", "orcamento_ia_esgotado"])("não repete síntese já tentada pelo backend: %s", async (audioErro) => {
+  const { result } = await iniciar({ tipo: "comentario", fala: "Boa companhia!", audio_status: "falhou", audio_erro: audioErro });
+  expect(mocks.tts).not.toHaveBeenCalled();
+  expect(result.current.programaAtivo).toBe(true);
+  await act(async () => { result.current.pausarPrograma(); });
+});
+
+it("não cobra novamente uma linha multivoz que o backend já tentou preparar", async () => {
+  const { result } = await iniciar({
+    tipo: "comentario", fala: "Bom dia!", audio_status: "nao_aplicavel",
+    falas: [{ radialista_id: 1, nome_locutor: "Ana", voz_id: "voz", texto: "Bom dia!" }],
+    audios_falas_base64: [null],
+  });
+  expect(mocks.tts).not.toHaveBeenCalled();
+  await act(async () => { result.current.pausarPrograma(); });
 });

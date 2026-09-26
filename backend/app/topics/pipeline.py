@@ -13,6 +13,7 @@ import datetime
 import logging
 
 from sqlalchemy.orm import Session
+from app.billing.contexto_ia import por_conta
 
 from app.models.account import Account
 from app.models.musica import Musica
@@ -104,12 +105,15 @@ def _gerar_reservas(db: Session, radios: list[RadioConfig], account: Account) ->
     programas = db.query(Programa).filter(Programa.radio_config_id.in_(radio_ids), Programa.ativo.is_(True)).all()
     for programa in programas:
         try:
+            from app.billing.contexto_ia import selecionar_programa
+            selecionar_programa(programa, 'roteiros_automaticos')
             reserva.gerar_reserva_semanal(db, programa, account)
         except Exception:
             logger.warning("Falha ao gerar reserva estrategica: programa_id=%s", programa.id, exc_info=True)
             db.rollback()
 
 
+@por_conta("roteiros_automaticos")
 def executar_para_conta(db: Session, account: Account) -> None:
     radios = db.query(RadioConfig).filter_by(account_id=account.id).all()
 

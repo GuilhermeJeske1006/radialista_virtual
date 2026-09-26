@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 
 from app.config.redis_client import redis_client
 from app.config.settings import settings
+from app.llm.economia import criar_mensagem
 from app.llm.client import CLASSIFICATION_MODEL
 
 logger = logging.getLogger("radialista.noticias")
@@ -79,7 +80,7 @@ def _consultar(pauta: dict, dominios: list[str], agora: datetime.datetime) -> Pe
         restante = 35 - (time.monotonic() - inicio)
         if restante <= 0:
             return PesquisaNoticias(status="indisponivel", consultado_em=agora)
-        resposta = _client.messages.create(
+        resposta = criar_mensagem(_client,
             model=CLASSIFICATION_MODEL,
             max_tokens=1800,
             system=_SYSTEM,

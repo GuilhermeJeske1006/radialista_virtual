@@ -38,7 +38,7 @@ def mensagens_respondidas_no_mes(db: Session, account_id: int) -> int:
 
 
 def limite_agentes_efetivo(account: Account) -> int:
-    return limites_do_plano(account.plano).agentes + account.agentes_extras
+    return limites_do_plano(account.plano).agentes
 
 
 def limite_radialistas_por_programa(account: Account) -> int:
@@ -57,5 +57,5 @@ def mensagens_extras_do_mes(db: Session, account_id: int) -> int:
     return int(total or 0)
 
 
-def limite_mensagens_efetivo(db: Session, account: Account) -> int:
-    return limites_do_plano(account.plano).mensagens_mes + mensagens_extras_do_mes(db, account.id)
+def limite_mensagens_efetivo(db: Session, account: Account) -> None:
+    return None  # Contagem apenas estatística, sem franquia comercial.

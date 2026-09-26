@@ -443,3 +443,14 @@ def test_buscar_musica_nunca_devolve_video_marcado_quebrado(monkeypatch):
     resultado = buscar_musica("evidencias", evitar_video_ids=evitar)
     assert resultado.video_id == "ok1"
     assert evitar == {"tocado1"}  # nao muta o historico da sessao do caller
+
+
+def test_titulo_ja_tocado_reconhece_mesma_musica_com_artista_no_titulo():
+    from app.live.music import _titulo_normalizado, titulo_ja_tocado
+
+    tocados = {_titulo_normalizado("Chitãozinho & Xororó - Evidências (Ao Vivo)")}
+    assert titulo_ja_tocado("Evidências", tocados)
+    assert titulo_ja_tocado("Evidencias - Official Video", {_titulo_normalizado("Evidências")})
+    assert not titulo_ja_tocado("Página de Amigos", tocados)
+    # trecho curto demais nao conta como mesma musica
+    assert not titulo_ja_tocado("Amor de Chacal", {_titulo_normalizado("Amor")})

@@ -29,7 +29,7 @@ class OverviewResponse(BaseModel):
     novas_empresas_30_dias: int
     total_usuarios_ativos: int
     mensagens_30_dias: int
-    mrr_planos: int
+    mrr_planos: float
     mrr_agentes_extras: int
 
 

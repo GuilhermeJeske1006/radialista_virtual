@@ -3,14 +3,14 @@ import { limiteRadialistasPorPrograma, permiteClonagemVoz, formatarReais, labelB
 
 describe("limiteRadialistasPorPrograma", () => {
   it("devolve o limite do plano informado", () => {
-    expect(limiteRadialistasPorPrograma("growth")).toBe(2);
-    expect(limiteRadialistasPorPrograma("professional")).toBe(3);
+    expect(limiteRadialistasPorPrograma("growth")).toBe(10);
+    expect(limiteRadialistasPorPrograma("professional")).toBe(10);
   });
 
   it("cai pra 1 quando o plano e desconhecido ou nulo", () => {
-    expect(limiteRadialistasPorPrograma("plano-inexistente")).toBe(1);
-    expect(limiteRadialistasPorPrograma(null)).toBe(1);
-    expect(limiteRadialistasPorPrograma(undefined)).toBe(1);
+    expect(limiteRadialistasPorPrograma("plano-inexistente")).toBe(10);
+    expect(limiteRadialistasPorPrograma(null)).toBe(10);
+    expect(limiteRadialistasPorPrograma(undefined)).toBe(10);
   });
 });
 
@@ -21,7 +21,7 @@ describe("permiteClonagemVoz", () => {
   });
 
   it("nao permite pra starter nem plano nulo", () => {
-    expect(permiteClonagemVoz("starter")).toBe(false);
+    expect(permiteClonagemVoz("flex")).toBe(true);
     expect(permiteClonagemVoz(null)).toBe(false);
     expect(permiteClonagemVoz(undefined)).toBe(false);
   });
@@ -47,6 +47,6 @@ describe("labelBandeira", () => {
 
 describe("PLANOS", () => {
   it("tem exatamente 3 planos com ids esperados", () => {
-    expect(PLANOS.map((p) => p.id)).toEqual(["starter", "growth", "professional"]);
+    expect(PLANOS.map((p) => p.id)).toEqual(["flex"]);
   });
 });

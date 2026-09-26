@@ -25,6 +25,7 @@ from app.models.radio_config import RadioConfig
 from app.models.trilha_vinheta import TrilhaVinheta
 from app.storage import get_storage
 from app.tts.client import sintetizar_audio, tts_habilitado
+from app.billing.contexto_ia import tarefa_com_contexto
 from app.tts.profiles import parametros_sintese
 from app.vinhetas import audio
 from app.vinhetas.estrutura import inserir_vinhetas_na_estrutura, remover_vinhetas_das_estruturas
@@ -102,6 +103,8 @@ def criar_vinhetas_programa(
     if existentes:
         excluir_vinhetas(db, account.id, existentes)
 
+    from app.billing.contexto_ia import selecionar_programa
+    selecionar_programa(programa, 'vinhetas')
     textos = gerar_textos_vinhetas(account, radialista, programa)
     categorias = _categorias_por_papel(db, account.id)
     itens = []
@@ -133,7 +136,7 @@ def agendar_processamento(background_tasks: BackgroundTasks | None, vinheta_ids:
     if background_tasks is None:
         _processar_em_background(vinheta_ids, **opcoes)
     else:
-        background_tasks.add_task(_processar_em_background, vinheta_ids, **opcoes)
+        background_tasks.add_task(tarefa_com_contexto(_processar_em_background, vinheta_ids, **opcoes))
 
 
 def criar_vinhetas_com_seguranca(
@@ -162,7 +165,17 @@ def criar_vinhetas_com_seguranca(
 def _processar_em_background(vinheta_ids: list[int], **opcoes) -> None:
     db = _abrir_sessao()
     try:
-        processar_vinhetas(db, vinheta_ids, **opcoes)
+        from app.billing.contexto_ia import contexto_conta, selecionar_programa
+        from app.models.account import Account
+        grupos = {}
+        for item in db.query(BibliotecaAudioItem).filter(BibliotecaAudioItem.id.in_(vinheta_ids)).all():
+            grupos.setdefault((item.account_id, item.programa_id), []).append(item.id)
+        for (account_id, programa_id), ids in grupos.items():
+            with contexto_conta(db.get(Account, account_id)):
+                programa = db.get(Programa, programa_id) if programa_id else None
+                if programa:
+                    selecionar_programa(programa, 'vinhetas')
+                processar_vinhetas(db, ids, **opcoes)
     except Exception:
         logger.warning("Job de audio das vinhetas falhou: ids=%s", vinheta_ids, exc_info=True)
     finally:
@@ -189,7 +202,7 @@ def _pedido_voz(db: Session, item: BibliotecaAudioItem) -> dict | None:
         "texto": item.texto,
         "voz": voz,
         "tipo_bloco": _TIPO_BLOCO_TTS.get(item.papel),
-        "parametros": parametros_sintese(db, item.account_id, voz),
+        "parametros": {**parametros_sintese(db, item.account_id, voz), "reutilizar_audio": not bool(item.voz_path)},
     }
 
 
@@ -301,7 +314,7 @@ def processar_vinhetas(
                 pedidos[item.id] = None
 
     with ThreadPoolExecutor(max_workers=len(itens)) as pool:
-        vozes = {vid: pool.submit(_sintetizar_voz_seca, pedido) for vid, pedido in pedidos.items() if pedido}
+        vozes = {vid: pool.submit(tarefa_com_contexto(_sintetizar_voz_seca, pedido)) for vid, pedido in pedidos.items() if pedido}
         _resolver_trilhas(db, itens, forcar_nova_trilha)
         tempo_trilha_ms = int((time.monotonic() - inicio) * 1000)
 

@@ -1,3 +1,5 @@
+import type { Combinacao } from "./combinacoes";
+
 export type Radialista = {
   id: number;
   ativo: boolean;
@@ -94,6 +96,10 @@ export type TipoRadio = { value: string; label: string };
 export type ConfiguracaoIA = {
   radialista: Radialista;
   programa: Programa;
+  // Combinação texto + voz com que o locutor foi gerado (null = modelos padrão).
+  combinacao?: Combinacao | null;
+  // Preço já medido desta geração; null com a medição desligada.
+  custo_geracao_brl?: number | null;
 };
 
 export type Voz = {
@@ -263,6 +269,8 @@ export type ConfiguracaoIAPreview = {
   // Id do registro de loop de aprendizado (ver Fase 10 do plano de melhoria) -- devolva em
   // POST /gerar-ia/commit (campo geracao_id) pra fechar o loop.
   geracao_id: number | null;
+  combinacao?: Combinacao | null;
+  custo_geracao_brl?: number | null;
 };
 
 export type ProgramaIAPreview = {

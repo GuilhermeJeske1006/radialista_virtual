@@ -9,41 +9,15 @@ export type Plano = {
   descricao: string;
 };
 
-export const PLANOS: Plano[] = [
-  {
-    id: "starter",
-    nome: "Starter",
-    preco: 399,
-    agentes: 1,
-    mensagens: 2000,
-    radialistasPorPrograma: 1,
-    descricao: "Para colocar sua primeira voz no ar.",
-  },
-  {
-    id: "growth",
-    nome: "Growth",
-    preco: 599,
-    agentes: 3,
-    mensagens: 3000,
-    radialistasPorPrograma: 2,
-    destaque: true,
-    descricao: "Mais vozes para ampliar sua programação.",
-  },
-  {
-    id: "professional",
-    nome: "Professional",
-    preco: 999,
-    agentes: 5,
-    mensagens: 7500,
-    radialistasPorPrograma: 3,
-    descricao: "Para uma operação com mais programas e ouvintes.",
-  },
-];
+export const PLANOS: Plano[] = [{
+  id: "flex", nome: "Locufy Flex", preco: 69.90, agentes: 100, mensagens: 0,
+  radialistasPorPrograma: 10, descricao: "Mensalidade de acesso + processamento utilizado, cobrado no fim do ciclo.",
+}];
 
 // Espelha LimitesPlano.radialistas_por_programa em backend/app/planos.py -- so usado pra
 // texto de upsell na UI; o backend e' quem de fato bloqueia (402) ao adicionar radialista demais.
 export function limiteRadialistasPorPrograma(planoId: string | null | undefined): number {
-  return PLANOS.find((p) => p.id === planoId)?.radialistasPorPrograma ?? 1;
+  return PLANOS.find((p) => p.id === planoId)?.radialistasPorPrograma ?? 10;
 }
 
 export const PRECO_AGENTE_ADICIONAL = 100;
@@ -51,10 +25,9 @@ export const PRECO_EXCEDENTE_1000_MSG = 50;
 
 // Espelha LimitesPlano.clonagem_voz em backend/app/planos.py -- so usado pra decidir se
 // mostra o recurso na UI; o backend e' quem de fato bloqueia (402) se tentar sem o plano.
-const PLANOS_COM_CLONAGEM_VOZ = new Set(["growth", "professional"]);
 
 export function permiteClonagemVoz(planoId: string | null | undefined): boolean {
-  return !!planoId && PLANOS_COM_CLONAGEM_VOZ.has(planoId);
+  return !!planoId;
 }
 
 export function formatarReais(valor: number) {

@@ -79,12 +79,12 @@ def test_criar_radialista_com_voz_invalida_falha(client, account, auth_headers):
 
 
 def test_criar_radialista_respeita_limite_do_plano(client, account, auth_headers):
-    assert account.plano == "starter"  # limite de 1 agente
+    assert account.plano == "flex"  # limite de 1 agente
     primeiro = _criar_radialista(client, auth_headers, account.id, nome="Primeiro")
     assert primeiro.status_code == 201
 
     segundo = _criar_radialista(client, auth_headers, account.id, nome="Segundo")
-    assert segundo.status_code == 402
+    assert segundo.status_code == 201
 
 
 def test_listar_radialistas(client, account, auth_headers):
@@ -878,7 +878,7 @@ def test_gerar_radialista_ia_com_radialista_ja_configurado_respeita_limite(clien
     resposta = client.post(
         "/config/radialistas/gerar-ia", json={"descricao": "radio animada"}, headers=auth_headers(account.id)
     )
-    assert resposta.status_code == 402
+    assert resposta.status_code == 201
 
 
 def test_radialistas_do_programa_inclui_dono(client, account, auth_headers):
@@ -969,7 +969,7 @@ def test_limite_radialistas_por_programa_do_plano_starter(client, account, auth_
     # pra tentar adicionar como co-apresentador -- confirma que a criacao ja e' barrada antes.
     _criar_radialista(client, auth_headers, account.id, nome="Unico")
     segundo = _criar_radialista(client, auth_headers, account.id, nome="Segundo")
-    assert segundo.status_code == 402
+    assert segundo.status_code == 201
 
 
 def test_perfil_musical_persiste_e_rejeita_valor_desconhecido(client, account, auth_headers):

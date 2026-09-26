@@ -7,7 +7,7 @@ import httpx
 
 from app.config.redis_client import redis_client
 from app.config.settings import settings
-from app.live.music import _sem_acento, _titulo_normalizado, eh_instrumental
+from app.live.music import _sem_acento, eh_instrumental, titulo_ja_tocado
 
 logger = logging.getLogger("radialista.spotify")
 
@@ -208,7 +208,7 @@ def buscar_faixas_por_categoria(genero: str, excluir_titulos: set[str] | None = 
         faixas_cacheadas = [tuple(item) for item in json.loads(em_cache)]
         disponiveis = [
             (artista, titulo) for artista, titulo in faixas_cacheadas
-            if _titulo_normalizado(titulo) not in excluir_titulos
+            if not titulo_ja_tocado(titulo, excluir_titulos)
         ]
         if len(disponiveis) >= _MIN_FAIXAS_DISPONIVEIS:
             return disponiveis
@@ -219,11 +219,11 @@ def buscar_faixas_por_categoria(genero: str, excluir_titulos: set[str] | None = 
         # antigo (mesmo pequeno) em vez de forcar o caller direto pro fallback via LLM.
         return [
             (artista, titulo) for artista, titulo in (faixas_cacheadas or [])
-            if _titulo_normalizado(titulo) not in excluir_titulos
+            if not titulo_ja_tocado(titulo, excluir_titulos)
         ]
 
     redis_client.set(chave_cache, json.dumps(faixas_novas), ex=_CACHE_TTL_CATEGORIA_SEGUNDOS)
     return [
         (artista, titulo) for artista, titulo in faixas_novas
-        if _titulo_normalizado(titulo) not in excluir_titulos
+        if not titulo_ja_tocado(titulo, excluir_titulos)
     ]

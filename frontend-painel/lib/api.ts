@@ -14,6 +14,7 @@ async function mensagemDeErro(response: Response): Promise<string> {
   try {
     const dados = JSON.parse(corpo);
     if (typeof dados?.detail === "string") return dados.detail;
+    if (typeof dados?.detail?.mensagem === "string") return dados.detail.mensagem;
   } catch {
     // corpo nao e JSON, usa texto cru
   }

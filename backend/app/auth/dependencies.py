@@ -5,6 +5,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from app.auth.security import COOKIE_TOKEN, decodificar_token
+from app.billing.contexto_ia import identificar
 from app.db.database import get_db
 from app.models.account import Account
 from app.models.usuario import Usuario
@@ -46,6 +47,7 @@ def get_current_usuario(
         logger.warning("Token valido pra usuario_id inexistente ou inativo: %s", usuario_id)
         raise _credenciais_invalidas
 
+    identificar(usuario.account)
     return usuario
 
 

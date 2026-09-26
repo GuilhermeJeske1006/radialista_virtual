@@ -342,6 +342,15 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
         logger.warning("Assinatura HMAC invalida no webhook da conta %s", account.id)
         return {"status": "ignorado", "motivo": "assinatura_invalida"}
 
+    from app.billing.contexto_ia import identificar
+    from app.billing.contexto_ia import atual
+    if atual.get():
+        atual.get().canal = "whatsapp"
+        atual.get().funcionalidade = "atendimento_whatsapp"
+    identificar(account)
+    if atual.get() and wuzapi_message_id:
+        atual.get().operacao = f"whatsapp:{account.id}:{wuzapi_message_id}"[:100]
+
     if account.atendimento_ouvinte_ativo and wuzapi_message_id:
         # Namespace sem mudar a restrição UNIQUE legada nem reescrever o histórico.
         wuzapi_message_id = f"radio:{account.id}:" + hashlib.sha256(wuzapi_message_id.encode()).hexdigest()
@@ -403,14 +412,6 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
             "bloqueado_rate_limit_midia", wuzapi_message_id=wuzapi_message_id,
         )
         return {"status": "bloqueado", "motivo": "rate_limit_midia"}
-
-    limite_mensagens = limite_mensagens_efetivo(db, account)
-    if mensagens_respondidas_no_mes(db, account.id) >= limite_mensagens:
-        _registrar_log(
-            db, config, telefone, nome, texto_usuario or ("[imagem]" if imagem_base64 else "[audio]"),
-            "bloqueado_plano", wuzapi_message_id=wuzapi_message_id,
-        )
-        return {"status": "bloqueado", "motivo": "limite_plano"}
 
     if texto_usuario is None and audio_base64:
         if not stt_habilitado():

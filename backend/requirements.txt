@@ -13,7 +13,7 @@ yt-dlp==2025.6.9
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 python-jose[cryptography]==3.3.0
-stripe==11.4.1
+stripe==15.4.0
 pedalboard==0.9.17
 pydub==0.25.1
 numpy==1.26.4

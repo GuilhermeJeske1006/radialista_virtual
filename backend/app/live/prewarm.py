@@ -56,11 +56,17 @@ def consumir_preparo_antecipado(programa_id: int) -> dict | None:
         return None
 
 
+from app.billing.contexto_ia import por_conta
+
+
+@por_conta("programa_ao_vivo")
 def preparar_programa(db: Session, account: Account, radialista: RadioConfig, programa: Programa) -> None:
     dados = LiveProgramRequest(incluir_audio=True, historico=[], total_falas=0, perfil_pos_producao="radio_fm")
     try:
         resposta = gerar_proxima_fala(radialista.id, programa.id, dados, account=account, db=db)
     except Exception:
+        from app.billing.contexto_ia import encerrar_contexto
+        encerrar_contexto(False)
         logger.warning("prewarm: falha ao gerar a primeira fala antecipada, programa_id=%s", programa.id, exc_info=True)
         return
 

@@ -3,6 +3,7 @@ import json
 
 import httpx
 import pytest
+from fastapi import HTTPException
 from freezegun import freeze_time
 
 from app.live.music import MusicaEncontrada, _titulo_normalizado
@@ -591,8 +592,9 @@ def test_tom_integrado_usa_direcao_editorial_do_bloco():
 
 
 @freeze_time(AGORA_UTC)
+@pytest.mark.parametrize("codigo", ["RuntimeError", "orcamento_ia_esgotado"])
 def test_proxima_informa_falha_de_audio_sem_forcar_segunda_sintese(
-    client, account, auth_headers, radialista_e_programa, monkeypatch
+    client, account, auth_headers, radialista_e_programa, monkeypatch, codigo
 ):
     """O frontend usa esse estado para manter a cama musical, sem repetir TTS e sem recorrer
     a voz generica do navegador."""
@@ -602,6 +604,8 @@ def test_proxima_informa_falha_de_audio_sem_forcar_segunda_sintese(
     monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "neutro")
 
     def falhar_tts(*args, **kwargs):
+        if codigo == "orcamento_ia_esgotado":
+            raise HTTPException(402, detail={"codigo": codigo, "mensagem": "Limite atingido"})
         raise RuntimeError("provedor indisponivel")
 
     monkeypatch.setattr("app.live.router.sintetizar_audio", falhar_tts)
@@ -614,7 +618,7 @@ def test_proxima_informa_falha_de_audio_sem_forcar_segunda_sintese(
 
     assert resposta.status_code == 200
     assert resposta.json()["audio_status"] == "falhou"
-    assert resposta.json()["audio_erro"] == "RuntimeError"
+    assert resposta.json()["audio_erro"] == codigo
     assert resposta.json()["audio_base64"] is None
 
 
@@ -3073,6 +3077,7 @@ def test_musica_citada_sem_faixa_nao_trava_comentario(
     assert corpo["musicas"] == []
 
 
+@freeze_time(AGORA_UTC)
 def test_bloco_musica_toca_tambem_as_musicas_citadas(
     client, account, auth_headers, radialista_e_programa, monkeypatch
 ):
@@ -3103,3 +3108,34 @@ def test_bloco_musica_toca_tambem_as_musicas_citadas(
     corpo = resposta.json()
     assert corpo["video_id"] == "abc123"
     assert [m["video_id"] for m in corpo["musicas"]] == ["abc123", "cit1"]
+
+
+@freeze_time(AGORA_UTC)
+def test_bloco_musica_nao_repete_mesma_musica_citada_em_outra_versao(
+    client, account, auth_headers, radialista_e_programa, monkeypatch
+):
+    radio_config, programa = radialista_e_programa
+    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: "Vai Evidencias!")
+    buscas = []
+
+    def fake_buscar(query, **kwargs):
+        buscas.append(query)
+        if "Evidencias" in query:
+            return MusicaEncontrada(video_id="outra_versao", titulo="Evidencias (Ao Vivo)", canal="Fa Clube")
+        return MusicaEncontrada(video_id="abc123", titulo="Chitaozinho & Xororo - Evidencias", canal="C&X - Topic")
+
+    monkeypatch.setattr("app.live.router.buscar_musica", fake_buscar)
+    monkeypatch.setattr(
+        "app.live.router.extrair_musicas_citadas",
+        lambda fala, ja_tocadas=None: ["Chitaozinho e Xororo - Evidencias"],
+    )
+    monkeypatch.setattr("app.live.router.resolver_musica_catalogada", lambda *a, **k: None)
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": ["abertura: oi"], "total_falas": 1},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert [m["video_id"] for m in resposta.json()["musicas"]] == ["abc123"]
+    assert not any("Evidencias" in q and q != buscas[0] for q in buscas[1:])

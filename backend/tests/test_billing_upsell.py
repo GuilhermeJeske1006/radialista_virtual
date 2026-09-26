@@ -63,78 +63,14 @@ class TestMarcaConsolidada:
         assert marca_consolidada(db_session, account) is True
 
 
-class TestCalcularSinalUpsell:
-    def test_conta_nao_consolidada_sem_sinal(self, db_session, account_factory):
-        account = account_factory(email="a@a.com", wuzapi_token=None, plano="starter")
-        assert calcular_sinal_upsell(db_session, account) is None
+def test_limite_financeiro_proximo_avisa_sem_oferta_de_pacotes(db_session, account):
+    from app.models.consumo_flex import ContaConsumo
+    db_session.add(ContaConsumo(account_id=account.id, limite=10000000, exposicao=9000000))
+    db_session.commit()
+    sinal = calcular_sinal_upsell(db_session, account)
+    assert sinal.tipo == 'limite_financeiro'
+    assert sinal.enviar_email is False
 
-    def test_agentes_no_limite_sinaliza_e_manda_email(self, db_session, account_factory):
-        account, _ = _conta_consolidada(db_session, account_factory, plano="starter")
-        # starter permite 1 agente -- o unico radio_config ja criado em _conta_consolidada preenche o limite.
-        sinal = calcular_sinal_upsell(db_session, account)
-        assert sinal is not None
-        assert sinal.tipo == "agentes_cheio"
-        assert sinal.enviar_email is True
 
-    def test_agentes_extras_afastam_o_limite(self, db_session, account_factory):
-        account, _ = _conta_consolidada(db_session, account_factory, plano="starter", agentes_extras=1)
-        assert calcular_sinal_upsell(db_session, account) is None
-
-    def test_mensagens_estourando_sinaliza_e_manda_email(self, db_session, account_factory):
-        account, rc = _conta_consolidada(db_session, account_factory, plano="growth", agentes_extras=5)
-        limite = limites_do_plano("growth").mensagens_mes
-        for _ in range(limite):
-            db_session.add(
-                InteractionLog(
-                    radio_config_id=rc.id,
-                    telefone="5511999999999",
-                    mensagem_usuario="oi",
-                    status="respondido_whatsapp",
-                    origem="ouvinte",
-                    criado_em=datetime.datetime.now(datetime.timezone.utc),
-                )
-            )
-        db_session.commit()
-
-        sinal = calcular_sinal_upsell(db_session, account)
-        assert sinal is not None
-        assert sinal.tipo == "mensagens_estourou"
-        assert sinal.enviar_email is True
-
-    def test_mensagens_perto_do_limite_sinaliza_sem_email(self, db_session, account_factory):
-        account, rc = _conta_consolidada(db_session, account_factory, plano="growth", agentes_extras=5)
-        limite = limites_do_plano("growth").mensagens_mes
-        quantidade = int(limite * 0.85)
-        for _ in range(quantidade):
-            db_session.add(
-                InteractionLog(
-                    radio_config_id=rc.id,
-                    telefone="5511999999999",
-                    mensagem_usuario="oi",
-                    status="respondido_whatsapp",
-                    origem="ouvinte",
-                    criado_em=datetime.datetime.now(datetime.timezone.utc),
-                )
-            )
-        db_session.commit()
-
-        sinal = calcular_sinal_upsell(db_session, account)
-        assert sinal is not None
-        assert sinal.tipo == "mensagens_quase_estourando"
-        assert sinal.enviar_email is False
-
-    def test_uso_confortavel_sem_sinal(self, db_session, account_factory):
-        account, _ = _conta_consolidada(db_session, account_factory, plano="growth", agentes_extras=5)
-        assert calcular_sinal_upsell(db_session, account) is None
-
-    def test_excedente_comprado_soma_no_limite_de_mensagens(self, db_session, account_factory):
-        from app.billing.limites import mes_referencia_atual
-
-        account, rc = _conta_consolidada(db_session, account_factory, plano="starter", agentes_extras=5)
-        db_session.add(
-            CompraExcedente(account_id=account.id, quantidade=5000, mes_referencia=mes_referencia_atual())
-        )
-        db_session.commit()
-
-        # sem as 5000 extras o plano starter (2000) ja estaria zerado; com elas, uso 0 fica confortavel.
-        assert calcular_sinal_upsell(db_session, account) is None
+def test_sem_exposicao_nao_oferece_upgrade(db_session, account):
+    assert calcular_sinal_upsell(db_session, account) is None

@@ -1008,7 +1008,10 @@ export function useLiveEngine() {
             // pista nenhuma de qual desses era (ver post-mortem que motivou isso)
             onError: (evento: any) => {
               console.error("Erro ao tocar musica no player do YouTube:", videoId, titulo, evento?.data);
-              finalizar(false, `erro_${evento?.data ?? "desconhecido"}`);
+              // erro depois de ja' ter comecado a tocar: o ouvinte ja' ouviu a musica -- pedir
+              // substituta aqui tocava outra versao da MESMA musica logo em seguida. So' segue.
+              if (comecou) finalizar();
+              else finalizar(false, `erro_${evento?.data ?? "desconhecido"}`);
             },
           },
         });
@@ -1191,6 +1194,12 @@ export function useLiveEngine() {
             const blob = new Blob([bytes], { type: "audio/mpeg" });
             return { url: URL.createObjectURL(blob), blob };
           }
+          if (audiosFalasBase64 && indice < audiosFalasBase64.length && prontoAntecipado === null) {
+            // null dentro da lista significa síntese já tentada e sem resultado;
+            // lista ausente significa que o backend deixou a geração para o painel.
+            if (ativa()) setErro("Uma voz do diálogo não foi concluída. Linha pulada para evitar repetir uma geração já solicitada.");
+            return { url: null, blob: null };
+          }
           try {
             const blob = await apiFetchBlobComTimeout(`/live/${contexto.radialistaId}/tts`, {
               method: "POST",
@@ -1235,7 +1244,14 @@ export function useLiveEngine() {
         if (audioStatus === "indisponivel") {
           throw new Error(`Audio IA indisponivel: ${audioErro ?? "sem detalhe"}`);
         }
-        // Se a sintese embutida falhar, tenta /tts com o mesmo perfil Rádio FM.
+        // Uma falha/timeout pode ter sido cobrada pelo provedor. Não repetir
+        // automaticamente uma síntese já tentada pelo backend.
+        if (audioStatus === "falhou") {
+          throw new ApiError(503, audioErro === "orcamento_ia_esgotado"
+            ? "O limite disponível não comporta esta geração. Consulte Assinatura para acompanhar o consumo"
+            : "A geração desta voz não foi concluída. Não repetimos a solicitação automaticamente");
+        }
+        // Áudio pendente é sintetizado com o mesmo perfil Rádio FM.
         // O processamento aguarda o audio completo; o timeout inclui essa etapa.
         // Patrocinador (texto ou audio pre-gravado) e vinheta: buscam o arquivo pronto direto,
         // sem passar texto/tom aqui -- o backend resolve a voz efetiva e cacheia a sintese TTS

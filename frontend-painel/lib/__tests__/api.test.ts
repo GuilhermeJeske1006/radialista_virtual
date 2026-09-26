@@ -17,6 +17,12 @@ afterEach(() => {
 });
 
 describe("apiFetch", () => {
+  it("mostra a mensagem de um bloqueio estruturado sem expor JSON ao usuário", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respostaJson({
+      detail: { codigo: "orcamento_ia_esgotado", mensagem: "Limite de geração atingido." },
+    }, 402)));
+    await expect(apiFetch("/live/1/tts")).rejects.toMatchObject({ status: 402, message: "Limite de geração atingido." });
+  });
   it("manda a sessao via cookie (credentials: include), sem Authorization", async () => {
     const fetchMock = vi.fn().mockResolvedValue(respostaJson({ ok: true }));
     vi.stubGlobal("fetch", fetchMock);

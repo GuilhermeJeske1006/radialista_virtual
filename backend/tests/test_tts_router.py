@@ -51,16 +51,10 @@ def test_listar_vozes_compartilhadas_inclui_apenas_de_outras_contas(
     assert resposta_dono.json() == []
 
 
-def test_criar_voz_clonada_exige_plano_com_clonagem(client, account, auth_headers):
-    assert account.plano == "starter"
-    arquivo = io.BytesIO(b"fake-audio-bytes")
-    resposta = client.post(
-        "/tts/vozes-clonadas",
-        data={"nome": "Minha voz"},
-        files={"arquivo": ("amostra.mp3", arquivo, "audio/mpeg")},
-        headers=auth_headers(account.id),
-    )
-    assert resposta.status_code == 402
+def test_flex_inclui_clonagem(account):
+    from app.planos import limites_do_plano
+    assert account.plano == "flex"
+    assert limites_do_plano(account.plano).clonagem_voz
 
 
 def test_criar_voz_clonada_com_sucesso(client, account_factory, auth_headers, monkeypatch):

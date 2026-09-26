@@ -17,12 +17,14 @@ from app.funnel.router import router as funnel_router
 from app.biblioteca_audio.router import router as biblioteca_audio_router
 from app.biblioteca_audio.sons_padrao import criar_sons_padrao
 from app.billing.router import router as billing_router
+from app.billing.consumo_router import router as consumo_ia_router
 from app.vinhetas.router import router as vinhetas_router
 from app.vinhetas.servico import recuperar_vinhetas_travadas
 from app.categorias_vinheta.defaults import CATEGORIAS_PADRAO
 from app.categorias_vinheta.router import router as categorias_vinheta_router
 from app.config.router import router as config_router
 from app.config.settings import settings
+from app.billing.contexto_ia import ContextoIAMiddleware
 from app.db.database import Base, SessionLocal, engine
 from app.equipe.router import router as equipe_router
 from app.live.prewarm import executar_tick as preparar_falas_antecipadas
@@ -92,6 +94,7 @@ sentry_sdk.init(
 )
 
 app = FastAPI(title="Radialista Virtual")
+app.add_middleware(ContextoIAMiddleware)
 
 _frontend_origins = {settings.frontend_url}
 if "localhost" in settings.frontend_url:
@@ -132,6 +135,7 @@ app.include_router(config_router)
 app.include_router(onboarding_router)
 app.include_router(metrics_router)
 app.include_router(billing_router)
+app.include_router(consumo_ia_router)
 app.include_router(live_router)
 app.include_router(tts_router)
 app.include_router(patrocinadores_router)
@@ -147,6 +151,8 @@ app.include_router(admin_sistema_auth_router)
 
 @app.on_event("startup")
 async def criar_tabelas():
+    from app.db.migrations.consumo_20260925 import aplicar
+    aplicar(engine)
     Base.metadata.create_all(bind=engine)
     garantir_colunas_radio_config()
     garantir_colunas_account()

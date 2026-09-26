@@ -1,253 +1,66 @@
 from types import SimpleNamespace
-
+from unittest.mock import MagicMock
 import pytest
-
-from app.billing import stripe_client
-from app.models.account import Account
-from app.planos import PRECO_AGENTE_ADICIONAL, PRECO_EXCEDENTE_1000_MSG
-
-
-def _account(**kwargs):
-    return Account(id=1, **kwargs)
+from fastapi import HTTPException
+from app.billing import stripe_client as sc
+from app.config.settings import settings
 
 
-def _pm(id_="pm_recente"):
-    return SimpleNamespace(id=id_, card=SimpleNamespace(brand="visa", last4="4242", exp_month=12, exp_year=2030))
+@pytest.fixture
+def stripe_api(monkeypatch):
+    c = MagicMock()
+    monkeypatch.setattr(sc, 'cliente', lambda: c)
+    monkeypatch.setattr(settings, 'stripe_price_id_flex', 'price_flex')
+    c.v1.prices.retrieve.return_value = SimpleNamespace(currency='brl',unit_amount=6990,
+        recurring=SimpleNamespace(interval='month',interval_count=1))
+    c.v1.customers.create.return_value = SimpleNamespace(id='cus_new')
+    c.v1.subscriptions.create.return_value = SimpleNamespace(id='sub_new')
+    return c
 
 
-def test_obter_ou_criar_customer_reusa_existente(db_session):
-    account = _account(stripe_customer_id="cus_existente")
-    assert stripe_client._obter_ou_criar_customer(account, db_session) == "cus_existente"
+def test_customer_idempotente(db_session, account, stripe_api):
+    assert sc._obter_ou_criar_customer(account, db_session) == 'cus_new'
+    assert sc._obter_ou_criar_customer(account, db_session) == 'cus_new'
+    assert stripe_api.v1.customers.create.call_count == 1
+    assert stripe_api.v1.customers.create.call_args.kwargs['options']['idempotency_key'] == f'customer:{account.id}'
 
 
-def test_obter_ou_criar_customer_cria_e_persiste(monkeypatch, db_session):
-    capturado = {}
-    monkeypatch.setattr(
-        stripe_client.stripe.Customer,
-        "create",
-        lambda **kwargs: capturado.update(kwargs) or SimpleNamespace(id="cus_novo"),
-    )
-    account = _account()
-    customer_id = stripe_client._obter_ou_criar_customer(account, db_session)
-    assert customer_id == "cus_novo"
-    assert account.stripe_customer_id == "cus_novo"
-    assert capturado["metadata"] == {"account_id": "1"}
+def test_checkout_primeira_mensalidade(db_session, account, stripe_api):
+    sub = sc.criar_sessao_checkout(account, 'flex', db_session)
+    assert account.stripe_subscription_id == sub.id
+    params = stripe_api.v1.subscriptions.create.call_args.args[0]
+    assert params['items'] == [{'price':'price_flex'}]
+    assert params['metadata']['account_id'] == str(account.id)
+    assert params['metadata']['plano'] == 'flex'
+    assert params['payment_behavior'] == 'default_incomplete'
+    assert 'payment_method_types' not in params['payment_settings']
+    assert params['expand'] == ['latest_invoice.confirmation_secret']
 
 
-def test_criar_sessao_checkout_usa_account_id_no_metadata(monkeypatch, db_session):
-    capturado = {}
-    monkeypatch.setattr(
-        stripe_client.stripe.Subscription,
-        "create",
-        lambda **kwargs: capturado.update(kwargs) or object(),
-    )
-    stripe_client.criar_sessao_checkout(_account(stripe_customer_id="cus_1"), "starter", db_session)
-    assert capturado["customer"] == "cus_1"
-    assert capturado["payment_behavior"] == "default_incomplete"
-    assert capturado["metadata"] == {"tipo": "assinatura", "plano": "starter", "account_id": "1"}
+def test_checkout_reusa_assinatura_incompleta(db_session, account, stripe_api):
+    account.stripe_subscription_id = 'sub_pending'
+    stripe_api.v1.subscriptions.retrieve.return_value = SimpleNamespace(id='sub_pending',status='incomplete')
+    assert sc.criar_sessao_checkout(account,'flex',db_session).id == 'sub_pending'
+    stripe_api.v1.subscriptions.create.assert_not_called()
 
 
-def test_criar_sessao_checkout_usa_price_do_plano_escolhido(monkeypatch, db_session):
-    capturado = {}
-    monkeypatch.setattr(
-        stripe_client.stripe.Subscription,
-        "create",
-        lambda **kwargs: capturado.update(kwargs) or object(),
-    )
-    monkeypatch.setitem(stripe_client.PRICE_ID_POR_PLANO, "growth", "price_growth_fake")
-    stripe_client.criar_sessao_checkout(_account(stripe_customer_id="cus_1"), "growth", db_session)
-    assert capturado["items"] == [{"price": "price_growth_fake"}]
-    assert capturado["metadata"]["plano"] == "growth"
+@pytest.mark.parametrize('amount,currency', [(699,'brl'),(6990,'usd')])
+def test_preco_configurado_incorreto_bloqueia(db_session, account, stripe_api, amount,currency):
+    stripe_api.v1.prices.retrieve.return_value.unit_amount = amount
+    stripe_api.v1.prices.retrieve.return_value.currency = currency
+    with pytest.raises(HTTPException): sc.criar_sessao_checkout(account,'flex',db_session)
+    stripe_api.v1.subscriptions.create.assert_not_called()
 
 
-def test_criar_sessao_checkout_cria_customer_quando_nao_existe(monkeypatch, db_session):
-    monkeypatch.setattr(stripe_client.stripe.Customer, "create", lambda **kwargs: SimpleNamespace(id="cus_criado"))
-    capturado = {}
-    monkeypatch.setattr(
-        stripe_client.stripe.Subscription,
-        "create",
-        lambda **kwargs: capturado.update(kwargs) or object(),
-    )
-    account = _account()
-    stripe_client.criar_sessao_checkout(account, "starter", db_session)
-    assert capturado["customer"] == "cus_criado"
-    assert account.stripe_customer_id == "cus_criado"
+def test_cartao_salvo_ausente(db_session, account, stripe_api):
+    stripe_api.v1.payment_methods.list.return_value.data = []
+    with pytest.raises(sc.CartaoSalvoNaoEncontrado): sc.criar_sessao_checkout(account,'flex',db_session,True)
 
 
-def test_criar_sessao_checkout_usa_cartao_salvo(monkeypatch, db_session):
-    monkeypatch.setattr(stripe_client.stripe.PaymentMethod, "list", lambda **kwargs: SimpleNamespace(data=[_pm()]))
-    capturado = {}
-    monkeypatch.setattr(
-        stripe_client.stripe.Subscription,
-        "create",
-        lambda **kwargs: capturado.update(kwargs) or object(),
-    )
-    stripe_client.criar_sessao_checkout(
-        _account(stripe_customer_id="cus_1"), "starter", db_session, usar_cartao_salvo=True
-    )
-    assert capturado["default_payment_method"] == "pm_recente"
-
-
-def test_criar_sessao_checkout_usar_cartao_salvo_sem_cartao_levanta_erro(monkeypatch, db_session):
-    monkeypatch.setattr(stripe_client.stripe.PaymentMethod, "list", lambda **kwargs: SimpleNamespace(data=[]))
-    with pytest.raises(stripe_client.CartaoSalvoNaoEncontrado):
-        stripe_client.criar_sessao_checkout(
-            _account(stripe_customer_id="cus_1"), "starter", db_session, usar_cartao_salvo=True
-        )
-
-
-def test_trocar_plano_assinatura_troca_item_da_assinatura_existente(monkeypatch):
-    monkeypatch.setattr(
-        stripe_client.stripe.Subscription,
-        "retrieve",
-        lambda sub_id: {"items": {"data": [{"id": "si_1"}]}},
-    )
-    capturado = {}
-    monkeypatch.setattr(
-        stripe_client.stripe.Subscription,
-        "modify",
-        lambda sub_id, **kwargs: capturado.update(kwargs) or capturado.setdefault("sub_id", sub_id),
-    )
-    monkeypatch.setitem(stripe_client.PRICE_ID_POR_PLANO, "professional", "price_professional_fake")
-    stripe_client.trocar_plano_assinatura(_account(stripe_subscription_id="sub_1"), "professional")
-    assert capturado["sub_id"] == "sub_1"
-    assert capturado["items"] == [{"id": "si_1", "price": "price_professional_fake"}]
-
-
-def test_plano_por_price_id_resolve_e_ignora_desconhecido(monkeypatch):
-    monkeypatch.setitem(stripe_client.PRICE_ID_POR_PLANO, "growth", "price_growth_fake")
-    monkeypatch.setitem(stripe_client.PLANO_POR_PRICE_ID, "price_growth_fake", "growth")
-    assert stripe_client.plano_por_price_id("price_growth_fake") == "growth"
-    assert stripe_client.plano_por_price_id("price_desconhecido") is None
-    assert stripe_client.plano_por_price_id(None) is None
-
-
-def test_criar_sessao_checkout_agente_extra_cobra_preco_certo(monkeypatch, db_session):
-    monkeypatch.setattr(stripe_client.stripe.Product, "retrieve", lambda produto_id: SimpleNamespace(id=produto_id))
-    capturado = {}
-    monkeypatch.setattr(
-        stripe_client.stripe.Subscription,
-        "create",
-        lambda **kwargs: capturado.update(kwargs) or object(),
-    )
-    stripe_client.criar_sessao_checkout_agente_extra(_account(stripe_customer_id="cus_1"), db_session)
-    unit_amount = capturado["items"][0]["price_data"]["unit_amount"]
-    assert unit_amount == PRECO_AGENTE_ADICIONAL * 100
-    assert capturado["items"][0]["price_data"]["product"] == stripe_client._PRODUTO_AGENTE_EXTRA_ID
-    assert capturado["metadata"] == {"tipo": "agente_extra", "account_id": "1"}
-
-
-def test_criar_sessao_checkout_agente_extra_usa_cartao_salvo(monkeypatch, db_session):
-    monkeypatch.setattr(stripe_client.stripe.Product, "retrieve", lambda produto_id: SimpleNamespace(id=produto_id))
-    monkeypatch.setattr(stripe_client.stripe.PaymentMethod, "list", lambda **kwargs: SimpleNamespace(data=[_pm()]))
-    capturado = {}
-    monkeypatch.setattr(
-        stripe_client.stripe.Subscription,
-        "create",
-        lambda **kwargs: capturado.update(kwargs) or object(),
-    )
-    stripe_client.criar_sessao_checkout_agente_extra(
-        _account(stripe_customer_id="cus_1"), db_session, usar_cartao_salvo=True
-    )
-    assert capturado["default_payment_method"] == "pm_recente"
-
-
-def test_obter_ou_criar_produto_agente_extra_cria_se_nao_existir(monkeypatch):
-    def _retrieve_falha(produto_id):
-        raise stripe_client.stripe.error.InvalidRequestError("No such product", "id")
-
-    capturado = {}
-    monkeypatch.setattr(stripe_client.stripe.Product, "retrieve", _retrieve_falha)
-    monkeypatch.setattr(
-        stripe_client.stripe.Product,
-        "create",
-        lambda **kwargs: capturado.update(kwargs) or SimpleNamespace(id=kwargs["id"]),
-    )
-    produto_id = stripe_client._obter_ou_criar_produto_agente_extra()
-    assert produto_id == stripe_client._PRODUTO_AGENTE_EXTRA_ID
-    assert capturado["id"] == stripe_client._PRODUTO_AGENTE_EXTRA_ID
-
-
-def test_criar_sessao_checkout_excedente_mensagens_multiplica_por_blocos(monkeypatch, db_session):
-    capturado = {}
-    monkeypatch.setattr(
-        stripe_client.stripe.PaymentIntent,
-        "create",
-        lambda **kwargs: capturado.update(kwargs) or object(),
-    )
-    stripe_client.criar_sessao_checkout_excedente_mensagens(_account(stripe_customer_id="cus_1"), 3, db_session)
-    assert capturado["amount"] == PRECO_EXCEDENTE_1000_MSG * 100 * 3
-    assert capturado["payment_method_types"] == ["card"]
-    assert capturado["metadata"]["blocos"] == "3"
-
-
-def test_criar_sessao_checkout_excedente_usa_cartao_salvo_e_confirma_direto(monkeypatch, db_session):
-    monkeypatch.setattr(stripe_client.stripe.PaymentMethod, "list", lambda **kwargs: SimpleNamespace(data=[_pm()]))
-    capturado = {}
-    monkeypatch.setattr(
-        stripe_client.stripe.PaymentIntent,
-        "create",
-        lambda **kwargs: capturado.update(kwargs) or object(),
-    )
-    stripe_client.criar_sessao_checkout_excedente_mensagens(
-        _account(stripe_customer_id="cus_1"), 2, db_session, usar_cartao_salvo=True
-    )
-    assert capturado["payment_method"] == "pm_recente"
-    assert capturado["confirm"] is True
-    assert capturado["off_session"] is True
-
-
-def test_criar_sessao_checkout_excedente_cartao_salvo_exige_3ds_devolve_intent(monkeypatch, db_session):
-    monkeypatch.setattr(stripe_client.stripe.PaymentMethod, "list", lambda **kwargs: SimpleNamespace(data=[_pm()]))
-    intent_pendente = {"status": "requires_action", "client_secret": "pi_3ds_secret"}
-
-    def _fake_create(**kwargs):
-        erro = stripe_client.stripe.error.CardError(
-            "Autenticacao necessaria", None, code="authentication_required", json_body={"error": {}}
-        )
-        erro.error = SimpleNamespace(payment_intent=intent_pendente)
-        raise erro
-
-    monkeypatch.setattr(stripe_client.stripe.PaymentIntent, "create", _fake_create)
-    resultado = stripe_client.criar_sessao_checkout_excedente_mensagens(
-        _account(stripe_customer_id="cus_1"), 1, db_session, usar_cartao_salvo=True
-    )
-    assert resultado is intent_pendente
-
-
-def test_criar_sessao_checkout_excedente_cartao_salvo_erro_sem_3ds_repropaga(monkeypatch, db_session):
-    monkeypatch.setattr(stripe_client.stripe.PaymentMethod, "list", lambda **kwargs: SimpleNamespace(data=[_pm()]))
-
-    def _fake_create(**kwargs):
-        erro = stripe_client.stripe.error.CardError(
-            "Cartao recusado", None, code="card_declined", json_body={"error": {}}
-        )
-        erro.error = SimpleNamespace(payment_intent=None)
-        raise erro
-
-    monkeypatch.setattr(stripe_client.stripe.PaymentIntent, "create", _fake_create)
-    with pytest.raises(stripe_client.stripe.error.CardError):
-        stripe_client.criar_sessao_checkout_excedente_mensagens(
-            _account(stripe_customer_id="cus_1"), 1, db_session, usar_cartao_salvo=True
-        )
-
-
-def test_obter_cartao_mais_recente_sem_customer_id():
-    assert stripe_client.obter_cartao_mais_recente(_account()) is None
-
-
-def test_obter_cartao_mais_recente_devolve_bandeira_e_ultimos_digitos(monkeypatch):
-    monkeypatch.setattr(stripe_client.stripe.PaymentMethod, "list", lambda **kwargs: SimpleNamespace(data=[_pm()]))
-    cartao = stripe_client.obter_cartao_mais_recente(_account(stripe_customer_id="cus_1"))
-    assert cartao == {"bandeira": "visa", "final": "4242", "mes_expiracao": 12, "ano_expiracao": 2030}
-
-
-def test_criar_portal_sessao_usa_customer_id(monkeypatch):
-    capturado = {}
-    monkeypatch.setattr(
-        stripe_client.stripe.billing_portal.Session,
-        "create",
-        lambda **kwargs: capturado.update(kwargs) or object(),
-    )
-    stripe_client.criar_portal_sessao(_account(stripe_customer_id="cus_1"))
-    assert capturado["customer"] == "cus_1"
+def test_cartao_salvo_e_portal(db_session, account, stripe_api):
+    stripe_api.v1.payment_methods.list.return_value.data = [SimpleNamespace(id='pm_1',card=SimpleNamespace(brand='visa',last4='4242',exp_month=12,exp_year=2030))]
+    sc.criar_sessao_checkout(account,'flex',db_session,True)
+    assert stripe_api.v1.subscriptions.create.call_args.args[0]['default_payment_method'] == 'pm_1'
+    assert sc.obter_cartao_mais_recente(account)['final'] == '4242'
+    sc.criar_portal_sessao(account)
+    assert stripe_api.v1.billing_portal.sessions.create.call_args.args[0]['customer'] == account.stripe_customer_id

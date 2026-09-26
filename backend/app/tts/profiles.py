@@ -48,4 +48,8 @@ def parametros_sintese(db: Session, account_id: int, voz_id: str | None) -> dict
     config = db.query(ConfiguracaoVoz).filter_by(account_id=account_id, voz_id=efetiva).first()
     if config:
         parametros.update(modelo=config.modelo, perfil=config.perfil, formato=config.formato, pronuncias=config.pronuncias)
+    from app.billing.contexto_ia import atual
+    conta = atual.get()
+    if conta and conta.modelo_voz:
+        parametros["modelo"] = conta.modelo_voz
     return parametros

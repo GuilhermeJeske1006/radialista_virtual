@@ -56,14 +56,14 @@ describe("VoiceSelect", () => {
     expect(onChange).toHaveBeenCalledWith("voz-1");
   });
 
-  it("nao mostra link de clonagem pra plano starter", async () => {
+  it("oferta única libera clonagem também para identificadores antigos", async () => {
     mockFetchPadrao({ plano: "starter" });
     render(<VoiceSelect value={null} onChange={() => {}} />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Clonar sua própria voz/)).toBeInTheDocument();
+      expect(screen.getByText("🎙️ Clonar uma voz")).toBeInTheDocument();
     });
-    expect(screen.queryByText("🎙️ Clonar uma voz")).not.toBeInTheDocument();
+    expect(screen.getByText("🎙️ Clonar uma voz")).toBeInTheDocument();
   });
 
   it("mostra botao de clonagem pra plano growth", async () => {

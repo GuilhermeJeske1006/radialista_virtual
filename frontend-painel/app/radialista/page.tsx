@@ -21,6 +21,8 @@ import { setRadialistaAtualId } from "../../lib/radialistas";
 import { marcarVinhetasCriadas } from "../../components/VinhetasProgramaSection";
 import { LocufySpin } from "../../components/LocufyLogo";
 import { PRECO_AGENTE_ADICIONAL, formatarReais } from "../../lib/planos";
+import CombinacaoSelect from "../../components/CombinacaoSelect";
+import { Combinacao, reaisPreciso } from "../../lib/combinacoes";
 
 type RadialistaProposto = ConfiguracaoIAPreview["radialista"];
 type ProgramaProposto = ConfiguracaoIAPreview["programa"];
@@ -65,6 +67,7 @@ export default function RadialistasPage() {
   const [tipoRadioConta, setTipoRadioConta] = useState("");
   const [tiposRadio, setTiposRadio] = useState<TipoRadio[]>([]);
   const [radioPerfil, setRadioPerfil] = useState<RadioPerfil | null>(null);
+  const [combinacao, setCombinacao] = useState<Combinacao | null>(null);
 
   useEffect(() => {
     apiFetch<RadioPerfil>("/config/radio")
@@ -112,7 +115,7 @@ export default function RadialistasPage() {
     try {
       const preview = await apiFetch<ConfiguracaoIAPreview>("/config/radialistas/gerar-ia/preview", {
         method: "POST",
-        body: JSON.stringify({ descricao: descricaoIA.trim() }),
+        body: JSON.stringify({ descricao: descricaoIA.trim(), combinacao_id: combinacao?.id ?? null }),
       });
       setProposta(preview);
       setRadialistaEdit(preview.radialista);
@@ -147,6 +150,7 @@ export default function RadialistasPage() {
           instrucao: instrucao ?? "",
           radialista: radialistaEdit,
           programa: programaEdit,
+          combinacao_id: combinacao?.id ?? null,
         }),
       });
       setProposta(preview);
@@ -168,7 +172,12 @@ export default function RadialistasPage() {
     try {
       const criado = await apiFetch<ConfiguracaoIA>("/config/radialistas/gerar-ia/commit", {
         method: "POST",
-        body: JSON.stringify({ radialista: radialistaEdit, programa: programaEdit, geracao_id: geracaoId }),
+        body: JSON.stringify({
+          radialista: radialistaEdit,
+          programa: programaEdit,
+          geracao_id: geracaoId,
+          combinacao_id: combinacao?.id ?? null,
+        }),
       });
       setRadialistaAtualId(criado.radialista.id);
       marcarVinhetasCriadas(criado.programa.id);
@@ -254,11 +263,11 @@ export default function RadialistasPage() {
 
       {modalIAAberto && !proposta && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-grafite/50 px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-grafite/50 px-4 py-8"
           onClick={() => !gerandoIA && fecharModalIA()}
         >
           <div
-            className="w-full max-w-lg rounded-3xl border border-border-strong bg-surface p-6 shadow-theme-xs"
+            className="w-full max-w-lg max-h-full overflow-y-auto overscroll-contain rounded-3xl border border-border-strong bg-surface p-6 shadow-theme-xs"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="font-display text-base font-bold text-fg mb-2">Gerar radialista com IA</h2>
@@ -319,6 +328,9 @@ export default function RadialistasPage() {
                 .
               </p>
             )}
+            <div className="mt-4">
+              <CombinacaoSelect value={combinacao?.id ?? null} onChange={setCombinacao} disabled={gerandoIA} />
+            </div>
             {erroIA && <p className="text-sm text-laranja mt-2">{erroIA}</p>}
             <div className="flex justify-end gap-3 mt-5">
               <button
@@ -345,7 +357,7 @@ export default function RadialistasPage() {
       {modalIAAberto && proposta && radialistaEdit && programaEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-grafite/50 px-4 py-8">
           <div
-            className="w-full max-w-2xl max-h-full overflow-y-auto rounded-3xl border border-border-strong bg-surface p-6 shadow-theme-xs"
+            className="w-full max-w-2xl max-h-full overflow-y-auto overscroll-contain rounded-3xl border border-border-strong bg-surface p-6 shadow-theme-xs"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="font-display text-base font-bold text-fg mb-1">Revise antes de criar</h2>
@@ -484,6 +496,23 @@ export default function RadialistasPage() {
                 </div>
               </div>
             )}
+
+            <hr className="border-border mb-4" />
+            <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro mb-2">Modelos e valor</h3>
+            {proposta.custo_geracao_brl != null && (
+              <p className="text-xs text-fg/65 mb-2">
+                Valor desta geração: {reaisPreciso(proposta.custo_geracao_brl)}. Refinar ou gerar de novo é uma nova
+                geração.
+              </p>
+            )}
+            <div className="mb-4">
+              <CombinacaoSelect
+                value={combinacao?.id ?? null}
+                onChange={setCombinacao}
+                programa={programaEdit}
+                disabled={criandoFinal || processandoRefinamento}
+              />
+            </div>
 
             <hr className="border-border mb-4" />
             <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro mb-2">Refinar (opcional)</h3>

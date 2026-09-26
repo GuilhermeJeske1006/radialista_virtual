@@ -187,11 +187,18 @@ class RadialistaProgramaResponse(BaseModel):
 
 class GerarConfiguracaoIARequest(BaseModel):
     descricao: str = ""
+    # Combinação texto + voz (GET /billing/combinacoes). Gera o locutor com o modelo de texto
+    # dela e grava a escolha no programa; ausente mantém os modelos padrão do sistema.
+    combinacao_id: str | None = None
 
 
 class ConfiguracaoIAResponse(BaseModel):
     radialista: RadialistaResponse
     programa: ProgramaResponse
+    combinacao: dict | None = None
+    # Preço já medido desta geração (texto do locutor, programa e vinhetas); áudio das
+    # vinhetas é processado depois e aparece no extrato. None com a medição desligada.
+    custo_geracao_brl: float | None = None
 
 
 class ConfiguracaoIAPreviewResponse(BaseModel):
@@ -206,6 +213,8 @@ class ConfiguracaoIAPreviewResponse(BaseModel):
     # Id do registro em GeracaoIA (ver Fase 10 do plano de melhoria) -- devolva no
     # POST /gerar-ia/commit (campo geracao_id) pra fechar o loop de aprendizado.
     geracao_id: int | None = None
+    combinacao: dict | None = None
+    custo_geracao_brl: float | None = None
 
 
 class ProgramaIAPreviewResponse(BaseModel):
@@ -316,6 +325,8 @@ def _buscar_radialista(db: Session, account: Account, radialista_id: int) -> Rad
     radialista = db.query(RadioConfig).filter_by(id=radialista_id, account_id=account.id).first()
     if radialista is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Radialista nao encontrado")
+    from app.billing.contexto_ia import selecionar_radialista
+    selecionar_radialista(radialista)
     return radialista
 
 
@@ -328,6 +339,8 @@ def _buscar_programa(db: Session, account: Account, programa_id: int) -> Program
     )
     if programa is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Programa nao encontrado")
+    from app.billing.contexto_ia import selecionar_programa
+    selecionar_programa(programa)
     return programa
 
 
@@ -484,8 +497,8 @@ def _validar_limite_agentes(db: Session, account: Account) -> None:
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
             detail=(
-                f"Seu plano permite no maximo {limite} agente(s). "
-                "Adicione um agente extra ou faca upgrade em /billing."
+                f"Limite técnico: no máximo {limite} agente(s). "
+                "Entre em contato para avaliar a capacidade da conta."
             ),
         )
 
@@ -504,8 +517,8 @@ def _validar_limite_radialistas_programa(db: Session, account: Account, programa
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
             detail=(
-                f"Seu plano permite no maximo {limite} radialista(s) por programa. "
-                "Faca upgrade em /billing pra adicionar mais."
+                f"Limite técnico: no máximo {limite} radialista(s) por programa. "
+                "Entre em contato para avaliar a capacidade do programa."
             ),
         )
 
@@ -593,6 +606,23 @@ def criar_radialista(
     return radialista
 
 
+def _usar_combinacao(db: Session, combinacao_id: str | None) -> dict | None:
+    """Valida a combinação escolhida e aplica os modelos dela às gerações desta request."""
+    if not combinacao_id:
+        return None
+    from app.billing.combinacoes import aplicar_no_contexto, obter
+    combinacao = obter(db, combinacao_id)
+    aplicar_no_contexto(combinacao)
+    return combinacao
+
+
+def _custo_geracao(db: Session, account: Account) -> float | None:
+    from app.billing.combinacoes import preco_operacao_brl
+    from app.billing.contexto_ia import atual
+    conta = atual.get()
+    return preco_operacao_brl(db, account.id, conta.operacao) if conta else None
+
+
 @router.post(
     "/radialistas/gerar-ia",
     response_model=ConfiguracaoIAResponse,
@@ -626,6 +656,7 @@ def gerar_radialista_ia(
     if not tem_placeholder:
         _validar_limite_agentes(db, account)
     _validar_limite_geracao_ia(account)
+    combinacao = _usar_combinacao(db, dados.combinacao_id)
 
     # roster inclui o proprio placeholder quando ele existe, mas _linha_roster_existente (no
     # gerador) ja descarta entradas sem personalidade e sem programas, entao ele nao polui o
@@ -661,7 +692,11 @@ def gerar_radialista_ia(
                 detail="Nao foi possivel gerar a configuracao agora. Tenta de novo em instantes.",
             )
 
-    return _commitar_radialista_gerado(db, account, radialista_dados, programa_dados, background_tasks)
+    resposta = _commitar_radialista_gerado(
+        db, account, radialista_dados, programa_dados, background_tasks, combinacao=combinacao
+    )
+    resposta.custo_geracao_brl = _custo_geracao(db, account)
+    return resposta
 
 
 def _commitar_radialista_gerado(
@@ -670,6 +705,7 @@ def _commitar_radialista_gerado(
     radialista_dados: "RadialistaRequest",
     programa_dados: "ProgramaRequest",
     background_tasks: BackgroundTasks | None = None,
+    combinacao: dict | None = None,
 ) -> "ConfiguracaoIAResponse":
     """Grava radialista+programa (ja validados) no banco -- usado tanto pelo endpoint atomico
     gerar_radialista_ia (gera e grava numa tacada so) quanto por commitar_radialista_ia_gerado
@@ -720,6 +756,9 @@ def _commitar_radialista_gerado(
     db.commit()
     db.refresh(radialista)
     db.refresh(programa)
+    if combinacao is not None:
+        from app.billing.combinacoes import salvar_escolha
+        salvar_escolha(db, account.id, combinacao, programa_id=programa.id, radialista_id=radialista.id)
     # Placeholder reaproveitado teve o programa sobrescrito -- vinhetas antigas (se houver) ficaram
     # com nome/texto do programa anterior, entao regera.
     criar_vinhetas_com_seguranca(
@@ -733,7 +772,7 @@ def _commitar_radialista_gerado(
         account.id,
         radialista_placeholder is not None,
     )
-    return ConfiguracaoIAResponse(radialista=radialista, programa=programa)
+    return ConfiguracaoIAResponse(radialista=radialista, programa=programa, combinacao=combinacao)
 
 
 @router.post("/radialistas/gerar-ia/preview", response_model=ConfiguracaoIAPreviewResponse)
@@ -756,6 +795,7 @@ def gerar_radialista_ia_preview(
         )
 
     _validar_limite_geracao_ia(account)
+    combinacao = _usar_combinacao(db, dados.combinacao_id)
     roster_existente = _montar_roster_existente(db, account)
 
     try:
@@ -803,6 +843,8 @@ def gerar_radialista_ia_preview(
         campos_corrigidos=campos_corrigidos,
         avisos=avisos,
         geracao_id=geracao_id,
+        combinacao=combinacao,
+        custo_geracao_brl=_custo_geracao(db, account),
     )
 
 
@@ -812,6 +854,7 @@ class ConfiguracaoIACommitRequest(BaseModel):
     # Id devolvido pelo preview (ver ConfiguracaoIAPreviewResponse.geracao_id) -- opcional, fecha
     # o loop de aprendizado (Fase 10) marcando a geracao como aceita com o payload final.
     geracao_id: int | None = None
+    combinacao_id: str | None = None
 
 
 @router.post(
@@ -829,7 +872,10 @@ def commitar_radialista_ia(
     /radialistas/gerar-ia/preview (ver Fase 2 do plano de melhoria) -- sem chamar o LLM de novo,
     so aplica a mesma logica de reaproveitamento de placeholder e limite de agentes do endpoint
     atomico gerar_radialista_ia."""
-    resultado = _commitar_radialista_gerado(db, account, dados.radialista, dados.programa, background_tasks)
+    combinacao = _usar_combinacao(db, dados.combinacao_id)
+    resultado = _commitar_radialista_gerado(
+        db, account, dados.radialista, dados.programa, background_tasks, combinacao=combinacao
+    )
     _marcar_geracao_aceita(
         db,
         account,
@@ -854,6 +900,7 @@ class RefinarConfiguracaoIARequest(BaseModel):
     instrucao: str = ""
     radialista: RadialistaRequest
     programa: ProgramaRequest
+    combinacao_id: str | None = None
 
 
 @router.post("/radialistas/gerar-ia/refinar", response_model=ConfiguracaoIAPreviewResponse)
@@ -866,6 +913,7 @@ def refinar_radialista_ia_preview(
     que "gerar tudo de novo": troca so' a persona, so' o programa, ou aplica um ajuste em texto
     livre sobre o que ja esta na tela. Nada e' gravado aqui (mesma garantia do preview)."""
     _validar_limite_geracao_ia(account)
+    combinacao = _usar_combinacao(db, dados.combinacao_id)
     roster_existente = _montar_roster_existente(db, account)
 
     try:
@@ -935,6 +983,8 @@ def refinar_radialista_ia_preview(
         campos_corrigidos=campos_corrigidos,
         avisos=avisos,
         geracao_id=geracao_id,
+        combinacao=combinacao,
+        custo_geracao_brl=_custo_geracao(db, account),
     )
 
 
@@ -995,6 +1045,18 @@ def excluir_radialista(
     db.delete(radialista)
     db.commit()
     logger.info("Radialista excluido: id=%s account_id=%s", radialista_id, account.id)
+
+
+@router.get("/programas", response_model=list[ProgramaResponse])
+def listar_programas_da_conta(account: Account = Depends(get_current_account), db: Session = Depends(get_db)):
+    """Todos os programas da conta (ex.: escolha de modelos por programa em /billing)."""
+    return (
+        db.query(Programa)
+        .join(RadioConfig, Programa.radio_config_id == RadioConfig.id)
+        .filter(RadioConfig.account_id == account.id)
+        .order_by(Programa.horario_inicio.asc(), Programa.id.asc())
+        .all()
+    )
 
 
 @router.get("/radialistas/{radialista_id}/programas", response_model=list[ProgramaResponse])

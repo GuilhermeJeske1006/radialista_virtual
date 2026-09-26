@@ -6,7 +6,9 @@ from sqlalchemy.orm import Session
 
 from app.config.redis_client import redis_client
 from app.live.audio_analysis import obter_fim_seguro
-from app.live.music import MusicaEncontrada, _sem_acento, _titulo_normalizado, buscar_musica, eh_instrumental, videos_quebrados
+from app.live.music import (
+    MusicaEncontrada, _sem_acento, buscar_musica, eh_instrumental, titulo_ja_tocado, videos_quebrados,
+)
 from app.models.musica import Musica
 
 logger = logging.getLogger("radialista.song_service")
@@ -212,8 +214,10 @@ def resolver_musica_catalogada(
 
     # youtube_video_id ja existia (de uma chamada anterior, ou acabou de aparecer no refresh
     # acima porque outro processo resolveu enquanto este esperava o lock).
-    titulo_ja_tocado = _titulo_normalizado(musica_db.youtube_titulo or musica_db.titulo) in titulos_tocados
-    if musica_db.youtube_video_id in evitar_video_ids or titulo_ja_tocado:
+    ja_tocada = titulo_ja_tocado(musica_db.youtube_titulo or musica_db.titulo, titulos_tocados) or titulo_ja_tocado(
+        musica_db.titulo, titulos_tocados
+    )
+    if musica_db.youtube_video_id in evitar_video_ids or ja_tocada:
         logger.info("song_catalog lookup_hit_mas_ja_tocada musica_id=%s", musica_db.id)
         return None
     logger.info("song_catalog lookup_hit musica_id=%s video_id=%s", musica_db.id, musica_db.youtube_video_id)

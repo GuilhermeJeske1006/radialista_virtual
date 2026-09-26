@@ -231,6 +231,33 @@ def _titulo_normalizado(titulo: str) -> str:
     return texto.strip()
 
 
+# Trecho minimo pra contar como "mesma musica" por contencao (ver titulo_ja_tocado) -- abaixo
+# disso, titulo curto e generico ("amor", "tu") casaria com musica diferente que so' o contem.
+_MIN_CARACTERES_CONTENCAO = 6
+
+
+def titulo_ja_tocado(titulo: str, titulos_tocados: set[str]) -> bool:
+    """True quando `titulo` e' a MESMA musica de algum titulo ja tocado (normalizados, ver
+    _titulo_normalizado). Igualdade exata nao basta: a mesma musica chega com "sotaque" de
+    artista diferente conforme a origem -- "Evidencias" (citada pelo locutor/Spotify) vs
+    "Chitaozinho & Xororo - Evidencias" (titulo do video no YouTube) -- e passava como faixa
+    nova, tocando outra versao da mesma musica logo em seguida. Por isso tambem compara por
+    contencao de palavras inteiras, nos dois sentidos."""
+    normalizado = _titulo_normalizado(titulo)
+    if not normalizado:
+        return False
+    if normalizado in titulos_tocados:
+        return True
+    alvo = f" {normalizado} "
+    for tocado in titulos_tocados:
+        if not tocado:
+            continue
+        menor, maior = sorted((alvo, f" {tocado} "), key=len)
+        if len(menor.strip()) >= _MIN_CARACTERES_CONTENCAO and menor in maior:
+            return True
+    return False
+
+
 # Canal auto-gerado pelo YouTube pra faixa oficial (sufixo "- Topic") ou canal
 # oficial de gravadora (VEVO) -- so' publica audio/clipe oficial da musica, nunca
 # reacao/ranking/tutorial. Sinal positivo, prioriza sobre o blocklist abaixo.
@@ -463,7 +490,7 @@ def buscar_musica(
             return respeitar_limite_canal and canais_recentes.get(canal.lower(), 0) >= limite_por_canal
 
         def musica_repetida(titulo: str) -> bool:
-            return _titulo_normalizado(titulo) in titulos_tocados
+            return titulo_ja_tocado(titulo, titulos_tocados)
 
         def vocal_invalido(texto: str) -> bool:
             return exigir_cantada and eh_instrumental(texto)

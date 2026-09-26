@@ -270,9 +270,9 @@ export default function VoiceSelect({ value, onChange }: Props) {
 
       {!permiteClonagemVoz(plano) && plano && (
         <p className="mt-1.5 text-xs text-fg/65">
-          Clonar sua própria voz é um recurso do plano Growth em diante.{" "}
+          Clonagem de voz disponível no Locufy Flex.{" "}
           <Link href="/billing" className="text-acento-claro hover:underline">
-            Fazer upgrade
+            Ver assinatura
           </Link>
         </p>
       )}

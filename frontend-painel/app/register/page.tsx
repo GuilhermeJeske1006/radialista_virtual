@@ -43,7 +43,7 @@ export default function RegisterPage() {
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [nomeRadio, setNomeRadio] = useState("");
-  const [planoId, setPlanoId] = useState("starter");
+  const [planoId, setPlanoId] = useState("flex");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [mostrarCheckout, setMostrarCheckout] = useState(false);
@@ -63,7 +63,7 @@ export default function RegisterPage() {
     const selected = new URLSearchParams(window.location.search).get("plano");
     if (PLANOS.some(p => p.id === selected)) setPlanoId(selected!);
     captureCampaign();
-    trackFunnel("register_started", { plano: PLANOS.some(p => p.id === selected) ? selected! : "starter" });
+    trackFunnel("register_started", { plano: PLANOS.some(p => p.id === selected) ? selected! : "flex" });
   }, []);
   useEffect(() => {
     if (initialStep.current) { initialStep.current = false; return; }
@@ -274,20 +274,20 @@ export default function RegisterPage() {
           </div>}
           {passo === 3 && <fieldset>
             <legend className="sr-only">Escolha seu plano mensal</legend>
-            <div className="grid sm:grid-cols-3 gap-4">
+            <div className="grid max-w-xl gap-4">
               {PLANOS.map(plano => <label key={plano.id} className={`relative cursor-pointer rounded-xl border p-4 focus-within:ring-2 focus-within:ring-acento-claro ${planoId === plano.id ? "border-acento-claro bg-bg" : "border-border-strong"}`}>
                 <span className="flex items-center gap-2 font-semibold text-fg">
                   <input type="radio" name="plano" value={plano.id} checked={planoId === plano.id} onChange={() => { setPlanoId(plano.id); trackFunnel("plan_selected", { plano: plano.id }); }} className="accent-brand-500 h-5 w-5" />{plano.nome}
                 </span>
                 <span className="block text-sm text-fg/65 mt-2 min-h-12">{plano.descricao}</span>
-                <span className="block text-2xl font-bold text-fg mt-4">R$ {formatarReais(plano.preco)}<span className="text-sm font-normal">/mês</span></span>
+                <span className="block text-2xl font-bold text-fg mt-4">R$ {formatarReais(plano.preco)}<span className="text-sm font-normal">/mês + uso</span></span>
                 <span className="block text-sm text-fg mt-4">{plano.agentes} {plano.agentes === 1 ? "radialista virtual" : "radialistas virtuais"}</span>
-                <span className="block text-sm text-fg mt-1">{plano.mensagens.toLocaleString("pt-BR")} mensagens/mês</span>
+                <span className="block text-sm text-fg mt-1">WhatsApp completo, sem franquia de mensagens</span>
                 <span className="block text-sm text-fg mt-1">Até {plano.radialistasPorPrograma} {plano.radialistasPorPrograma === 1 ? "radialista" : "radialistas"} por programa</span>
-                <span className="block text-sm text-fg mt-1">{plano.id === "starter" ? "Sem clonagem de voz" : "Clonagem de voz incluída"}</span>
+                <span className="block text-sm text-fg mt-1">Clonagem de voz disponível</span>
               </label>)}
             </div>
-            <p className="text-sm text-fg/65 mt-4">Assinatura mensal. Adicionais são cobrados separadamente. A franquia conta mensagens de ouvintes respondidas ou encaminhadas para participação no programa.</p>
+            <p className="text-sm text-fg/65 mt-4">R$ 69,90 por mês + uso pós-pago. Sem franquia de mensagens. O preço do processamento usa as unidades e tarifas do modelo escolhido, com acréscimo de 100% sobre o custo de referência.</p>
           </fieldset>}
           {erro && <p role="alert" className="mt-5 text-sm text-laranja">{erro}</p>}
           <div className="flex justify-between gap-3 mt-8">

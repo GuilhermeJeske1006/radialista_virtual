@@ -54,7 +54,7 @@ class Account(Base):
     plano_status: Mapped[str] = mapped_column(String, default="trial")
 
     # starter | growth | professional -- ver app/planos.py pros limites de cada um.
-    plano: Mapped[str] = mapped_column(String, default="starter")
+    plano: Mapped[str] = mapped_column(String, default="flex")
 
     stripe_customer_id: Mapped[str | None] = mapped_column(String, nullable=True)
     stripe_subscription_id: Mapped[str | None] = mapped_column(String, nullable=True)

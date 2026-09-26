@@ -23,10 +23,13 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_account
 from app.config.redis_client import redis_client
 from app.config.settings import settings
+from app.billing.contexto_ia import modelo_efetivo, tarefa_com_contexto, tarefa_independente
 from app.db.database import SessionLocal, get_db
 from app.guardrails.http_rate_limit import limite_excedido
 from app.guardrails.schedule import encontrar_programa_atual, minutos_restantes
-from app.live.music import MusicaEncontrada, _titulo_normalizado, buscar_musica, buscar_musica_fundo, marcar_video_quebrado
+from app.live.music import (
+    MusicaEncontrada, _titulo_normalizado, buscar_musica, buscar_musica_fundo, marcar_video_quebrado, titulo_ja_tocado,
+)
 from app.live.formato import ROTEIRO_MUSICAL, ROTEIRO_PADRAO, contar_palavras, direcao_musical, musical_companhia, orcamento_fala
 from app.live.song_service import dividir_artista_titulo, esquecer_video_catalogado, resolver_musica_catalogada
 from app.live.spotify import buscar_faixas_por_categoria
@@ -275,6 +278,8 @@ def _buscar_programa(db: Session, radialista: RadioConfig, programa_id: int) -> 
     programa = db.query(Programa).filter_by(id=programa_id, radio_config_id=radialista.id).first()
     if programa is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Programa nao encontrado")
+    from app.billing.contexto_ia import selecionar_programa
+    selecionar_programa(programa)
     return programa
 
 
@@ -929,6 +934,16 @@ def _fala_semelhante_no_historico(fala: str, historico_falas: list[str]) -> str 
 
 
 _FRASE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+# Instrucao de direcao vocal do eleven_v3 (so' entra no prompt quando a voz do programa e' v3).
+# Constante para o validador de combinacoes (scripts/validar_combinacoes.py) usar o mesmo texto.
+INSTRUCAO_TAGS_V3 = (
+    "Você pode inserir tags de direção vocal no ponto exato da fala onde fazem sentido, "
+    "escolhendo só entre: [excited], [calm], [laughs], [sighs], [whispers], [sarcastic]. Insira "
+    "cada tag imediatamente antes do trecho que ela deve afetar, no máximo 2 por fala, e só quando "
+    "o momento realmente pedir -- não force uma tag em toda fala. Nunca invente tag fora dessa lista."
+)
+
+
 # tag de direcao vocal do eleven_v3 que o LLM pode inserir inline na fala (ver instrucao
 # condicional em gerar_proxima_fala) -- removida antes de citar a frase de volta no prompt, pra
 # nao confundir o LLM com uma tag que nao faz parte do texto falado de verdade.
@@ -1270,7 +1285,7 @@ def _escolher_query_musica(
         if parsed is None:
             return False
         _, titulo = parsed
-        return _titulo_normalizado(titulo) in (titulos_tocados or set())
+        return titulo_ja_tocado(titulo, titulos_tocados or set())
 
     candidatos: list[str] = []
     pesos: list[float] = []
@@ -1424,7 +1439,7 @@ def _registrar_tema_em_background(programa_id: int, texto: str) -> None:
         except Exception:
             logger.warning("Falha ao registrar tema em background: programa_id=%s", programa_id, exc_info=True)
 
-    threading.Thread(target=_tarefa, daemon=True).start()
+    threading.Thread(target=tarefa_independente(_tarefa), daemon=True).start()
 
 
 # Contexto real de uma musica (tema/curiosidade, ver resumir_contexto_musica) nao muda depois
@@ -1466,7 +1481,9 @@ def _montar_bloco_musicas(
     musicas = [primeira]
     usados = {primeira.video_id}
     for citada in citadas or []:
-        if citada.video_id not in usados:
+        if citada.video_id not in usados and not titulo_ja_tocado(
+            citada.titulo, {_titulo_normalizado(m.titulo) for m in musicas}
+        ):
             musicas.append(citada)
             usados.add(citada.video_id)
     tentativas = 0
@@ -1475,7 +1492,7 @@ def _montar_bloco_musicas(
         extra = _buscar_musica_para_bloco(db, programa, rotulo_bloco)
         if extra is None:
             break
-        if extra.video_id in usados:
+        if extra.video_id in usados or titulo_ja_tocado(extra.titulo, {_titulo_normalizado(m.titulo) for m in musicas}):
             continue
         musicas.append(extra)
         usados.add(extra.video_id)
@@ -1512,10 +1529,17 @@ def _musicas_citadas_na_fala(
 
     ids_tocadas, titulos_tocados, canais_tocados = _historico_musicas(programa.id)
     ids_tocadas |= {m.video_id for m in ja_no_bloco}
+    # titulos do bloco e do historico do painel tambem contam -- citada que e' a mesma musica
+    # de uma delas (outra versao, outro "sotaque" de titulo) nao toca de novo em seguida.
+    titulos_tocados |= {_titulo_normalizado(t.rsplit(" - ", 1)[0]) for t in ignorar}
     resolvidas: list[MusicaEncontrada] = []
     for citada in citadas:
         encontrada = None
         parsed = dividir_artista_titulo(citada)
+        titulo_citado = parsed[1] if parsed is not None else citada
+        if titulo_ja_tocado(titulo_citado, titulos_tocados):
+            logger.info("live_musica_citada_ja_tocada programa_id=%s citada=%r", programa.id, citada)
+            continue
         if parsed is not None:
             artista, titulo = parsed
             encontrada = resolver_musica_catalogada(
@@ -1538,6 +1562,8 @@ def _musicas_citadas_na_fala(
                 exigir_cantada=True,
                 exigir_canal_oficial=True,
             )
+        if encontrada is not None and titulo_ja_tocado(encontrada.titulo, titulos_tocados):
+            continue
         if encontrada is None or encontrada.video_id in ids_tocadas:
             logger.warning("live_musica_citada_sem_faixa programa_id=%s citada=%r", programa.id, citada)
             continue
@@ -1802,7 +1828,7 @@ def _sintetizar_falas_multivoz(
     chamada /tts por linha (ver prepararAudio em useLiveEngine.ts). So a chamada de rede pra
     ElevenLabs roda em thread; parametros de voz ja foram resolvidos fora da paralelizacao (ver
     _preparar_parametros_multivoz). Item None no resultado = aquela linha falhou -- o frontend
-    cai pro /tts avulso so' pra ela, sem perder o bloco inteiro."""
+    pula só essa linha, sem repetir automaticamente uma chamada possivelmente cobrada."""
     resultados: list[str | None] = [None] * len(falas_bloco)
 
     def _uma_linha(indice: int) -> None:
@@ -1830,7 +1856,9 @@ def _sintetizar_falas_multivoz(
             )
 
     with ThreadPoolExecutor(max_workers=min(len(falas_bloco), _MAX_WORKERS_TTS_MULTIVOZ)) as executor:
-        list(executor.map(_uma_linha, range(len(falas_bloco))))
+        tarefas = [executor.submit(tarefa_com_contexto(_uma_linha, i)) for i in range(len(falas_bloco))]
+        for tarefa in tarefas:
+            tarefa.result()
 
     return resultados
 
@@ -2250,13 +2278,9 @@ def gerar_proxima_fala(
             "entendimento."
         )
 
-    if settings.elevenlabs_model == "eleven_v3" and categoria not in _CATEGORIAS_NOTICIA_LIKE:
-        system_prompt_linhas.append(
-            "Você pode inserir tags de direção vocal no ponto exato da fala onde fazem sentido, "
-            "escolhendo só entre: [excited], [calm], [laughs], [sighs], [whispers], [sarcastic]. Insira "
-            "cada tag imediatamente antes do trecho que ela deve afetar, no máximo 2 por fala, e só quando "
-            "o momento realmente pedir -- não force uma tag em toda fala. Nunca invente tag fora dessa lista."
-        )
+    # Modelo de voz do programa (combinação escolhida), não só o padrão global: Flash não usa tags.
+    if modelo_efetivo("tts", settings.elevenlabs_model) == "eleven_v3" and categoria not in _CATEGORIAS_NOTICIA_LIKE:
+        system_prompt_linhas.append(INSTRUCAO_TAGS_V3)
         if ultima_categoria is not None:
             system_prompt_linhas.append(
                 "Se usar uma tag logo na primeira frase (a entrada do bloco, ver ritmo mais medido acima), "
@@ -2798,7 +2822,11 @@ def gerar_proxima_fala(
             # Nao esconda o motivo nem faca o navegador repetir o mesmo request automaticamente.
             # A cama musical continua no ar enquanto o proximo bloco e preparado.
             audio_status = "falhou"
-            audio_erro = type(exc).__name__
+            audio_erro = (
+                "orcamento_ia_esgotado"
+                if isinstance(exc, HTTPException) and exc.status_code == 402
+                else type(exc).__name__
+            )
             logger.warning(
                 "live_audio_falhou request_id=%s programa_id=%s tipo=%s erro=%s",
                 request_id,
@@ -3028,6 +3056,12 @@ def gerar_audio_fala(
     db: Session = Depends(get_db),
 ):
     radialista = _buscar_radialista(db, account, radialista_id)
+    if dados.programa_id is not None:
+        # Fala do programa usa a voz da combinação escolhida para ele.
+        programa = db.query(Programa).filter_by(id=dados.programa_id, radio_config_id=radialista.id).first()
+        if programa is not None:
+            from app.billing.contexto_ia import selecionar_programa
+            selecionar_programa(programa)
 
     # Mesmo motivo do teto em /proxima (ver auditoria: item 4) -- sintese de audio tambem e'
     # paga (ElevenLabs) e este endpoint nao tinha nenhum limite ate' aqui.

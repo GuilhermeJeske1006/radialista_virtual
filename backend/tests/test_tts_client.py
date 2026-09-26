@@ -516,3 +516,53 @@ def test_excluir_voz_clonada_chama_delete(monkeypatch):
 def test_idioma_somente_em_modelos_compativeis(modelo, idioma):
     _, payload = tts_client._preparar_sintese('Olá!', None, None, False, None, modelo=modelo)
     assert payload.get('language_code') == idioma
+
+
+@pytest.mark.parametrize('stream', [False, True])
+def test_consumo_voz_usa_provedor_e_aguarda_entrega(monkeypatch, stream):
+    from unittest.mock import Mock
+    _habilitar_elevenlabs(monkeypatch)
+    headers = {'character-cost': '3', 'request-id': 'req-consumo'}
+    fake = (_FakeStreamClient([_FakeStreamResponse(headers=headers)]) if stream
+            else _FakeClient([_FakeResponse(headers=headers)]))
+    monkeypatch.setattr(tts_client.httpx, 'Client', lambda **kw: fake)
+    concluir = Mock()
+    monkeypatch.setattr(tts_client, 'reservar', lambda *a, **kw: 'uso-voz')
+    monkeypatch.setattr(tts_client, 'concluir', concluir)
+    gerar = tts_client.sintetizar_audio_stream if stream else tts_client.sintetizar_audio
+    resultado = gerar('Texto bem maior que três caracteres.', reutilizar_audio=False)
+    if stream:
+        b''.join(resultado)
+    concluir.assert_called_once_with('uso-voz', unidades={'caracteres': '3'},
+                                    entregue=None, request_id='req-consumo')
+
+
+@pytest.mark.parametrize('stream', [False, True])
+def test_audio_vazio_nao_gera_cobranca(monkeypatch, stream):
+    from unittest.mock import Mock
+    _habilitar_elevenlabs(monkeypatch)
+    fake = (_FakeStreamClient([_FakeStreamResponse(chunks=())]) if stream
+            else _FakeClient([_FakeResponse(content=b'')]))
+    monkeypatch.setattr(tts_client.httpx, 'Client', lambda **kw: fake)
+    concluir, falhar = Mock(), Mock()
+    monkeypatch.setattr(tts_client, 'reservar', lambda *a, **kw: 'uso-vazio')
+    monkeypatch.setattr(tts_client, 'concluir', concluir)
+    monkeypatch.setattr(tts_client, 'falhar', falhar)
+    with pytest.raises(tts_client.HTTPException):
+        if stream:
+            b''.join(tts_client.sintetizar_audio_stream('Oi', reutilizar_audio=False))
+        else:
+            tts_client.sintetizar_audio('Oi', reutilizar_audio=False)
+    concluir.assert_not_called()
+    falhar.assert_called_once_with('uso-vazio')
+
+
+@pytest.mark.parametrize('valor', ['NaN', 'Infinity', '-1', 'inválido'])
+def test_consumo_invalido_nao_vira_estimativa(valor):
+    with pytest.raises(tts_client.HTTPException):
+        tts_client.unidades_sintese(_FakeResponse(headers={'character-cost': valor}), {'text': 'Oi'})
+
+
+def test_consumo_zero_e_ausencia_de_header():
+    assert tts_client.unidades_sintese(_FakeResponse(headers={'character-cost': '0'}), {'text': 'Oi'}) == {'caracteres': '0'}
+    assert tts_client.unidades_sintese(_FakeResponse(), {'text': 'Oi'}) == {'caracteres': 2}

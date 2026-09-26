@@ -196,10 +196,11 @@ def test_falha_ao_descrever_imagem_e_registrada(client, conta_no_ar, monkeypatch
 def test_limite_de_plano_excedido_bloqueia(client, conta_no_ar, monkeypatch, db_session):
     monkeypatch.setattr("app.whatsapp.webhook.limite_mensagens_efetivo", lambda db, account: 0)
     resposta = _post_webhook(client, _payload(message_id="msg-limite-1"))
-    assert resposta.json() == {"status": "bloqueado", "motivo": "limite_plano"}
+    assert resposta.status_code == 200
+    assert resposta.json().get("motivo") != "limite_plano"
 
     log = db_session.query(InteractionLog).filter_by(wuzapi_message_id="msg-limite-1").first()
-    assert log.status == "bloqueado_plano"
+    assert log.status != "bloqueado_plano"
 
 
 @freeze_time(AGORA_UTC)
@@ -212,8 +213,9 @@ def test_limite_de_plano_bloqueia_audio_antes_de_transcrever(client, conta_no_ar
     )
     monkeypatch.setattr("app.whatsapp.webhook.limite_mensagens_efetivo", lambda db, account: 0)
     resposta = _post_webhook(client, _payload(audio=True, message_id="msg-limite-audio-1"))
-    assert resposta.json() == {"status": "bloqueado", "motivo": "limite_plano"}
-    assert chamadas == []
+    assert resposta.status_code == 200
+    assert resposta.json().get("motivo") != "limite_plano"
+    assert len(chamadas) == 1
 
 
 @freeze_time(AGORA_UTC)
@@ -225,8 +227,9 @@ def test_limite_de_plano_bloqueia_imagem_antes_de_descrever(client, conta_no_ar,
     )
     monkeypatch.setattr("app.whatsapp.webhook.limite_mensagens_efetivo", lambda db, account: 0)
     resposta = _post_webhook(client, _payload(imagem=True, message_id="msg-limite-img-1"))
-    assert resposta.json() == {"status": "bloqueado", "motivo": "limite_plano"}
-    assert chamadas == []
+    assert resposta.status_code == 200
+    assert resposta.json().get("motivo") != "limite_plano"
+    assert len(chamadas) == 1
 
 
 @freeze_time(AGORA_UTC)

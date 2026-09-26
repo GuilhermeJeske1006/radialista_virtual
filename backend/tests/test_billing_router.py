@@ -1,456 +1,89 @@
-import json
 from types import SimpleNamespace
-
-from app.models.compra_excedente import CompraExcedente
-from app.models.notificacao import Notificacao
-from app.models.radio_config import RadioConfig
-
-
-def test_status_plano(client, account, auth_headers, db_session):
-    db_session.add(RadioConfig(account_id=account.id))
-    db_session.commit()
-
-    resposta = client.get("/billing/status", headers=auth_headers(account.id))
-    assert resposta.status_code == 200
-    corpo = resposta.json()
-    assert corpo["agentes_usados"] == 1
-    assert corpo["plano"] == account.plano
-
-
-def test_checkout_devolve_client_secret_da_sessao(client, account, auth_headers, monkeypatch):
-    capturado = {}
-
-    def _fake_criar_sessao(acc, plano_id, db, usar_cartao_salvo=False):
-        capturado["plano_id"] = plano_id
-        pi = SimpleNamespace(client_secret="cs_test_secret123")
-        return SimpleNamespace(id="sub_test_funnel", latest_invoice=SimpleNamespace(payment_intent=pi))
-
-    monkeypatch.setattr("app.billing.router.criar_sessao_checkout", _fake_criar_sessao)
-    resposta = client.post(
-        "/billing/checkout", json={"plano_id": "growth"}, headers=auth_headers(account.id)
-    )
-    assert resposta.status_code == 200
-    assert resposta.json()["client_secret"] == "cs_test_secret123"
-    assert capturado["plano_id"] == "growth"
-
-
-def test_checkout_rejeita_plano_invalido(client, account, auth_headers):
-    resposta = client.post(
-        "/billing/checkout", json={"plano_id": "inexistente"}, headers=auth_headers(account.id)
-    )
-    assert resposta.status_code == 400
-
-
-def test_checkout_rejeita_se_ja_ativo(client, account_factory, auth_headers):
-    account = account_factory(email="ativo-checkout@a.com", plano_status="ativo")
-    resposta = client.post(
-        "/billing/checkout", json={"plano_id": "growth"}, headers=auth_headers(account.id)
-    )
-    assert resposta.status_code == 400
-
-
-def test_trocar_plano_exige_assinatura_ativa(client, account, auth_headers):
-    resposta = client.post(
-        "/billing/trocar-plano", json={"plano_id": "growth"}, headers=auth_headers(account.id)
-    )
-    assert resposta.status_code == 402
-
-
-def test_trocar_plano_rejeita_mesmo_plano(client, account_factory, auth_headers):
-    account = account_factory(
-        email="mesmo-plano@a.com", plano_status="ativo", plano="growth", stripe_subscription_id="sub_1"
-    )
-    resposta = client.post(
-        "/billing/trocar-plano", json={"plano_id": "growth"}, headers=auth_headers(account.id)
-    )
-    assert resposta.status_code == 400
-
-
-def test_trocar_plano_troca_e_atualiza_status(client, account_factory, auth_headers, db_session, monkeypatch):
-    account = account_factory(
-        email="troca-plano@a.com", plano_status="ativo", plano="starter", stripe_subscription_id="sub_1"
-    )
-    monkeypatch.setattr("app.billing.router.trocar_plano_assinatura", lambda acc, plano_id: None)
-
-    resposta = client.post(
-        "/billing/trocar-plano", json={"plano_id": "professional"}, headers=auth_headers(account.id)
-    )
-    assert resposta.status_code == 200
-    assert resposta.json()["plano"] == "professional"
-
-    db_session.refresh(account)
-    assert account.plano == "professional"
-
-
-def test_portal_exige_customer_id(client, account, auth_headers):
-    resposta = client.post("/billing/portal", headers=auth_headers(account.id))
-    assert resposta.status_code == 402
-
-
-def test_portal_devolve_url_da_sessao(client, account_factory, auth_headers, monkeypatch):
-    account = account_factory(email="portal@a.com", stripe_customer_id="cus_123")
-    monkeypatch.setattr(
-        "app.billing.router.criar_portal_sessao",
-        lambda acc: SimpleNamespace(url="https://billing.stripe.com/portal123"),
-    )
-    resposta = client.post("/billing/portal", headers=auth_headers(account.id))
-    assert resposta.status_code == 200
-    assert resposta.json()["url"] == "https://billing.stripe.com/portal123"
-
-
-def test_cartao_sem_customer_id(client, account, auth_headers):
-    resposta = client.get("/billing/cartao", headers=auth_headers(account.id))
-    assert resposta.status_code == 200
-    assert resposta.json()["cartao"] is None
-
-
-def test_cartao_devolve_bandeira_e_ultimos_digitos(client, account_factory, auth_headers, monkeypatch):
-    account = account_factory(email="cartao@a.com", stripe_customer_id="cus_456")
-    monkeypatch.setattr(
-        "app.billing.router.obter_cartao_mais_recente",
-        lambda acc: {"bandeira": "visa", "final": "4242", "mes_expiracao": 12, "ano_expiracao": 2030},
-    )
-    resposta = client.get("/billing/cartao", headers=auth_headers(account.id))
-    assert resposta.status_code == 200
-    assert resposta.json()["cartao"] == {
-        "bandeira": "visa",
-        "final": "4242",
-        "mes_expiracao": 12,
-        "ano_expiracao": 2030,
-    }
-
-
-def test_checkout_agente_extra_exige_plano_ativo(client, account, auth_headers):
-    assert account.plano_status != "ativo"
-    resposta = client.post("/billing/agentes-extras/checkout", headers=auth_headers(account.id))
-    assert resposta.status_code == 402
-
-
-def test_checkout_agente_extra_com_plano_ativo(client, account_factory, auth_headers, monkeypatch):
-    account = account_factory(email="ativo@a.com", plano_status="ativo")
-    monkeypatch.setattr(
-        "app.billing.router.criar_sessao_checkout_agente_extra",
-        lambda acc, db, usar_cartao_salvo=False: SimpleNamespace(
-            latest_invoice=SimpleNamespace(payment_intent=SimpleNamespace(client_secret="cs_test_extra123"))
-        ),
-    )
-    resposta = client.post("/billing/agentes-extras/checkout", headers=auth_headers(account.id))
-    assert resposta.status_code == 200
-
-
-def test_checkout_usar_cartao_salvo_sem_cartao_devolve_400(client, account, auth_headers, monkeypatch):
-    from app.billing.stripe_client import CartaoSalvoNaoEncontrado
-
-    def _sem_cartao(acc, plano_id, db, usar_cartao_salvo=False):
-        raise CartaoSalvoNaoEncontrado()
-
-    monkeypatch.setattr("app.billing.router.criar_sessao_checkout", _sem_cartao)
-    resposta = client.post(
-        "/billing/checkout",
-        json={"plano_id": "growth", "usar_cartao_salvo": True},
-        headers=auth_headers(account.id),
-    )
-    assert resposta.status_code == 400
-
-
-def test_checkout_agente_extra_usa_cartao_salvo(client, account_factory, auth_headers, monkeypatch):
-    account = account_factory(email="cartaosalvo-extra@a.com", plano_status="ativo")
-    capturado = {}
-
-    def _fake(acc, db, usar_cartao_salvo=False):
-        capturado["usar_cartao_salvo"] = usar_cartao_salvo
-        pi = SimpleNamespace(client_secret="cs_reuso123")
-        return SimpleNamespace(id="sub_test_funnel", latest_invoice=SimpleNamespace(payment_intent=pi))
-
-    monkeypatch.setattr("app.billing.router.criar_sessao_checkout_agente_extra", _fake)
-    resposta = client.post(
-        "/billing/agentes-extras/checkout",
-        json={"usar_cartao_salvo": True},
-        headers=auth_headers(account.id),
-    )
-    assert resposta.status_code == 200
-    assert resposta.json()["client_secret"] == "cs_reuso123"
-    assert capturado["usar_cartao_salvo"] is True
-
-
-def test_checkout_excedente_usar_cartao_salvo_sem_cartao_devolve_400(client, account_factory, auth_headers, monkeypatch):
-    from app.billing.stripe_client import CartaoSalvoNaoEncontrado
-
-    account = account_factory(email="cartaosalvo-excedente@a.com", plano_status="ativo")
-
-    def _sem_cartao(acc, blocos, db, usar_cartao_salvo=False):
-        raise CartaoSalvoNaoEncontrado()
-
-    monkeypatch.setattr("app.billing.router.criar_sessao_checkout_excedente_mensagens", _sem_cartao)
-    resposta = client.post(
-        "/billing/excedente-mensagens/checkout",
-        json={"blocos": 1, "usar_cartao_salvo": True},
-        headers=auth_headers(account.id),
-    )
-    assert resposta.status_code == 400
-
-
-def test_checkout_excedente_mensagens_valida_blocos(client, account_factory, auth_headers):
-    account = account_factory(email="ativo@a.com", plano_status="ativo")
-    resposta = client.post(
-        "/billing/excedente-mensagens/checkout", json={"blocos": 0}, headers=auth_headers(account.id)
-    )
-    assert resposta.status_code == 422
-
-
-def _linha_invoice(metadata: dict, subscription_id: str) -> dict:
-    # A API version dessa conta Stripe nao tem mais "subscription"/"subscription_details" no
-    # nivel raiz da invoice -- o metadata da subscription e a referencia pra ela vem no line
-    # item (sempre 1 por invoice nos nossos fluxos, um price por assinatura).
-    return {
-        "data": [
-            {
-                "metadata": metadata,
-                "parent": {"subscription_item_details": {"subscription": subscription_id}},
-            }
-        ]
-    }
-
-
-def test_webhook_invoice_paid_assinatura_ativa_conta(client, account, db_session, monkeypatch):
-    radio_config = RadioConfig(account_id=account.id, ativo=False)
-    db_session.add(radio_config)
-    db_session.commit()
-
-    evento = {
-        "type": "invoice.paid",
-        "data": {
-            "object": {
-                "billing_reason": "subscription_create",
-                "customer": "cus_123",
-                "lines": _linha_invoice(
-                    {"tipo": "assinatura", "plano": "growth", "account_id": str(account.id)}, "sub_123"
-                ),
-            }
-        },
-    }
-    monkeypatch.setattr("app.billing.router.stripe.Webhook.construct_event", lambda *a, **k: evento)
-
-    resposta = client.post(
-        "/billing/webhook", content=json.dumps(evento), headers={"stripe-signature": "fake"}
-    )
-    assert resposta.status_code == 200
-
-    db_session.refresh(account)
-    db_session.refresh(radio_config)
-    assert account.plano_status == "ativo"
-    assert account.plano == "growth"
-    assert account.stripe_subscription_id == "sub_123"
-    assert radio_config.ativo is True
-
-    notificacao = db_session.query(Notificacao).filter_by(tipo="billing").first()
-    assert notificacao is not None
-    assert notificacao.titulo == "Assinatura ativada"
-
-
-def test_webhook_invoice_paid_ignora_renovacao_mensal(client, account, db_session, monkeypatch):
-    # billing_reason=="subscription_cycle" e' renovacao, nao ativacao inicial -- nao pode
-    # reprocessar a ativacao (nem incrementar agentes_extras) todo mes.
-    evento = {
-        "type": "invoice.paid",
-        "data": {
-            "object": {
-                "billing_reason": "subscription_cycle",
-                "customer": "cus_123",
-                "lines": _linha_invoice({"tipo": "agente_extra", "account_id": str(account.id)}, "sub_123"),
-            }
-        },
-    }
-    monkeypatch.setattr("app.billing.router.stripe.Webhook.construct_event", lambda *a, **k: evento)
-
-    resposta = client.post(
-        "/billing/webhook", content=json.dumps(evento), headers={"stripe-signature": "fake"}
-    )
-    assert resposta.status_code == 200
-    db_session.refresh(account)
-    assert account.agentes_extras == 0
-
-
-def test_webhook_assinatura_invalida_retorna_400(client, monkeypatch):
-    def _levanta(*args, **kwargs):
-        raise ValueError("assinatura invalida")
-
-    monkeypatch.setattr("app.billing.router.stripe.Webhook.construct_event", _levanta)
-    resposta = client.post("/billing/webhook", content="{}", headers={"stripe-signature": "fake"})
-    assert resposta.status_code == 400
-
-
-def test_webhook_agente_extra_incrementa_contador(client, account, db_session, monkeypatch):
-    evento = {
-        "type": "invoice.paid",
-        "data": {
-            "object": {
-                "billing_reason": "subscription_create",
-                "customer": "cus_123",
-                "lines": _linha_invoice({"tipo": "agente_extra", "account_id": str(account.id)}, "sub_extra_1"),
-            }
-        },
-    }
-    monkeypatch.setattr("app.billing.router.stripe.Webhook.construct_event", lambda *a, **k: evento)
-
-    resposta = client.post(
-        "/billing/webhook", content=json.dumps(evento), headers={"stripe-signature": "fake"}
-    )
-    assert resposta.status_code == 200
-    db_session.refresh(account)
-    assert account.agentes_extras == 1
-
-
-def test_webhook_agente_extra_ignora_reentrega_do_mesmo_evento(client, account, db_session, monkeypatch):
-    # Stripe reentrega o mesmo evento em retry (ex.: timeout na resposta) -- sem dedupe por
-    # evento.id isso incrementaria agentes_extras de novo a cada reentrega.
-    evento = {
-        "id": "evt_agente_extra_1",
-        "type": "invoice.paid",
-        "data": {
-            "object": {
-                "billing_reason": "subscription_create",
-                "customer": "cus_123",
-                "lines": _linha_invoice({"tipo": "agente_extra", "account_id": str(account.id)}, "sub_extra_1"),
-            }
-        },
-    }
-    monkeypatch.setattr("app.billing.router.stripe.Webhook.construct_event", lambda *a, **k: evento)
-
-    for _ in range(2):
-        resposta = client.post(
-            "/billing/webhook", content=json.dumps(evento), headers={"stripe-signature": "fake"}
-        )
-        assert resposta.status_code == 200
-
-    db_session.refresh(account)
-    assert account.agentes_extras == 1
-
-
-def test_webhook_payment_intent_succeeded_credita_excedente(client, account, db_session, monkeypatch):
-    evento = {
-        "type": "payment_intent.succeeded",
-        "data": {
-            "object": {
-                "customer": "cus_123",
-                "metadata": {"tipo": "excedente_mensagens", "blocos": "3", "account_id": str(account.id)},
-            }
-        },
-    }
-    monkeypatch.setattr("app.billing.router.stripe.Webhook.construct_event", lambda *a, **k: evento)
-
-    resposta = client.post(
-        "/billing/webhook", content=json.dumps(evento), headers={"stripe-signature": "fake"}
-    )
-    assert resposta.status_code == 200
-
-    compra = db_session.query(CompraExcedente).filter_by(account_id=account.id).first()
-    assert compra is not None
-    assert compra.quantidade == 3000
-
-
-def test_webhook_payment_intent_succeeded_ignora_pagamento_de_invoice(client, account, db_session, monkeypatch):
-    # PaymentIntent de uma invoice de assinatura tambem dispara payment_intent.succeeded --
-    # so' o metadata.tipo=="excedente_mensagens" (setado por nos' na compra avulsa) autoriza credito.
-    evento = {
-        "type": "payment_intent.succeeded",
-        "data": {"object": {"customer": "cus_123", "metadata": {}}},
-    }
-    monkeypatch.setattr("app.billing.router.stripe.Webhook.construct_event", lambda *a, **k: evento)
-
-    resposta = client.post(
-        "/billing/webhook", content=json.dumps(evento), headers={"stripe-signature": "fake"}
-    )
-    assert resposta.status_code == 200
-    assert db_session.query(CompraExcedente).filter_by(account_id=account.id).first() is None
-
-
-def test_webhook_subscription_updated_sincroniza_plano_pelo_price(
-    client, account_factory, db_session, monkeypatch
-):
-    account = account_factory(
-        email="sync-plano@a.com",
-        plano_status="ativo",
-        plano="starter",
-        stripe_customer_id="cus_123",
-        stripe_subscription_id="sub_principal",
-    )
-
-    evento = {
-        "type": "customer.subscription.updated",
-        "data": {
-            "object": {
-                "id": "sub_principal",
-                "customer": "cus_123",
-                "status": "active",
-                "items": {"data": [{"price": {"id": "price_growth_fake"}}]},
-            }
-        },
-    }
-    monkeypatch.setattr("app.billing.router.stripe.Webhook.construct_event", lambda *a, **k: evento)
-    monkeypatch.setattr(
-        "app.billing.router.plano_por_price_id",
-        lambda price_id: "growth" if price_id == "price_growth_fake" else None,
-    )
-
-    resposta = client.post(
-        "/billing/webhook", content=json.dumps(evento), headers={"stripe-signature": "fake"}
-    )
-    assert resposta.status_code == 200
-    db_session.refresh(account)
-    assert account.plano == "growth"
-    assert account.plano_status == "ativo"
-
-
-def test_webhook_assinatura_cancelada_desativa_conta(client, account, db_session, monkeypatch):
-    account.plano_status = "ativo"
-    account.stripe_customer_id = "cus_123"
-    account.stripe_subscription_id = "sub_principal"
-    radio_config = RadioConfig(account_id=account.id, ativo=True)
-    db_session.add(radio_config)
-    db_session.commit()
-
-    evento = {
-        "type": "customer.subscription.deleted",
-        "data": {"object": {"id": "sub_principal", "customer": "cus_123"}},
-    }
-    monkeypatch.setattr("app.billing.router.stripe.Webhook.construct_event", lambda *a, **k: evento)
-
-    resposta = client.post(
-        "/billing/webhook", content=json.dumps(evento), headers={"stripe-signature": "fake"}
-    )
-    assert resposta.status_code == 200
-    db_session.refresh(account)
-    db_session.refresh(radio_config)
-    assert account.plano_status == "cancelado"
-    assert radio_config.ativo is False
-
-    notificacao = db_session.query(Notificacao).filter_by(tipo="billing").first()
-    assert notificacao is not None
-    assert notificacao.titulo == "Assinatura cancelada"
-
-
-def test_webhook_subscription_deleted_ignora_subscription_de_agente_extra(client, account, db_session, monkeypatch):
-    # Cada agente extra comprado gera sua PROPRIA subscription no Stripe (fora da assinatura
-    # principal do plano) -- cancelar uma dessas nao pode derrubar a conta inteira.
-    account.plano_status = "ativo"
-    account.stripe_customer_id = "cus_123"
-    account.stripe_subscription_id = "sub_principal"
-    radio_config = RadioConfig(account_id=account.id, ativo=True)
-    db_session.add(radio_config)
-    db_session.commit()
-
-    evento = {
-        "type": "customer.subscription.deleted",
-        "data": {"object": {"id": "sub_agente_extra", "customer": "cus_123"}},
-    }
-    monkeypatch.setattr("app.billing.router.stripe.Webhook.construct_event", lambda *a, **k: evento)
-
-    resposta = client.post(
-        "/billing/webhook", content=json.dumps(evento), headers={"stripe-signature": "fake"}
-    )
-    assert resposta.status_code == 200
-    db_session.refresh(account)
-    db_session.refresh(radio_config)
-    assert account.plano_status == "ativo"
-    assert radio_config.ativo is True
+from unittest.mock import MagicMock
+import hashlib
+import hmac
+import json
+import time
+import pytest
+from app.billing import router as billing
+from app.config.settings import settings
+from app.models.consumo_flex import EventoCobranca, FaturaConsumo
+
+
+@pytest.fixture
+def stripe_api(monkeypatch):
+    c = MagicMock()
+    monkeypatch.setattr(billing, 'cliente', lambda: c)
+    return c
+
+
+def evento(client, tipo, dados, ident='evt_1'):
+    body=json.dumps({'object':'event','id':ident,'type':tipo,'created':int(time.time()),'data':{'object':dados}}).encode()
+    ts=str(int(time.time()))
+    sig=hmac.new(settings.stripe_webhook_secret.encode(), ts.encode()+b'.'+body,hashlib.sha256).hexdigest()
+    return client.post('/billing/webhook',content=body,headers={'stripe-signature':f't={ts},v1={sig}'})
+
+
+def test_webhook_rejeita_assinatura_invalida(client):
+    assert client.post('/billing/webhook',json={}).status_code == 400
+
+
+@pytest.mark.parametrize('endpoint',['/billing/agentes-extras/checkout','/billing/excedente-mensagens/checkout','/billing/trocar-plano'])
+def test_ofertas_antigas_encerradas(client, account, auth_headers,endpoint):
+    assert client.post(endpoint,json={},headers=auth_headers(account.id)).status_code == 410
+
+
+def test_checkout_flex(client, account, auth_headers, monkeypatch):
+    monkeypatch.setattr(billing, 'criar_sessao_checkout',lambda *a: SimpleNamespace(latest_invoice={'confirmation_secret':{'client_secret':'pi_secret'}}))
+    r=client.post('/billing/checkout',json={'plano_id':'flex'},headers=auth_headers(account.id))
+    assert r.status_code == 200 and r.json()['client_secret'] == 'pi_secret'
+    assert client.post('/billing/checkout',json={'plano_id':'growth'},headers=auth_headers(account.id)).status_code == 400
+
+
+@pytest.mark.parametrize('reason',['subscription_create','subscription_cycle'])
+def test_pagamento_ativa_primeira_e_renovacao(client, db_session, account_factory, stripe_api,reason):
+    a=account_factory(stripe_customer_id='cus_1',stripe_subscription_id='sub_1',plano_status='inadimplente')
+    invoice={'id':'in_1','customer':'cus_1','parent':{'subscription_details':{'subscription':'sub_1'}},
+        'status':'paid','period_start':1000,'period_end':2000,'total':6990,'billing_reason':reason}
+    stripe_api.v1.invoices.retrieve.return_value=invoice
+    assert evento(client,'invoice.paid',invoice).status_code == 200
+    db_session.refresh(a)
+    assert a.plano_status == 'ativo' and a.plano == 'flex'
+    assert db_session.get(FaturaConsumo,'in_1').estado == 'paga'
+    assert evento(client,'invoice.paid',invoice).json()['status']=='duplicado'
+    assert db_session.query(EventoCobranca).count()==1
+
+
+def test_falha_atrasada_nao_reabre_divida_paga(client, db_session, account_factory,stripe_api):
+    a=account_factory(stripe_customer_id='cus_1',stripe_subscription_id='sub_1',plano_status='ativo')
+    paid={'id':'in_1','customer':'cus_1','subscription':'sub_1','status':'paid','period_start':1000,'period_end':2000,'total':6990}
+    stripe_api.v1.invoices.retrieve.return_value=paid
+    assert evento(client,'invoice.payment_failed',{**paid,'status':'open'}).status_code==200
+    db_session.refresh(a)
+    assert a.plano_status=='ativo'
+
+
+def test_falha_retentativa_na_mesma_fatura(client, db_session,account_factory,stripe_api):
+    a=account_factory(stripe_customer_id='cus_1',stripe_subscription_id='sub_1',plano_status='ativo')
+    invoice={'id':'in_1','customer':'cus_1','subscription':'sub_1','status':'open','period_start':1000,'period_end':2000,'total':6990}
+    stripe_api.v1.invoices.retrieve.return_value=invoice
+    assert evento(client,'invoice.payment_failed',invoice).status_code==200
+    db_session.refresh(a); assert a.plano_status=='inadimplente'
+    stripe_api.v1.invoices.retrieve.return_value={**invoice,'status':'paid'}
+    assert evento(client,'invoice.paid',invoice,'evt_2').status_code==200
+    db_session.refresh(a); assert a.plano_status=='ativo'
+    assert db_session.query(FaturaConsumo).count()==1
+
+
+def test_evento_nao_confirmado_em_falha_pode_ser_reentregue(client,db_session,account_factory,stripe_api):
+    account_factory(stripe_customer_id='cus_1',stripe_subscription_id='sub_1')
+    stripe_api.v1.invoices.retrieve.side_effect=RuntimeError('indisponível')
+    with pytest.raises(RuntimeError): evento(client,'invoice.paid',{'id':'in_1','customer':'cus_1'})
+    assert db_session.get(EventoCobranca,'evt_1') is None
+
+
+def test_evento_outra_assinatura_nao_altera_conta(client,db_session,account_factory,stripe_api):
+    a=account_factory(stripe_customer_id='cus_1',stripe_subscription_id='sub_principal',plano_status='ativo')
+    assert evento(client,'customer.subscription.deleted',{'id':'sub_outra','customer':'cus_1'}).status_code==200
+    db_session.refresh(a); assert a.plano_status=='ativo'
+    stripe_api.v1.subscriptions.retrieve.assert_not_called()

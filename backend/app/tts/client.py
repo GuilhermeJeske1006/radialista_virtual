@@ -1,4 +1,5 @@
 import logging
+from decimal import Decimal, InvalidOperation
 import random
 import re
 import time
@@ -7,6 +8,10 @@ from collections.abc import Iterator
 import httpx
 
 from app.config.settings import settings
+from app.billing.contexto_ia import modelo_efetivo
+from app.tts.cache import cache_audio
+from app.billing.consumo_ia import reservar, concluir, falhar
+from fastapi import HTTPException
 from app.numeros import normalizar_texto_fala
 from app.util.texto import sem_acento as _sem_acento
 
@@ -271,7 +276,7 @@ def _preparar_sintese(
         "xi-api-key": settings.elevenlabs_api_key,
         "Content-Type": "application/json",
     }
-    modelo = modelo or settings.elevenlabs_model
+    modelo = modelo or modelo_efetivo("tts", settings.elevenlabs_model)
     voice_settings = _construir_voice_settings(tipo_bloco, tom, modelo, eh_clonada, voice_id)
     if perfil == "natural":
         voice_settings = {"stability": 0.5, "style": 0.0, "speed": 1.0}
@@ -310,6 +315,34 @@ def _preparar_sintese(
     return headers, payload
 
 
+def _custo_sintese(payload: dict) -> float:
+    tarifa = settings.ia_tarifas_tts.get(payload["model_id"])
+    if tarifa is None or tarifa < 0:
+        raise HTTPException(503, "Tarifa de voz não configurada")
+    return len(payload["text"]) / 1000 * tarifa
+
+
+def unidades_sintese(response, payload):
+    """Prefere caracteres faturados pelo provedor; sem header, mede o texto enviado.
+
+    Fonte: https://elevenlabs.io/docs/api-reference/introduction
+    O header é uma quantidade, não um valor monetário. A tarifa do modelo e
+    o acréscimo são aplicados uma única vez pelo ledger.
+    """
+    valor = response.headers.get("character-cost")
+    if valor is not None:
+        try:
+            caracteres = Decimal(valor)
+            if not caracteres.is_finite() or caracteres < 0:
+                raise ValueError()
+            return {"caracteres": str(caracteres)}
+        except (InvalidOperation, ValueError, TypeError):
+            raise HTTPException(502, "Provedor retornou consumo de voz inválido") from None
+    logger.warning("TTS sem character-cost; consumo calculado pelos caracteres enviados")
+    return {"caracteres": len(payload["text"])}
+
+
+@cache_audio
 def sintetizar_audio(
     texto: str,
     voice_id: str | None = None,
@@ -323,6 +356,7 @@ def sintetizar_audio(
     perfil: str = "atual",
     pronuncias: dict[str, str] | None = None,
     formato: str = "mp3_44100_128",
+    reutilizar_audio: bool = True,
 ) -> bytes:
     """Gera audio (mp3) a partir de texto via ElevenLabs. Lanca httpx.HTTPStatusError em falha.
 
@@ -353,21 +387,34 @@ def sintetizar_audio(
     # O ao vivo nao pode ficar preso meio minuto numa unica fala. O frontend ja prepara o
     # proximo bloco em paralelo; se este provedor nao responder em tempo de radio, o bloco
     # seguinte assume com a cama musical ainda no ar.
-    with httpx.Client(timeout=timeout_segundos) as client:
-        for tentativa in range(1, max_tentativas + 1):
-            response = client.post(url, headers=headers, json=payload)
-            if response.status_code != 429 or tentativa == max_tentativas:
-                if response.status_code >= 400:
-                    logger.warning("Falha ao sintetizar audio na ElevenLabs (%s)", response.status_code)
-                response.raise_for_status()
-                return response.content
+    custo_usd = _custo_sintese(payload)
+    reserva = reservar("tts", payload["model_id"], custo_usd, unidades_max={"caracteres": len(payload["text"])})
+    try:
+        with httpx.Client(timeout=timeout_segundos) as client:
+            for tentativa in range(1, max_tentativas + 1):
+                response = client.post(url, headers=headers, json=payload)
+                if response.status_code != 429 or tentativa == max_tentativas:
+                    if response.status_code >= 400:
+                        logger.warning("Falha ao sintetizar audio na ElevenLabs (%s)", response.status_code)
+                    response.raise_for_status()
+                    if not response.content:
+                        raise HTTPException(502, "Provedor retornou áudio vazio")
+                    concluir(reserva, unidades=unidades_sintese(response, payload), entregue=None,
+                             request_id=response.headers.get("request-id"))
+                    logger.info("tts_consumo modelo=%s caracteres=%s usd=%.6f", payload["model_id"], len(payload["text"]), custo_usd)
+                    return response.content
 
-            logger.warning("Rate limit da ElevenLabs (429) na tentativa %s/%s", tentativa, max_tentativas)
-            espera = float(response.headers.get("retry-after", 0)) or _TTS_BACKOFF_BASE_SEGUNDOS * tentativa
-            espera = min(espera, _TTS_MAX_ESPERA_RETRY_SEGUNDOS)
-            time.sleep(espera)
+                logger.warning("Rate limit da ElevenLabs (429) na tentativa %s/%s", tentativa, max_tentativas)
+                espera = float(response.headers.get("retry-after", 0)) or _TTS_BACKOFF_BASE_SEGUNDOS * tentativa
+                espera = min(espera, _TTS_MAX_ESPERA_RETRY_SEGUNDOS)
+                time.sleep(espera)
 
 
+    except BaseException:
+        falhar(reserva)
+        raise
+
+@cache_audio
 def sintetizar_audio_stream(
     texto: str,
     voice_id: str | None = None,
@@ -379,6 +426,7 @@ def sintetizar_audio_stream(
     perfil: str = "atual",
     pronuncias: dict[str, str] | None = None,
     formato: str = "mp3_44100_128",
+    reutilizar_audio: bool = True,
 ) -> Iterator[bytes]:
     """Mesma sintese de sintetizar_audio, via endpoint de streaming da ElevenLabs -- devolve os
     bytes do mp3 conforme chegam em vez de esperar o audio inteiro antes de responder, cortando a
@@ -396,27 +444,42 @@ def sintetizar_audio_stream(
     if formato != "mp3_44100_128":
         url += f"?output_format={formato}"
 
-    with httpx.Client(timeout=_TTS_TIMEOUT_SEGUNDOS) as client:
-        for tentativa in range(1, _TTS_MAX_TENTATIVAS + 1):
-            with client.stream("POST", url, headers=headers, json=payload) as response:
-                if response.status_code == 429 and tentativa < _TTS_MAX_TENTATIVAS:
-                    response.read()  # drena o corpo pra liberar a conexao antes do backoff
-                    logger.warning(
-                        "Rate limit da ElevenLabs (429) na tentativa %s/%s (streaming)",
-                        tentativa,
-                        _TTS_MAX_TENTATIVAS,
-                    )
-                    espera = float(response.headers.get("retry-after", 0)) or _TTS_BACKOFF_BASE_SEGUNDOS * tentativa
-                    espera = min(espera, _TTS_MAX_ESPERA_RETRY_SEGUNDOS)
-                    time.sleep(espera)
-                    continue
-                if response.status_code >= 400:
-                    response.read()
-                    logger.warning("Falha ao sintetizar audio (streaming) na ElevenLabs (%s)", response.status_code)
-                    response.raise_for_status()
-                yield from response.iter_bytes()
-                return
+    custo_usd = _custo_sintese(payload)
+    reserva = reservar("tts", payload["model_id"], custo_usd, unidades_max={"caracteres": len(payload["text"])})
+    try:
+        with httpx.Client(timeout=_TTS_TIMEOUT_SEGUNDOS) as client:
+            for tentativa in range(1, _TTS_MAX_TENTATIVAS + 1):
+                with client.stream("POST", url, headers=headers, json=payload) as response:
+                    if response.status_code == 429 and tentativa < _TTS_MAX_TENTATIVAS:
+                        response.read()  # drena o corpo pra liberar a conexao antes do backoff
+                        logger.warning(
+                            "Rate limit da ElevenLabs (429) na tentativa %s/%s (streaming)",
+                            tentativa,
+                            _TTS_MAX_TENTATIVAS,
+                        )
+                        espera = float(response.headers.get("retry-after", 0)) or _TTS_BACKOFF_BASE_SEGUNDOS * tentativa
+                        espera = min(espera, _TTS_MAX_ESPERA_RETRY_SEGUNDOS)
+                        time.sleep(espera)
+                        continue
+                    if response.status_code >= 400:
+                        response.read()
+                        logger.warning("Falha ao sintetizar audio (streaming) na ElevenLabs (%s)", response.status_code)
+                        response.raise_for_status()
+                    recebido = False
+                    for parte in response.iter_bytes():
+                        recebido = recebido or bool(parte)
+                        yield parte
+                    if not recebido:
+                        raise HTTPException(502, "Provedor retornou áudio vazio")
+                    concluir(reserva, unidades=unidades_sintese(response, payload), entregue=None,
+                             request_id=response.headers.get("request-id"))
+                    logger.info("tts_consumo modelo=%s caracteres=%s usd=%.6f", payload["model_id"], len(payload["text"]), custo_usd)
+                    return
 
+
+    except BaseException:
+        falhar(reserva)
+        raise
 
 def clonar_voz(nome: str, audio_bytes: bytes = b"", content_type: str = "audio/mpeg", nome_arquivo: str = "amostra.mp3", *, amostras: list[tuple[str, bytes, str]] | None = None) -> dict:
     """Clona uma voz na ElevenLabs (Instant Voice Cloning) a partir de uma amostra de audio.

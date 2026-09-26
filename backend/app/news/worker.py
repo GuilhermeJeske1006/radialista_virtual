@@ -13,6 +13,7 @@ import re
 from sqlalchemy.orm import Session
 
 from app.db.database import SessionLocal
+from app.billing.contexto_ia import por_conta
 from app.models.account import Account
 from app.models.fonte_noticia import FonteNoticia
 from app.models.noticia import Noticia
@@ -158,6 +159,7 @@ def coletar_fonte(db: Session, account: Account, fonte: FonteNoticia) -> int:
     return novas
 
 
+@por_conta("noticias")
 def coletar_conta(db: Session, account: Account) -> int:
     total = 0
     fontes = db.query(FonteNoticia).filter_by(account_id=account.id, ativa=True).all()

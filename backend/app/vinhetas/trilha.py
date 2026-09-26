@@ -20,6 +20,7 @@ import httpx
 from sqlalchemy.orm import Session
 
 from app.config.settings import settings
+from app.billing.consumo_ia import reservar, concluir, falhar
 from app.models.programa import Programa
 from app.models.trilha_vinheta import TrilhaVinheta
 from app.storage import get_storage
@@ -131,27 +132,35 @@ def trilha_ia_disponivel() -> bool:
 
 def compor_trilha_ia(prompt: str, duracao_ms: int = DURACAO_TRILHA_IA_MS) -> bytes:
     """POST /v1/music (ElevenLabs Music API): devolve o MP3 da trilha. Levanta em falha."""
-    with httpx.Client(timeout=_MUSIC_TIMEOUT_SEGUNDOS) as client:
-        resposta = client.post(
-            _MUSIC_URL,
-            params={"output_format": "mp3_44100_192"},
-            headers={"xi-api-key": settings.elevenlabs_api_key, "Content-Type": "application/json"},
-            json={
-                "prompt": prompt,
-                "music_length_ms": duracao_ms,
-                "model_id": settings.elevenlabs_music_model,
-                "force_instrumental": True,
-            },
-        )
-        if resposta.status_code >= 400:
-            logger.warning("Falha na ElevenLabs Music API (%s): %s", resposta.status_code, resposta.text[:1000])
-            detalhe = _detalhe_erro(resposta)
-            if detalhe.get("status") == "bad_prompt":
-                dados = detalhe.get("data") or {}
-                raise PromptRecusado(str(dados.get("reason") or "bad_prompt"), dados.get("prompt_suggestion") or None)
-        resposta.raise_for_status()
-        return resposta.content
+    custo_usd = duracao_ms / 60_000 * settings.ia_music_usd_minuto
+    reserva = reservar("music", settings.elevenlabs_music_model, custo_usd, unidades_max={"milissegundos": duracao_ms})
+    try:
+        with httpx.Client(timeout=_MUSIC_TIMEOUT_SEGUNDOS) as client:
+            resposta = client.post(
+                _MUSIC_URL,
+                params={"output_format": "mp3_44100_192"},
+                headers={"xi-api-key": settings.elevenlabs_api_key, "Content-Type": "application/json"},
+                json={
+                    "prompt": prompt,
+                    "music_length_ms": duracao_ms,
+                    "model_id": settings.elevenlabs_music_model,
+                    "force_instrumental": True,
+                },
+            )
+            if resposta.status_code >= 400:
+                logger.warning("Falha na ElevenLabs Music API (%s): %s", resposta.status_code, resposta.text[:1000])
+                detalhe = _detalhe_erro(resposta)
+                if detalhe.get("status") == "bad_prompt":
+                    dados = detalhe.get("data") or {}
+                    raise PromptRecusado(str(dados.get("reason") or "bad_prompt"), dados.get("prompt_suggestion") or None)
+            resposta.raise_for_status()
+            concluir(reserva, custo_usd, {"milissegundos": duracao_ms})
+            return resposta.content
 
+
+    except BaseException:
+        falhar(reserva)
+        raise
 
 def _detalhe_erro(resposta: httpx.Response) -> dict:
     try:

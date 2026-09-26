@@ -73,6 +73,10 @@ def medir_texto(pasta, repeticoes):
 
 def medir_voz(pasta, repeticoes):
     from app.config.settings import settings
+    # Benchmark isolado, sem conta/banco e sem reutilizar uma amostra entre rodadas.
+    settings.ia_orcamento_bloquear = False
+    settings.ia_medicao_habilitada = False
+    settings.ia_cache_habilitado = False
     from app.tts.client import sintetizar_audio
     from app.tts.voices import voz_valida
     from app.postprod.client import processar_audio
@@ -113,8 +117,12 @@ def medir_voz(pasta, repeticoes):
 def verificar_audio(pasta, repeticoes):
     import base64
     import numpy as np
+    from app.config.settings import settings
     from app.postprod.audio_io import mp3_bytes_para_array
     from app.stt.client import transcrever_audio
+
+    settings.ia_orcamento_bloquear = False
+    settings.ia_medicao_habilitada = False
 
     registros = []
     for item in json.loads((pasta / "voz.json").read_text()):
