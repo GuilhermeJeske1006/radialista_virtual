@@ -1,0 +1,326 @@
+{
+  "mensalidade": 69.9,
+  "multiplicador": 2,
+  "base_operacional": 52,
+  "mensagens_mes": 1000,
+  "fracao_locucao": 0.1,
+  "premissas_base": {
+    "cambio_brl_usd": 5.5,
+    "llm_entrada_usd_milhao": 5.0,
+    "llm_saida_usd_milhao": 25.0,
+    "classificador_entrada_usd_milhao": 1.0,
+    "classificador_saida_usd_milhao": 5.0,
+    "tts_usd_mil_caracteres": 0.1,
+    "stt_usd_hora": 0.4,
+    "busca_usd_mil": 10.0,
+    "tokens_entrada_por_geracao": 1500,
+    "tokens_saida_por_geracao": 150,
+    "classificacoes_por_geracao": 3,
+    "tokens_entrada_classificacao": 500,
+    "tokens_saida_classificacao": 32,
+    "geracoes_por_mensagem": 1,
+    "caracteres_por_minuto_voz": 1000,
+    "geracoes_por_minuto_voz": 2,
+    "fracao_audio_recebido": 0.2,
+    "minutos_por_audio_recebido": 0.5,
+    "taxa_regeracao": 0.1,
+    "infraestrutura_brl_conta": 25,
+    "suporte_brl_conta": 15,
+    "outros_fixos_brl_conta": 0,
+    "outros_variaveis_brl_conta": 10,
+    "tributos_taxas_fracao": 0.1,
+    "taxa_fixa_cobranca_brl": 0.5,
+    "reserva_custos_fracao": 0.15,
+    "margem_alvo": 0.5
+  },
+  "resultados": [
+    {
+      "modelo": "Opus",
+      "voz": "v3",
+      "horas_programa": 30,
+      "minutos_voz": 180,
+      "custo_ia": 224.72310666666667,
+      "componentes_ia": {
+        "llm_e_classificacoes": 108.85644,
+        "voz": 108.9,
+        "transcricao": 3.666666666666667,
+        "buscas": 3.3
+      },
+      "cliente_paga": 519.3462133333334,
+      "sobra": 156.98001933333342,
+      "margem": 0.3022646845266945
+    },
+    {
+      "modelo": "Opus",
+      "voz": "v3",
+      "horas_programa": 60,
+      "minutos_voz": 360,
+      "custo_ia": 362.43804666666665,
+      "componentes_ia": {
+        "llm_e_classificacoes": 137.67138,
+        "voz": 217.8,
+        "transcricao": 3.666666666666667,
+        "buscas": 3.3
+      },
+      "cliente_paga": 794.7760933333333,
+      "sobra": 246.49473033333328,
+      "margem": 0.31014361453616607
+    },
+    {
+      "modelo": "Opus",
+      "voz": "v3",
+      "horas_programa": 120,
+      "minutos_voz": 720,
+      "custo_ia": 637.8679266666667,
+      "componentes_ia": {
+        "llm_e_classificacoes": 195.30126,
+        "voz": 435.6,
+        "transcricao": 3.666666666666667,
+        "buscas": 3.3
+      },
+      "cliente_paga": 1345.6358533333334,
+      "sobra": 425.5241523333335,
+      "margem": 0.3162253378425144
+    },
+    {
+      "modelo": "Opus",
+      "voz": "Flash",
+      "horas_programa": 30,
+      "minutos_voz": 180,
+      "custo_ia": 170.27310666666668,
+      "componentes_ia": {
+        "llm_e_classificacoes": 108.85644,
+        "voz": 54.45,
+        "transcricao": 3.666666666666667,
+        "buscas": 3.3
+      },
+      "cliente_paga": 410.4462133333334,
+      "sobra": 121.58751933333338,
+      "margem": 0.29623252787714033
+    },
+    {
+      "modelo": "Opus",
+      "voz": "Flash",
+      "horas_programa": 60,
+      "minutos_voz": 360,
+      "custo_ia": 253.53804666666667,
+      "componentes_ia": {
+        "llm_e_classificacoes": 137.67138,
+        "voz": 108.9,
+        "transcricao": 3.666666666666667,
+        "buscas": 3.3
+      },
+      "cliente_paga": 576.9760933333333,
+      "sobra": 175.70973033333337,
+      "margem": 0.304535547249826
+    },
+    {
+      "modelo": "Opus",
+      "voz": "Flash",
+      "horas_programa": 120,
+      "minutos_voz": 720,
+      "custo_ia": 420.06792666666666,
+      "componentes_ia": {
+        "llm_e_classificacoes": 195.30126,
+        "voz": 217.8,
+        "transcricao": 3.666666666666667,
+        "buscas": 3.3
+      },
+      "cliente_paga": 910.0358533333333,
+      "sobra": 283.9541523333334,
+      "margem": 0.3120252364709031
+    },
+    {
+      "modelo": "Sonnet",
+      "voz": "v3",
+      "horas_programa": 30,
+      "minutos_voz": 180,
+      "custo_ia": 169.18410666666668,
+      "componentes_ia": {
+        "llm_e_classificacoes": 53.317440000000005,
+        "voz": 108.9,
+        "transcricao": 3.666666666666667,
+        "buscas": 3.3
+      },
+      "cliente_paga": 408.2682133333334,
+      "sobra": 120.8796693333334,
+      "margem": 0.29607906122889943
+    },
+    {
+      "modelo": "Sonnet",
+      "voz": "v3",
+      "horas_programa": 60,
+      "minutos_voz": 360,
+      "custo_ia": 292.19754666666665,
+      "componentes_ia": {
+        "llm_e_classificacoes": 67.43088,
+        "voz": 217.8,
+        "transcricao": 3.666666666666667,
+        "buscas": 3.3
+      },
+      "cliente_paga": 654.2950933333333,
+      "sobra": 200.8384053333334,
+      "margem": 0.30695386130767677
+    },
+    {
+      "modelo": "Sonnet",
+      "voz": "v3",
+      "horas_programa": 120,
+      "minutos_voz": 720,
+      "custo_ia": 538.2244266666667,
+      "componentes_ia": {
+        "llm_e_classificacoes": 95.65776000000001,
+        "voz": 435.6,
+        "transcricao": 3.666666666666667,
+        "buscas": 3.3
+      },
+      "cliente_paga": 1146.3488533333334,
+      "sobra": 360.7558773333334,
+      "margem": 0.31469990682533827
+    },
+    {
+      "modelo": "Sonnet",
+      "voz": "Flash",
+      "horas_programa": 30,
+      "minutos_voz": 180,
+      "custo_ia": 114.73410666666668,
+      "componentes_ia": {
+        "llm_e_classificacoes": 53.317440000000005,
+        "voz": 54.45,
+        "transcricao": 3.666666666666667,
+        "buscas": 3.3
+      },
+      "cliente_paga": 299.36821333333336,
+      "sobra": 85.48716933333336,
+      "margem": 0.28555860484141365
+    },
+    {
+      "modelo": "Sonnet",
+      "voz": "Flash",
+      "horas_programa": 60,
+      "minutos_voz": 360,
+      "custo_ia": 183.29754666666668,
+      "componentes_ia": {
+        "llm_e_classificacoes": 67.43088,
+        "voz": 108.9,
+        "transcricao": 3.666666666666667,
+        "buscas": 3.3
+      },
+      "cliente_paga": 436.49509333333333,
+      "sobra": 130.05340533333336,
+      "margem": 0.29794929500849376
+    },
+    {
+      "modelo": "Sonnet",
+      "voz": "Flash",
+      "horas_programa": 120,
+      "minutos_voz": 720,
+      "custo_ia": 320.4244266666667,
+      "componentes_ia": {
+        "llm_e_classificacoes": 95.65776000000001,
+        "voz": 217.8,
+        "transcricao": 3.666666666666667,
+        "buscas": 3.3
+      },
+      "cliente_paga": 710.7488533333334,
+      "sobra": 219.1858773333334,
+      "margem": 0.30838724016982355
+    },
+    {
+      "modelo": "Haiku",
+      "voz": "v3",
+      "horas_programa": 30,
+      "minutos_voz": 180,
+      "custo_ia": 150.67110666666667,
+      "componentes_ia": {
+        "llm_e_classificacoes": 34.80444,
+        "voz": 108.9,
+        "transcricao": 3.666666666666667,
+        "buscas": 3.3
+      },
+      "cliente_paga": 371.2422133333333,
+      "sobra": 108.84621933333335,
+      "margem": 0.29319461910330175
+    },
+    {
+      "modelo": "Haiku",
+      "voz": "v3",
+      "horas_programa": 60,
+      "minutos_voz": 360,
+      "custo_ia": 268.78404666666665,
+      "componentes_ia": {
+        "llm_e_classificacoes": 44.01738,
+        "voz": 217.8,
+        "transcricao": 3.666666666666667,
+        "buscas": 3.3
+      },
+      "cliente_paga": 607.4680933333333,
+      "sobra": 185.61963033333336,
+      "margem": 0.3055627651401258
+    },
+    {
+      "modelo": "Haiku",
+      "voz": "v3",
+      "horas_programa": 120,
+      "minutos_voz": 720,
+      "custo_ia": 505.0099266666667,
+      "componentes_ia": {
+        "llm_e_classificacoes": 62.44326,
+        "voz": 435.6,
+        "transcricao": 3.666666666666667,
+        "buscas": 3.3
+      },
+      "cliente_paga": 1079.9198533333333,
+      "sobra": 339.1664523333334,
+      "margem": 0.3140663182424563
+    },
+    {
+      "modelo": "Haiku",
+      "voz": "Flash",
+      "horas_programa": 30,
+      "minutos_voz": 180,
+      "custo_ia": 96.22110666666667,
+      "componentes_ia": {
+        "llm_e_classificacoes": 34.80444,
+        "voz": 54.45,
+        "transcricao": 3.666666666666667,
+        "buscas": 3.3
+      },
+      "cliente_paga": 262.34221333333335,
+      "sobra": 73.45371933333337,
+      "margem": 0.27999199366364536
+    },
+    {
+      "modelo": "Haiku",
+      "voz": "Flash",
+      "horas_programa": 60,
+      "minutos_voz": 360,
+      "custo_ia": 159.88404666666668,
+      "componentes_ia": {
+        "llm_e_classificacoes": 44.01738,
+        "voz": 108.9,
+        "transcricao": 3.666666666666667,
+        "buscas": 3.3
+      },
+      "cliente_paga": 389.66809333333333,
+      "sobra": 114.83463033333331,
+      "margem": 0.2946985711634862
+    },
+    {
+      "modelo": "Haiku",
+      "voz": "Flash",
+      "horas_programa": 120,
+      "minutos_voz": 720,
+      "custo_ia": 287.20992666666666,
+      "componentes_ia": {
+        "llm_e_classificacoes": 62.44326,
+        "voz": 217.8,
+        "transcricao": 3.666666666666667,
+        "buscas": 3.3
+      },
+      "cliente_paga": 644.3198533333333,
+      "sobra": 197.5964523333334,
+      "margem": 0.3066744743485478
+    }
+  ]
+}

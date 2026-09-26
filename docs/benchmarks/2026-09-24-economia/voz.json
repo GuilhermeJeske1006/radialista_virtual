@@ -1,0 +1,68 @@
+[
+  {
+    "modelo": "eleven_v3",
+    "caso": "curta",
+    "rodada": 1,
+    "caracteres": 118,
+    "ok": true,
+    "segundos": 4.984,
+    "arquivo": "eleven_v3-curta-1.mp3",
+    "bytes": 197528,
+    "retentativa": true
+  },
+  {
+    "modelo": "eleven_flash_v2_5",
+    "caso": "curta",
+    "rodada": 1,
+    "caracteres": 118,
+    "ok": true,
+    "segundos": 1.112,
+    "arquivo": "eleven_flash_v2_5-curta-1.mp3",
+    "bytes": 155523,
+    "retentativa": true
+  },
+  {
+    "modelo": "eleven_v3",
+    "caso": "media",
+    "rodada": 1,
+    "caracteres": 372,
+    "ok": true,
+    "segundos": 10.806,
+    "arquivo": "eleven_v3-media-1.mp3",
+    "bytes": 554256,
+    "retentativa": true
+  },
+  {
+    "modelo": "eleven_flash_v2_5",
+    "caso": "media",
+    "rodada": 1,
+    "caracteres": 372,
+    "ok": true,
+    "segundos": 2.329,
+    "arquivo": "eleven_flash_v2_5-media-1.mp3",
+    "bytes": 489682,
+    "retentativa": true
+  },
+  {
+    "modelo": "eleven_v3",
+    "caso": "longa",
+    "rodada": 1,
+    "caracteres": 692,
+    "ok": false,
+    "erro": "ConnectTimeout",
+    "segundos": 35.026,
+    "erro_retentativa": "ReadTimeout"
+  },
+  {
+    "modelo": "eleven_flash_v2_5",
+    "caso": "longa",
+    "rodada": 1,
+    "caracteres": 692,
+    "sintese_segundos": 2.14,
+    "posproducao_segundos": 1.972,
+    "ok": true,
+    "arquivo": "eleven_flash_v2_5-longa-1.mp3",
+    "bytes": 910985,
+    "segundos": 4.113
+  }
+]

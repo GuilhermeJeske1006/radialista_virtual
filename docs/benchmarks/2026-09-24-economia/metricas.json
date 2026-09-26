@@ -1,0 +1,78 @@
+{
+  "texto": {
+    "claude-opus-5": {
+      "amostras": 5,
+      "custo_usd_estimado": 0.07596,
+      "latencia_media_segundos": 4.438000000000001
+    },
+    "claude-sonnet-5": {
+      "amostras": 5,
+      "custo_usd_estimado": 0.030794,
+      "latencia_media_segundos": 3.7306
+    },
+    "claude-haiku-4-5": {
+      "amostras": 5,
+      "custo_usd_estimado": 0.011597,
+      "latencia_media_segundos": 2.2758000000000003
+    }
+  },
+  "voz": [
+    {
+      "modelo": "eleven_v3",
+      "caso": "curta",
+      "rodada": 1,
+      "arquivo": "eleven_v3-curta-1.mp3",
+      "duracao_segundos": 8.16,
+      "amostras_finitas": true,
+      "pico": 0.76885986328125,
+      "fracao_amostras_saturadas": 0.0
+    },
+    {
+      "modelo": "eleven_flash_v2_5",
+      "caso": "curta",
+      "rodada": 1,
+      "arquivo": "eleven_flash_v2_5-curta-1.mp3",
+      "duracao_segundos": 6.409,
+      "amostras_finitas": true,
+      "pico": 0.77252197265625,
+      "fracao_amostras_saturadas": 0.0
+    },
+    {
+      "modelo": "eleven_v3",
+      "caso": "media",
+      "rodada": 1,
+      "arquivo": "eleven_v3-media-1.mp3",
+      "duracao_segundos": 23.04,
+      "amostras_finitas": true,
+      "pico": 0.77301025390625,
+      "fracao_amostras_saturadas": 0.0,
+      "transcricao": "Boa tarde pra você que está ligado na nossa programação. O Marcos mandou mensagem pedindo Twist and Shout dos Beatles e o pedido está na sequência. Tem música que dá vontade de aumentar o volume e acompanhar do começo ao fim. Você também pode participar pelo WhatsApp da rádio e contar qual canção quer ouvir. Agora deixa o som acompanhar a sua tarde. Vamos de Beatles",
+      "wer_indicativo": 0.0
+    },
+    {
+      "modelo": "eleven_flash_v2_5",
+      "caso": "media",
+      "rodada": 1,
+      "arquivo": "eleven_flash_v2_5-media-1.mp3",
+      "duracao_segundos": 20.341,
+      "amostras_finitas": true,
+      "pico": 0.77178955078125,
+      "fracao_amostras_saturadas": 0.0,
+      "transcricao": "Boa tarde pra você que está ligado na nossa programação. O Marcos mandou mensagem pedindo Twist and Shout, dos Beatles, e o pedido está na sequência. Tem música que dá vontade de aumentar o volume e acompanhar do começo ao fim. Você também pode participar pelo WhatsApp da rádio e contar qual canção quer ouvir. Agora, deixa o som acompanhar a sua tarde. Vamos de Beatles?",
+      "wer_indicativo": 0.0
+    },
+    {
+      "modelo": "eleven_flash_v2_5",
+      "caso": "longa",
+      "rodada": 1,
+      "arquivo": "eleven_flash_v2_5-longa-1.mp3",
+      "duracao_segundos": 37.895,
+      "amostras_finitas": true,
+      "pico": 0.780914306640625,
+      "fracao_amostras_saturadas": 0.0,
+      "transcricao": "Boa tarde pra você que está ligado na nossa programação. O Marcos mandou mensagem pedindo Twist and Shout, dos Beatles, e o pedido está na sequência. Tem música que dá vontade de aumentar o volume e acompanhar do começo ao fim. Você também pode participar pelo WhatsApp da rádio e contar qual canção quer ouvir. Mande o nome da música e do artista, que a gente confere o pedido por aqui. Às vezes, uma canção lembra uma viagem, uma amizade ou um momento em família. Se essa música faz parte da sua história, conta pra gente. Enquanto isso, seguimos juntos com mais música e companhia pra sua tarde. Um abraço pra quem está trabalhando e pra quem já conseguiu uma pausa. Vamos de Beatles",
+      "wer_indicativo": 0.032
+    }
+  ],
+  "aprovacao_troca_modelos": false
+}
