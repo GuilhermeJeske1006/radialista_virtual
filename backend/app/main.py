@@ -326,6 +326,7 @@ def garantir_colunas_account():
         "upsell_alerta_mes": "VARCHAR NULL",
         "conhecimento_local": "JSON DEFAULT '{}' NOT NULL",
         "biblia_radio": "JSON DEFAULT '{}' NOT NULL",
+        "cobranca_isenta": "BOOLEAN DEFAULT false NOT NULL",
     }
 
     with engine.begin() as conn:

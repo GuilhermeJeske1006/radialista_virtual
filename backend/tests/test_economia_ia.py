@@ -200,3 +200,27 @@ def test_consumo_http_isola_contas_e_mostra_alerta(client, account_factory, auth
     assert primeira["disponivel_brl"] == 1
     assert segunda["comprometido_brl"] == 0
     assert client.get("/billing/consumo-ia").status_code == 401
+
+
+def test_conta_isenta_nao_mede_nem_bloqueia(monkeypatch):
+    with contexto_conta(Conta()):
+        assert atual.get().faturavel is True
+    monkeypatch.setattr(settings, "ia_medicao_habilitada", True)
+    monkeypatch.setattr(settings, "ia_orcamento_bloquear", True)
+    with contexto_conta(SimpleNamespace(id=2, plano="flex", cobranca_isenta=True)):
+        assert atual.get().faturavel is False
+        assert consumo_ia.reservar("llm", "claude-opus-5", unidades_max={"entrada": 1}) is None
+
+
+def test_identificar_conta_isenta_desliga_cobranca_da_request():
+    from app.billing.contexto_ia import ContaIA, identificar
+
+    for account, faturavel in ((SimpleNamespace(id=2, plano="flex", cobranca_isenta=True), False),
+                               (SimpleNamespace(id=3, plano="flex", cobranca_isenta=False), True),
+                               (Conta(id=4), True)):
+        token = atual.set(ContaIA(funcionalidade="programa_ao_vivo"))
+        try:
+            identificar(account)
+            assert atual.get().faturavel is faturavel
+        finally:
+            atual.reset(token)

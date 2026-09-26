@@ -107,12 +107,19 @@ class ContextoIAMiddleware:
                 atual.reset(token)
 
 
+def _isenta(account):
+    # `is True`: só a coluna booleana libera; objetos sem o campo seguem cobrados.
+    return getattr(account, "cobranca_isenta", False) is True
+
+
 def identificar(account):
     # O objeto pertence somente a esta request. Mutação permite que a dependência
     # executada pelo threadpool comunique a conta à rota e ao streaming.
     conta = atual.get()
     if conta is not None:
         conta.id, conta.plano = account.id, account.plano
+        if _isenta(account):
+            conta.faturavel = False
         if conta.canal == 'whatsapp':
             from sqlalchemy.orm import object_session
             from app.models.consumo_flex import ContaConsumo
@@ -123,7 +130,7 @@ def identificar(account):
 
 @contextmanager
 def contexto_conta(account):
-    token = atual.set(ContaIA(account.id, account.plano))
+    token = atual.set(ContaIA(account.id, account.plano, faturavel=not _isenta(account)))
     sucesso = False
     try:
         yield
@@ -226,7 +233,9 @@ def modelo_efetivo(tipo, padrao):
 def encerrar_contexto(sucesso):
     from app.config.settings import settings
     conta = atual.get()
-    if not (settings.ia_medicao_habilitada or settings.ia_orcamento_bloquear) or not conta or not conta.id:
+    # Não faturável nunca reserva uso (consumo_ia.reservar), então não há operação a entregar.
+    if not (settings.ia_medicao_habilitada or settings.ia_orcamento_bloquear) or not conta or not conta.id \
+            or not conta.faturavel:
         return
     from app.billing.consumo_ia import SessionLocal
     from app.billing.flex import entregar_operacao

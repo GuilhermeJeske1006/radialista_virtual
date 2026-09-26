@@ -53,6 +53,10 @@ class Account(Base):
     # trial | ativo | inadimplente | cancelado
     plano_status: Mapped[str] = mapped_column(String, default="trial")
 
+    # Conta liberada manualmente da cobrança: uso de IA sem medição, tarifa ou bloqueio,
+    # mesmo com a medição ligada e sem assinatura. Só se altera direto no banco.
+    cobranca_isenta: Mapped[bool] = mapped_column(Boolean, default=False)
+
     # starter | growth | professional -- ver app/planos.py pros limites de cada um.
     plano: Mapped[str] = mapped_column(String, default="flex")
 
