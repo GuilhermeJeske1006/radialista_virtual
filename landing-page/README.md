@@ -30,7 +30,7 @@ Publique o conteúdo de `dist/` em uma hospedagem estática, na raiz de https://
 
 ## Conteúdo e conversão
 
-CTA principal: `/register` no painel. Recursos baseados no código e central de ajuda. Planos e adicionais são apresentados na landing; a contratação e confirmação das condições acontecem no cadastro.
+CTA principal: `/register` no painel ("Criar conta grátis"). Criar a conta e configurar não pede cartão; o painel pede a assinatura do Locufy Flex na primeira geração com IA. Recursos baseados no código e na central de ajuda.
 
 Parâmetros UTM (`source`, `medium`, `campaign`, `content`, `term`) são preservados nos links de cadastro. Cliques emitem o evento local `locufy:conversion` com `detail.location` e `detail.destination`. Sem cookies, rastreadores ou integração de analytics; o painel precisa implementar armazenamento de atribuição para isso ser medido.
 
@@ -45,7 +45,7 @@ Parâmetros UTM (`source`, `medium`, `campaign`, `content`, `term`) são preserv
 
 ## Movimento e microinterações
 
-Scroll-reveal (IntersectionObserver) nos cards de recursos, galeria, passos e planos; hover com leve elevação em botões, cards e imagens da galeria; glow de fundo sutil no hero; ícone do FAQ e do diálogo de imagem com transição suave. Tudo em CSS/JS nativo, sem dependência nova. A classe `reveal` só é aplicada via JavaScript, então o fallback sem JS mantém o conteúdo sempre visível; `prefers-reduced-motion: reduce` desativa o observer e as animações continuas (glow, diálogo).
+Hover com leve elevação em botões e imagens da galeria; ícone do FAQ e do diálogo de imagem com transição suave; botão flutuante do WhatsApp só com o ícone enquanto o hero está na tela (não cobre o card de áudio). Tudo em CSS/JS nativo, sem dependência nova. `prefers-reduced-motion: reduce` desativa animações e transições.
 
 ## SEO e validação
 
@@ -59,12 +59,14 @@ Botão de sol/lua no cabeçalho, acessível por teclado. O tema inicial segue o 
 
 O tema claro usa a logo azul oficial (`Logo_Locufy_Logotipo_Horizontal_02.png`), superfícies claras e contraste ajustado. Os prints preservam o tema do painel em que foram capturados. Sem JavaScript, a landing mantém o tema escuro e oculta o botão.
 
-## Planos e contato comercial
+## Preço e contato comercial
 
-Seção `#planos` com Starter (R$ 399/mês), Growth (R$ 599/mês) e Professional (R$ 999/mês). Franquias: 2.000, 3.000 e 7.500 mensagens; 1, 3 e 5 radialistas; 1, 2 e 3 radialistas por programa. Clonagem a partir do Growth. Radialista adicional: R$ 100/mês; pacote avulso de 1.000 mensagens: R$ 50, para o mês corrente.
+Seção `#planos` com o **Locufy Flex**: R$ 69,90/mês + uso de IA, limite financeiro mensal e extrato. Ao lado, a calculadora (`#simulador`) estima a conta por combinação de modelos, horas de programa por dia, dias por semana e mensagens de ouvintes por mês, com o exemplo em áudio de cada combinação (mesmo pedido para todas, `assets/combinacao-*.mp3`, 96 kbps mono, `preload="none"`). Sem JavaScript fica a tabela estática de preço por hora.
 
-Fontes: `backend/app/planos.py` e regras de cobrança em `backend/app/billing/stripe_client.py`. Há uma divergência preexistente: `frontend-painel/lib/planos.ts` informa 1.000 mensagens no Starter; a landing usa as 2.000 aplicadas pelo backend. O painel não foi alterado nesta tarefa. Os preços comerciais foram obtidos do repositório; os Price IDs ativos no Stripe não foram consultados.
+Os valores estão em `config.js` (`LOCUFY_PRECOS`) e **duplicados na tabela do `index.html`** para quem não tem JavaScript e para SEO. Hoje são estimativas com as tarifas de referência de `docs/simulacao-plano-consumo.md` (24/09/2026), pela mesma conta de `backend/app/billing/combinacoes.py`. Ao publicar as tarifas contratadas, copie `preco_hora_brl` de `GET /billing/combinacoes` para os dois lugares e revise a faixa citada no hero e no FAQ.
 
-Os CTAs de cadastro levam ao fluxo atual, onde o usuário escolhe e confirma o plano. Não afirmam pré-selecionar um plano, pois o cadastro atual não lê esse parâmetro. Botões de WhatsApp incluem uma mensagem específica quando associados a um plano; abrir o link não envia mensagem automaticamente. Contato flutuante oculto enquanto uma imagem está ampliada.
+Cor de ação (botões, links, ícones): azul `#3167e7`, a mesma do painel (ponto médio do degradê roxo→ciano do manual). O degradê continua nos fundos de hero, plano e CTA final.
+
+Botões de WhatsApp incluem uma mensagem pronta; abrir o link não envia mensagem automaticamente. Contato flutuante oculto enquanto uma imagem está ampliada.
 
 WhatsApp comercial confirmado: +55 (47) 99126-8815. Configure em `config.js` e atualize também os hrefs estáticos de `[data-whatsapp]` no HTML se o contato mudar.

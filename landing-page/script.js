@@ -39,8 +39,8 @@ const whatsappNumber = window.LOCUFY_CONFIG?.whatsappNumber;
 if (/^\d{10,15}$/.test(whatsappNumber || '')) {
   document.querySelectorAll('[data-whatsapp]').forEach(link => {
     const message = link.dataset.plan
-      ? `Olá! Gostaria de saber mais sobre o plano ${link.dataset.plan} do Locufy para minha rádio.`
-      : 'Olá! Quero conhecer o Locufy e escolher um plano para minha rádio.';
+      ? 'Olá! Quero estimar o preço do Locufy para minha rádio.'
+      : 'Olá! Quero conhecer o Locufy para minha rádio.';
     const url = new URL(`https://wa.me/${whatsappNumber}`);
     url.searchParams.set('text', message);
     link.href = url.href;
@@ -167,3 +167,42 @@ document.querySelectorAll('.sound-demo audio[data-demo]').forEach(audio => {
   });
   paintRange();
 });
+
+// Enhancement only: sem JavaScript a tabela estática de preço por hora continua visível.
+const precos = window.LOCUFY_PRECOS;
+const calc = document.querySelector('[data-calc]');
+if (calc && precos?.combinacoes?.length) {
+  const reais = valor => valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const select = calc.elements.combinacao;
+  precos.combinacoes.forEach(c => {
+    const opcao = new Option(`${c.nome} · ≈ ${reais(c.porHora)}/h`, c.id);
+    select.add(opcao);
+  });
+  select.value = (precos.combinacoes.find(c => c.recomendada) || precos.combinacoes[0]).id;
+  const total = calc.querySelector('[data-total]');
+  const detalhe = calc.querySelector('[data-detalhe]');
+  const exemplo = calc.querySelector('[data-exemplo]');
+  const numero = (campo, min, max) => Math.min(max, Math.max(min, Number(campo.value) || 0));
+
+  function atualizar() {
+    const c = precos.combinacoes.find(item => item.id === select.value);
+    const horasMes = numero(calc.elements.horas, 1, 24) * numero(calc.elements.dias, 1, 7) * 30 / 7;
+    const locucao = c.porHora * horasMes;
+    const whatsapp = c.porMensagem * numero(calc.elements.mensagens, 0, 100000);
+    total.textContent = `≈ ${reais(precos.mensalidade + locucao + whatsapp)}`;
+    detalhe.textContent = `Mensalidade ${reais(precos.mensalidade)} + locução ≈ ${reais(locucao)} (${Math.round(horasMes)} h no mês) + WhatsApp ≈ ${reais(whatsapp)}`;
+    const src = `assets/combinacao-${c.id}.mp3`;
+    if (!exemplo.src.endsWith(src)) { exemplo.pause(); exemplo.src = src; }
+  }
+  calc.addEventListener('input', atualizar);
+  calc.addEventListener('submit', event => event.preventDefault());
+  calc.hidden = false;
+  atualizar();
+}
+
+// Sobre o hero, o botão flutuante do WhatsApp fica só com o ícone para não cobrir o card de áudio.
+const botaoWhatsapp = document.querySelector('.wa');
+const hero = document.querySelector('.hero-shell');
+if (botaoWhatsapp && hero && 'IntersectionObserver' in window) {
+  new IntersectionObserver(([entrada]) => botaoWhatsapp.classList.toggle('is-compact', entrada.isIntersecting), { threshold: 0.25 }).observe(hero);
+}
