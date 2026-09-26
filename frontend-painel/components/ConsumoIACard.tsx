@@ -82,7 +82,7 @@ export default function ConsumoIACard({ plano }: { plano?: string }) {
         </label>
         <button disabled={salvando} className={BOTAO}>{salvando ? "Salvando…" : "Salvar limite"}</button>
       </form>
-      <p className="text-xs text-fg/65">Ao atingir o limite, novas gerações com IA pausam até você aumentá-lo ou o ciclo virar. A previsão não inclui operações em andamento. Reproduzir áudios prontos não gera nova cobrança. {consumo.regra_cambio}</p>
+      <p className="text-xs text-fg/65">Ao atingir o limite, novas gerações com IA pausam até você aumentá-lo ou a fatura com esse uso ser paga. A previsão não inclui operações em andamento. Reproduzir áudios prontos não gera nova cobrança. {consumo.regra_cambio}</p>
     </>}
 
     <div className="space-y-3 border-t border-border-strong pt-6">

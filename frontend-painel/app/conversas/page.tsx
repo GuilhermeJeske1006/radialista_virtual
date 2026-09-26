@@ -243,7 +243,7 @@ export default function ConversasPage() {
                 <button
                   key={conversa.telefone}
                   onClick={() => selecionarConversa(conversa.telefone)}
-                  className={`w-full text-left p-3 hover:bg-fg/70 transition-colors ${
+                  className={`w-full text-left p-3 hover:bg-fg/5 transition-colors ${
                     telefoneSelecionado === conversa.telefone ? "bg-brand-500/10" : ""
                   }`}
                 >
@@ -319,7 +319,7 @@ export default function ConversasPage() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 bg-fg/40 flex flex-col gap-3">
+              <div className="flex-1 overflow-y-auto p-4 bg-bg flex flex-col gap-3">
                 {paginaMensagens < totalPaginasMensagens && (
                   <button
                     onClick={() => carregarMensagens(telefoneSelecionado, paginaMensagens + 1)}

@@ -7,14 +7,8 @@ import AppShell from "../../components/AppShell";
 import { apiFetch, ApiError } from "../../lib/api";
 import { Conta } from "../../lib/types";
 import { PLANOS } from "../../lib/planos";
+import { rotuloStatusAssinatura } from "../../lib/rotulosConsumo";
 import { LocufyLed, LocufySpin } from "../../components/LocufyLogo";
-
-const STATUS_LABEL: Record<string, string> = {
-  trial: "Em teste",
-  ativo: "Ativo",
-  inadimplente: "Pagamento pendente",
-  cancelado: "Cancelado",
-};
 
 const STATUS_COR: Record<string, "ciano" | "acento" | "laranja"> = {
   trial: "acento",
@@ -192,7 +186,7 @@ export default function PerfilPage() {
                   className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_CLASSE[statusCor]}`}
                 >
                   <LocufyLed color={statusCor} pulse={false} />
-                  {STATUS_LABEL[conta.plano_status] ?? conta.plano_status}
+                  {rotuloStatusAssinatura(conta.plano_status)}
                 </span>
               </dd>
             </div>

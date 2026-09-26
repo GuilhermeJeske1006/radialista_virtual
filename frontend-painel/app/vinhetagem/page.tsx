@@ -300,7 +300,7 @@ export default function VinhetagemPage() {
           <Link href="/live" className="text-acento-claro underline hover:text-acento-dim">
             Ao Vivo
           </Link>
-          ; propagandas entram nos blocos &quot;Chamada ao ouvinte&quot; da programação de cada radialista.
+          ; para tocar vinhetas e propagandas na programação, adicione-as como blocos no roteiro de cada programa.
         </p>
         <div className="flex flex-wrap gap-2 shrink-0">
           <button
