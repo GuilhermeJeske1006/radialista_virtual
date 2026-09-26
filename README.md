@@ -85,3 +85,5 @@ Só CI por enquanto (sem deploy automático) — deploy continua manual via `sta
 ## Docs
 
 Plano técnico completo em [docs/plano.md](docs/plano.md).
+
+Skills de agente disponíveis no repo (e como instalar/ativar) em [docs/skills.md](docs/skills.md).
