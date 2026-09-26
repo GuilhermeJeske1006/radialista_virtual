@@ -150,7 +150,8 @@ export default function AjudaPage() {
               <p className="mt-2">
                 Os mesmos quatro passos aparecem no guia do canto da tela e no progresso da barra
                 lateral. Completar os dados da rádio e cadastrar vinhetagem são opcionais. Criar a
-                conta não tem custo: a assinatura é pedida na primeira geração com IA.
+                conta não tem custo: você configura radialista e programa à vontade, e a assinatura
+                é pedida na primeira geração com IA ou para colocar a rádio no ar.
               </p>
               <Shot src="dashboard" legenda="Visão geral logo após criar a conta, com o checklist de setup." />
             </section>
@@ -185,10 +186,22 @@ export default function AjudaPage() {
               <H2 id="programas-grade">Programas e grade</H2>
               <p>
                 Um <strong className="text-fg">programa</strong> define as regras de uma faixa de
-                horário: dias da semana, horário de início/fim, tom, tópicos permitidos e proibidos,
-                gêneros musicais, mensagem de saudação/recusa e a estrutura de blocos (abertura,
-                música, comentário, notícia, chamada ao ouvinte, entre outros). Um programa pode ter
-                mais de um radialista como co-apresentador, dependendo do plano.
+                horário: dias da semana (ou uma data só, no programa avulso), horário de início/fim,
+                perfil (musical, jornalismo, esportivo, variedades, religioso ou comunitário), tom,
+                tópicos permitidos e proibidos, gêneros musicais e o roteiro de blocos (abertura,
+                música, comentário, notícia, serviço, chamada ao ouvinte, entre outros). Vinhetas e
+                propagandas cadastradas na Vinhetagem também entram como blocos do roteiro. Um
+                programa pode ter até dez radialistas como co-apresentadores.
+              </p>
+              <p className="mt-2">
+                Dá pra descrever o programa em texto livre e usar <em>Ajustar com IA</em> para
+                preencher os campos. Com a pesquisa ativada (&quot;Pode pesquisar&quot;), o
+                radialista busca notícias recentes nas fontes indicadas. Cada programa usa um modelo
+                de texto e um de voz, que definem o preço por hora (veja{" "}
+                <a href="#assinatura" className="text-acento-claro underline hover:text-acento-dim">
+                  Assinatura e consumo
+                </a>
+                ).
               </p>
               <p className="mt-2">
                 A <strong className="text-fg">grade de programação</strong> (Conteúdo → Grade) mostra
@@ -209,8 +222,9 @@ export default function AjudaPage() {
                 Cada categoria é marcada como <strong className="text-fg">biblioteca</strong>{" "}
                 (vinhetas em áudio, tipo cartwall) ou <strong className="text-fg">propaganda</strong>{" "}
                 (spot de patrocinador). Uma propaganda pode ser um áudio pronto ou um texto que o
-                próprio radialista lê no ar, com a voz que você escolher. O radialista usa essas
-                inserções ao montar a programação, conforme as regras do programa.
+                próprio radialista lê no ar, com a voz que você escolher. Para tocar no ar, encaixe a
+                vinheta ou a propaganda como um bloco no roteiro do programa; as vinhetas da
+                biblioteca também viram botões no Cartwall do Ao Vivo.
               </p>
               <Shot src="vinhetagem" legenda="Categorias da vinhetagem, cada uma marcada como biblioteca ou propaganda." />
             </section>
@@ -226,9 +240,9 @@ export default function AjudaPage() {
               </p>
               <Shot src="whatsapp-antes-conectar" legenda="Conexão do WhatsApp antes de escanear o QR code." />
               <p className="mt-2">
-                A mesma tela mostra o histórico das mensagens trocadas entre ouvintes e o radialista,
-                com filtro por período (últimos 7, 30 ou 90 dias) — útil pra revisar como a IA está
-                respondendo.
+                Em <em>Conversas</em> fica o histórico das mensagens trocadas entre ouvintes e o
+                radialista, com filtro por período (últimos 7, 30 ou 90 dias) e exportação em CSV —
+                útil pra revisar como a IA está respondendo.
               </p>
               <Shot src="conversas" legenda="Histórico de conversas, com filtro por período." />
             </section>
@@ -241,6 +255,18 @@ export default function AjudaPage() {
                 a transmissão, disparar vinhetas da Biblioteca/Cartwall manualmente e editar o
                 radialista ou o programa sem saltar de tela.
               </p>
+              <p className="mt-2">
+                <strong className="text-fg">Atendimento aos ouvintes</strong> (administradores
+                ativam no próprio Ao Vivo): pedidos de música e recados que chegam pelo WhatsApp
+                entram numa fila de revisão. Antes de ir ao ar, a equipe confere a autorização do
+                ouvinte, define o nome e o texto que o radialista vai ler e aprova. Também dá pra
+                transferir o pedido para outro programa, recusar com motivo ou continuar a conversa
+                pessoalmente no WhatsApp da rádio.
+              </p>
+              <Dica>
+                Instale o app da Locufy no computador que toca a rádio. Sem isso, o navegador
+                bloqueia o som até alguém clicar na página.
+              </Dica>
               <Shot src="ao-vivo" legenda="Painel Ao Vivo." />
             </section>
 
@@ -248,7 +274,7 @@ export default function AjudaPage() {
               <H2 id="metricas">Métricas</H2>
               <p>
                 Volume de mensagens recebidas (total, últimos 7 e últimos 30 dias, por dia e por
-                status), com o mesmo filtro de período e exportação em CSV de Conversas. Para ver o
+                status), com o mesmo filtro de período e exportação em CSV. Para ver o
                 uso de IA e o limite financeiro, acesse{" "}
                 <a href="#assinatura" className="text-acento-claro underline hover:text-acento-dim">
                   Assinatura e consumo
@@ -275,34 +301,62 @@ export default function AjudaPage() {
               <p>
                 Só administradores acessam esta tela (<em>Conta → Assinatura</em>). A Locufy tem um
                 plano só, o <strong className="text-fg">Locufy Flex</strong>: R$ 69,90 por mês de acesso
-                mais o uso de IA, cobrado no fim do ciclo.
+                mais o uso de IA, pago com cartão via Stripe.
               </p>
               <ul className="list-disc pl-5 mt-2 space-y-1">
-                <li>WhatsApp completo, sem franquia nem pacotes de mensagens.</li>
                 <li>
-                  O uso é medido por geração (texto, voz, transcrição) e depende da combinação de modelos
-                  escolhida para cada programa. A tela mostra o preço por hora de programa de cada
-                  combinação antes de você escolher.
+                  A primeira mensalidade é cobrada na adesão. Em cada renovação, a fatura traz a
+                  mensalidade do próximo período mais o uso de IA do período encerrado. Sem uso, só a
+                  mensalidade.
+                </li>
+                <li>WhatsApp completo, sem franquia nem pacotes de mensagens, e sem cobrança por radialista.</li>
+                <li>
+                  O uso é medido por geração (texto, voz, transcrição de áudio, trilha de vinheta) e
+                  depende da combinação de modelos de cada programa. Em <em>Modelos em uso</em> você
+                  vê o preço por hora de programa de cada combinação e pode trocar quando quiser; a
+                  troca vale para as próximas falas geradas.
                 </li>
                 <li>
-                  Você define um <strong className="text-fg">limite financeiro</strong> mensal; ao atingir,
-                  novas gerações pausam até você aumentar o limite ou o ciclo virar.
+                  Você define um <strong className="text-fg">limite financeiro</strong> mensal. Ele
+                  controla o total comprometido: uso do ciclo atual, operações em andamento e uso
+                  ainda não pago de ciclos anteriores. A Visão geral avisa quando esse total chega a
+                  90% do limite. Ao atingir, novas gerações pausam até você aumentar o limite ou a
+                  fatura com esse uso ser paga.
+                </li>
+                <li>
+                  Com pagamento pendente, novas gerações também pausam até você clicar em
+                  &quot;Regularizar pagamento&quot;.
                 </li>
                 <li>Reproduzir áudio já gerado (vinhetas, falas prontas) não gera nova cobrança.</li>
-                <li>O extrato lista cada uso; as faturas ficam no histórico.</li>
+                <li>
+                  O extrato lista cada uso com modelo, quantidade e preço; as faturas ficam no
+                  histórico. Em <em>Tarifas e testes</em> estão as tarifas vigentes de cada modelo.
+                </li>
               </ul>
               <p className="mt-2">
                 O cancelamento pode ser feito a qualquer momento pelo portal de pagamento e vale até o
-                fim do período já pago.
+                fim do período já pago, sem reembolso proporcional. No cancelamento sai uma fatura
+                final só com o uso de IA ainda não cobrado.
               </p>
-              <Shot src="assinatura" legenda="Tela de Assinatura e consumo." />
+              <Shot
+                src="assinatura"
+                legenda="Assinatura de uma rádio de demonstração, com o modelo e a estimativa mensal de cada programa pelas tarifas vigentes."
+              />
+              <Shot
+                src="assinatura-consumo"
+                legenda="Consumo do ciclo, limite financeiro e extrato de cada uso da mesma rádio."
+              />
             </section>
 
             <section>
               <H2 id="dados-radio">Configuração</H2>
               <p>
-                Em <em>Conta → Configuração</em> ficam três blocos, todos preenchidos manualmente
-                (nada aqui é gerado por IA, pra não inventar lugar ou fato errado sobre sua rádio):
+                Em <em>Conta → Configuração</em> ficam a conexão do{" "}
+                <a href="#conversas" className="text-acento-claro underline hover:text-acento-dim">
+                  WhatsApp da rádio
+                </a>{" "}
+                e três blocos preenchidos manualmente (nada aqui é gerado por IA, pra não inventar
+                lugar ou fato errado sobre sua rádio):
               </p>
               <ol className="list-decimal pl-5 mt-2 space-y-1">
                 <li>
@@ -328,8 +382,8 @@ export default function AjudaPage() {
             <section>
               <H2 id="perfil">Perfil</H2>
               <p>
-                Seus dados pessoais e o status atual do plano da conta (em teste, ativo, pagamento
-                pendente ou cancelado).
+                Seus dados pessoais e o status atual da assinatura: aguardando assinatura (conta
+                criada, ainda sem pagamento), ativa, pagamento pendente ou cancelada.
               </p>
               <Shot src="perfil" legenda="Tela de Perfil." />
             </section>
@@ -374,6 +428,14 @@ export default function AjudaPage() {
                   <p>
                     O admin da conta recebe um alerta por e-mail; basta reconectar escaneando o QR
                     code de novo em <em>Conta → Configuração → WhatsApp da rádio</em>.
+                  </p>
+                </div>
+                <div>
+                  <p className="font-medium text-fg">Por que o radialista parou de gerar falas novas?</p>
+                  <p>
+                    Normalmente é o limite financeiro atingido, um pagamento pendente ou a assinatura
+                    cancelada. Confira em <em>Conta → Assinatura</em>: aumente o limite, regularize o
+                    pagamento ou reative a assinatura.
                   </p>
                 </div>
                 <div>
