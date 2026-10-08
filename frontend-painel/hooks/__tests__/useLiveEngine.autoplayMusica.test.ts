@@ -40,7 +40,7 @@ class AudioTeste {
 }
 
 type EventosYT = {
-  onReady?: (e: { target: MusicaTeste }) => void;
+  onReady: (e: { target: MusicaTeste }) => void;
   onStateChange: (e: { data: number; target: MusicaTeste }) => void;
   onError?: (e: { data: number }) => void;
 };
@@ -49,10 +49,13 @@ class MusicaTeste {
   unMute = vi.fn();
   setVolume = vi.fn();
   playVideo = vi.fn();
+  mute = vi.fn();
+  loadVideoById = vi.fn();
   stopVideo() {}
   destroy() {}
   getVolume() { return 0; }
   constructor(_id: string, public config: { videoId: string; events: EventosYT }) { musicas.push(this); }
+  pronto() { this.config.events.onReady({ target: this }); }
   tocando() { this.config.events.onStateChange({ data: 1, target: this }); }
   terminar() { this.config.events.onStateChange({ data: 0, target: this }); }
   falhar(codigo: number) { this.config.events.onError?.({ data: codigo }); }
@@ -193,12 +196,15 @@ it("erro do YouTube na música: toca a substituta devolvida pelo backend", async
   mockSubstituta();
   mocks.proxima.mockResolvedValueOnce(musica());
   await iniciar();
+  act(() => musicas[0].pronto());
+  expect(musicas[0].loadVideoById).toHaveBeenLastCalledWith({ videoId: "musica-1", startSeconds: 0 });
 
   await act(async () => { musicas[0].falhar(150); });
   const chamada = mocks.api.mock.calls.find(([path]) => String(path).endsWith("/musica-substituta"));
   expect(JSON.parse(String(chamada?.[1]?.body))).toEqual({ video_id: "musica-1", titulo: "Canção", motivo: "erro_150" });
-  expect(musicas).toHaveLength(2);
-  expect(musicas[1].config.videoId).toBe("musica-2");
+  // mesmo iframe (persistente, ver aquecerPlayer), so' troca a faixa
+  expect(musicas).toHaveLength(1);
+  expect(musicas[0].loadVideoById).toHaveBeenLastCalledWith({ videoId: "musica-2", startSeconds: 0 });
 });
 
 it("música que nunca começa a tocar: insiste uma vez e depois troca pela substituta", async () => {
@@ -206,15 +212,15 @@ it("música que nunca começa a tocar: insiste uma vez e depois troca pela subst
   mockSubstituta();
   mocks.proxima.mockResolvedValueOnce(musica());
   await iniciar();
+  act(() => musicas[0].pronto());
 
   await act(async () => { await vi.advanceTimersByTimeAsync(12000); });
   expect(musicas[0].playVideo).toHaveBeenCalled();
-  expect(musicas).toHaveLength(1);
   await act(async () => { await vi.advanceTimersByTimeAsync(12000); });
   const chamada = mocks.api.mock.calls.find(([path]) => String(path).endsWith("/musica-substituta"));
   expect(JSON.parse(String(chamada?.[1]?.body)).motivo).toBe("nao_iniciou");
-  expect(musicas).toHaveLength(2);
-  expect(musicas[1].config.videoId).toBe("musica-2");
+  expect(musicas).toHaveLength(1);
+  expect(musicas[0].loadVideoById).toHaveBeenLastCalledWith({ videoId: "musica-2", startSeconds: 0 });
 });
 
 it("música que começou a tocar não é trocada pela vigia de início", async () => {

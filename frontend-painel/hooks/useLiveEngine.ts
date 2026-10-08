@@ -35,6 +35,28 @@ const INTERVALO_RETENTATIVA_FALHA_MS = 5_000;
 // de preparar ANTES do horario_inicio real do programa agendado -- coberta com folga em cima
 // do timeout de 75s do proprio fetch (ver apiFetchComTimeout em prepararTexto).
 const ANTECEDENCIA_PREPARO_SEGUNDOS = 90;
+// Video que os players do YouTube tocam mudos por um instante so' pra "aquecer" o iframe (ver
+// aquecerPlayer) -- o de exemplo da documentacao da IFrame API do YouTube, estavel ha' anos.
+const VIDEO_AQUECIMENTO = "M7lc1UVf-VE";
+
+// Eventos de quem esta' usando um player persistente agora (faixa de fundo ou musica do bloco).
+type EventosPlayer = {
+  aoPronto: () => void;
+  aoMudarEstado: (evento: any) => void;
+  aoErro: (evento: any) => void;
+};
+
+// Iframe do YouTube que vive a pagina inteira (ver aquecerPlayer em useLiveEngine).
+type PlayerPersistente = EventosPlayer & {
+  id: string;
+  player: { current: any };
+  // onReady ja' disparou (loadVideoById/mute so' existem a partir dai')
+  pronta: { current: boolean };
+  // o iframe ja' chegou a tocar midia
+  aquecido: { current: boolean };
+  // ha' faixa da transmissao no player agora -- sem isso, o PLAYING e' o do aquecimento
+  emUso: () => boolean;
+};
 
 type HistoricoFonte = { tipo: string; fala: string; musicas?: MusicaBloco[] };
 type ContextoPreparo = {
@@ -234,10 +256,22 @@ export function useLiveEngine() {
   const iniciadoPeloAgendamentoRef = useRef(false);
   const ytApiPromiseRef = useRef<Promise<void> | null>(null);
   const musicPlayerRef = useRef<any>(null);
+  const musicApiProntaRef = useRef(false);
+  const musicAquecidoRef = useRef(false);
+  // eventos da faixa que tocarMusica esta' tocando agora -- null = player ocioso.
+  const musicEventosRef = useRef<EventosPlayer | null>(null);
   const musicStopRef = useRef<(() => void) | null>(null);
   const audioFalaRef = useRef<HTMLAudioElement | null>(null);
   const bgPlayerRef = useRef<any>(null);
+  // true quando ha' cama de fundo da transmissao no player (ver aplicarSessaoFundo) -- ducking e
+  // fade cruzado so' mexem no volume nesse caso.
   const bgProntoRef = useRef(false);
+  // onReady do player de fundo ja' disparou (loadVideoById/mute so' existem a partir dai').
+  const bgApiProntaRef = useRef(false);
+  // o iframe do fundo ja' chegou a tocar midia (ver aquecerPlayer).
+  const bgAquecidoRef = useRef(false);
+  // faixa de fundo da transmissao em andamento -- null = sem transmissao (player so' aquecido/parado).
+  const bgSessaoRef = useRef<{ videoId: string; inicio: number; fim: number | null } | null>(null);
   const bgIntervaloFimRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const bgFadeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const musicFadeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -279,6 +313,29 @@ export function useLiveEngine() {
       script.src = "https://www.youtube.com/iframe_api";
       document.body.appendChild(script);
     }
+  }, []);
+
+  // Aquece os players do YouTube assim que a pagina estiver visivel (ver aquecerPlayer) -- tem
+  // que acontecer antes do inicio agendado, que pode pegar a pagina em segundo plano.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    let montado = true;
+    const aquecer = () => {
+      aquecerPlayer(playerFundo);
+      aquecerPlayer(playerMusica);
+    };
+    ytApiPromiseRef.current?.then(() => {
+      if (montado) aquecer();
+    });
+    const aoFicarVisivel = () => {
+      if (!document.hidden) aquecer();
+    };
+    document.addEventListener("visibilitychange", aoFicarVisivel);
+    return () => {
+      montado = false;
+      document.removeEventListener("visibilitychange", aoFicarVisivel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // o "ao vivo" e' um loop client-side (setTimeout recursivo em gerarProximaFala) --
@@ -745,20 +802,178 @@ export function useLiveEngine() {
     fadeVolumeYoutube(bgPlayerRef.current, bgFadeIntervalRef, baixo ? VOLUME_FUNDO_BAIXO : VOLUME_FUNDO_NORMAL, baixo ? FADE_DUCK_ENTRADA_MS : FADE_DUCK_MS);
   }
 
+  // O Chrome nao carrega midia de um frame que nunca tocou nada enquanto a pagina esta' oculta
+  // (aba em segundo plano, janela minimizada) -- so' quando ela volta a aparecer. Fundo e musica
+  // do bloco criavam um iframe novo do YouTube a cada inicio/faixa, entao no inicio agendado com
+  // o painel em segundo plano a cama ficava presa carregando (medido no Chrome: BUFFERING em t=0
+  // ate' a aba voltar pra frente) e cada musica do bloco ficava muda ate' o timeout, enquanto a
+  // voz tocava normal (o <audio> e' do frame principal, que ja' tocou midia). Por isso cada iframe
+  // nasce uma vez so', com a pagina visivel, toca um instante mudo e pausa; dali em diante
+  // loadVideoById carrega a faixa mesmo com a pagina oculta.
+  function aquecerPlayer(alvo: PlayerPersistente) {
+    if (typeof document === "undefined" || document.hidden || !window.YT?.Player) return;
+    if (!alvo.player.current) {
+      garantirContainerYoutube(alvo.id);
+      // fora da pagina do ao vivo nao ha' onde montar o iframe
+      if (document.getElementById(alvo.id)) criarPlayerPersistente(alvo);
+      return;
+    }
+    // criado, mas a pagina sumiu antes de chegar a tocar -- tenta de novo agora que esta' visivel
+    if (alvo.pronta.current && !alvo.aquecido.current && !alvo.emUso()) alvo.player.current.playVideo();
+  }
+
+  // Sem player aquecido ainda (a pagina nao ficou visivel desde que abriu), quem vai usar cria
+  // aqui mesmo -- oculta, o Chrome so' carrega quando ela aparecer; o onReady chama aoPronto.
+  function criarPlayerPersistente(alvo: PlayerPersistente) {
+    garantirContainerYoutube(alvo.id);
+    alvo.pronta.current = false;
+    alvo.player.current = new window.YT.Player(alvo.id, {
+      height: "0",
+      width: "0",
+      videoId: VIDEO_AQUECIMENTO,
+      // mudo e' sempre permitido, com ou sem gesto do usuario -- o aquecimento so' precisa tocar
+      playerVars: { autoplay: 0, controls: 0, mute: 1 },
+      events: {
+        onReady: (evento: any) => {
+          alvo.pronta.current = true;
+          if (alvo.emUso()) alvo.aoPronto();
+          else if (!document.hidden) evento.target.playVideo();
+        },
+        onStateChange: (evento: any) => {
+          if (evento.data === window.YT.PlayerState.PLAYING) alvo.aquecido.current = true;
+          if (alvo.emUso()) alvo.aoMudarEstado(evento);
+          // aquecimento (ou player ocioso): basta ter comecado a tocar
+          else if (evento.data === window.YT.PlayerState.PLAYING) evento.target.pauseVideo();
+        },
+        onError: (evento: any) => {
+          if (alvo.emUso()) alvo.aoErro(evento);
+          else console.error("Erro ao aquecer o player do YouTube:", alvo.id, evento?.data);
+        },
+      },
+    });
+  }
+
+  function destruirPlayer(alvo: PlayerPersistente) {
+    if (alvo.player.current) {
+      try {
+        alvo.player.current.destroy();
+      } catch {
+        // ignora falha ao destruir o player
+      }
+      alvo.player.current = null;
+    }
+    alvo.pronta.current = false;
+    alvo.aquecido.current = false;
+  }
+
+  const playerFundo: PlayerPersistente = {
+    id: "yt-bg-player",
+    player: bgPlayerRef,
+    pronta: bgApiProntaRef,
+    aquecido: bgAquecidoRef,
+    emUso: () => bgSessaoRef.current !== null,
+    aoPronto: () => aplicarSessaoFundo(),
+    aoMudarEstado: (evento) => aoMudarEstadoFundo(evento),
+    aoErro: (evento) => console.error("Erro no player da musica de fundo:", bgSessaoRef.current?.videoId, evento?.data),
+  };
+
+  const playerMusica: PlayerPersistente = {
+    id: "yt-live-player",
+    player: musicPlayerRef,
+    pronta: musicApiProntaRef,
+    aquecido: musicAquecidoRef,
+    emUso: () => musicEventosRef.current !== null,
+    aoPronto: () => musicEventosRef.current?.aoPronto(),
+    aoMudarEstado: (evento) => musicEventosRef.current?.aoMudarEstado(evento),
+    aoErro: (evento) => musicEventosRef.current?.aoErro(evento),
+  };
+
+  // Para a cama da transmissao mas mantem o iframe (ja' aquecido) pro proximo inicio -- recriar
+  // aqui voltaria ao problema do frame novo com a pagina oculta (ver aquecerPlayer).
   function pararMusicaFundo() {
     bgProntoRef.current = false;
+    bgSessaoRef.current = null;
     removerDesbloqueioAudio("fundo");
     if (bgIntervaloFimRef.current) {
       clearInterval(bgIntervaloFimRef.current);
       bgIntervaloFimRef.current = null;
     }
-    if (bgPlayerRef.current) {
+    if (bgFadeIntervalRef.current) {
+      clearInterval(bgFadeIntervalRef.current);
+      bgFadeIntervalRef.current = null;
+    }
+    if (bgPlayerRef.current && bgApiProntaRef.current) {
       try {
-        bgPlayerRef.current.destroy();
+        bgPlayerRef.current.stopVideo();
+        bgPlayerRef.current.mute();
       } catch {
         // ignora falha ao parar musica de fundo
       }
-      bgPlayerRef.current = null;
+    }
+  }
+
+  // musica do bloco no ar = fundo fica em 0 (fade cruzado); fala no ar = abaixado.
+  function volumeAlvoFundo() {
+    return musicStopRef.current ? 0 : audioFalaRef.current ? VOLUME_FUNDO_BAIXO : VOLUME_FUNDO_NORMAL;
+  }
+
+  function aoMudarEstadoFundo(evento: any) {
+    const player = evento.target;
+    const sessao = bgSessaoRef.current;
+    if (!sessao) return;
+    // loop: volta pro ponto de inicio da faixa em vez de parar no fim
+    if (evento.data === window.YT.PlayerState.ENDED) {
+      player.seekTo(sessao.inicio, true);
+      player.playVideo();
+    }
+    // so' desmuta quando a reproducao muda de verdade pra PLAYING (nao logo apos
+    // playVideo(), que so' inicia o buffer) -- chamar unMute() cedo demais, antes do
+    // autoplay mudo ter realmente "pegado", faz o Chrome tratar como troca pra audio
+    // com som sem gesto do usuario e cancela a reproducao de volta pra UNSTARTED (-1),
+    // travando o player mudo pra sempre (bug relatado: ducking "nao sobe/desce na
+    // pratica" -- na real nem tinha audio nenhum rodando pra ouvir a mudanca).
+    if (evento.data === window.YT.PlayerState.PLAYING && !bgDesmutadoRef.current) {
+      bgDesmutadoRef.current = true;
+      const desmutar = () => {
+        if (bgPlayerRef.current !== player || !bgSessaoRef.current) return;
+        player.unMute();
+        player.setVolume(volumeAlvoFundo());
+      };
+      // sem interacao na pagina, unMute() faz o Chrome parar o video -- segue mudo ate' o clique
+      if (paginaTemInteracao()) desmutar();
+      else registrarDesbloqueioAudio("fundo", desmutar);
+    }
+  }
+
+  // Poe a faixa de bgSessaoRef no player de fundo (criado/aquecido antes, ver aquecerPlayer).
+  function aplicarSessaoFundo() {
+    const player = bgPlayerRef.current;
+    const sessao = bgSessaoRef.current;
+    if (!player || !bgApiProntaRef.current || !sessao) return;
+    if (bgIntervaloFimRef.current) {
+      clearInterval(bgIntervaloFimRef.current);
+      bgIntervaloFimRef.current = null;
+    }
+    bgDesmutadoRef.current = false;
+    // Som ja' liberado: carrega com som -- midia muda com a pagina oculta o Chrome pausa pra
+    // economizar energia (mesmo problema da fala, ver reproduzirAudioPreparado). Sem som
+    // liberado, mudo e' o unico jeito do autoplay passar; desmuta no clique (ver onStateChange).
+    if (paginaTemInteracao()) {
+      player.unMute();
+      player.setVolume(volumeAlvoFundo());
+    } else {
+      player.mute();
+    }
+    player.loadVideoById({ videoId: sessao.videoId, startSeconds: sessao.inicio });
+    bgProntoRef.current = true;
+    // fundo toca em loop -- o corte antes de silencio/fala no final precisa voltar pro inicio
+    // na marca, nao esperar o fim.
+    if (sessao.fim != null) {
+      const { inicio, fim } = sessao;
+      bgIntervaloFimRef.current = setInterval(() => {
+        const atual = bgPlayerRef.current?.getCurrentTime?.();
+        if (typeof atual === "number" && atual >= fim) bgPlayerRef.current?.seekTo(inicio, true);
+      }, 500);
     }
   }
 
@@ -789,57 +1004,10 @@ export function useLiveEngine() {
     }
     if (!window.YT || !window.YT.Player || !programaAtivoRef.current) return;
 
-    pararMusicaFundo();
-    garantirContainerYoutube("yt-bg-player");
-    bgPlayerRef.current = new window.YT.Player("yt-bg-player", {
-      height: "0",
-      width: "0",
-      videoId,
-      // mute:1 e' o que deixa o autoplay passar: o iframe tenta tocar assim que carrega, e
-      // sem isso a tentativa e' com som sem gesto do usuario (ver auto-inicio por horario
-      // agendado em verificarHorarioAgendado, que dispara via setInterval, sem clique nenhum)
-      // -- Chrome bloqueia na hora. Mudo e' sempre permitido.
-      playerVars: { autoplay: 1, controls: 0, loop: 1, playlist: videoId, start: inicioSegundos, mute: 1 },
-      events: {
-        onReady: (evento: any) => {
-          bgProntoRef.current = true;
-          evento.target.playVideo();
-          bgDesmutadoRef.current = false;
-          // fundo toca em loop -- sem ENDED natural (playlist/loop), entao o corte antes
-          // de silencio/fala no final precisa voltar pro inicio na marca, nao esperar o fim.
-          if (fimSegundos != null) {
-            bgIntervaloFimRef.current = setInterval(() => {
-              const atual = bgPlayerRef.current?.getCurrentTime?.();
-              if (typeof atual === "number" && atual >= fimSegundos!) {
-                bgPlayerRef.current?.seekTo(inicioSegundos, true);
-              }
-            }, 500);
-          }
-        },
-        onStateChange: (evento: any) => {
-          if (evento.data === window.YT.PlayerState.ENDED) evento.target.playVideo();
-          // so' desmuta quando a reproducao muda de verdade pra PLAYING (nao logo apos
-          // playVideo(), que so' inicia o buffer) -- chamar unMute() cedo demais, antes do
-          // autoplay mudo ter realmente "pegado", faz o Chrome tratar como troca pra audio
-          // com som sem gesto do usuario e cancela a reproducao de volta pra UNSTARTED (-1),
-          // travando o player mudo pra sempre (bug relatado: ducking "nao sobe/desce na
-          // pratica" -- na real nem tinha audio nenhum rodando pra ouvir a mudanca).
-          if (evento.data === window.YT.PlayerState.PLAYING && !bgDesmutadoRef.current) {
-            bgDesmutadoRef.current = true;
-            const player = evento.target;
-            const desmutar = () => {
-              if (bgPlayerRef.current !== player) return;
-              player.unMute();
-              // musica do bloco no ar = fundo fica em 0 (fade cruzado); fala no ar = abaixado.
-              player.setVolume(musicStopRef.current ? 0 : audioFalaRef.current ? VOLUME_FUNDO_BAIXO : VOLUME_FUNDO_NORMAL);
-            };
-            // sem interacao na pagina, unMute() faz o Chrome parar o video -- segue mudo ate' o clique
-            if (paginaTemInteracao()) desmutar();
-            else registrarDesbloqueioAudio("fundo", desmutar);
-          }
-        },
-      },
-    });
+    bgSessaoRef.current = { videoId, inicio: inicioSegundos, fim: fimSegundos };
+    // player ainda carregando: o onReady aplica a sessao
+    if (!bgPlayerRef.current) criarPlayerPersistente(playerFundo);
+    else aplicarSessaoFundo();
   }
 
   // Toca uma faixa e devolve quanto tempo (segundos, relogio de parede) ela ficou
@@ -897,9 +1065,13 @@ export function useLiveEngine() {
           if (vigiaInicioId) clearTimeout(vigiaInicioId);
           if (intervaloFimId) clearInterval(intervaloFimId);
           musicStopRef.current = null;
+          if (musicEventosRef.current === eventos) musicEventosRef.current = null;
           removerDesbloqueioAudio("musica");
+          // para mas nao destroi: o iframe aquecido e' o que deixa a proxima faixa tocar com a
+          // pagina oculta (ver aquecerPlayer)
           try {
             musicPlayerRef.current?.stopVideo?.();
+            musicPlayerRef.current?.mute?.();
           } catch {
             // ignora falha ao parar o player
           }
@@ -918,11 +1090,12 @@ export function useLiveEngine() {
         // vigia de inicio: player que nunca chega em PLAYING (video preso carregando, bloqueio
         // sem onError) antes deixava o bloco mudo ate' o timeout de 6min. Insiste no playVideo
         // uma vez e, se mesmo assim nao comecar, desiste pra o caller tocar uma substituta. Com a
-        // aba em segundo plano o navegador pode segurar o inicio -- ai' so' reagenda.
+        // aba em segundo plano e o player ainda nao aquecido, o navegador so' carrega quando ela
+        // aparecer (ver aquecerPlayer) -- ai' so' reagenda.
         const vigiarInicio = (tentativa: number) => {
           vigiaInicioId = setTimeout(() => {
             if (finalizado || comecou) return;
-            if (typeof document !== "undefined" && document.hidden) return vigiarInicio(tentativa);
+            if (typeof document !== "undefined" && document.hidden && !musicAquecidoRef.current) return vigiarInicio(tentativa);
             if (tentativa === 0) {
               try {
                 musicPlayerRef.current?.playVideo?.();
@@ -937,84 +1110,90 @@ export function useLiveEngine() {
         };
         vigiarInicio(0);
 
-        if (musicPlayerRef.current) {
-          try {
-            musicPlayerRef.current.destroy();
-          } catch {
-            // ignora falha ao destruir player anterior
+        const carregar = () => {
+          const player = musicPlayerRef.current;
+          if (finalizado || !player) return;
+          // fade de saida da faixa anterior ainda rodando nao pode brigar com o volume desta
+          if (musicFadeIntervalRef.current) {
+            clearInterval(musicFadeIntervalRef.current);
+            musicFadeIntervalRef.current = null;
           }
-          musicPlayerRef.current = null;
-        }
+          musicDesmutadoRef.current = false;
+          // Som ja' liberado: carrega com som (volume minimo, o fade cruzado sobe no PLAYING) --
+          // midia muda com a pagina oculta o Chrome pausa pra economizar energia (mesmo problema
+          // da fala, ver reproduzirAudioPreparado). Sem som liberado, mudo e' o unico jeito do
+          // autoplay passar; desmuta no clique (ver aoMudarEstado).
+          if (paginaTemInteracao()) {
+            player.unMute();
+            player.setVolume(1);
+          } else {
+            player.mute();
+          }
+          player.loadVideoById({ videoId, startSeconds: inicioSegundos });
 
-        garantirContainerYoutube("yt-live-player");
-        musicPlayerRef.current = new window.YT.Player("yt-live-player", {
-          height: "0",
-          width: "0",
-          videoId,
-          // mute:1 e' o que deixa o autoplay passar (ver bg player acima) -- tentativa de tocar
-          // com som sem gesto do usuario e' bloqueada na hora pelo Chrome.
-          playerVars: { autoplay: 1, controls: 0, start: inicioSegundos, mute: 1 },
-          events: {
-            onReady: (evento: any) => {
-              musicDesmutadoRef.current = false;
-              evento.target.playVideo();
+          // corta antes de silencio longo/fala no final da faixa (analisado no backend, ver
+          // app/live/audio_analysis.py) -- sem isso tocaria ate o fim real do video, que pode
+          // ter trecho falado ou vazio. O fade de saida comeca um pouco antes do corte (em vez
+          // de cortar em volume cheio e so' depois subir o fundo) pra soar como um segue de
+          // estudio, nao um corte seco.
+          if (fimSegundos != null) {
+            let fadeIniciado = fimSegundos - FADE_MUSICA_SAIDA_S <= inicioSegundos;
+            intervaloFimId = setInterval(() => {
+              const atual = musicPlayerRef.current?.getCurrentTime?.();
+              if (typeof atual !== "number") return;
+              if (!fadeIniciado && atual >= fimSegundos - FADE_MUSICA_SAIDA_S) {
+                fadeIniciado = true;
+                fadeVolumeYoutube(musicPlayerRef.current, musicFadeIntervalRef, 0, FADE_MUSICA_MS);
+                if (bgProntoRef.current) fadeVolumeYoutube(bgPlayerRef.current, bgFadeIntervalRef, VOLUME_FUNDO_NORMAL, FADE_MUSICA_MS);
+              }
+              if (atual >= fimSegundos) finalizar(true);
+            }, POLL_FIM_MS);
+          }
+        };
 
-              // corta antes de silencio longo/fala no final da faixa (analisado no backend, ver
-              // app/live/audio_analysis.py) -- sem isso tocaria ate o fim real do video, que pode
-              // ter trecho falado ou vazio. O fade de saida comeca um pouco antes do corte (em vez
-              // de cortar em volume cheio e so' depois subir o fundo) pra soar como um segue de
-              // estudio, nao um corte seco.
-              if (fimSegundos != null) {
-                let fadeIniciado = fimSegundos - FADE_MUSICA_SAIDA_S <= inicioSegundos;
-                intervaloFimId = setInterval(() => {
-                  const atual = musicPlayerRef.current?.getCurrentTime?.();
-                  if (typeof atual !== "number") return;
-                  if (!fadeIniciado && atual >= fimSegundos - FADE_MUSICA_SAIDA_S) {
-                    fadeIniciado = true;
-                    fadeVolumeYoutube(musicPlayerRef.current, musicFadeIntervalRef, 0, FADE_MUSICA_MS);
-                    if (bgProntoRef.current) fadeVolumeYoutube(bgPlayerRef.current, bgFadeIntervalRef, VOLUME_FUNDO_NORMAL, FADE_MUSICA_MS);
-                  }
-                  if (atual >= fimSegundos) finalizar(true);
-                }, POLL_FIM_MS);
-              }
-            },
-            onStateChange: (evento: any) => {
-              if (evento.data === window.YT.PlayerState.PLAYING) comecou = true;
-              if (evento.data === window.YT.PlayerState.ENDED) finalizar(true);
-              // so' desmuta/inicia o fade cruzado quando a musica realmente comecar a tocar --
-              // ver o mesmo cuidado no player de fundo (iniciarMusicaFundo) sobre por que
-              // desmutar cedo demais cancela o autoplay de volta pra UNSTARTED.
-              if (evento.data === window.YT.PlayerState.PLAYING && !musicDesmutadoRef.current && !finalizado) {
-                const player = evento.target;
-                const desmutar = () => {
-                  if (finalizado || musicPlayerRef.current !== player) return;
-                  musicDesmutadoRef.current = true;
-                  player.unMute();
-                  // fade cruzado: musica sobe de silencio enquanto o fundo desce pro lugar dela, em
-                  // vez do salto instantaneo de antes (fundo mudo + musica em volume cheio na mesma
-                  // batida) -- e' o que soava "colado"/artificial na abertura do bloco.
-                  player.setVolume(0);
-                  fadeVolumeYoutube(player, musicFadeIntervalRef, 100, FADE_MUSICA_MS, 12, 0);
-                  if (bgProntoRef.current) fadeVolumeYoutube(bgPlayerRef.current, bgFadeIntervalRef, 0, FADE_MUSICA_MS);
-                };
-                // sem interacao na pagina, unMute() faz o Chrome parar o video -- a faixa segue
-                // muda (o tempo do bloco continua correndo) ate' o clique em "Ativar som".
-                if (paginaTemInteracao()) desmutar();
-                else if (!desbloqueiosAudioRef.current.has("musica")) registrarDesbloqueioAudio("musica", desmutar);
-              }
-            },
-            // codigos do player: 2 parametro invalido, 5 erro de HTML5, 100 video removido/privado,
-            // 101/150 dono do video bloqueou embed -- sem log aqui a musica so' "nao tocava", sem
-            // pista nenhuma de qual desses era (ver post-mortem que motivou isso)
-            onError: (evento: any) => {
-              console.error("Erro ao tocar musica no player do YouTube:", videoId, titulo, evento?.data);
-              // erro depois de ja' ter comecado a tocar: o ouvinte ja' ouviu a musica -- pedir
-              // substituta aqui tocava outra versao da MESMA musica logo em seguida. So' segue.
-              if (comecou) finalizar();
-              else finalizar(false, `erro_${evento?.data ?? "desconhecido"}`);
-            },
+        const eventos: EventosPlayer = {
+          aoPronto: carregar,
+          aoMudarEstado: (evento: any) => {
+            if (evento.data === window.YT.PlayerState.PLAYING) comecou = true;
+            if (evento.data === window.YT.PlayerState.ENDED) finalizar(true);
+            // so' desmuta/inicia o fade cruzado quando a musica realmente comecar a tocar --
+            // ver o mesmo cuidado no player de fundo (aoMudarEstadoFundo) sobre por que
+            // desmutar cedo demais cancela o autoplay de volta pra UNSTARTED.
+            if (evento.data === window.YT.PlayerState.PLAYING && !musicDesmutadoRef.current && !finalizado) {
+              const player = evento.target;
+              const desmutar = () => {
+                if (finalizado || musicPlayerRef.current !== player) return;
+                musicDesmutadoRef.current = true;
+                player.unMute();
+                // fade cruzado: musica sobe de silencio enquanto o fundo desce pro lugar dela, em
+                // vez do salto instantaneo de antes (fundo mudo + musica em volume cheio na mesma
+                // batida) -- e' o que soava "colado"/artificial na abertura do bloco.
+                player.setVolume(0);
+                fadeVolumeYoutube(player, musicFadeIntervalRef, 100, FADE_MUSICA_MS, 12, 0);
+                if (bgProntoRef.current) fadeVolumeYoutube(bgPlayerRef.current, bgFadeIntervalRef, 0, FADE_MUSICA_MS);
+              };
+              // sem interacao na pagina, unMute() faz o Chrome parar o video -- a faixa segue
+              // muda (o tempo do bloco continua correndo) ate' o clique em "Ativar som".
+              if (paginaTemInteracao()) desmutar();
+              else if (!desbloqueiosAudioRef.current.has("musica")) registrarDesbloqueioAudio("musica", desmutar);
+            }
           },
-        });
+          // codigos do player: 2 parametro invalido, 5 erro de HTML5, 100 video removido/privado,
+          // 101/150 dono do video bloqueou embed -- sem log aqui a musica so' "nao tocava", sem
+          // pista nenhuma de qual desses era (ver post-mortem que motivou isso)
+          aoErro: (evento: any) => {
+            console.error("Erro ao tocar musica no player do YouTube:", videoId, titulo, evento?.data);
+            // erro depois de ja' ter comecado a tocar: o ouvinte ja' ouviu a musica -- pedir
+            // substituta aqui tocava outra versao da MESMA musica logo em seguida. So' segue.
+            if (comecou) finalizar();
+            else finalizar(false, `erro_${evento?.data ?? "desconhecido"}`);
+          },
+        };
+        musicEventosRef.current = eventos;
+
+        // player ainda carregando: o onReady chama carregar
+        if (!musicPlayerRef.current) criarPlayerPersistente(playerMusica);
+        else if (musicApiProntaRef.current) carregar();
       }
 
       iniciar();
@@ -1682,6 +1861,8 @@ export function useLiveEngine() {
       pararFala();
       musicStopRef.current?.();
       pararMusicaFundo();
+      destruirPlayer(playerFundo);
+      destruirPlayer(playerMusica);
       descartarPreparo();
     };
   }, []);
