@@ -49,6 +49,14 @@ def _programa(**kwargs):
     return Programa(**padrao)
 
 
+@pytest.mark.parametrize("pode_pesquisar", [True, False])
+def test_esporte_exige_fontes_e_sem_informacao_nao_entra_na_fala(pode_pesquisar):
+    prompt = montar_system_prompt(_account(), _radialista(), _programa(pode_pesquisar=pode_pesquisar))
+    assert "Sem informação esportiva verificada, não toque no assunto" in prompt
+    assert "nem comentário genérico" in prompt
+    assert "resultados, tabelas e contexto entre clubes" in prompt
+
+
 @freeze_time("2026-08-10 15:00:00")
 def test_prompt_single_voz_inclui_nome_do_locutor_e_da_radio():
     prompt = montar_system_prompt(_account(), _radialista(), _programa())

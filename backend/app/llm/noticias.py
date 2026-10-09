@@ -15,6 +15,7 @@ from app.config.redis_client import redis_client
 from app.config.settings import settings
 from app.llm.economia import criar_mensagem
 from app.llm.client import CLASSIFICATION_MODEL
+from app.util.texto import sem_acento
 
 logger = logging.getLogger("radialista.noticias")
 _client = Anthropic(api_key=settings.anthropic_api_key, timeout=25.0, max_retries=0)
@@ -32,6 +33,16 @@ class PesquisaNoticias(BaseModel):
     texto: str = ""
     fontes: list[FonteNoticia] = Field(default_factory=list)
     consultado_em: datetime.datetime | None = None
+    esportiva: bool = False
+
+
+def assunto_esportivo(texto: str | None) -> bool:
+    return bool(re.search(
+        r"\b(futebol|esportes?|esportiv\w*|clubes?|times?|campeonat\w*|brasileirao|"
+        r"libertadores|placar\w*|basquete|volei|tenis|formula\s*1|automobilismo|"
+        r"olimpi\w*|atletismo|natacao|ufc|mma|nba|copa\w*)\b",
+        sem_acento((texto or "").lower()),
+    ))
 
 
 def _dominio(fonte: str) -> str | None:
@@ -58,6 +69,17 @@ _SYSTEM = (
     "tudo em um único parágrafo com citação web ao final. Inclua datas e veículo nesse mesmo "
     "parágrafo antes da citação, sem subtítulos nem campos separados. "
     "Não confunda atualização da página com publicação da matéria. "
+    "Para futebol e outros esportes, busque em portais esportivos e confira dados nas fontes "
+    "oficiais de competições, federações e clubes, respeitando as fontes permitidas. Apure notícias, "
+    "resultados e tabelas de classificação pertinentes à pauta. Identifique competição, temporada, "
+    "rodada e data do jogo; diferencie partida encerrada, em andamento e agendada. "
+    "Tabelas e resultados podem vir de páginas oficiais sem data de matéria, desde que a temporada, "
+    "rodada e atualização sejam verificáveis e atuais; a janela de 48 horas vale para notícias. "
+    "Explique o contexto entre os clubes e o impacto confirmado do resultado na classificação "
+    "(pontos, posição, disputa por título, classificação ou rebaixamento), quando disponível. "
+    "Não deduza posições nem use tabela de outra rodada; não invente escalações, rivalidades, "
+    "desfalques ou próximos jogos. Omita qualquer dado não confirmado. Sem informação esportiva "
+    "verificada, responda SEM_NOTICIAS, sem conversa genérica sobre torcida ou esporte. "
     "Descarte matérias sem data verificável, antigas ou futuras; eventos encerrados são fatos passados, "
     "nunca convites atuais. Não use conhecimento de treinamento para preencher lacunas. "
     "Respeite os assuntos permitidos e proibidos e as fontes indicadas. Se houver nomes de veículos, "
@@ -134,8 +156,11 @@ def _consultar(pauta: dict, dominios: list[str], agora: datetime.datetime) -> Pe
 
 
 def pesquisar_noticias(programa, account, *, agora: datetime.datetime, assunto: str | None = None) -> PesquisaNoticias:
+    esportiva = assunto_esportivo(assunto) or (assunto in (None, "noticia", "giro", "escalada", "reporter", "plantao") and assunto_esportivo(
+        " ".join(programa.tipos_noticias or []) + " " + " ".join(programa.topicos_permitidos or [])
+    ))
     if not programa.pode_pesquisar:
-        return PesquisaNoticias(status="desabilitada")
+        return PesquisaNoticias(status="desabilitada", esportiva=esportiva)
     # Fontes de notícias são o recorte editorial específico; as de pesquisa são o fallback.
     fontes = programa.fontes_noticias or programa.fontes_pesquisa or []
     dominios = sorted({d for fonte in fontes if (d := _dominio(fonte))})
@@ -149,11 +174,12 @@ def pesquisar_noticias(programa, account, *, agora: datetime.datetime, assunto: 
         "topicos_proibidos": programa.topicos_proibidos or [],
         "fontes": fontes or ["fontes jornalísticas confiáveis e órgãos oficiais"],
         "orientacoes_editoriais": programa.instrucoes_pesquisa or "",
+        "apuracao_esportiva": esportiva,
     }
     # O cache depende da configuração, cidade e dia local, não de cada segundo do relógio.
     identidade = {**pauta, "agora": agora.date().isoformat(), "account_id": account.id, "programa_id": programa.id}
     digest = hashlib.sha256(json.dumps(identidade, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
-    chave = f"noticias:v1:{digest}"
+    chave = f"noticias:v2:{digest}"
     try:
         cache = redis_client.get(chave)
         if cache:
@@ -168,13 +194,14 @@ def pesquisar_noticias(programa, account, *, agora: datetime.datetime, assunto: 
     # Sem noticia do assunto pedido: cai pras principais noticias dentro das mesmas fontes/
     # topicos permitidos, em vez de deixar o locutor sem nada pra falar. Mantém a restrição de
     # domínio (dominios) intacta — é a validação contra fonte falsificada/citação inventada.
-    if resultado.status != "ok" and assunto:
+    if resultado.status != "ok" and assunto and not esportiva:
         try:
             resultado_geral = _consultar({**pauta, "assunto": None}, dominios, agora)
             if resultado_geral.status == "ok":
                 resultado = resultado_geral
         except Exception:
             logger.warning("noticias_fallback_geral_falhou programa_id=%s", programa.id)
+    resultado.esportiva = esportiva
     try:
         redis_client.set(chave, resultado.model_dump_json(), ex=_TTL if resultado.status == "ok" else _TTL_FALHA)
     except Exception:
@@ -189,7 +216,9 @@ def contexto_noticias(pesquisa: PesquisaNoticias, *, categoria: str = "noticia")
             "Não há notícias verificadas disponíveis para este bloco. Não invente manchetes nem "
             "diga que consultou fontes. Nunca diga ao vivo que não há notícia, fonte ou assunto "
             "disponível, nem peça desculpas por isso ou prometa buscar depois. "
-            + ("Faça um comentário atemporal sobre o assunto sugerido, sem fatos recentes. "
+            + ("Não toque em futebol ou esporte, nem com comentários genéricos, provocações ou perguntas "
+               "sobre torcida. Faça apenas uma transição breve para outro assunto permitido. "
+               if pesquisa.esportiva else "Faça um comentário atemporal sobre o assunto sugerido, sem fatos recentes. "
                if categoria == "comentario" else "Faça apenas uma transição breve. ")
             + "Não apresente conteúdo genérico como notícia nem prometa atualização futura."
         )
@@ -201,6 +230,9 @@ def contexto_noticias(pesquisa: PesquisaNoticias, *, categoria: str = "noticia")
         "transição curta sem repetir manchetes. Em bloco de notícia, dê o fato concreto, onde/quando "
         "ocorreu e por que importa, atribuindo ao veículo pelo nome (ex.: 'Segundo a Agência...'). "
         "Em comentário, diferencie fato apurado de análise. Não leia URLs, markdown nem referências "
-        "numéricas em voz alta. Não troque a notícia por efeméride ou assunto genérico.\n"
+        "numéricas em voz alta. Não troque a notícia por efeméride ou assunto genérico. "
+        "Em esportes, explique resultados, tabela e contexto entre clubes somente quando sustentados "
+        "pela apuração; omita dados ausentes e não complete com memória. "
+        "\n"
         + json.dumps(dados, ensure_ascii=False)
     )

@@ -580,6 +580,29 @@ def test_combinacoes_com_v4_entram_com_a_tarifa_publicada(e2e):
     assert catalogo['modelos']['eleven_v4']['funcao'] == 'voz'
 
 
+def test_combinacoes_v4_turbo_dependem_da_tarifa_e_calculam_preco(e2e):
+    publicar_tarifas(e2e)
+    for tarifa in (TARIFA_SONNET, TARIFA_FLASH):
+        assert e2e.client.post('/billing/admin/tarifas', json=tarifa, headers=e2e.root).status_code == 200
+    antes = e2e.client.get('/billing/combinacoes', headers=e2e.user).json()
+    assert not any(c['modelo_voz'] == 'eleven_v4_turbo' for c in antes['combinacoes'])
+    assert e2e.client.post('/billing/admin/tarifas', json={
+        **TARIFA_FLASH, 'modelo': 'eleven_v4_turbo',
+    }, headers=e2e.root).status_code == 200
+    catalogo = e2e.client.get('/billing/combinacoes', headers=e2e.user).json()
+    combos = {c['id']: c for c in catalogo['combinacoes']}
+    for turbo, flash, texto in [
+        ('premium_v4_turbo', 'texto_premium', 'claude-opus-5'),
+        ('equilibrada_v4_turbo', 'agil', 'claude-sonnet-5'),
+        ('voz_premium_v4_turbo', 'essencial', 'claude-haiku-4-5'),
+    ]:
+        assert combos[turbo]['modelo_voz'] == 'eleven_v4_turbo'
+        assert combos[turbo]['modelo_texto'] == texto
+        assert combos[turbo]['preco_hora_brl'] == combos[flash]['preco_hora_brl']
+        assert 'velocidade' in combos[turbo]['limitacoes']
+    assert catalogo['modelos']['eleven_v4_turbo']['funcao'] == 'voz'
+
+
 def test_locutor_gerado_com_combinacao_escolhida_e_valor(e2e, monkeypatch):
     agora = int(time.time())
     publicar_tarifas(e2e)

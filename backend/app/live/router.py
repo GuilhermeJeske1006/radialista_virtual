@@ -2428,7 +2428,11 @@ def gerar_proxima_fala(
     if not pautas_noticia and deve_pesquisar:
         pesquisa_noticias = pesquisar_noticias(
             programa, account, agora=agora_local,
-            assunto=conteudo_quadro_fixo or (assunto_sugerido if categoria == "comentario" else tipo),
+            assunto=conteudo_quadro_fixo or (
+                " ".join([assunto_escolhido.titulo, assunto_escolhido.gancho, *assunto_escolhido.tags])
+                if categoria == "comentario" and assunto_escolhido is not None
+                else assunto_sugerido if categoria == "comentario" else tipo
+            ),
         )
         system_prompt_linhas.append(contexto_noticias(pesquisa_noticias, categoria=categoria))
 

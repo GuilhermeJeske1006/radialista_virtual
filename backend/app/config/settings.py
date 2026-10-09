@@ -73,7 +73,8 @@ class Settings(BaseSettings):
     # As com Haiku mostram ao cliente a limitação de fidelidade medida nas avaliações
     # (docs/benchmarks/2026-09-25-combinacoes); remova daqui para deixar de oferecer.
     ia_combinacoes: list[str] = ["premium", "premium_v4", "equilibrada", "equilibrada_v4", "voz_premium",
-                                 "voz_premium_v4", "texto_premium", "agil", "essencial"]
+                                 "voz_premium_v4", "texto_premium", "premium_v4_turbo", "agil",
+                                 "equilibrada_v4_turbo", "essencial", "voz_premium_v4_turbo"]
     ia_tarifas_llm: dict[str, list[float]] = {
         "claude-opus-5": [5, 25], "claude-sonnet-5": [2, 10], "claude-haiku-4-5": [1, 5],
     }

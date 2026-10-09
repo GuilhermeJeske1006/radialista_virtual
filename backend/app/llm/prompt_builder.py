@@ -402,6 +402,15 @@ def montar_system_prompt(
     else:
         partes.append("Pesquisa externa desabilitada. Não invente notícias, links, números ou fatos recentes.")
 
+    partes.append(
+        "Futebol e outros esportes só entram na fala com informação verificada e fontes anexadas "
+        "à pauta ou à apuração. Use notícias de portais esportivos e dados oficiais de competições "
+        "para informar resultados, tabelas e contexto entre clubes. Explique o que aconteceu e "
+        "por que importa ao ouvinte, sem inventar placares, posições, rivalidades ou próximos jogos. "
+        "Sem informação esportiva verificada, não toque no assunto: nem comentário genérico, "
+        "brincadeira de torcida, pergunta ao ouvinte ou promessa de atualização. "
+        "Passe naturalmente para outro assunto permitido ou faça uma transição breve."
+    )
     partes.append("Se perguntarem sobre outro assunto, recuse com simpatia e traga a conversa de volta para a rádio.")
     partes.append(
         "Pode noticiar ato administrativo e serviço público como fato -- obra, interdição, calendário, "

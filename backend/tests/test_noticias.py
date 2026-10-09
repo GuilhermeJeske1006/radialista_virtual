@@ -158,3 +158,43 @@ def test_falha_redis_nao_interrompe_pesquisa(configuracao, monkeypatch):
     monkeypatch.setattr(noticias.redis_client, "set", Mock(side_effect=ConnectionError()))
     monkeypatch.setattr(noticias._client.messages, "create", Mock(return_value=_resposta()))
     assert noticias.pesquisar_noticias(*configuracao, agora=AGORA).status == "ok"
+
+
+@pytest.mark.parametrize("assunto", ["futebol de fim de semana", "classificação do Brasileirão", "vôlei", "Fórmula 1"])
+def test_esporte_sem_resultado_omite_assunto_sem_fallback(configuracao, monkeypatch, assunto):
+    chamada = Mock(return_value=NS(stop_reason="end_turn", content=[]))
+    monkeypatch.setattr(noticias._client.messages, "create", chamada)
+    pesquisa = noticias.pesquisar_noticias(*configuracao, agora=AGORA, assunto=assunto)
+    assert pesquisa.esportiva
+    assert pesquisa.status == "sem_resultados"
+    assert chamada.call_count == 1
+    contexto = noticias.contexto_noticias(pesquisa, categoria="comentario")
+    assert "Não toque em futebol ou esporte" in contexto
+    assert "Faça um comentário atemporal" not in contexto
+
+
+def test_pauta_esportiva_pede_portais_resultados_tabelas_e_contexto(configuracao, monkeypatch):
+    chamada = Mock(return_value=_resposta())
+    monkeypatch.setattr(noticias._client.messages, "create", chamada)
+    pesquisa = noticias.pesquisar_noticias(*configuracao, agora=AGORA, assunto="futebol")
+    args = chamada.call_args.kwargs
+    assert json.loads(args["messages"][0]["content"])["apuracao_esportiva"] is True
+    for trecho in ["portais esportivos", "tabelas de classificação", "contexto entre os clubes", "temporada"]:
+        assert trecho in args["system"]
+    assert pesquisa.esportiva
+    assert pesquisa.fontes
+
+
+def test_esporte_desabilitado_omite_assunto(configuracao):
+    configuracao[0].pode_pesquisar = False
+    pesquisa = noticias.pesquisar_noticias(*configuracao, agora=AGORA, assunto="futebol")
+    assert "Não toque em futebol ou esporte" in noticias.contexto_noticias(pesquisa, categoria="comentario")
+
+
+def test_editoria_esportiva_sem_assunto_especifico(configuracao, monkeypatch):
+    configuracao[0].tipos_noticias = ["esportes"]
+    chamada = Mock(return_value=NS(stop_reason="end_turn", content=[]))
+    monkeypatch.setattr(noticias._client.messages, "create", chamada)
+    pesquisa = noticias.pesquisar_noticias(*configuracao, agora=AGORA, assunto="noticia")
+    assert pesquisa.esportiva
+    assert chamada.call_count == 1

@@ -35,6 +35,11 @@ _BLOCOS_CANONICOS = (
 )
 
 _REGRAS_COMUNS = [
+    "Para programas de futebol ou outros esportes, habilite pode_pesquisar=true e inclua esportes "
+    "em tipos_noticias. Oriente instrucoes_pesquisa a buscar notícias em portais esportivos, "
+    "conferir resultados e tabelas nas fontes oficiais e explicar o contexto entre clubes. "
+    "Não invente nomes de fontes. Sem informação verificada, o radialista deve omitir esporte "
+    "completamente, inclusive comentários genéricos e brincadeiras de torcida.",
     "Para programas jornalísticos, boletins e comentários sobre atualidades, habilite pode_pesquisar=true "
     "e inclua blocos 'noticia' na estrutura. Preencha tipos_noticias com editorias concretas. "
     "NÃO invente fontes_noticias nem fontes_pesquisa (nomes de portal, domínio ou URL) -- deixe essas "

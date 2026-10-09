@@ -33,7 +33,7 @@ class Combinacao:
 LIMITACAO_V4 = ("Voz lançada em setembro de 2026, avaliada em menos pautas que a v3. Não aceita ajuste de "
                 "velocidade da fala.")
 
-# Todas as combinações dos 3 modelos de texto com as 3 vozes, do maior ao menor custo (v4 tem
+# Todas as combinações dos 3 modelos de texto com as 4 vozes (v4 tem
 # a tarifa cheia da v3, então cada uma vem logo após a equivalente com v3). Limitações vêm das
 # avaliações em docs/benchmarks (2026-09-24-economia, 2026-09-25-combinacoes e
 # 2026-10-08-eleven-v4): sem prometer equivalência entre opções que executam a mesma tarefa.
@@ -78,6 +78,11 @@ COMBINACOES = (
         "Voz sem direção vocal e menos expressiva; pode trocar palavras por formas coloquiais (\"para\" → \"pra\").",
     ),
     Combinacao(
+        "premium_v4_turbo", "Premium v4 Turbo", "claude-opus-5", "eleven_v4_turbo",
+        "O texto do Premium com voz expressiva e direção vocal. Menor tempo de resposta nas avaliações.",
+        LIMITACAO_V4,
+    ),
+    Combinacao(
         "agil", "Ágil", "claude-sonnet-5", "eleven_flash_v2_5",
         "Voz mais rápida e mais barata de gerar.",
         "Voz sem direção vocal e menos expressiva; pode trocar palavras por formas coloquiais (\"para\" → \"pra\").",
@@ -87,6 +92,17 @@ COMBINACOES = (
         "Menor custo por hora de programa.",
         "Nas avaliações, o texto acrescentou fato não informado e passou do tamanho pedido. Revise falas "
         "sobre datas e eventos. Voz sem direção vocal.",
+    ),
+    Combinacao(
+        "equilibrada_v4_turbo", "Equilibrada v4 Turbo", "claude-sonnet-5", "eleven_v4_turbo",
+        "Voz expressiva com direção vocal e geração de texto mais barata que o Premium.",
+        f"Texto menos elaborado que o Premium em pautas com muitos detalhes. {LIMITACAO_V4}",
+    ),
+    Combinacao(
+        "voz_premium_v4_turbo", "Voz Premium v4 Turbo", "claude-haiku-4-5", "eleven_v4_turbo",
+        "Voz expressiva com direção vocal e o texto de menor custo.",
+        "O texto chegou a acrescentar fato não informado nas avaliações. Revise falas sobre datas e eventos. "
+        f"{LIMITACAO_V4}",
     ),
 )
 
@@ -115,6 +131,11 @@ MODELOS = {
         "funcao": "voz",
         "descricao": "Expressiva, com direção vocal (risada, suspiro, empolgação). Nas avaliações, ficou pronta "
                      "mais rápido e com tempo mais estável que a v3. Não aceita ajuste de velocidade da fala.",
+    },
+    "eleven_v4_turbo": {
+        "funcao": "voz",
+        "descricao": "Expressiva, com direção vocal (risada, suspiro, empolgação). Nas avaliações, "
+                     "teve menor tempo de resposta que a v4. Não aceita ajuste de velocidade da fala.",
     },
     "eleven_flash_v2_5": {
         "funcao": "voz",
