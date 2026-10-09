@@ -6,13 +6,17 @@ window.LOCUFY_CONFIG = { appUrl: 'https://app.locufybr.com', whatsappNumber: '55
 // programa, 12 gerações/h, câmbio R$ 5,50 e fator 2× sobre as tarifas de referência de
 // docs/simulacao-plano-consumo.md (24/09/2026). Ao publicar as tarifas contratadas, copie
 // preco_hora_brl de GET /billing/combinacoes e atualize também a tabela estática do index.html.
+// As com ElevenLabs v4 têm a tarifa de voz da v3, então o mesmo preço da equivalente.
 // porMensagem: resposta de WhatsApp com o modelo de texto da combinação (1.500/150 tokens + 3 classificações).
 window.LOCUFY_PRECOS = {
   mensalidade: 69.9,
   combinacoes: [
     { id: 'premium', nome: 'Premium', texto: 'Claude Opus', voz: 'ElevenLabs v3', porHora: 8.35, porMensagem: 0.15, recomendada: true },
+    { id: 'premium_v4', nome: 'Premium v4', texto: 'Claude Opus', voz: 'ElevenLabs v4', porHora: 8.35, porMensagem: 0.15 },
     { id: 'equilibrada', nome: 'Equilibrada', texto: 'Claude Sonnet', voz: 'ElevenLabs v3', porHora: 7.46, porMensagem: 0.07 },
+    { id: 'equilibrada_v4', nome: 'Equilibrada v4', texto: 'Claude Sonnet', voz: 'ElevenLabs v4', porHora: 7.46, porMensagem: 0.07 },
     { id: 'voz_premium', nome: 'Voz Premium', texto: 'Claude Haiku', voz: 'ElevenLabs v3', porHora: 7.16, porMensagem: 0.05 },
+    { id: 'voz_premium_v4', nome: 'Voz Premium v4', texto: 'Claude Haiku', voz: 'ElevenLabs v4', porHora: 7.16, porMensagem: 0.05 },
     { id: 'texto_premium', nome: 'Texto Premium', texto: 'Claude Opus', voz: 'ElevenLabs Flash', porHora: 5.05, porMensagem: 0.15 },
     { id: 'agil', nome: 'Ágil', texto: 'Claude Sonnet', voz: 'ElevenLabs Flash', porHora: 4.16, porMensagem: 0.07 },
     { id: 'essencial', nome: 'Essencial', texto: 'Claude Haiku', voz: 'ElevenLabs Flash', porHora: 3.86, porMensagem: 0.05 },

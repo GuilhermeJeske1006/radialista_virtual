@@ -170,7 +170,7 @@ async def criar_voz_clonada(
 
 
 class ConfiguracaoVozRequest(BaseModel):
-    modelo: Literal["eleven_v3", "eleven_multilingual_v2", "eleven_flash_v2_5"] | None = None
+    modelo: Literal["eleven_v4", "eleven_v4_turbo", "eleven_v3", "eleven_multilingual_v2", "eleven_flash_v2_5"] | None = None
     perfil: Literal["atual", "natural"] = "atual"
     formato: Literal["mp3_44100_128", "mp3_44100_192"] = "mp3_44100_128"
     pronuncias: dict[str, str] = Field(default_factory=dict, max_length=30)

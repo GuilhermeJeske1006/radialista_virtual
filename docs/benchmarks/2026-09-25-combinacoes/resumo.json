@@ -19,6 +19,25 @@
     "custo_usd_amostra": 0.3083
   },
   {
+    "combinacao": "premium_v4",
+    "texto": "claude-opus-5",
+    "voz": "eleven_v4",
+    "casos_aprovados_juiz": 5,
+    "casos": 6,
+    "casos_sem_problema_texto": 6,
+    "fidelidade_media": 5.0,
+    "instrucoes_media": 4.67,
+    "naturalidade_media": 4.67,
+    "audios_ok": 9,
+    "audios": 9,
+    "wer_medio": 0.005,
+    "wer_maximo": 0.0235,
+    "tags_faladas": 0,
+    "saturacao_max": 0.0,
+    "segundos_voz_medio": 3.93,
+    "custo_usd_amostra": 0.3086
+  },
+  {
     "combinacao": "equilibrada",
     "texto": "claude-sonnet-5",
     "voz": "eleven_v3",
@@ -38,6 +57,25 @@
     "custo_usd_amostra": 0.2383
   },
   {
+    "combinacao": "equilibrada_v4",
+    "texto": "claude-sonnet-5",
+    "voz": "eleven_v4",
+    "casos_aprovados_juiz": 5,
+    "casos": 6,
+    "casos_sem_problema_texto": 6,
+    "fidelidade_media": 4.83,
+    "instrucoes_media": 4.5,
+    "naturalidade_media": 4.33,
+    "audios_ok": 8,
+    "audios": 8,
+    "wer_medio": 0.0073,
+    "wer_maximo": 0.0588,
+    "tags_faladas": 0,
+    "saturacao_max": 0.0,
+    "segundos_voz_medio": 4.12,
+    "custo_usd_amostra": 0.2416
+  },
+  {
     "combinacao": "voz_premium",
     "texto": "claude-haiku-4-5",
     "voz": "eleven_v3",
@@ -55,6 +93,25 @@
     "saturacao_max": 0.0,
     "segundos_voz_medio": 6.75,
     "custo_usd_amostra": 0.2206
+  },
+  {
+    "combinacao": "voz_premium_v4",
+    "texto": "claude-haiku-4-5",
+    "voz": "eleven_v4",
+    "casos_aprovados_juiz": 4,
+    "casos": 6,
+    "casos_sem_problema_texto": 6,
+    "fidelidade_media": 4.67,
+    "instrucoes_media": 4.33,
+    "naturalidade_media": 4.17,
+    "audios_ok": 9,
+    "audios": 9,
+    "wer_medio": 0.0432,
+    "wer_maximo": 0.125,
+    "tags_faladas": 0,
+    "saturacao_max": 0.0,
+    "segundos_voz_medio": 3.74,
+    "custo_usd_amostra": 0.2172
   },
   {
     "combinacao": "texto_premium",

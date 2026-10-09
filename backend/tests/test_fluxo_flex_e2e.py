@@ -565,6 +565,21 @@ def test_combinacao_desabilitada_por_configuracao_nao_aparece(e2e, monkeypatch):
     assert e2e.client.get('/billing/combinacoes', headers=e2e.user).json()['combinacoes'] == []
 
 
+def test_combinacoes_com_v4_entram_com_a_tarifa_publicada(e2e):
+    publicar_tarifas(e2e)
+    for tarifa in (TARIFA_SONNET, TARIFA_FLASH, {**TARIFA_VOZ, 'modelo': 'eleven_v4'}):
+        e2e.client.post('/billing/admin/tarifas', json=tarifa, headers=e2e.root)
+    catalogo = e2e.client.get('/billing/combinacoes', headers=e2e.user).json()
+    combos = {c['id']: c for c in catalogo['combinacoes']}
+    # Cada v4 logo após a equivalente com v3: mesma tarifa de voz, mesmo preço por hora.
+    assert list(combos) == ['premium', 'premium_v4', 'equilibrada', 'equilibrada_v4', 'voz_premium',
+                            'voz_premium_v4', 'texto_premium', 'agil', 'essencial']
+    assert (combos['premium_v4']['modelo_texto'], combos['premium_v4']['modelo_voz']) == ('claude-opus-5', 'eleven_v4')
+    assert combos['premium_v4']['preco_hora_brl'] == combos['premium']['preco_hora_brl']
+    assert not combos['premium_v4']['recomendada'] and 'velocidade' in combos['premium_v4']['limitacoes']
+    assert catalogo['modelos']['eleven_v4']['funcao'] == 'voz'
+
+
 def test_locutor_gerado_com_combinacao_escolhida_e_valor(e2e, monkeypatch):
     agora = int(time.time())
     publicar_tarifas(e2e)

@@ -82,6 +82,7 @@ from app.postprod.client import processar_audio
 from app.vinhetas.servico import vinheta_encerramento
 from pydub.exceptions import PydubException
 from app.tts.client import sintetizar_audio, sintetizar_audio_stream, tts_habilitado
+from app.tts.modelos import MODELOS_COM_TAGS
 from app.tts.voices import validar_voz_ou_400
 from app.tts.profiles import parametros_sintese
 from app.util.texto import sem_acento as _sem_acento
@@ -934,7 +935,8 @@ def _fala_semelhante_no_historico(fala: str, historico_falas: list[str]) -> str 
 
 
 _FRASE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
-# Instrucao de direcao vocal do eleven_v3 (so' entra no prompt quando a voz do programa e' v3).
+# Instrucao de direcao vocal do eleven_v3/v4 (so' entra no prompt quando a voz do programa le
+# tags, ver app.tts.modelos.MODELOS_COM_TAGS).
 # Constante para o validador de combinacoes (scripts/validar_combinacoes.py) usar o mesmo texto.
 INSTRUCAO_TAGS_V3 = (
     "Você pode inserir tags de direção vocal no ponto exato da fala onde fazem sentido, "
@@ -2279,7 +2281,7 @@ def gerar_proxima_fala(
         )
 
     # Modelo de voz do programa (combinação escolhida), não só o padrão global: Flash não usa tags.
-    if modelo_efetivo("tts", settings.elevenlabs_model) == "eleven_v3" and categoria not in _CATEGORIAS_NOTICIA_LIKE:
+    if modelo_efetivo("tts", settings.elevenlabs_model) in MODELOS_COM_TAGS and categoria not in _CATEGORIAS_NOTICIA_LIKE:
         system_prompt_linhas.append(INSTRUCAO_TAGS_V3)
         if ultima_categoria is not None:
             system_prompt_linhas.append(

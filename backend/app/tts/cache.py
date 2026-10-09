@@ -20,6 +20,7 @@ from app.billing.contexto_ia import atual
 from app.config.redis_client import redis_client
 from app.config.settings import settings
 from app.billing.contexto_ia import modelo_efetivo
+from app.tts.modelos import MODELOS_SEM_CONTEXTO
 
 logger = logging.getLogger("radialista.tts.cache")
 MAX_BYTES = 2 * 1024 * 1024
@@ -35,7 +36,7 @@ def _chave(signature, args, kwargs):
     dados["voice_id"] = dados.get("voice_id") or settings.elevenlabs_voice_id
     # v3 não recebe contexto anterior. Não deixar ele destruir o cache de
     # patrocinadores/vinhetas que são idênticos na requisição ao provedor.
-    if dados["modelo"] == "eleven_v3":
+    if dados["modelo"] in MODELOS_SEM_CONTEXTO:
         dados["texto_anterior"] = None
     conta = atual.get()
     dados["conta"] = conta.id if conta else None

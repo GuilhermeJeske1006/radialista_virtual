@@ -27,8 +27,11 @@ Script: `backend/scripts/validar_combinacoes.py` (reproduzível, consome crédit
 | Combinação | Texto aprovado (juiz) | Fidelidade | Instruções | Naturalidade | WER médio / máx. | Tag falada | Voz (s/fala) | Custo da rodada |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | Premium · Opus 5 + v3 | 5/6 | 5,00 | 4,67 | 4,83 | 3,5% / 22,2% | 0 | 6,4 | US$ 0,31 |
+| Premium v4 · Opus 5 + v4 | 5/6 | 5,00 | 4,67 | 4,67 | 0,5% / 2,4% | 0 | 3,9 | US$ 0,31 |
 | Equilibrada · Sonnet 5 + v3 | 6/6 | 4,83 | 4,50 | 4,67 | 0,7% / 3,9% | 0 | 6,2 | US$ 0,24 |
+| Equilibrada v4 · Sonnet 5 + v4 | 5/6 | 4,83 | 4,50 | 4,33 | 0,7% / 5,9% | 0 | 4,1 | US$ 0,24 |
 | Voz Premium · Haiku 4.5 + v3 | 4/6 | 4,83 | 4,00 | 4,17 | 1,6% / 6,1% | 0 | 6,8 | US$ 0,22 |
+| Voz Premium v4 · Haiku 4.5 + v4 | 4/6 | 4,67 | 4,33 | 4,17 | 4,3% / 12,5% | 0 | 3,7 | US$ 0,22 |
 | Texto Premium · Opus 5 + Flash 2.5 | 6/6 | 4,83 | 4,67 | 4,83 | 1,0% / 4,2% | 0 | 1,3 | US$ 0,21 |
 | Ágil · Sonnet 5 + Flash 2.5 | 4/6 | 5,00 | 4,17 | 4,67 | 0,1% / 1,2% | 0 | 1,3 | US$ 0,14 |
 | Essencial · Haiku 4.5 + Flash 2.5 | 3/6 | 4,50 | 3,50 | 4,33 | 2,8% / 7,1% | 0 | 1,3 | US$ 0,12 |
@@ -36,6 +39,8 @@ Script: `backend/scripts/validar_combinacoes.py` (reproduzível, consome crédit
 Custo com as tarifas hipotéticas de `settings` (texto + voz), sem o juiz e a transcrição.
 Nenhum áudio falhou (52/52) e nenhum teve amostra saturada. Voz Premium e Texto Premium foram
 medidas numa segunda rodada no mesmo dia (`--acrescentar`), com o mesmo prompt e casos.
+As três com ElevenLabs v4 foram medidas em 09/10/2026 (`--acrescentar`), com a mesma instrução
+de direção vocal da v3 e a voz do ambiente; 26/26 áudios ok, sem saturação nem tag falada.
 
 ## O que as reprovações mostram
 
@@ -50,6 +55,11 @@ medidas numa segunda rodada no mesmo dia (`--acrescentar`), com o mesmo prompt e
   ```` ``` ````. Oferecida com essa limitação escrita no card.
 - **Voz Premium (Haiku + v3)**: nesta rodada não inventou fato, mas ficou abaixo do mínimo de
   palavras no anúncio e explicou a regra interna no evento sem autorização.
+- **Combinações com v4**: mesmos modelos de texto e prompt das equivalentes v3, então as
+  reprovações de texto são as mesmas já descritas (regra interna explicada no evento sem
+  autorização; Haiku abaixo do mínimo de palavras no anúncio). A voz ficou pronta em 3,7 a
+  4,1 s por fala, contra 6,2 a 6,8 s da v3. Maior WER (Voz Premium v4, diálogo, 12,5%): conferir
+  ouvindo `voz_premium_v4-dialogo-*.mp3`.
 - **Texto Premium (Opus + Flash)**: 6/6 no texto; a voz Flash não usa direção vocal.
 - **Maior WER da voz** (Premium, diálogo): "Tarde Musical" transcrito como "Tide Musical".
   Pode ser pronúncia do v3 ou erro do transcritor — confirmar ouvindo `premium-dialogo-4.mp3`.

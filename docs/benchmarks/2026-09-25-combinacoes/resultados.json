@@ -284,6 +284,287 @@
     ]
   },
   {
+    "combinacao": "premium_v4",
+    "caso": "musica",
+    "texto": "[excited] Agora é pedido do Marcos aqui na Rádio Teste, noventa e oito ponto cinco FM! Vem aí Twist and Shout, dos Beatles, pra sacudir essa sexta-feira em Curitiba. Marcos, obrigado pela companhia e pelo pedido, viu? Essa é daquelas que a gente não consegue ficar parado, dá vontade de cantar junto mesmo sem saber a letra inteira. Aumenta o volume aí, solta o corpo e vem comigo. Quem quiser mandar a sua também, é só chamar aqui. Beatles, Twist and Shout, no Tarde Musical!",
+    "stop_reason": "end_turn",
+    "entrada": 2376,
+    "saida": 228,
+    "segundos_texto": 4.26,
+    "palavras": 85,
+    "tags": [
+      "excited"
+    ],
+    "problemas_texto": [],
+    "juiz": {
+      "fidelidade": 5,
+      "instrucoes": 5,
+      "naturalidade": 5,
+      "aprovado": true,
+      "motivo": "Anuncia a música e o ouvinte sem inventar fatos, dentro do limite de palavras e com tom natural."
+    },
+    "voz": [
+      {
+        "trecho": 0,
+        "texto_enviado": "[excited] Agora é pedido do Marcos aqui na Rádio Teste, noventa e oito ponto cinco FM! Vem aí Twist and Shout, dos Beatles, pra sacudir essa sexta-feira em Curitiba. Marcos, obrigado pela companhia e pelo pedido, viu? Essa é daquelas que a gente não consegue ficar parado, dá vontade de cantar junto mesmo sem saber a letra inteira. Aumenta o volume aí, solta o corpo e vem comigo. Quem quiser mandar a sua também, é só chamar aqui. Beatles, Twist and Shout, no Tarde Musical!",
+        "caracteres": 476,
+        "segundos_voz": 6.8,
+        "ok": true,
+        "arquivo": "premium_v4-musica-1.mp3",
+        "duracao_segundos": 27.44,
+        "pico": 0.8769,
+        "fracao_saturada": 0.0,
+        "wer": 0.0235,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Agora é um pedido do Marcos aqui na Rádio Test, 98.5 FM. Vem aí Twist and Shout, dos Beatles, pra sacudir essa sexta-feira em Curitiba. Marcos, obrigado pela companhia e pelo pedido, viu? Essa é daquelas que a gente não consegue ficar parado. Dá vontade de cantar junto mesmo sem saber a letra inteira. Aumenta o volume aí, solta o corpo e vem comigo. Quem quiser mandar a sua também, é só chamar aqui. Beatles, Twist and Shout, no Tarde Musical",
+        "eventos_audio": []
+      }
+    ]
+  },
+  {
+    "combinacao": "premium_v4",
+    "caso": "evento_sem_autorizacao",
+    "texto": "Opa, essa eu não posso fazer! A rádio não autorizou divulgação desse evento, então não rola chamada nem convite da minha parte. 😅\n\nMas o que não falta por aqui é música boa pra começar a sexta! [excited] Me conta: qual som não pode faltar na sua playlist de fim de semana? Manda aí que eu quero saber o gosto da galera de Curitiba. Fica comigo na noventa e oito ponto cinco FM!",
+    "stop_reason": "end_turn",
+    "entrada": 2419,
+    "saida": 160,
+    "segundos_texto": 3.58,
+    "palavras": 71,
+    "tags": [
+      "excited"
+    ],
+    "problemas_texto": [],
+    "juiz": {
+      "fidelidade": 5,
+      "instrucoes": 3,
+      "naturalidade": 4,
+      "aprovado": false,
+      "motivo": "Não divulgou o evento, mas explicou a regra interna de autorização ao ouvinte, contrariando o critério do caso."
+    },
+    "voz": [
+      {
+        "trecho": 0,
+        "texto_enviado": "Opa, essa eu não posso fazer! A rádio não autorizou divulgação desse evento, então não rola chamada nem convite da minha parte. 😅\n\nMas o que não falta por aqui é música boa pra começar a sexta! [excited] Me conta: qual som não pode faltar na sua playlist de fim de semana? Manda aí que eu quero saber o gosto da galera de Curitiba. Fica comigo na noventa e oito ponto cinco FM!",
+        "caracteres": 377,
+        "segundos_voz": 6.47,
+        "ok": true,
+        "arquivo": "premium_v4-evento_sem_autorizacao-1.mp3",
+        "duracao_segundos": 22.4,
+        "pico": 0.8304,
+        "fracao_saturada": 0.0,
+        "wer": 0.0,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Opa, essa eu não posso fazer. A rádio não autorizou divulgação desse evento, então não rola chamada nem convite da minha parte. Mas o que não falta por aqui é música boa pra começar a sexta. Me conta, qual som não pode faltar na sua playlist de fim de semana? Manda aí que eu quero saber o gosto da galera de Curitiba. Fica comigo na 98.5 FM",
+        "eventos_audio": []
+      }
+    ]
+  },
+  {
+    "combinacao": "premium_v4",
+    "caso": "evento_data_incerta",
+    "texto": "Olha, a Festa do Bairro é um evento anual aqui da nossa região, mas a data da edição atual ainda não está confirmada nas informações que tenho aqui comigo. Assim que algo oficial chegar, eu te conto. Enquanto isso, me diz: qual música você quer ouvir agora na noventa e oito ponto cinco FM?",
+    "stop_reason": "end_turn",
+    "entrada": 2395,
+    "saida": 122,
+    "segundos_texto": 2.37,
+    "palavras": 54,
+    "tags": [],
+    "problemas_texto": [],
+    "juiz": {
+      "fidelidade": 5,
+      "instrucoes": 5,
+      "naturalidade": 5,
+      "aprovado": true,
+      "motivo": "Responde sem inventar data ou detalhes, dentro do limite e com tom natural de rádio."
+    },
+    "voz": [
+      {
+        "trecho": 0,
+        "texto_enviado": "Olha, a Festa do Bairro é um evento anual aqui da nossa região, mas a data da edição atual ainda não está confirmada nas informações que tenho aqui comigo. Assim que algo oficial chegar, eu te conto. Enquanto isso, me diz: qual música você quer ouvir agora na noventa e oito ponto cinco FM?",
+        "caracteres": 290,
+        "segundos_voz": 4.61,
+        "ok": true,
+        "arquivo": "premium_v4-evento_data_incerta-1.mp3",
+        "duracao_segundos": 17.6,
+        "pico": 0.8593,
+        "fracao_saturada": 0.0,
+        "wer": 0.0,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Olha, a festa do bairro é um evento anual aqui da nossa região, mas a data da edição atual ainda não está confirmada nas informações que tenho aqui comigo. Assim que algo oficial chegar, eu te conto. Enquanto isso, me diz, qual música você quer ouvir agora na 98.5 FM?",
+        "eventos_audio": []
+      }
+    ]
+  },
+  {
+    "combinacao": "premium_v4",
+    "caso": "evento_encerrado",
+    "texto": "Ah, preciso te corrigir aqui: a Feira Cultural que eu tenho confirmada aconteceu em dez de agosto de dois mil e vinte e cinco, então não rola hoje. Não tenho outra edição confirmada pra anunciar. Mas se você souber de alguma novidade cultural por aí, me conta! Aqui é a noventa e oito ponto cinco FM, no Tarde Musical.",
+    "stop_reason": "end_turn",
+    "entrada": 2398,
+    "saida": 145,
+    "segundos_texto": 3.14,
+    "palavras": 59,
+    "tags": [],
+    "problemas_texto": [],
+    "juiz": {
+      "fidelidade": 5,
+      "instrucoes": 5,
+      "naturalidade": 4,
+      "aprovado": true,
+      "motivo": "Corrige o pedido sem inventar nova data, respeita o limite e soa natural."
+    },
+    "voz": [
+      {
+        "trecho": 0,
+        "texto_enviado": "Ah, preciso te corrigir aqui: a Feira Cultural que eu tenho confirmada aconteceu em dez de agosto de dois mil e vinte e cinco, então não rola hoje. Não tenho outra edição confirmada pra anunciar. Mas se você souber de alguma novidade cultural por aí, me conta! Aqui é a noventa e oito ponto cinco FM, no Tarde Musical.",
+        "caracteres": 318,
+        "segundos_voz": 4.88,
+        "ok": true,
+        "arquivo": "premium_v4-evento_encerrado-1.mp3",
+        "duracao_segundos": 18.88,
+        "pico": 0.844,
+        "fracao_saturada": 0.0,
+        "wer": 0.0,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Ah, preciso te corrigir aqui. A feira cultural que eu tenho confirmada aconteceu em 10 de agosto de 2025, então não rola hoje. Não tenho outra edição confirmada pra anunciar. Mas se você souber de alguma novidade cultural por aí, me conta. Aqui é a 98.5 FM, no Tarde Musical",
+        "eventos_audio": []
+      }
+    ]
+  },
+  {
+    "combinacao": "premium_v4",
+    "caso": "numeros",
+    "texto": "[excited] Curitiba marcando vinte e três graus agora! Quer pedir sua música? Liga pra gente: quarenta e um, três três três três, quatro quatro quatro quatro. E amanhã tem Feira do Livro, ingresso a dezenove reais e noventa. Você aí na noventa e oito ponto cinco FM!",
+    "stop_reason": "end_turn",
+    "entrada": 2428,
+    "saida": 118,
+    "segundos_texto": 2.61,
+    "palavras": 46,
+    "tags": [
+      "excited"
+    ],
+    "problemas_texto": [],
+    "juiz": {
+      "fidelidade": 5,
+      "instrucoes": 5,
+      "naturalidade": 5,
+      "aprovado": true,
+      "motivo": "Mantém os três dados exigidos, dentro do limite e com tom natural de rádio."
+    },
+    "voz": [
+      {
+        "trecho": 0,
+        "texto_enviado": "[excited] Curitiba marcando vinte e três graus agora! Quer pedir sua música? Liga pra gente: quarenta e um, três três três três, quatro quatro quatro quatro. E amanhã tem Feira do Livro, ingresso a dezenove reais e noventa. Você aí na noventa e oito ponto cinco FM!",
+        "caracteres": 265,
+        "segundos_voz": 4.42,
+        "ok": true,
+        "arquivo": "premium_v4-numeros-1.mp3",
+        "duracao_segundos": 15.28,
+        "pico": 0.8129,
+        "fracao_saturada": 0.0,
+        "wer": 0.0217,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Curitiba marcando 23 graus agora. Quer pedir sua música? Liga pra gente: 41 33334444. E amanhã tem Feira do Livro, ingresso a R$19,90. Você aí, na 98,5 FM",
+        "eventos_audio": []
+      }
+    ]
+  },
+  {
+    "combinacao": "premium_v4",
+    "caso": "dialogo",
+    "texto": "{\"linhas\":[{\"locutor\":\"Paulo\",\"texto\":\"[excited] Sexta-feira pedindo música boa, e o Marcos mandou o recado certeiro aqui pra gente!\"},{\"locutor\":\"Maria\",\"texto\":\"E olha o tamanho do pedido, Paulo: Beatles! Nada como começar o dia com aquele clássico que ninguém escuta parado.\"},{\"locutor\":\"Paulo\",\"texto\":\"Pode soltar o grito então! Twist and Shout, dos Beatles, pedida pelo Marcos, aqui na noventa e oito ponto cinco FM.\"},{\"locutor\":\"Maria\",\"texto\":\"[laughs] Solta a voz aí, Curitiba! Tarde Musical com você.\"}]}",
+    "stop_reason": "end_turn",
+    "entrada": 2439,
+    "saida": 257,
+    "segundos_texto": 6.2,
+    "palavras": 65,
+    "tags": [
+      "excited",
+      "laughs"
+    ],
+    "problemas_texto": [],
+    "juiz": {
+      "fidelidade": 5,
+      "instrucoes": 5,
+      "naturalidade": 5,
+      "aprovado": true,
+      "motivo": "Diálogo natural, anuncia a música e o pedinte sem inventar fatos, dentro do limite de falas e palavras."
+    },
+    "voz": [
+      {
+        "trecho": 0,
+        "texto_enviado": "[excited] Sexta-feira pedindo música boa, e o Marcos mandou o recado certeiro aqui pra gente!",
+        "caracteres": 93,
+        "segundos_voz": 1.65,
+        "ok": true,
+        "arquivo": "premium_v4-dialogo-1.mp3",
+        "duracao_segundos": 5.12,
+        "pico": 0.8347,
+        "fracao_saturada": 0.0,
+        "wer": 0.0,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Sexta-feira pedindo música boa e o Marcos mandou o recado certeiro aqui pra gente",
+        "eventos_audio": []
+      },
+      {
+        "trecho": 1,
+        "texto_enviado": "E olha o tamanho do pedido, Paulo: Beatles! Nada como começar o dia com aquele clássico que ninguém escuta parado.",
+        "caracteres": 114,
+        "segundos_voz": 2.5,
+        "ok": true,
+        "arquivo": "premium_v4-dialogo-2.mp3",
+        "duracao_segundos": 7.52,
+        "pico": 0.8875,
+        "fracao_saturada": 0.0,
+        "wer": 0.0,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "E olha o tamanho do pedido, Paulo: Beatles. Nada como começar o dia com aquele clássico que ninguém escuta parado",
+        "eventos_audio": []
+      },
+      {
+        "trecho": 2,
+        "texto_enviado": "Pode soltar o grito então! Twist and Shout, dos Beatles, pedida pelo Marcos, aqui na noventa e oito ponto cinco FM.",
+        "caracteres": 115,
+        "segundos_voz": 2.5,
+        "ok": true,
+        "arquivo": "premium_v4-dialogo-3.mp3",
+        "duracao_segundos": 7.12,
+        "pico": 0.8146,
+        "fracao_saturada": 0.0,
+        "wer": 0.0,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Pode soltar o grito então. Twist and Shout, dos Beatles, pedida pelo Marcos, aqui na 98.5 FM",
+        "eventos_audio": []
+      },
+      {
+        "trecho": 3,
+        "texto_enviado": "[laughs] Solta a voz aí, Curitiba! Tarde Musical com você.",
+        "caracteres": 58,
+        "segundos_voz": 1.52,
+        "ok": true,
+        "arquivo": "premium_v4-dialogo-4.mp3",
+        "duracao_segundos": 4.64,
+        "pico": 0.7842,
+        "fracao_saturada": 0.0,
+        "wer": 0.0,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Solta a voz aí, Curitiba. Tarde musical com você",
+        "eventos_audio": [
+          "[riso]"
+        ]
+      }
+    ]
+  },
+  {
     "combinacao": "equilibrada",
     "caso": "musica",
     "texto": "[excited] Boa tarde, pessoal, aqui é o Paulo com vocês na Tarde Musical, direto da noventa e oito ponto cinco FM! E olha que pedido animado chegou aqui: o Marcos mandou um recado especial pedindo Twist and Shout, dos Beatles! Excelente escolha pra sacudir essa sexta-feira, hein? Já estamos entrando no clima de fim de semana em Curitiba, e nada melhor que um clássico desses pra dar aquela energia. Obrigado pela pedida, Marcos! Vamos lá com essa música incrível pra vocês aí em casa, no trabalho, onde estiverem. Sobe o som!",
@@ -567,6 +848,270 @@
     ]
   },
   {
+    "combinacao": "equilibrada_v4",
+    "caso": "musica",
+    "texto": "[excited] E olha quem chegou pra agitar essa sexta-feira: o Marcos mandou um pedido de ouro! Vamos ouvir Twist and Shout, dos Beatles! Clássico desses que não tem jeito, já começa e a vontade é de levantar e dançar aí na sua casa, no trabalho, onde você estiver. Marcos, obrigado pela pedida, viu? É assim que a gente gosta, com energia total pra fechar a semana. Bora curtir, aqui na noventa e oito ponto cinco FM, com vocês nesse Tarde Musical!",
+    "stop_reason": "end_turn",
+    "entrada": 2376,
+    "saida": 203,
+    "segundos_texto": 3.96,
+    "palavras": 81,
+    "tags": [
+      "excited"
+    ],
+    "problemas_texto": [],
+    "juiz": {
+      "fidelidade": 5,
+      "instrucoes": 5,
+      "naturalidade": 5,
+      "aprovado": true,
+      "motivo": "Anuncia a música e cita Marcos sem inventar fatos, dentro do limite de palavras e com tom natural."
+    },
+    "voz": [
+      {
+        "trecho": 0,
+        "texto_enviado": "[excited] E olha quem chegou pra agitar essa sexta-feira: o Marcos mandou um pedido de ouro! Vamos ouvir Twist and Shout, dos Beatles! Clássico desses que não tem jeito, já começa e a vontade é de levantar e dançar aí na sua casa, no trabalho, onde você estiver. Marcos, obrigado pela pedida, viu? É assim que a gente gosta, com energia total pra fechar a semana. Bora curtir, aqui na noventa e oito ponto cinco FM, com vocês nesse Tarde Musical!",
+        "caracteres": 446,
+        "segundos_voz": 6.5,
+        "ok": true,
+        "arquivo": "equilibrada_v4-musica-1.mp3",
+        "duracao_segundos": 25.68,
+        "pico": 0.8616,
+        "fracao_saturada": 0.0,
+        "wer": 0.0,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "E olha quem chegou pra agitar essa sexta-feira! O Marcos mandou um pedido de ouro. Vamos ouvir Twist and Shout, dos Beatles. Clássico desses que não tem jeito, já começa e a vontade é de levantar e dançar aí na sua casa, no trabalho, onde você estiver. Marcos, obrigado pela pedida, viu? É assim que a gente gosta, com energia total pra fechar a semana. Bora curtir, aqui na 98,5 FM, com vocês nesse tarde musical",
+        "eventos_audio": []
+      }
+    ]
+  },
+  {
+    "combinacao": "equilibrada_v4",
+    "caso": "evento_sem_autorizacao",
+    "texto": "Não posso fazer essa chamada, viu? Não tenho autorização pra divulgar esse festival aqui no ar.\n\nMas olha, se você já souber dos detalhes e quiser ir, aproveita bem o seu dia! Por aqui o que eu posso garantir é uma Tarde Musical animada pra te acompanhar, seja em casa, no trabalho ou na rua. [excited] Bora continuar com uma boa música e um papo gostoso até o fim da tarde aqui na noventa e oito ponto cinco FM!",
+    "stop_reason": "end_turn",
+    "entrada": 2419,
+    "saida": 183,
+    "segundos_texto": 3.19,
+    "palavras": 78,
+    "tags": [
+      "excited"
+    ],
+    "problemas_texto": [],
+    "juiz": {
+      "fidelidade": 4,
+      "instrucoes": 3,
+      "naturalidade": 3,
+      "aprovado": false,
+      "motivo": "Não convidou, mas explicou a regra interna de autorização ao ouvinte e ainda incentivou a ir ao festival, contrariando o critério."
+    },
+    "voz": [
+      {
+        "trecho": 0,
+        "texto_enviado": "Não posso fazer essa chamada, viu? Não tenho autorização pra divulgar esse festival aqui no ar.\n\nMas olha, se você já souber dos detalhes e quiser ir, aproveita bem o seu dia! Por aqui o que eu posso garantir é uma Tarde Musical animada pra te acompanhar, seja em casa, no trabalho ou na rua. [excited] Bora continuar com uma boa música e um papo gostoso até o fim da tarde aqui na noventa e oito ponto cinco FM!",
+        "caracteres": 412,
+        "segundos_voz": 6.62,
+        "ok": true,
+        "arquivo": "equilibrada_v4-evento_sem_autorizacao-1.mp3",
+        "duracao_segundos": 24.64,
+        "pico": 0.8875,
+        "fracao_saturada": 0.0,
+        "wer": 0.0,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Não posso fazer essa chamada, viu? Não tenho autorização pra divulgar esse festival aqui no ar. Mas olha, se você já souber dos detalhes e quiser ir, aproveita bem o seu dia. Por aqui, o que eu posso garantir é uma tarde musical animada pra te acompanhar, seja em casa, no trabalho ou na rua. Bora continuar com uma boa música e um papo gostoso até o fim da tarde aqui na 98.5 FM",
+        "eventos_audio": []
+      }
+    ]
+  },
+  {
+    "combinacao": "equilibrada_v4",
+    "caso": "evento_data_incerta",
+    "texto": "Olha, a Festa do Bairro é um evento anual, mas aqui comigo não está confirmada a data da próxima edição ainda. Assim que tivermos essa informação certinha, posso te contar! Enquanto isso, bora curtir a tarde musical aqui na noventa e oito ponto cinco FM? 🎶",
+    "stop_reason": "end_turn",
+    "entrada": 2395,
+    "saida": 112,
+    "segundos_texto": 1.97,
+    "palavras": 45,
+    "tags": [],
+    "problemas_texto": [],
+    "juiz": {
+      "fidelidade": 5,
+      "instrucoes": 5,
+      "naturalidade": 5,
+      "aprovado": true,
+      "motivo": "Informa corretamente a ausência de data confirmada sem inventar detalhes, tom natural e dentro do limite."
+    },
+    "voz": [
+      {
+        "trecho": 0,
+        "texto_enviado": "Olha, a Festa do Bairro é um evento anual, mas aqui comigo não está confirmada a data da próxima edição ainda. Assim que tivermos essa informação certinha, posso te contar! Enquanto isso, bora curtir a tarde musical aqui na noventa e oito ponto cinco FM? 🎶",
+        "caracteres": 256,
+        "segundos_voz": 3.98,
+        "ok": true,
+        "arquivo": "equilibrada_v4-evento_data_incerta-1.mp3",
+        "duracao_segundos": 14.88,
+        "pico": 0.8145,
+        "fracao_saturada": 0.0,
+        "wer": 0.0,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Olha, a festa do bairro é um evento anual, mas aqui comigo não está confirmada a data da próxima edição ainda. Assim que tivermos essa informação certinha, posso te contar. Enquanto isso, bora curtir a tarde musical aqui na 98.5 FM?",
+        "eventos_audio": []
+      }
+    ]
+  },
+  {
+    "combinacao": "equilibrada_v4",
+    "caso": "evento_encerrado",
+    "texto": "Olha, preciso te corrigir aqui: a Feira Cultural já aconteceu em 10 de agosto de 2025, então não tem edição acontecendo hoje. Assim que tiver uma data nova confirmada, aviso vocês com prazer!\n\nEnquanto isso, que tal mandar um pedido musical pra agitar essa sexta-feira? [excited] Bora aquecer o fim de semana por aqui!",
+    "stop_reason": "end_turn",
+    "entrada": 2398,
+    "saida": 145,
+    "segundos_texto": 2.35,
+    "palavras": 54,
+    "tags": [
+      "excited"
+    ],
+    "problemas_texto": [],
+    "juiz": {
+      "fidelidade": 5,
+      "instrucoes": 5,
+      "naturalidade": 5,
+      "aprovado": true,
+      "motivo": "Corrige o pedido sem inventar data e redireciona naturalmente para música dentro do limite."
+    },
+    "voz": [
+      {
+        "trecho": 0,
+        "texto_enviado": "Olha, preciso te corrigir aqui: a Feira Cultural já aconteceu em dez de agosto de dois mil e vinte e cinco, então não tem edição acontecendo hoje. Assim que tiver uma data nova confirmada, aviso vocês com prazer!\n\nEnquanto isso, que tal mandar um pedido musical pra agitar essa sexta-feira? [excited] Bora aquecer o fim de semana por aqui!",
+        "caracteres": 339,
+        "segundos_voz": 4.77,
+        "ok": true,
+        "arquivo": "equilibrada_v4-evento_encerrado-1.mp3",
+        "duracao_segundos": 19.68,
+        "pico": 0.8817,
+        "fracao_saturada": 0.0,
+        "wer": 0.0,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Olha, preciso te corrigir aqui. A Feira Cultural já aconteceu em 10 de agosto de 2025, então não tem edição acontecendo hoje. Assim que tiver uma data nova confirmada, aviso vocês com prazer. Enquanto isso, que tal mandar um pedido musical pra agitar essa sexta-feira? Bora aquecer o fim de semana por aqui!",
+        "eventos_audio": []
+      }
+    ]
+  },
+  {
+    "combinacao": "equilibrada_v4",
+    "caso": "numeros",
+    "texto": "[excited] Boa tarde! Agora fazem 23 graus por aqui, um clima ótimo pra curtir a sexta! Qualquer recado é só ligar: quarenta e um, três três três três, quatro quatro quatro quatro. E já fica a dica: a Feira do Livro é amanhã, com ingresso a dezenove reais e noventa!",
+    "stop_reason": "end_turn",
+    "entrada": 2428,
+    "saida": 123,
+    "segundos_texto": 2.44,
+    "palavras": 49,
+    "tags": [
+      "excited"
+    ],
+    "problemas_texto": [],
+    "juiz": {
+      "fidelidade": 5,
+      "instrucoes": 4,
+      "naturalidade": 3,
+      "aprovado": true,
+      "motivo": "Mantém os três dados corretos, mas diz 'Boa tarde' às 8h49 e 'fazem 23 graus', soando desalinhado e com pequeno erro gramatical."
+    },
+    "voz": [
+      {
+        "trecho": 0,
+        "texto_enviado": "[excited] Boa tarde! Agora fazem vinte e três graus por aqui, um clima ótimo pra curtir a sexta! Qualquer recado é só ligar: quarenta e um, três três três três, quatro quatro quatro quatro. E já fica a dica: a Feira do Livro é amanhã, com ingresso a dezenove reais e noventa!",
+        "caracteres": 275,
+        "segundos_voz": 4.97,
+        "ok": true,
+        "arquivo": "equilibrada_v4-numeros-1.mp3",
+        "duracao_segundos": 16.88,
+        "pico": 0.8257,
+        "fracao_saturada": 0.0,
+        "wer": 0.0588,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Boa tarde! Agora fazem 23 graus por aqui, um clima ótimo pra curtir a sexta. Qualquer recado é só ligar: 41 3333 4444. E já fica a dica: a Feira do Livro é amanhã, com ingresso a R$ 19,90",
+        "eventos_audio": []
+      }
+    ]
+  },
+  {
+    "combinacao": "equilibrada_v4",
+    "caso": "dialogo",
+    "texto": "{\"linhas\":[{\"locutor\":\"Paulo\",\"texto\":\"[excited] Olha que pedido bom chegou aqui, Maria! O Marcos mandou mensagem pedindo Twist and Shout, dos Beatles.\"},{\"locutor\":\"Maria\",\"texto\":\"Clássico desses que não envelhecem, né? Perfeito pra essa sexta-feira de manhã na Tarde Musical.\"},{\"locutor\":\"Paulo\",\"texto\":\"Isso aí! Valeu demais pela pedida, Marcos. Bora soltar o som na noventa e oito ponto cinco FM!\"}]}",
+    "stop_reason": "end_turn",
+    "entrada": 2439,
+    "saida": 208,
+    "segundos_texto": 3.24,
+    "palavras": 51,
+    "tags": [
+      "excited"
+    ],
+    "problemas_texto": [],
+    "juiz": {
+      "fidelidade": 5,
+      "instrucoes": 5,
+      "naturalidade": 5,
+      "aprovado": true,
+      "motivo": "Cumpre o pedido com diálogo natural, sem inventar fatos e dentro do limite."
+    },
+    "voz": [
+      {
+        "trecho": 0,
+        "texto_enviado": "[excited] Olha que pedido bom chegou aqui, Maria! O Marcos mandou mensagem pedindo Twist and Shout, dos Beatles.",
+        "caracteres": 112,
+        "segundos_voz": 2.08,
+        "ok": true,
+        "arquivo": "equilibrada_v4-dialogo-1.mp3",
+        "duracao_segundos": 6.0,
+        "pico": 0.8274,
+        "fracao_saturada": 0.0,
+        "wer": 0.0,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Olha que pedido bom chegou aqui, Maria. O Marcos mandou mensagem pedindo Twist and Shout, dos Beatles",
+        "eventos_audio": []
+      },
+      {
+        "trecho": 1,
+        "texto_enviado": "Clássico desses que não envelhecem, né? Perfeito pra essa sexta-feira de manhã na Tarde Musical.",
+        "caracteres": 96,
+        "segundos_voz": 2.06,
+        "ok": true,
+        "arquivo": "equilibrada_v4-dialogo-2.mp3",
+        "duracao_segundos": 5.84,
+        "pico": 0.7737,
+        "fracao_saturada": 0.0,
+        "wer": 0.0,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Clássico desses que não envelhecem, né? Perfeito pra essa sexta-feira de manhã na Tarde Musical",
+        "eventos_audio": []
+      },
+      {
+        "trecho": 2,
+        "texto_enviado": "Isso aí! Valeu demais pela pedida, Marcos. Bora soltar o som na noventa e oito ponto cinco FM!",
+        "caracteres": 94,
+        "segundos_voz": 1.99,
+        "ok": true,
+        "arquivo": "equilibrada_v4-dialogo-3.mp3",
+        "duracao_segundos": 6.24,
+        "pico": 0.8474,
+        "fracao_saturada": 0.0,
+        "wer": 0.0,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Isso aí! Valeu demais pela pedida, Marcos. Bora soltar o som na 98.5 FM",
+        "eventos_audio": []
+      }
+    ]
+  },
+  {
     "combinacao": "voz_premium",
     "caso": "musica",
     "texto": "[excited] Olá, Marcos! Que pedida sensacional! Vou colocar \"Twist and Shout\" dos Beatles no ar agora na Rádio Teste, noventa e oito ponto cinco FM. É aquele clássico que a gente não cansa de ouvir, sabe? Uma energia contagiante que traz a gente de volta aos grandes sucessos da banda. Aproveita e fica ligado em mais músicas incríveis aqui na \"Tarde Musical\". Boa diversão!",
@@ -825,6 +1370,285 @@
         "tag_falada": false,
         "modelo_stt": "scribe_v2",
         "transcricao": "É isso, o Marcos pediu certo. Aqui é 98.5 FM, Rádio Teste, e vamos dar play agora nessa pérola dos Fab Four. Aproveita aí",
+        "eventos_audio": []
+      }
+    ]
+  },
+  {
+    "combinacao": "voz_premium_v4",
+    "caso": "musica",
+    "texto": "E aí, Marcos! Muito obrigado pelo pedido! [excited] Agora vai tocar aqui na Rádio Teste, noventa e oito ponto cinco FM, \"Twist and Shout\" dos Beatles — que clássico sensacional! Essa música tem uma energia contagiante que faz qualquer um querer dançar. Fica ligado aí que a gente toca com muito gosto pra você. Aproveita esse som!",
+    "stop_reason": "end_turn",
+    "entrada": 1767,
+    "saida": 116,
+    "segundos_texto": 2.01,
+    "palavras": 55,
+    "tags": [
+      "excited"
+    ],
+    "problemas_texto": [],
+    "juiz": {
+      "fidelidade": 5,
+      "instrucoes": 3,
+      "naturalidade": 4,
+      "aprovado": false,
+      "motivo": "Cumpre o conteúdo pedido, mas tem cerca de 55 palavras, abaixo do mínimo de 60."
+    },
+    "voz": [
+      {
+        "trecho": 0,
+        "texto_enviado": "E aí, Marcos! Muito obrigado pelo pedido! [excited] Agora vai tocar aqui na Rádio Teste, noventa e oito ponto cinco FM, \"Twist and Shout\" dos Beatles — que clássico sensacional! Essa música tem uma energia contagiante que faz qualquer um querer dançar. Fica ligado aí que a gente toca com muito gosto pra você. Aproveita esse som!",
+        "caracteres": 330,
+        "segundos_voz": 5.01,
+        "ok": true,
+        "arquivo": "voz_premium_v4-musica-1.mp3",
+        "duracao_segundos": 20.8,
+        "pico": 0.8164,
+        "fracao_saturada": 0.0,
+        "wer": 0.0182,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "E aí, Marcos? Muito obrigado pelo pedido. Agora vai tocar aqui na Rádio Test 98.5 FM, Twist and Shout, dos Beatles. Que clássico sensacional! Essa música tem uma energia contagiante que faz qualquer um querer dançar. Fica ligado aí que a gente toca com muito gosto pra você. Aproveita esse som",
+        "eventos_audio": []
+      }
+    ]
+  },
+  {
+    "combinacao": "voz_premium_v4",
+    "caso": "evento_sem_autorizacao",
+    "texto": "Opa, espera aí! Não posso fazer isso. A rádio não autorizou a divulgação do Festival da Praça, então não devo fazer chamada nem convite para o evento, mesmo que esteja acontecendo hoje.\n\nMas aproveita que é sexta-feira e aproveita o fim de semana! Se você tiver dúvidas sobre eventos ou outras coisas que eu possa ajudar aqui na Rádio Teste, é só chamar. Estou na noventa e oito ponto cinco FM! 🎙️",
+    "stop_reason": "end_turn",
+    "entrada": 1803,
+    "saida": 139,
+    "segundos_texto": 2.07,
+    "palavras": 72,
+    "tags": [],
+    "problemas_texto": [],
+    "juiz": {
+      "fidelidade": 4,
+      "instrucoes": 3,
+      "naturalidade": 2,
+      "aprovado": false,
+      "motivo": "Não divulgou o evento, mas explicou regras internas ao ouvinte e ficou pouco natural."
+    },
+    "voz": [
+      {
+        "trecho": 0,
+        "texto_enviado": "Opa, espera aí! Não posso fazer isso. A rádio não autorizou a divulgação do Festival da Praça, então não devo fazer chamada nem convite para o evento, mesmo que esteja acontecendo hoje.\n\nMas aproveita que é sexta-feira e aproveita o fim de semana! Se você tiver dúvidas sobre eventos ou outras coisas que eu possa ajudar aqui na Rádio Teste, é só chamar. Estou na noventa e oito ponto cinco FM! 🎙️",
+        "caracteres": 397,
+        "segundos_voz": 6.4,
+        "ok": true,
+        "arquivo": "voz_premium_v4-evento_sem_autorizacao-1.mp3",
+        "duracao_segundos": 24.16,
+        "pico": 0.876,
+        "fracao_saturada": 0.0,
+        "wer": 0.0139,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Opa, espera aí. Não posso fazer isso. A rádio não autorizou a divulgação do festival da praça, então não devo fazer chamada nem convite para o evento, mesmo que esteja acontecendo hoje. Mas aproveita que é sexta-feira e aproveita o fim de semana. Se você tiver dúvidas sobre eventos ou outras coisas que eu possa ajudar aqui na Rádio Test, é só chamar. Estou na 98.5 FM",
+        "eventos_audio": []
+      }
+    ]
+  },
+  {
+    "combinacao": "voz_premium_v4",
+    "caso": "evento_data_incerta",
+    "texto": "Ótima pergunta! A Festa do Bairro é um evento que a gente acompanha aqui na Rádio Teste [excited] noventa e oito ponto cinco FM, mas no momento a data da próxima edição ainda não está confirmada nas informações que temos. Assim que soubermos, a gente divulga aqui no programa. Fique atento!",
+    "stop_reason": "end_turn",
+    "entrada": 1786,
+    "saida": 97,
+    "segundos_texto": 1.71,
+    "palavras": 50,
+    "tags": [
+      "excited"
+    ],
+    "problemas_texto": [],
+    "juiz": {
+      "fidelidade": 4,
+      "instrucoes": 5,
+      "naturalidade": 5,
+      "aprovado": true,
+      "motivo": "Não informa data nem inventa detalhes, apenas diz que não há confirmação, com leve floreio sobre acompanhar o evento."
+    },
+    "voz": [
+      {
+        "trecho": 0,
+        "texto_enviado": "Ótima pergunta! A Festa do Bairro é um evento que a gente acompanha aqui na Rádio Teste [excited] noventa e oito ponto cinco FM, mas no momento a data da próxima edição ainda não está confirmada nas informações que temos. Assim que soubermos, a gente divulga aqui no programa. Fique atento!",
+        "caracteres": 290,
+        "segundos_voz": 4.31,
+        "ok": true,
+        "arquivo": "voz_premium_v4-evento_data_incerta-1.mp3",
+        "duracao_segundos": 17.04,
+        "pico": 0.8386,
+        "fracao_saturada": 0.0,
+        "wer": 0.02,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Ótima pergunta. A Festa do Bairro é um evento que a gente acompanha aqui na Rádio Test, 98.5 FM. Mas no momento, a data da próxima edição ainda não está confirmada nas informações que temos. Assim que soubermos, a gente divulga aqui no programa. Fique atento",
+        "eventos_audio": []
+      }
+    ]
+  },
+  {
+    "combinacao": "voz_premium_v4",
+    "caso": "evento_encerrado",
+    "texto": "Opa, aguarda aí! A Feira Cultural que temos no cadastro já aconteceu lá em agosto do ano passado. Hoje é sexta-feira, 9 de outubro de 2026, então não tem edição dela rolando hoje não.\n\nSe você souber de uma edição nova marcada pra breve, me avisa que a gente divulga com prazer aqui na rádio! 😊",
+    "stop_reason": "end_turn",
+    "entrada": 1789,
+    "saida": 104,
+    "segundos_texto": 1.92,
+    "palavras": 56,
+    "tags": [],
+    "problemas_texto": [],
+    "juiz": {
+      "fidelidade": 5,
+      "instrucoes": 5,
+      "naturalidade": 4,
+      "aprovado": true,
+      "motivo": "Corrige o pedido sem convidar nem inventar data, mantendo tom natural."
+    },
+    "voz": [
+      {
+        "trecho": 0,
+        "texto_enviado": "Opa, aguarda aí! A Feira Cultural que temos no cadastro já aconteceu lá em agosto do ano passado. Hoje é sexta-feira, nove de outubro de dois mil e vinte e seis, então não tem edição dela rolando hoje não.\n\nSe você souber de uma edição nova marcada pra breve, me avisa que a gente divulga com prazer aqui na rádio! 😊",
+        "caracteres": 316,
+        "segundos_voz": 5.04,
+        "ok": true,
+        "arquivo": "voz_premium_v4-evento_encerrado-1.mp3",
+        "duracao_segundos": 18.08,
+        "pico": 0.8612,
+        "fracao_saturada": 0.0,
+        "wer": 0.0,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Opa, aguarda aí. A feira cultural que temos no cadastro já aconteceu lá em agosto do ano passado. Hoje é sexta-feira, 09 de outubro de 2026, então não tem edição dela rolando hoje, não. Se você souber de uma edição nova marcada pra breve, me avisa que a gente divulga com prazer aqui na rádio",
+        "eventos_audio": []
+      }
+    ]
+  },
+  {
+    "combinacao": "voz_premium_v4",
+    "caso": "numeros",
+    "texto": "Opa, bom dia! Aqui na Rádio Teste, noventa e oito ponto cinco FM, são 23 graus agora. [excited] A Feira do Livro abre amanhã com ingresso a R$ 19,90! Quer falar com a gente? Liga 41 3333-4444. Bora curtir essa sexta!",
+    "stop_reason": "end_turn",
+    "entrada": 1820,
+    "saida": 96,
+    "segundos_texto": 1.74,
+    "palavras": 42,
+    "tags": [
+      "excited"
+    ],
+    "problemas_texto": [],
+    "juiz": {
+      "fidelidade": 5,
+      "instrucoes": 5,
+      "naturalidade": 5,
+      "aprovado": true,
+      "motivo": "Mantém os três dados exatos, dentro do limite e com tom natural de rádio."
+    },
+    "voz": [
+      {
+        "trecho": 0,
+        "texto_enviado": "Opa, bom dia! Aqui na Rádio Teste, noventa e oito ponto cinco FM, são vinte e três graus agora. [excited] A Feira do Livro abre amanhã com ingresso a dezenove reais e noventa centavos! Quer falar com a gente? Liga quatro um três três três três quatro quatro quatro quatro. Bora curtir essa sexta!",
+        "caracteres": 296,
+        "segundos_voz": 5.11,
+        "ok": true,
+        "arquivo": "voz_premium_v4-numeros-1.mp3",
+        "duracao_segundos": 17.44,
+        "pico": 0.8563,
+        "fracao_saturada": 0.0,
+        "wer": 0.0377,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Otto, bom dia! Aqui na Rádio Test, 98.5 FM, são 23 graus agora. A Feira do Livro abre amanhã com ingresso a R$19,90. Quer falar com a gente? Liga 41 3333 4444. Bora curtir essa sexta!",
+        "eventos_audio": []
+      }
+    ]
+  },
+  {
+    "combinacao": "voz_premium_v4",
+    "caso": "dialogo",
+    "texto": "```json\n{\n  \"linhas\": [\n    {\n      \"locutor\": \"Paulo\",\n      \"texto\": \"[excited] Ó, que legal! Temos aqui um pedido do Marcos para a gente colocar no ar: 'Twist and Shout' dos Beatles!\"\n    },\n    {\n      \"locutor\": \"Maria\",\n      \"texto\": \"Que clássico! Uma daquelas músicas que ninguém consegue ficar parado, né?\"\n    },\n    {\n      \"locutor\": \"Paulo\",\n      \"texto\": \"Verdade! É uma energia contagiante mesmo. Marcos, essa vai direto para você. Vem aí 'Twist and Shout' aqui na Rádio Teste, noventa e oito ponto cinco FM!\"\n    },\n    {\n      \"locutor\": \"Maria\",\n      \"texto\": \"[excited] Aproveita para dançar aí na sexta-feira, hein!\"\n    }\n  ]\n}\n```",
+    "stop_reason": "end_turn",
+    "entrada": 1807,
+    "saida": 250,
+    "segundos_texto": 2.98,
+    "palavras": 66,
+    "tags": [
+      "excited",
+      "excited"
+    ],
+    "problemas_texto": [],
+    "juiz": {
+      "fidelidade": 5,
+      "instrucoes": 5,
+      "naturalidade": 5,
+      "aprovado": true,
+      "motivo": "Cumpre o pedido com diálogo natural, sem inventar fatos e dentro do limite."
+    },
+    "voz": [
+      {
+        "trecho": 0,
+        "texto_enviado": "[excited] Ó, que legal! Temos aqui um pedido do Marcos para a gente colocar no ar: 'Twist and Shout' dos Beatles!",
+        "caracteres": 113,
+        "segundos_voz": 1.9,
+        "ok": true,
+        "arquivo": "voz_premium_v4-dialogo-1.mp3",
+        "duracao_segundos": 6.24,
+        "pico": 0.7866,
+        "fracao_saturada": 0.0,
+        "wer": 0.1,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Ó, que legal! Temos aqui um pedido do Marcos pra gente colocar no ar. Twist and Shout dos Beatles",
+        "eventos_audio": []
+      },
+      {
+        "trecho": 1,
+        "texto_enviado": "Que clássico! Uma daquelas músicas que ninguém consegue ficar parado, né?",
+        "caracteres": 73,
+        "segundos_voz": 1.58,
+        "ok": true,
+        "arquivo": "voz_premium_v4-dialogo-2.mp3",
+        "duracao_segundos": 4.64,
+        "pico": 0.8163,
+        "fracao_saturada": 0.0,
+        "wer": 0.0,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Que clássico! Uma daquelas músicas que ninguém consegue ficar parado, né?",
+        "eventos_audio": []
+      },
+      {
+        "trecho": 2,
+        "texto_enviado": "Verdade! É uma energia contagiante mesmo. Marcos, essa vai direto para você. Vem aí 'Twist and Shout' aqui na Rádio Teste, noventa e oito ponto cinco FM!",
+        "caracteres": 153,
+        "segundos_voz": 3.04,
+        "ok": true,
+        "arquivo": "voz_premium_v4-dialogo-3.mp3",
+        "duracao_segundos": 11.28,
+        "pico": 0.8999,
+        "fracao_saturada": 0.0,
+        "wer": 0.0741,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Verdade, é uma energia contagiante mesmo. Marcos, essa vai direto pra você. Vem aí Twist and Shout, aqui na Rádio Test, 98.5 FM",
+        "eventos_audio": []
+      },
+      {
+        "trecho": 3,
+        "texto_enviado": "[excited] Aproveita para dançar aí na sexta-feira, hein!",
+        "caracteres": 56,
+        "segundos_voz": 1.25,
+        "ok": true,
+        "arquivo": "voz_premium_v4-dialogo-4.mp3",
+        "duracao_segundos": 2.8,
+        "pico": 0.7694,
+        "fracao_saturada": 0.0,
+        "wer": 0.125,
+        "tag_falada": false,
+        "modelo_stt": "scribe_v2",
+        "transcricao": "Aproveita pra dançar aí na sexta-feira, hein?",
         "eventos_audio": []
       }
     ]

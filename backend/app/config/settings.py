@@ -72,12 +72,15 @@ class Settings(BaseSettings):
     # Combinações texto + voz oferecidas (ids em app/billing/combinacoes.py, nesta ordem).
     # As com Haiku mostram ao cliente a limitação de fidelidade medida nas avaliações
     # (docs/benchmarks/2026-09-25-combinacoes); remova daqui para deixar de oferecer.
-    ia_combinacoes: list[str] = ["premium", "equilibrada", "voz_premium", "texto_premium", "agil", "essencial"]
+    ia_combinacoes: list[str] = ["premium", "premium_v4", "equilibrada", "equilibrada_v4", "voz_premium",
+                                 "voz_premium_v4", "texto_premium", "agil", "essencial"]
     ia_tarifas_llm: dict[str, list[float]] = {
         "claude-opus-5": [5, 25], "claude-sonnet-5": [2, 10], "claude-haiku-4-5": [1, 5],
     }
     ia_tarifas_tts: dict[str, float] = {
         "eleven_v3": 0.10, "eleven_multilingual_v2": 0.10, "eleven_flash_v2_5": 0.05,
+        # Preço cheio da API = v3 e Flash (o desconto de lançamento acaba em 2026-10-12).
+        "eleven_v4": 0.10, "eleven_v4_turbo": 0.05,
     }
     ia_stt_usd_hora: float = 0.40  # Hipótese scribe_v1: substituir pela tarifa contratada.
     ia_music_usd_minuto: float = 0.15

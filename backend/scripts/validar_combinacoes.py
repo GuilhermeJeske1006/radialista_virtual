@@ -9,7 +9,7 @@ Execute a partir de backend:
 
 Para cada combinação de app/billing/combinacoes.py:
 1. Texto: gera as falas dos casos com o modelo de texto e o mesmo prompt do ao vivo (inclusive a
-   instrução de direção vocal quando a voz é v3). Checagens determinísticas (tamanho, tags, JSON)
+   instrução de direção vocal quando a voz a aceita: v3 ou v4). Checagens determinísticas (tamanho, tags, JSON)
    e juiz LLM pontual com critérios por caso (padrão da skill llm-evaluation).
 2. Voz: sintetiza cada fala pelo pipeline real (normalização de números, tags, perfil da voz),
    transcreve com Scribe v2 (skill speech-to-text) e mede divergência de palavras (WER), tag lida
@@ -114,10 +114,11 @@ def wer(referencia, hipotese):
 
 def gerar_textos(combinacao, base, cliente):
     from app.live.router import INSTRUCAO_TAGS_V3
+    from app.tts.modelos import MODELOS_COM_TAGS
     registros = []
     for caso, dados in CASOS.items():
         system = base + dados["contexto"]
-        if combinacao.voz == "eleven_v3" and dados["tipo_bloco"] != "noticia":
+        if combinacao.voz in MODELOS_COM_TAGS and dados["tipo_bloco"] != "noticia":
             system += "\n" + INSTRUCAO_TAGS_V3
         parametros = {} if "haiku" in combinacao.texto else {"thinking": {"type": "disabled"}, "output_config": {"effort": "low"}}
         inicio = time.perf_counter()
@@ -152,8 +153,9 @@ def checar_texto(registro, combinacao):
         problemas.append(f"diálogo com {len(trechos)} falas ou JSON inválido")
     if palavras > dados["max_palavras"] * 1.1:
         problemas.append(f"{palavras} palavras (limite {dados['max_palavras']})")
-    if combinacao.voz != "eleven_v3" and tags:
-        problemas.append(f"tags sem voz v3: {tags}")
+    from app.tts.modelos import MODELOS_COM_TAGS
+    if combinacao.voz not in MODELOS_COM_TAGS and tags:
+        problemas.append(f"tags sem voz com direção vocal: {tags}")
     fora = [t for t in tags if t.strip().lower() not in TAGS_V3]
     if fora:
         problemas.append(f"tags fora da lista: {fora}")
@@ -276,7 +278,7 @@ def resumo(registros, combinacoes, tarifas):
 
 
 NOMES_MODELOS = {"claude-opus-5": "Opus 5", "claude-sonnet-5": "Sonnet 5", "claude-haiku-4-5": "Haiku 4.5",
-                 "eleven_v3": "ElevenLabs v3", "eleven_flash_v2_5": "ElevenLabs Flash 2.5"}
+                 "eleven_v3": "ElevenLabs v3", "eleven_v4": "ElevenLabs v4", "eleven_flash_v2_5": "ElevenLabs Flash 2.5"}
 CASO_EXEMPLO = "musica"
 
 

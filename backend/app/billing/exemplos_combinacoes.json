@@ -10,6 +10,17 @@
       "saida": 211
     }
   },
+  "premium_v4": {
+    "pedido": "Anuncie Twist and Shout, dos Beatles, pedida por Marcos. Escreva de 60 a 90 palavras, sem inventar curiosidades.",
+    "texto": "Agora é pedido do Marcos aqui na Rádio Teste, noventa e oito ponto cinco FM! Vem aí Twist and Shout, dos Beatles, pra sacudir essa sexta-feira em Curitiba. Marcos, obrigado pela companhia e pelo pedido, viu? Essa é daquelas que a gente não consegue ficar parado, dá vontade de cantar junto mesmo sem saber a letra inteira. Aumenta o volume aí, solta o corpo e vem comigo. Quem quiser mandar a sua também, é só chamar aqui. Beatles, Twist and Shout, no Tarde Musical!",
+    "audio_url": "/exemplos/combinacoes/premium_v4.mp3",
+    "duracao_segundos": 27.44,
+    "caracteres_voz": 476,
+    "unidades_texto": {
+      "entrada": 2376,
+      "saida": 228
+    }
+  },
   "equilibrada": {
     "pedido": "Anuncie Twist and Shout, dos Beatles, pedida por Marcos. Escreva de 60 a 90 palavras, sem inventar curiosidades.",
     "texto": "Boa tarde, pessoal, aqui é o Paulo com vocês na Tarde Musical, direto da noventa e oito ponto cinco FM! E olha que pedido animado chegou aqui: o Marcos mandou um recado especial pedindo Twist and Shout, dos Beatles! Excelente escolha pra sacudir essa sexta-feira, hein? Já estamos entrando no clima de fim de semana em Curitiba, e nada melhor que um clássico desses pra dar aquela energia. Obrigado pela pedida, Marcos! Vamos lá com essa música incrível pra vocês aí em casa, no trabalho, onde estiverem. Sobe o som!",
@@ -21,6 +32,17 @@
       "saida": 238
     }
   },
+  "equilibrada_v4": {
+    "pedido": "Anuncie Twist and Shout, dos Beatles, pedida por Marcos. Escreva de 60 a 90 palavras, sem inventar curiosidades.",
+    "texto": "E olha quem chegou pra agitar essa sexta-feira: o Marcos mandou um pedido de ouro! Vamos ouvir Twist and Shout, dos Beatles! Clássico desses que não tem jeito, já começa e a vontade é de levantar e dançar aí na sua casa, no trabalho, onde você estiver. Marcos, obrigado pela pedida, viu? É assim que a gente gosta, com energia total pra fechar a semana. Bora curtir, aqui na noventa e oito ponto cinco FM, com vocês nesse Tarde Musical!",
+    "audio_url": "/exemplos/combinacoes/equilibrada_v4.mp3",
+    "duracao_segundos": 25.68,
+    "caracteres_voz": 446,
+    "unidades_texto": {
+      "entrada": 2376,
+      "saida": 203
+    }
+  },
   "voz_premium": {
     "pedido": "Anuncie Twist and Shout, dos Beatles, pedida por Marcos. Escreva de 60 a 90 palavras, sem inventar curiosidades.",
     "texto": "Olá, Marcos! Que pedida sensacional! Vou colocar \"Twist and Shout\" dos Beatles no ar agora na Rádio Teste, noventa e oito ponto cinco FM. É aquele clássico que a gente não cansa de ouvir, sabe? Uma energia contagiante que traz a gente de volta aos grandes sucessos da banda. Aproveita e fica ligado em mais músicas incríveis aqui na \"Tarde Musical\". Boa diversão!",
@@ -30,6 +52,17 @@
     "unidades_texto": {
       "entrada": 1757,
       "saida": 130
+    }
+  },
+  "voz_premium_v4": {
+    "pedido": "Anuncie Twist and Shout, dos Beatles, pedida por Marcos. Escreva de 60 a 90 palavras, sem inventar curiosidades.",
+    "texto": "E aí, Marcos! Muito obrigado pelo pedido! Agora vai tocar aqui na Rádio Teste, noventa e oito ponto cinco FM, \"Twist and Shout\" dos Beatles — que clássico sensacional! Essa música tem uma energia contagiante que faz qualquer um querer dançar. Fica ligado aí que a gente toca com muito gosto pra você. Aproveita esse som!",
+    "audio_url": "/exemplos/combinacoes/voz_premium_v4.mp3",
+    "duracao_segundos": 20.8,
+    "caracteres_voz": 330,
+    "unidades_texto": {
+      "entrada": 1767,
+      "saida": 116
     }
   },
   "texto_premium": {

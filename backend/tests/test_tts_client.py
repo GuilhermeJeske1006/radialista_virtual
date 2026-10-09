@@ -200,6 +200,23 @@ def test_sintetizar_audio_v2_manda_previous_text(monkeypatch):
     assert payload["previous_text"] == "fala anterior"
 
 
+@pytest.mark.parametrize("modelo", ["eleven_v4", "eleven_v4_turbo"])
+def test_v4_le_roteiro_do_v3_e_recebe_contexto(modelo):
+    """v4 aceita as mesmas tags do v3 e, ao contrario dele, previous_text -- medido na API."""
+    _, payload = tts_client._preparar_sintese(
+        "Olá! [laughs] Que dia...... [surpreso] Bora.", "comentario", "calmo", True, "Fala anterior.", modelo)
+    assert payload["model_id"] == modelo
+    assert payload["text"] == "Olá! [laughs] Que dia [pause] Bora."
+    assert payload["previous_text"] == "Fala anterior."
+    assert payload["language_code"] == "pt"
+    assert not {"similarity_boost", "use_speaker_boost"} & payload["voice_settings"].keys()
+
+
+def test_v4_sem_tag_inline_mantem_tag_por_tom():
+    _, payload = tts_client._preparar_sintese("Boa noite.", "comentario", "calmo", False, None, "eleven_v4")
+    assert payload["text"] == "[calm] Boa noite."
+
+
 def test_sintetizar_audio_v3_converte_reticencias_duplas_em_pause(monkeypatch):
     """"......" (troca de assunto, ver prompt em app.live.router) nao gera pausa nenhuma no
     eleven_v3 -- medido na API real, mesma duracao que um ".". A tag [pause] e' o que
@@ -512,7 +529,8 @@ def test_excluir_voz_clonada_chama_delete(monkeypatch):
     assert fake.chamadas[0][0] == "delete"
 
 
-@pytest.mark.parametrize('modelo,idioma', [('eleven_v3', 'pt'), ('eleven_flash_v2_5', 'pt'), ('eleven_multilingual_v2', None)])
+@pytest.mark.parametrize('modelo,idioma', [('eleven_v4', 'pt'), ('eleven_v4_turbo', 'pt'), ('eleven_v3', 'pt'),
+                                           ('eleven_flash_v2_5', 'pt'), ('eleven_multilingual_v2', None)])
 def test_idioma_somente_em_modelos_compativeis(modelo, idioma):
     _, payload = tts_client._preparar_sintese('Olá!', None, None, False, None, modelo=modelo)
     assert payload.get('language_code') == idioma

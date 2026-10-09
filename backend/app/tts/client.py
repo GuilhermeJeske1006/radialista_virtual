@@ -10,6 +10,7 @@ import httpx
 from app.config.settings import settings
 from app.billing.contexto_ia import modelo_efetivo
 from app.tts.cache import cache_audio
+from app.tts.modelos import MODELOS_COM_TAGS, MODELOS_SEM_CONTEXTO
 from app.billing.consumo_ia import reservar, concluir, falhar
 from fastapi import HTTPException
 from app.numeros import normalizar_texto_fala
@@ -150,8 +151,13 @@ def _tem_tag_emocao_v3(texto: str) -> bool:
 # raro (no maximo 1x por fala) -- em todo ponto final tambem destruiria o efeito.
 _PAUSA_TROCA_ASSUNTO = re.compile(r"\.{4,}")
 
-# similarity_boost/use_speaker_boost nao sao suportados pelo eleven_v3 -- _construir_voice_settings
-# remove essas chaves do payload quando o modelo e' v3, pra voz do catalogo e pra voz clonada.
+# similarity_boost/use_speaker_boost nao sao suportados pelo eleven_v3 nem pelo v4 (GET /v1/models:
+# can_use_speaker_boost=false) -- _construir_voice_settings remove essas chaves do payload nesses
+# modelos, pra voz do catalogo e pra voz clonada.
+#
+# v4/v4 Turbo ignoram speed (medido em 2026-10-08: mesmo texto com speed 0.7 e 1.2 sai com a mesma
+# duracao; a ElevenLabs documenta que o v4 nao tem controle de velocidade). Os presets de speed por
+# bloco/voz abaixo continuam indo no payload, mas so' surtem efeito no v3/v2/Flash.
 _CHAVES_INDISPONIVEIS_V3 = {"similarity_boost", "use_speaker_boost"}
 
 # Voz clonada (Instant Voice Cloning, ver clonar_voz) usava similarity_boost alto + fallback forcado
@@ -253,7 +259,7 @@ def _construir_voice_settings(tipo_bloco: str | None, tom: str | None, modelo: s
         voice_settings["similarity_boost"] = _SIMILARITY_BOOST_CLONE
         voice_settings["use_speaker_boost"] = True
 
-    if modelo != "eleven_v3":
+    if modelo not in MODELOS_COM_TAGS:
         return voice_settings
     return {k: v for k, v in voice_settings.items() if k not in _CHAVES_INDISPONIVEIS_V3}
 
@@ -280,7 +286,7 @@ def _preparar_sintese(
     voice_settings = _construir_voice_settings(tipo_bloco, tom, modelo, eh_clonada, voice_id)
     if perfil == "natural":
         voice_settings = {"stability": 0.5, "style": 0.0, "speed": 1.0}
-        if modelo != "eleven_v3":
+        if modelo not in MODELOS_COM_TAGS:
             voice_settings.update(similarity_boost=0.8 if eh_clonada else 0.75, use_speaker_boost=True)
 
     # "R$ 19,90" etc -- so' aparece em texto que nunca passou pelo LLM (ver Patrocinador.texto em
@@ -288,7 +294,7 @@ def _preparar_sintese(
     # nao alcanca esse caso. Roda pra qualquer modelo, nao so' v3 -- algarismo em portugues sai
     # errado em qualquer sintetizador.
     texto_tts = normalizar_texto_fala(texto, pronuncias)
-    if modelo == "eleven_v3":
+    if modelo in MODELOS_COM_TAGS:
         texto_tts = _PAUSA_TROCA_ASSUNTO.sub(" [pause] ", texto_tts)
         texto_tts = _sanitizar_tags_v3(texto_tts)
         texto_tts = re.sub(r" {2,}", " ", texto_tts).strip()
@@ -307,9 +313,9 @@ def _preparar_sintese(
     }
     if modelo != "eleven_multilingual_v2":
         payload["language_code"] = _LANGUAGE_CODE
-    # previous_text da 400 (unsupported_model) no eleven_v3 -- ElevenLabs ainda nao suporta esse
-    # campo nesse modelo. So manda quando o modelo realmente aceita.
-    if texto_anterior and modelo != "eleven_v3":
+    # previous_text da 400 (unsupported_model) no eleven_v3 -- ver MODELOS_SEM_CONTEXTO. So manda
+    # quando o modelo realmente aceita.
+    if texto_anterior and modelo not in MODELOS_SEM_CONTEXTO:
         payload["previous_text"] = texto_anterior
 
     return headers, payload

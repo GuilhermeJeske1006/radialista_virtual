@@ -61,7 +61,7 @@ export default function VozConfigModal({ vozId, onFechar, onAtualizada }: { vozI
         <button type="button" onClick={atualizar} disabled={ocupado} className="text-sm text-acento-claro disabled:opacity-50">Atualizar status da voz</button>
         <label className="block text-sm">Modelo de voz
           <select className={campo} value={config.modelo ?? ""} disabled={ocupado} onChange={(e) => setConfig({ ...config, modelo: e.target.value || null })}>
-            <option value="">Padrão do servidor</option><option value="eleven_v3">Eleven v3 · expressivo</option><option value="eleven_multilingual_v2">Multilingual v2 · consistente</option><option value="eleven_flash_v2_5">Flash v2.5 · geração rápida</option>
+            <option value="">Padrão do servidor</option><option value="eleven_v4">Eleven v4 · expressivo, mais rápido</option><option value="eleven_v4_turbo">Eleven v4 Turbo · baixa latência</option><option value="eleven_v3">Eleven v3 · expressivo</option><option value="eleven_multilingual_v2">Multilingual v2 · consistente</option><option value="eleven_flash_v2_5">Flash v2.5 · geração rápida</option>
           </select>
         </label>
         <label className="block text-sm">Interpretação

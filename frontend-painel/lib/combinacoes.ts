@@ -97,6 +97,8 @@ const NOMES_MODELOS: Record<string, string> = {
   "claude-opus-5": "Claude Opus 5",
   "claude-sonnet-5": "Claude Sonnet 5",
   "claude-haiku-4-5": "Claude Haiku 4.5",
+  eleven_v4: "ElevenLabs v4",
+  eleven_v4_turbo: "ElevenLabs v4 Turbo",
   eleven_v3: "ElevenLabs v3",
   eleven_flash_v2_5: "ElevenLabs Flash 2.5",
   eleven_multilingual_v2: "ElevenLabs Multilingual 2",

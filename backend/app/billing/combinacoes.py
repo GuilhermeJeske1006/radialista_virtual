@@ -29,9 +29,14 @@ class Combinacao:
     recomendada: bool = False
 
 
-# Todas as combinações dos 3 modelos de texto com as 2 vozes, do maior ao menor custo.
-# Limitações vêm das avaliações em docs/benchmarks (2026-09-24-economia e
-# 2026-09-25-combinacoes): sem prometer equivalência entre opções que executam a mesma tarefa.
+# Limitação comum às combinações com Eleven v4 (docs/benchmarks/2026-10-08-eleven-v4).
+LIMITACAO_V4 = ("Voz lançada em setembro de 2026, avaliada em menos pautas que a v3. Não aceita ajuste de "
+                "velocidade da fala.")
+
+# Todas as combinações dos 3 modelos de texto com as 3 vozes, do maior ao menor custo (v4 tem
+# a tarifa cheia da v3, então cada uma vem logo após a equivalente com v3). Limitações vêm das
+# avaliações em docs/benchmarks (2026-09-24-economia, 2026-09-25-combinacoes e
+# 2026-10-08-eleven-v4): sem prometer equivalência entre opções que executam a mesma tarefa.
 COMBINACOES = (
     Combinacao(
         "premium", "Premium", "claude-opus-5", "eleven_v3",
@@ -41,14 +46,31 @@ COMBINACOES = (
         recomendada=True,
     ),
     Combinacao(
+        "premium_v4", "Premium v4", "claude-opus-5", "eleven_v4",
+        "O texto do Premium com a voz Eleven v4: expressiva, com direção vocal, e pronta mais rápido "
+        "que a v3 nas avaliações.",
+        LIMITACAO_V4,
+    ),
+    Combinacao(
         "equilibrada", "Equilibrada", "claude-sonnet-5", "eleven_v3",
         "A mesma voz expressiva do Premium, com geração de texto mais barata.",
         "Texto menos elaborado que o Premium em pautas com muitos detalhes.",
     ),
     Combinacao(
+        "equilibrada_v4", "Equilibrada v4", "claude-sonnet-5", "eleven_v4",
+        "A voz Eleven v4 com geração de texto mais barata.",
+        f"Texto menos elaborado que o Premium em pautas com muitos detalhes. {LIMITACAO_V4}",
+    ),
+    Combinacao(
         "voz_premium", "Voz Premium", "claude-haiku-4-5", "eleven_v3",
         "Voz expressiva com o texto de menor custo.",
         "O texto chegou a acrescentar fato não informado nas avaliações. Revise falas sobre datas e eventos.",
+    ),
+    Combinacao(
+        "voz_premium_v4", "Voz Premium v4", "claude-haiku-4-5", "eleven_v4",
+        "A voz Eleven v4 com o texto de menor custo.",
+        "O texto chegou a acrescentar fato não informado nas avaliações. Revise falas sobre datas e eventos. "
+        f"{LIMITACAO_V4}",
     ),
     Combinacao(
         "texto_premium", "Texto Premium", "claude-opus-5", "eleven_flash_v2_5",
@@ -88,6 +110,11 @@ MODELOS = {
         "funcao": "voz",
         "descricao": "A mais expressiva, com direção vocal (risada, suspiro, empolgação). Falas muito longas "
                      "demoram mais para ficar prontas.",
+    },
+    "eleven_v4": {
+        "funcao": "voz",
+        "descricao": "Expressiva, com direção vocal (risada, suspiro, empolgação). Nas avaliações, ficou pronta "
+                     "mais rápido e com tempo mais estável que a v3. Não aceita ajuste de velocidade da fala.",
     },
     "eleven_flash_v2_5": {
         "funcao": "voz",

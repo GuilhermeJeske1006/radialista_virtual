@@ -104,6 +104,19 @@ def test_cache_buffered_reutilizado_no_stream_e_invalida_parametros():
     assert len(chamadas) == 5
 
 
+def test_cache_so_ignora_contexto_anterior_no_v3():
+    """v3 descarta previous_text; v4 envia, então o contexto precisa entrar na chave."""
+    chamadas = []
+    @cache_audio
+    def buffered(texto, voice_id=None, modelo=None, formato="mp3", texto_anterior=None):
+        chamadas.append(modelo)
+        return b"abc"
+    for modelo in ("eleven_v3", "eleven_v4"):
+        buffered("Oi", voice_id="a", modelo=modelo, texto_anterior="Fala 1.")
+        buffered("Oi", voice_id="a", modelo=modelo, texto_anterior="Fala 2.")
+    assert chamadas == ["eleven_v3", "eleven_v4", "eleven_v4"]
+
+
 def test_stream_interrompido_nao_cacheia_audio_parcial():
     chamadas = []
     @cache_audio
