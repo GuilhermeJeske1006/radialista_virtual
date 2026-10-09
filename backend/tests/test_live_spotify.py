@@ -134,6 +134,36 @@ def test_buscar_artistas_descarta_canal_marca_de_compilacao(monkeypatch):
     assert [a["name"] for a in artistas] == ["Henrique & Juliano"]
 
 
+def test_buscar_artistas_descarta_artista_de_outro_genero(monkeypatch):
+    """Busca livre pelo texto do genero tambem devolve cantor de outro estilo -- o classificador
+    de genero (ver itens_fora_do_genero em app.llm.client) tira esse artista antes de virar
+    faixa candidata."""
+    from app.live.spotify import _buscar_artistas_do_genero
+
+    def _fake_get(url, params=None, headers=None, timeout=None):
+        class _Resposta:
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"artists": {"items": [_artista("Henrique & Juliano", 0), _artista("Anitta", 0)]}}
+
+        return _Resposta()
+
+    recebido = {}
+
+    def _fake_fora(itens, generos):
+        recebido["itens"], recebido["generos"] = itens, generos
+        return {1}
+
+    monkeypatch.setattr("app.live.spotify.httpx.get", _fake_get)
+    monkeypatch.setattr("app.live.spotify.itens_fora_do_genero", _fake_fora)
+
+    artistas = _buscar_artistas_do_genero("fake-token", "sertanejo")
+    assert [a["name"] for a in artistas] == ["Henrique & Juliano"]
+    assert recebido == {"itens": ["Henrique & Juliano", "Anitta"], "generos": ["sertanejo"]}
+
+
 def test_faixas_do_artista_descarta_medley_e_sessao(monkeypatch):
     """Testado ao vivo contra a API de verdade: gravadora/canal (ex.: 'MJ Records') as vezes
     cataloga 'musica A / musica B' como se fosse 1 faixa so' -- descartado antes de virar

@@ -8,6 +8,7 @@ import httpx
 from app.config.redis_client import redis_client
 from app.config.settings import settings
 from app.live.music import _sem_acento, eh_instrumental, titulo_ja_tocado
+from app.llm.client import itens_fora_do_genero
 
 logger = logging.getLogger("radialista.spotify")
 
@@ -123,6 +124,17 @@ def _buscar_artistas_do_genero(token: str, genero: str) -> list[dict]:
         artista for artista in artistas
         if artista.get("name") and not _parece_marca_ou_compilacao(artista["name"], genero)
     ]
+    # Busca livre pelo texto do genero tambem devolve artista de OUTRO estilo (nome/bio parecido,
+    # relevancia da Spotify) -- e genres vem None nesta app, entao quem confere o estilo e' o
+    # classificador (ver itens_fora_do_genero). So' roda quando a lista do genero e' renovada
+    # (cache longo, ver buscar_faixas_por_categoria), nao a cada musica.
+    fora = itens_fora_do_genero([artista["name"] for artista in artistas], [genero])
+    if fora:
+        logger.info(
+            "spotify artistas_fora_do_genero genero=%r artistas=%r",
+            genero, [artistas[indice]["name"] for indice in sorted(fora)],
+        )
+        artistas = [artista for indice, artista in enumerate(artistas) if indice not in fora]
     # popularity vem None nesta app (ver _faixas_do_artista) -- `or 0` evita depender de um
     # campo que a Spotify nao preenche mais; na pratica so' preserva a ordem de relevancia que
     # a propria Search API ja devolve.

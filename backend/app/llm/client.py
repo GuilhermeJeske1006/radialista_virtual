@@ -89,6 +89,7 @@ def gerar_classificacao(system_prompt: str, mensagem_usuario: str, max_tokens: i
     cache_permitido = system_prompt in {
         _TOM_SYSTEM_PROMPT, _CATEGORIA_BLOCO_SYSTEM_PROMPT, _TEMA_SYSTEM_PROMPT,
         _FIO_CONDUTOR_SYSTEM_PROMPT, _CONTEXTO_MUSICA_SYSTEM_PROMPT, _MUSICAS_CITADAS_SYSTEM_PROMPT,
+        _GENERO_ARTISTA_SYSTEM_PROMPT,
     }
     chave = chave_classificacao(system_prompt, mensagem_usuario, max_tokens)
     existente = ler_classificacao(chave) if cache_permitido else None
@@ -330,6 +331,38 @@ def sugerir_musica_do_genero(genero: str) -> str:
         logger.warning("Falha ao sugerir musica do genero: genero=%r", genero, exc_info=True)
         return ""
     return resposta.strip().strip('"')
+
+
+_GENERO_ARTISTA_SYSTEM_PROMPT = (
+    "Voce recebe o(s) genero(s) musical(is) de um programa de radio, as vezes regional/informal "
+    "(ex.: 'sertanejo raiz', 'vaneira', 'pagode'), e uma lista numerada de artistas ou canais de "
+    "video (com o titulo do video quando houver). Diga quais sao CLARAMENTE de outro genero: "
+    "artista ou canal conhecido cujo estilo nao corresponde a nenhum genero do programa. Na duvida "
+    "(artista que voce nao conhece, canal de gravadora/selo sem artista claro no titulo), NAO "
+    "liste. Responda so' com JSON no formato {\"fora\": [numeros]}; nenhum fora do genero, "
+    "{\"fora\": []}."
+)
+
+
+def itens_fora_do_genero(itens: list[str], generos: list[str]) -> set[int]:
+    """Indices (base 0) dos itens -- nome de artista, ou 'titulo do video (canal: X)' -- que sao
+    claramente de outro genero que os do programa. Usado pra nao tocar cantor fora do perfil
+    musical do programa (ver app.live.spotify._buscar_artistas_do_genero e
+    _fora_do_genero_do_programa em app.live.router): busca livre por genero na Spotify/YouTube
+    as vezes devolve artista de outro estilo. Nunca deve travar o ao vivo nem esvaziar o bloco
+    de musica por falha do classificador: qualquer erro ou resposta invalida devolve conjunto
+    vazio (aceita tudo, comportamento anterior a esta checagem)."""
+    if not itens or not generos:
+        return set()
+    linhas = "\n".join(f"{numero}) {item}" for numero, item in enumerate(itens, 1))
+    mensagem = f"Generos do programa: {', '.join(generos)}\n{linhas}"
+    try:
+        resposta = gerar_classificacao(_GENERO_ARTISTA_SYSTEM_PROMPT, mensagem, max_tokens=100)
+        fora = (extrair_json(resposta) or {}).get("fora") or []
+    except Exception:
+        logger.warning("Falha ao classificar genero de artistas: generos=%r", generos, exc_info=True)
+        return set()
+    return {numero - 1 for numero in fora if isinstance(numero, int) and 1 <= numero <= len(itens)}
 
 
 _FIO_CONDUTOR_SYSTEM_PROMPT = (

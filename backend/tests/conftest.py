@@ -101,6 +101,15 @@ def _musicas_citadas_sem_llm(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _genero_de_artista_sem_llm(monkeypatch):
+    """Toda musica escolhida automaticamente (e todo artista da busca Spotify por genero) passa
+    pela checagem de genero via LLM (ver itens_fora_do_genero em app.llm.client) -- por padrao
+    nada fica fora do genero. Teste que precisa da checagem sobrescreve."""
+    monkeypatch.setattr("app.live.router.itens_fora_do_genero", lambda itens, generos: set())
+    monkeypatch.setattr("app.live.spotify.itens_fora_do_genero", lambda itens, generos: set())
+
+
+@pytest.fixture(autouse=True)
 def _texto_vinhetas_sem_llm(monkeypatch):
     """Criar programa gera o texto das vinhetas via LLM (app.vinhetas.gerador) -- por padrao cai
     no template local sem rede. Teste que precisa do LLM sobrescreve com o proprio monkeypatch."""

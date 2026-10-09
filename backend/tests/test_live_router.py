@@ -1499,6 +1499,68 @@ def test_buscar_musica_para_bloco_sem_generos_nao_tem_fallback_curado(
     assert _buscar_musica_para_bloco(db_session, programa) is None
 
 
+def test_buscar_musica_para_bloco_descarta_canal_fora_do_genero(
+    db_session, radialista_e_programa, monkeypatch
+):
+    """Escolha automatica que acha cantor de outro genero (canal da faixa nao bate com o genero
+    do programa, ver _fora_do_genero em app.live.router) nao toca -- segue pros fallbacks ate
+    achar faixa do genero."""
+    _, programa = radialista_e_programa
+    programa.musicas_permitidas = []
+    programa.generos_musicais = ["Sertanejo"]
+    db_session.commit()
+
+    monkeypatch.setattr("app.live.router.buscar_faixas_por_categoria", lambda genero, excluir_titulos=None: [])
+    monkeypatch.setattr("app.live.router.sugerir_musica_do_genero", lambda genero: "")
+    resultados = iter([
+        MusicaEncontrada(video_id="funk1", titulo="Envolver", canal="Anitta"),
+        MusicaEncontrada(video_id="sert1", titulo="Liberdade Provisoria", canal="Henrique e Juliano - Topic"),
+    ])
+    monkeypatch.setattr("app.live.router.buscar_musica", lambda *args, **kwargs: next(resultados))
+    checados = []
+
+    def _fake_fora(itens, generos):
+        checados.append((itens, generos))
+        return {0} if "Anitta" in itens[0] else set()
+
+    monkeypatch.setattr("app.live.router.itens_fora_do_genero", _fake_fora)
+
+    from app.live.router import _buscar_musica_para_bloco
+
+    musica = _buscar_musica_para_bloco(db_session, programa)
+
+    assert musica is not None
+    assert musica.video_id == "sert1"
+    assert checados[0] == (["Envolver (canal: Anitta)"], ["Sertanejo"])
+    assert db_session.query(MusicaHistorico).filter_by(programa_id=programa.id).one().video_id == "sert1"
+
+
+def test_buscar_musica_para_bloco_curadoria_do_admin_nao_checa_genero(
+    db_session, radialista_e_programa, monkeypatch
+):
+    """Musica da lista do admin e' escolha deliberada -- toca mesmo fora do genero do programa."""
+    _, programa = radialista_e_programa
+    programa.musicas_permitidas = ["Anitta Envolver"]
+    programa.generos_musicais = ["Sertanejo"]
+    db_session.commit()
+
+    monkeypatch.setattr(
+        "app.live.router.buscar_musica",
+        lambda *args, **kwargs: MusicaEncontrada(video_id="funk1", titulo="Envolver", canal="Anitta"),
+    )
+
+    def _nao_chamar(itens, generos):
+        raise AssertionError("curadoria do admin nao devia passar pela checagem de genero")
+
+    monkeypatch.setattr("app.live.router.itens_fora_do_genero", _nao_chamar)
+
+    from app.live.router import _buscar_musica_para_bloco
+
+    musica = _buscar_musica_para_bloco(db_session, programa)
+    assert musica is not None
+    assert musica.video_id == "funk1"
+
+
 @freeze_time(AGORA_UTC)
 def test_prompt_v3_inclui_instrucao_de_tags_em_comentario(
     client, account, auth_headers, radialista_e_programa, monkeypatch

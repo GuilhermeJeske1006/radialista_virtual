@@ -41,6 +41,7 @@ from app.llm.client import (
     extrair_musicas_citadas,
     gerar_dialogo_multivoz,
     gerar_resposta,
+    itens_fora_do_genero,
     resumir_contexto_musica,
     sugerir_musica_do_genero,
 )
@@ -1569,12 +1570,32 @@ def _musicas_citadas_na_fala(
         if encontrada is None or encontrada.video_id in ids_tocadas:
             logger.warning("live_musica_citada_sem_faixa programa_id=%s citada=%r", programa.id, citada)
             continue
+        if _fora_do_genero(programa.id, encontrada, programa.generos_musicais or []):
+            continue
         resolvidas.append(encontrada)
         ids_tocadas.add(encontrada.video_id)
         titulos_tocados.add(_titulo_normalizado(encontrada.titulo))
         _registrar_musica_tocada(programa.id, encontrada)
         _registrar_historico_persistente(db, programa.id, encontrada, citada, origem="citada_locutor")
     return resolvidas
+
+
+def _fora_do_genero(programa_id: int, musica: MusicaEncontrada, generos: list[str]) -> bool:
+    """True quando o canal/artista da faixa encontrada e' claramente de outro genero que os do
+    programa (ver itens_fora_do_genero em app.llm.client) -- busca automatica (Spotify, sugestao da
+    LLM, query generica, citacao do locutor) as vezes acha cantor de outro estilo, e o filtro por
+    palavra-chave de genero em buscar_musica relaxa como ultimo recurso. Sem generos pra conferir
+    (programa sem genero configurado, curadoria do admin) nao checa nada."""
+    if not generos:
+        return False
+    item = f"{musica.titulo} (canal: {musica.canal})" if musica.canal else musica.titulo
+    if not itens_fora_do_genero([item], generos):
+        return False
+    logger.info(
+        "live_musica_fora_do_genero programa_id=%s generos=%r titulo=%r canal=%r",
+        programa_id, generos, musica.titulo, musica.canal,
+    )
+    return True
 
 
 def _buscar_musica_para_bloco(
@@ -1593,8 +1614,14 @@ def _buscar_musica_para_bloco(
         # este bloco), e o proprio genero vira filtro de busca (ver genero= em buscar_musica)
         # pra nao deixar o YouTube derivar pra um genero vizinho (xote virando chamame).
         query, genero_filtro, musica = f"{genero_bloco} musica", genero_bloco, None
+        generos_alvo = [genero_bloco]
+        generos_escolha = generos_alvo
     else:
         query, genero_filtro, musica = _escolher_query_musica(db, programa, ids_tocadas, titulos_tocados, canais_tocados)
+        generos_alvo = programa.generos_musicais or []
+        # curadoria do admin e' escolha deliberada (pode ser fora do genero de proposito) -- so'
+        # escolha automatica (Spotify, LLM, pedidos do publico, genero) passa pela checagem.
+        generos_escolha = [] if query in (programa.musicas_permitidas or []) else generos_alvo
 
     if musica is None:
         # musica so' vem preenchida aqui quando _escolher_query_musica ja resolveu via catalogo
@@ -1613,6 +1640,8 @@ def _buscar_musica_para_bloco(
             # publico), nao trava o bloco genero-so' sem musica.
             exigir_canal_oficial=genero_filtro is None,
         )
+    if musica is not None and _fora_do_genero(programa.id, musica, generos_escolha):
+        musica = None
     if musica is None and query.strip().lower() != QUERY_MUSICA_GENERICA:
         # query especifica (curadoria do admin, pedido do publico ou genero/rotulo do bloco) nao
         # achou nada -- sem isso, o locutor recebia instrucao pra anunciar um genero/artista
@@ -1628,6 +1657,8 @@ def _buscar_musica_para_bloco(
             canais_recentes=canais_tocados,
             exigir_cantada=True,
         )
+        if musica is not None and _fora_do_genero(programa.id, musica, generos_alvo):
+            musica = None
         if musica is not None:
             query = query_fallback
     if musica is None:
@@ -1683,7 +1714,7 @@ def _fallback_curado_genero(
             canais_recentes=canais_tocados,
             origem="spotify",
         )
-        if musica is not None:
+        if musica is not None and not _fora_do_genero(programa.id, musica, programa.generos_musicais or []):
             return musica, f"{artista} - {titulo}"
     return None
 
