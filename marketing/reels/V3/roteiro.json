@@ -1,0 +1,43 @@
+{
+  "id": "V3",
+  "titulo": "Conectando o WhatsApp da rádio",
+  "etapa": "meio",
+  "duracao_s": 30,
+  "cenas": [
+    {
+      "n": 1,
+      "tipo": "cartela",
+      "inicio_s": 0,
+      "fim_s": 3,
+      "titulo": "E se cada ouvinte tivesse resposta?",
+      "fala": "E se cada mensagem do ouvinte tivesse resposta?",
+      "voz": "narrador",
+      "legenda": "E se cada mensagem tivesse resposta?"
+    },
+    {
+      "n": 2,
+      "tipo": "tela",
+      "inicio_s": 3,
+      "fim_s": 15,
+      "rota": "/configuracoes",
+      "acoes": [
+        { "destacar": "WhatsApp" },
+        { "esperar": 4000 }
+      ],
+      "desfocar": ["canvas", "img[alt*='QR' i]"],
+      "fala": "Conecte o número da rádio pelo QR Code, direto no painel.",
+      "voz": "narrador",
+      "legenda": "Conecte o número da rádio pelo QR Code."
+    },
+    {
+      "n": 3,
+      "tipo": "celular",
+      "inicio_s": 15,
+      "fim_s": 30,
+      "mensagens_ouvinte": ["Bom dia! Que rádio boa de ouvir no trabalho"],
+      "fala": "Pronto: o locutor responde no WhatsApp da rádio.",
+      "voz": "narrador",
+      "legenda": "O locutor responde no WhatsApp da rádio."
+    }
+  ]
+}

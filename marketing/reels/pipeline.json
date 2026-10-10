@@ -1,14 +1,14 @@
 {
-  "descricao": "Etapas de cada Reel, na ordem. Lido por /criar-reels. Etapas: conversa-teste, gravar-tela (com rota), locucao, legendas, montar-reel.",
+  "descricao": "Etapas de cada Reel, na ordem. Lido por /criar-reels e por marketing/tools/criar-reels.mjs. As rotas e ações de cada cena ficam em <id>/roteiro.json.",
   "videos": {
-    "V1": { "titulo": "Esse locutor não existe", "etapas": [["gravar-tela", "/live"], ["locucao"], ["legendas"], ["montar-reel"]] },
-    "V2": { "titulo": "Criando um locutor do zero", "etapas": [["gravar-tela", "/radialista"], ["locucao"], ["legendas"], ["montar-reel"]] },
-    "V3": { "titulo": "Conectando o WhatsApp da rádio", "etapas": [["gravar-tela", "/onboarding"], ["conversa-teste"], ["locucao"], ["legendas"], ["montar-reel"]] },
-    "V4": { "titulo": "Montando um programa", "etapas": [["gravar-tela", "/programas"], ["locucao"], ["legendas"], ["montar-reel"]] },
-    "V5": { "titulo": "Pedido do ouvinte ao vivo", "etapas": [["conversa-teste"], ["gravar-tela", "/live"], ["locucao"], ["legendas"], ["montar-reel"]] },
-    "V6": { "titulo": "Dois locutores conversando", "etapas": [["gravar-tela", "/live"], ["locucao"], ["legendas"], ["montar-reel"]] },
-    "V7": { "titulo": "Patrocinador lido ao vivo", "etapas": [["gravar-tela", "/patrocinadores"], ["gravar-tela", "/live"], ["locucao"], ["legendas"], ["montar-reel"]] },
-    "V8": { "titulo": "Quanto custa uma hora no ar", "etapas": [["gravar-tela", "https://locufybr.com"], ["gravar-tela", "/billing"], ["locucao"], ["legendas"], ["montar-reel"]] },
-    "V9": { "titulo": "O que a IA não fala", "etapas": [["gravar-tela", "/programas"], ["conversa-teste"], ["locucao"], ["legendas"], ["montar-reel"]] }
+    "V1": { "titulo": "Esse locutor não existe", "etapas": ["gravar-tela", "locucao", "legendas", "montar-reel"] },
+    "V2": { "titulo": "Criando um locutor do zero", "etapas": ["gravar-tela", "locucao", "legendas", "montar-reel"] },
+    "V3": { "titulo": "Conectando o WhatsApp da rádio", "etapas": ["conversa-teste", "gravar-tela", "locucao", "legendas", "montar-reel"] },
+    "V4": { "titulo": "Montando um programa", "etapas": ["gravar-tela", "locucao", "legendas", "montar-reel"] },
+    "V5": { "titulo": "Pedido do ouvinte ao vivo", "etapas": ["conversa-teste", "gravar-tela", "locucao", "legendas", "montar-reel"] },
+    "V6": { "titulo": "Dois locutores conversando", "etapas": ["gravar-tela", "locucao", "legendas", "montar-reel"] },
+    "V7": { "titulo": "Patrocinador lido ao vivo", "etapas": ["gravar-tela", "locucao", "legendas", "montar-reel"] },
+    "V8": { "titulo": "Quanto custa uma hora no ar", "etapas": ["gravar-tela", "locucao", "legendas", "montar-reel"] },
+    "V9": { "titulo": "O que a IA não leva ao ar", "etapas": ["conversa-teste", "gravar-tela", "locucao", "legendas", "montar-reel"] }
   }
 }

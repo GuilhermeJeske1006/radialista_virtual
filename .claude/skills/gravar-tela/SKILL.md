@@ -1,23 +1,23 @@
 ---
 name: gravar-tela
-description: Grava em vídeo as telas do painel Locufy (ou do site) para um Reel, seguindo o roteiro.json.
-argument-hint: [id-do-video] [rota-ou-url]
-arguments: [video, rota]
+description: Grava em vídeo as telas do painel Locufy (ou do site) de um Reel, seguindo o roteiro.json.
+argument-hint: [id-do-video] [rota]
 disable-model-invocation: true
-allowed-tools: Bash Read Write Edit Glob
+allowed-tools: Bash Read Edit Glob Grep
 ---
 
-Grave as cenas de tela do vídeo $video.
+1. Rode em `marketing/tools` (na primeira vez, `npm install` antes):
 
-1. Leia `marketing/reels/$video/roteiro.json` e use as cenas do tipo `tela`
-   (só as da rota $rota, se ela foi informada).
-2. Se faltar, instale o Playwright em `marketing/tools`
-   (`npm i -D playwright` e `npx playwright install chromium`).
-3. Escreva ou reaproveite `marketing/tools/gravar.mjs`:
-   - Chromium com viewport 1080x1920 e `recordVideo` em `marketing/reels/$video/tela/`;
-   - login no painel com o usuário de demonstração do /seed-demo;
-   - para cada cena, as `acoes` do roteiro, localizando botões pelo texto visível;
-   - pausas humanas: 300 a 800 ms entre cliques, digitação com 40 ms por tecla.
-4. Rotas que começam com `/` rodam em http://localhost:3000. Se $rota começar com `http`,
-   grave essa URL sem login.
-5. Salve um arquivo por cena (`cena-01.webm`, `cena-02.webm`...) e liste a duração de cada um.
+   ```bash
+   node gravar.mjs $ARGUMENTS
+   ```
+
+2. O script entra com o login de demonstração, executa as `acoes` de cada cena de tela do
+   `marketing/reels/<id>/roteiro.json` e salva em `marketing/reels/<id>/tela/`:
+   `cena-NN.webm` (1080x1920), `cena-NN.json` (marcações) e os áudios reais do ao vivo.
+3. Se uma ação falhar, abra `tela/cena-NN-erro.png` e o `page.tsx` da rota em
+   `frontend-painel/app`, ajuste o texto do botão ou o rótulo do campo no roteiro.json e rode de novo.
+
+Ações aceitas: `{"ir": "/rota"}`, `{"clicar": "texto do botão"}`,
+`{"digitar": {"campo": "rótulo", "texto": "..."}}`, `{"selecionar": {"campo": "rótulo", "opcao": "..."}}`,
+`{"rolar": 600}`, `{"destacar": "texto"}`, `{"esperar": 2000}`, `{"esperar_ao_vivo": 2}`.

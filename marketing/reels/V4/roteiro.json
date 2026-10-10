@@ -1,0 +1,49 @@
+{
+  "id": "V4",
+  "titulo": "Montando um programa",
+  "etapa": "meio",
+  "duracao_s": 45,
+  "cenas": [
+    {
+      "n": 1,
+      "tipo": "cartela",
+      "inicio_s": 0,
+      "fim_s": 3,
+      "titulo": "Um programa novo, sem complicação",
+      "fala": "Um programa novo, sem complicação.",
+      "voz": "narrador",
+      "legenda": "Um programa novo, sem complicação."
+    },
+    {
+      "n": 2,
+      "tipo": "tela",
+      "inicio_s": 3,
+      "fim_s": 35,
+      "rota": "/programas",
+      "acoes": [
+        { "clicar": "+ Novo programa" },
+        { "esperar": 1200 },
+        { "digitar": { "campo": "Nome do programa", "texto": "Manhã Sertaneja" } },
+        { "digitar": { "campo": "Sobre o programa", "texto": "Modão, recado de ouvinte e a previsão do tempo para quem acorda cedo." } },
+        { "rolar": 900 },
+        { "destacar": "Tópicos proibidos" },
+        { "rolar": 900 },
+        { "esperar": 1500 }
+      ],
+      "fala": "Você escolhe do que ele fala, e do que não fala. E monta o roteiro bloco a bloco.",
+      "voz": "narrador",
+      "legenda": "Você escolhe do que ele fala, e do que não fala."
+    },
+    {
+      "n": 3,
+      "tipo": "tela",
+      "inicio_s": 35,
+      "fim_s": 45,
+      "rota": "/programacao",
+      "acoes": [{ "esperar": 4000 }],
+      "fala": "No horário certo, ele vai ao ar.",
+      "voz": "narrador",
+      "legenda": "No horário certo, ele vai ao ar."
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "id": "V1",
+  "titulo": "Esse locutor não existe",
+  "etapa": "topo",
+  "duracao_s": 20,
+  "cenas": [
+    {
+      "n": 1,
+      "tipo": "tela",
+      "inicio_s": 0,
+      "fim_s": 12,
+      "rota": "/live",
+      "acoes": [
+        { "selecionar": { "campo": "Selecionar programa", "opcao": "Tarde da Cidade" } },
+        { "clicar": "Começar transmissão" },
+        { "esperar_ao_vivo": 1 }
+      ],
+      "foco_ao_vivo": 1,
+      "fala": null,
+      "legenda": "Presta atenção nessa voz: ela é de um locutor com IA."
+    },
+    {
+      "n": 2,
+      "tipo": "logo",
+      "inicio_s": 12,
+      "fim_s": 20,
+      "fala": "Locutor no ar o dia todo. Siga a Locufy para ver como funciona.",
+      "voz": "narrador",
+      "legenda": "Locutor no ar o dia todo. Siga a Locufy."
+    }
+  ]
+}

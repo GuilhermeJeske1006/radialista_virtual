@@ -1,14 +1,17 @@
 ---
 name: legendas
-description: Gera o arquivo de legendas SRT de um Reel da Locufy a partir do roteiro e dos áudios.
+description: Gera as legendas (SRT) e a montagem (montagem.json) de um Reel da Locufy a partir do roteiro, das gravações e dos áudios.
 argument-hint: [id-do-video]
 disable-model-invocation: true
-allowed-tools: Bash Read Write
+allowed-tools: Bash Read
 ---
 
-Gere `marketing/reels/$ARGUMENTS/legendas.srt`:
+Rode em `marketing/tools`:
 
-- uma legenda por `fala` e por `legenda` de cartela do roteiro.json;
-- falas sincronizadas por `inicio_s` + `audio_s`; cartelas, por `inicio_s` e `fim_s`;
-- mensagens de `conversa.json` não entram (já aparecem no celular animado);
-- no máximo 2 linhas de 32 caracteres; frases longas viram blocos seguidos.
+```bash
+node preparar.mjs $ARGUMENTS
+```
+
+O script gera `marketing/reels/$ARGUMENTS/legendas.srt` (para subir junto no Instagram) e
+`montagem.json` (lido pelo Remotion). Ele legenda as falas da narradora e as falas reais do
+ao vivo, com o nome do locutor. Mostre os `AVISO`s, se houver: indicam etapa que faltou rodar.

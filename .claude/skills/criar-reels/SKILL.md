@@ -1,37 +1,38 @@
 ---
 name: criar-reels
-description: Produz os Reels da Locufy de ponta a ponta (roteiro, gravação, locução, legendas, montagem e revisão). Sem argumento, faz os 9 vídeos; com ids, só os informados.
-argument-hint: [V1 V5 ... | vazio = todos]
+description: Produz os Reels da Locufy de ponta a ponta (rádio de demonstração, conversa no WhatsApp, gravação de tela, locução, legendas, montagem e revisão de marca). Sem argumento, faz os 9 vídeos; com ids, só os informados.
+argument-hint: [V1 V5 ... | vazio = todos] [--refazer]
 disable-model-invocation: true
 allowed-tools: Bash Read Write Edit Glob Grep Agent
 ---
 
 Produza os Reels da Locufy: $ARGUMENTS (vazio = todos de `marketing/reels/pipeline.json`).
 
-As etapas de cada vídeo estão em `marketing/reels/pipeline.json`. Cada etapa é uma skill deste
-repositório: para executá-la, leia `.claude/skills/<etapa>/SKILL.md` e siga as instruções,
-trocando `$ARGUMENTS` e `$video` pelo id do vídeo e `$rota` pela rota da etapa.
+1. Confira se o backend (http://localhost:8000) e o painel (http://localhost:3000) estão no ar.
+   Se não estiverem, peça para o usuário rodar `./start-dev.sh` e pare.
 
-1. Preparação (uma vez)
-   - Confira se backend (8000) e painel (3000) estão no ar; se não, peça `./start-dev.sh` e pare.
-   - Rode a etapa `seed-demo`.
-   - Confira se `marketing/brand/locufy-logo-white.png` existe.
+2. Rode a produção, que é toda automática:
 
-2. Roteiros (em paralelo)
-   - Para cada vídeo sem `roteiro.json`, delegue ao subagente `roteirista-reels`, um por vídeo,
-     todos ao mesmo tempo. Se `roteiro.json` já existe, pule.
+   ```bash
+   cd marketing/tools && node criar-reels.mjs $ARGUMENTS
+   ```
 
-3. Produção (um vídeo por vez, na ordem dos ids)
-   - Execute as etapas do vídeo na ordem do pipeline.json.
-   - Antes de cada etapa, veja se o resultado dela já existe (tela/cena-*.webm, conversa.json,
-     audio/*.mp3, legendas.srt, out/<id>.mp4). Se existir, pule: assim dá para retomar.
-   - Se uma etapa falhar, registre o erro, pare esse vídeo e siga para o próximo.
+   O script instala as dependências na primeira vez, roda o seed da rádio de demonstração e,
+   para cada vídeo, as etapas de `pipeline.json` (conversa de teste, gravação, locução,
+   legendas e render). Ele retoma de onde parou; `--refazer` refaz tudo. Pode levar vários
+   minutos por vídeo: use um timeout longo ou rode em segundo plano e acompanhe a saída.
 
-4. Revisão (em paralelo)
-   - Para cada vídeo com `out/<id>.mp4`, delegue ao subagente `revisor-marca`, todos ao mesmo tempo.
-   - Salve cada parecer em `marketing/reels/<id>/revisao.md`.
+3. Se algum vídeo parar com erro (veja `marketing/reels/resumo.json`):
+   - ação de tela que falhou: abra `marketing/reels/<id>/tela/cena-NN-erro.png` e o `page.tsx`
+     da rota em `frontend-painel/app`, corrija a ação em `marketing/reels/<id>/roteiro.json`
+     (o texto visível do botão ou o rótulo do campo) e rode de novo só esse vídeo;
+   - outro erro: leia a mensagem, corrija a causa e rode de novo só esse vídeo.
+   Tente no máximo duas correções por vídeo; depois, registre o problema e siga.
 
-5. Resumo final, em uma tabela: vídeo · arquivo · duração · revisão (APROVADO, REPROVADO ou
-   erro e etapa onde parou). Para os reprovados, liste as correções sugeridas.
+4. Revisão: para cada `marketing/reels/<id>/out/<id>.mp4` gerado, delegue ao subagente
+   `revisor-marca`, todos ao mesmo tempo, e salve cada parecer em `marketing/reels/<id>/revisao.md`.
+
+5. Termine com uma tabela: vídeo · arquivo · duração · revisão (APROVADO, REPROVADO ou erro e
+   etapa onde parou), e as correções sugeridas para os reprovados.
 
 Nunca publique nada no Instagram e nunca use o banco de produção.
