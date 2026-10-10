@@ -1,0 +1,48 @@
+{
+  "id": "V8",
+  "titulo": "Quanto custa uma hora no ar",
+  "etapa": "fundo",
+  "duracao_s": 30,
+  "cenas": [
+    {
+      "n": 1,
+      "tipo": "cartela",
+      "inicio_s": 0,
+      "fim_s": 3,
+      "titulo": "R$ 69,90/mês",
+      "fala": "Quanto custa ter um locutor com IA?",
+      "voz": "narrador",
+      "legenda": "Quanto custa ter um locutor com IA?"
+    },
+    {
+      "n": 2,
+      "tipo": "tela",
+      "inicio_s": 3,
+      "fim_s": 18,
+      "rota": "https://locufybr.com",
+      "acoes": [
+        { "destacar": "R$ 69,90" },
+        { "esperar": 2500 },
+        { "destacar": "Simular" },
+        { "esperar": 2500 }
+      ],
+      "fala": "Sessenta e nove e noventa por mês, mais o uso de IA. Uma hora no ar sai a partir de cerca de três reais e oitenta e seis.",
+      "voz": "narrador",
+      "legenda": "R$ 69,90/mês + uso de IA. Hora no ar a partir de ≈ R$ 3,86."
+    },
+    {
+      "n": 3,
+      "tipo": "tela",
+      "inicio_s": 18,
+      "fim_s": 30,
+      "rota": "/billing",
+      "acoes": [
+        { "destacar": "Limite financeiro mensal" },
+        { "esperar": 3000 }
+      ],
+      "fala": "Você define o teto e acompanha cada uso. Crie sua conta grátis, sem cartão.",
+      "voz": "narrador",
+      "legenda": "Você define o teto. Conta grátis, sem cartão."
+    }
+  ]
+}

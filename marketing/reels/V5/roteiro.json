@@ -1,0 +1,55 @@
+{
+  "id": "V5",
+  "titulo": "Pedido do ouvinte ao vivo",
+  "etapa": "meio",
+  "duracao_s": 60,
+  "cenas": [
+    {
+      "n": 1,
+      "tipo": "cartela",
+      "inicio_s": 0,
+      "fim_s": 3,
+      "titulo": "O ouvinte mandou mensagem…",
+      "fala": "Olha o que acontece quando o ouvinte manda mensagem.",
+      "voz": "narrador",
+      "legenda": "Olha o que acontece quando o ouvinte manda mensagem."
+    },
+    {
+      "n": 2,
+      "tipo": "celular",
+      "inicio_s": 3,
+      "fim_s": 22,
+      "mensagens_ouvinte": [
+        "Manda um abraço pra minha mãe, a Dona Cida, que tá ouvindo do trabalho!",
+        "E toca um sertanejo das antigas?"
+      ],
+      "fala": "Ele pede pelo WhatsApp, e o locutor responde na hora.",
+      "voz": "narrador",
+      "legenda": "O locutor responde na hora."
+    },
+    {
+      "n": 3,
+      "tipo": "tela",
+      "inicio_s": 22,
+      "fim_s": 50,
+      "rota": "/live",
+      "acoes": [
+        { "selecionar": { "campo": "Selecionar programa", "opcao": "Tarde da Cidade" } },
+        { "clicar": "Começar transmissão" },
+        { "esperar_ao_vivo": 2 }
+      ],
+      "foco_ao_vivo": 2,
+      "fala": null,
+      "legenda": "E o abraço vai ao ar no programa."
+    },
+    {
+      "n": 4,
+      "tipo": "logo",
+      "inicio_s": 50,
+      "fim_s": 60,
+      "fala": "Audiência vira conexão. Ouça uma demonstração no link da bio.",
+      "voz": "narrador",
+      "legenda": "Ouça uma demonstração no link da bio."
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "id": "V7",
+  "titulo": "Patrocinador lido ao vivo",
+  "etapa": "meio",
+  "duracao_s": 30,
+  "cenas": [
+    {
+      "n": 1,
+      "tipo": "tela",
+      "inicio_s": 0,
+      "fim_s": 14,
+      "rota": "/vinhetagem",
+      "acoes": [
+        { "destacar": "Mercado Bom Preço" },
+        { "esperar": 3000 }
+      ],
+      "fala": "Seu anunciante entra como texto, lido palavra por palavra, ou como áudio pronto.",
+      "voz": "narrador",
+      "legenda": "Texto lido palavra por palavra, ou áudio pronto."
+    },
+    {
+      "n": 2,
+      "tipo": "tela",
+      "inicio_s": 14,
+      "fim_s": 30,
+      "rota": "/live",
+      "acoes": [
+        { "selecionar": { "campo": "Selecionar programa", "opcao": "Tarde da Cidade" } },
+        { "clicar": "Começar transmissão" },
+        { "esperar_ao_vivo": 3 }
+      ],
+      "foco_ao_vivo": 3,
+      "fala": null,
+      "legenda": "E entra no bloco certo, sem ninguém apertar botão."
+    }
+  ]
+}

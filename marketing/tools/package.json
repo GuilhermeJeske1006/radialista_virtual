@@ -1,0 +1,15 @@
+{
+  "name": "locufy-reels-tools",
+  "private": true,
+  "type": "module",
+  "description": "Gravação de tela e legendas dos Reels da Locufy (ver .claude/skills/criar-reels).",
+  "scripts": {
+    "gravar": "node gravar.mjs",
+    "preparar": "node preparar.mjs",
+    "criar": "node criar-reels.mjs",
+    "postinstall": "playwright install chromium"
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}

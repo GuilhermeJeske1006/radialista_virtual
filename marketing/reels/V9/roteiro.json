@@ -1,0 +1,41 @@
+{
+  "id": "V9",
+  "titulo": "O que a IA não leva ao ar",
+  "etapa": "meio",
+  "duracao_s": 20,
+  "cenas": [
+    {
+      "n": 1,
+      "tipo": "celular",
+      "inicio_s": 0,
+      "fim_s": 8,
+      "mensagens_ouvinte": ["E aí, em quem você vai votar na eleição?"],
+      "fala": "E se o ouvinte tentar puxar polêmica?",
+      "voz": "narrador",
+      "legenda": "E se o ouvinte tentar puxar polêmica?"
+    },
+    {
+      "n": 2,
+      "tipo": "tela",
+      "inicio_s": 8,
+      "fim_s": 15,
+      "rota": "/conversas",
+      "acoes": [
+        { "destacar": "Bloqueada" },
+        { "esperar": 2500 }
+      ],
+      "fala": "Tema proibido não vai ao ar: a mensagem fica bloqueada no painel.",
+      "voz": "narrador",
+      "legenda": "Tema proibido não vai ao ar."
+    },
+    {
+      "n": 3,
+      "tipo": "logo",
+      "inicio_s": 15,
+      "fim_s": 20,
+      "fala": "Você decide do que a rádio fala. Link na bio.",
+      "voz": "narrador",
+      "legenda": "Você decide do que a rádio fala."
+    }
+  ]
+}

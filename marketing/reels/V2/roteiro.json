@@ -1,0 +1,46 @@
+{
+  "id": "V2",
+  "titulo": "Criando um locutor do zero",
+  "etapa": "meio",
+  "duracao_s": 45,
+  "cenas": [
+    {
+      "n": 1,
+      "tipo": "cartela",
+      "inicio_s": 0,
+      "fim_s": 3,
+      "titulo": "Criando um locutor do zero",
+      "fala": "Vou criar um locutor para a minha rádio.",
+      "voz": "narrador",
+      "legenda": "Vou criar um locutor para a minha rádio."
+    },
+    {
+      "n": 2,
+      "tipo": "tela",
+      "inicio_s": 3,
+      "fim_s": 35,
+      "rota": "/radialista/novo",
+      "acoes": [
+        { "digitar": { "campo": "Nome do radialista", "texto": "Rita da Manhã" } },
+        { "digitar": { "campo": "Personalidade", "texto": "Alegre, acolhedora e cheia de energia logo cedo; conhece cada bairro da cidade." } },
+        { "rolar": 400 },
+        { "clicar": "Yasmin Alves" },
+        { "esperar": 1500 },
+        { "clicar": "Criar radialista" },
+        { "esperar": 3000 }
+      ],
+      "fala": "Nome, jeito de falar, personalidade e a voz. Pronto, ela já existe.",
+      "voz": "narrador",
+      "legenda": "Nome, personalidade e a voz. Pronto."
+    },
+    {
+      "n": 3,
+      "tipo": "logo",
+      "inicio_s": 35,
+      "fim_s": 45,
+      "fala": "Sua locutora pronta para o ar. Link na bio.",
+      "voz": "narrador",
+      "legenda": "Pronta para o ar. Link na bio."
+    }
+  ]
+}

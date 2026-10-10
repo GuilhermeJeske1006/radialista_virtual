@@ -1,0 +1,42 @@
+{
+  "id": "V6",
+  "titulo": "Dois locutores conversando",
+  "etapa": "topo",
+  "duracao_s": 30,
+  "cenas": [
+    {
+      "n": 1,
+      "tipo": "cartela",
+      "inicio_s": 0,
+      "fim_s": 3,
+      "titulo": "Esses apresentadores não existem",
+      "fala": "Esses apresentadores não existem.",
+      "voz": "narrador",
+      "legenda": "Esses apresentadores não existem."
+    },
+    {
+      "n": 2,
+      "tipo": "tela",
+      "inicio_s": 3,
+      "fim_s": 25,
+      "rota": "/live",
+      "acoes": [
+        { "selecionar": { "campo": "Selecionar programa", "opcao": "Tarde da Cidade" } },
+        { "clicar": "Começar transmissão" },
+        { "esperar_ao_vivo": 1 }
+      ],
+      "foco_ao_vivo": 1,
+      "fala": null,
+      "legenda": null
+    },
+    {
+      "n": 3,
+      "tipo": "logo",
+      "inicio_s": 25,
+      "fim_s": 30,
+      "fala": "Programa com várias vozes. Siga a Locufy.",
+      "voz": "narrador",
+      "legenda": "Programa com várias vozes. Siga a Locufy."
+    }
+  ]
+}

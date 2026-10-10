@@ -60,3 +60,19 @@ graphify-out/
 
 # --- Exemplos de audio gerados localmente (vinhetas) ---
 backend/tmp/
+
+# Reels (marketing): arquivos gerados por /criar-reels
+marketing/reels/*/tela/
+marketing/reels/*/audio/
+marketing/reels/*/out/
+marketing/tools/node_modules/
+marketing/reels-remotion/node_modules/
+marketing/reels-remotion/out/
+marketing/reels/.demo.json
+marketing/reels/_marca/
+marketing/reels/resumo.json
+marketing/reels/*/conversa.json
+marketing/reels/*/montagem.json
+marketing/reels/*/legendas.srt
+marketing/reels/*/revisao.md
+marketing/tools/.auth.json
