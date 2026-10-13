@@ -75,12 +75,12 @@ Postgres/Redis pra rodar a suite local.
 
 ## CI/CD
 
-GitHub Actions roda lint + testes automaticamente em push/PR pra `master`:
+GitHub Actions:
 
-- `.github/workflows/backend-ci.yml` — ruff + pytest (dispara em mudanças em `backend/`)
-- `.github/workflows/frontend-ci.yml` — tsc + vitest + `next build` (dispara em mudanças em `frontend-painel/`)
+- Pull request: `.github/workflows/backend-ci.yml` (ruff + pytest, mudanças em `backend/`) e `.github/workflows/frontend-ci.yml` (tsc + vitest + `next build`, mudanças em `frontend-painel/`).
+- Push na `master`: `.github/workflows/deploy.yml` roda os dois CIs; se passarem, publica as imagens no GHCR e faz o deploy no VPS da OVH. Se algum teste falhar, nada é publicado.
 
-Só CI por enquanto (sem deploy automático) — deploy continua manual via `start.sh`.
+Detalhes do servidor, do deploy e do rollback em `deploy/ovh/README.md`.
 
 ## Docs
 

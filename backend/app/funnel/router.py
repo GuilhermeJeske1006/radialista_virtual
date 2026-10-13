@@ -58,5 +58,5 @@ def summary(dias: int = Query(30, ge=1, le=90), db: Session = Depends(get_db)):
     rows = db.query(FunnelEvent.evento, FunnelEvent.local, FunnelEvent.plano,
                     func.count(FunnelEvent.id), func.sum(FunnelEvent.valor_centavos)).filter(
                     FunnelEvent.criado_em >= since).group_by(FunnelEvent.evento, FunnelEvent.local, FunnelEvent.plano).all()
-    return {"dias": dias, "eventos": [dict(evento=e, local=l, plano=p, total=n, receita_centavos=v or 0) for e,l,p,n,v in rows],
+    return {"dias": dias, "eventos": [dict(evento=e, local=loc, plano=p, total=n, receita_centavos=v or 0) for e,loc,p,n,v in rows],
             "nota": "Cliques e etapas são eventos, não visitantes únicos. Receita corresponde ao primeiro pagamento confirmado de assinaturas em BRL."}

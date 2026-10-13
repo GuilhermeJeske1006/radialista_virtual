@@ -28,7 +28,7 @@ from app.models.fila_ao_vivo import FilaAoVivo
 from app.models.interaction_log import InteractionLog
 from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
-from app.billing.limites import limite_mensagens_efetivo, mensagens_respondidas_no_mes
+from app.billing.limites import limite_mensagens_efetivo, mensagens_respondidas_no_mes  # noqa: F401
 from app.stt.client import stt_habilitado, transcrever_audio
 from app.whatsapp.sender import enviar_mensagem
 

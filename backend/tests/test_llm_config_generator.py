@@ -175,7 +175,7 @@ def test_montar_system_prompt_persona_marca_voz_ja_usada(monkeypatch):
     voz_em_uso = VOZES_DISPONIVEIS[0]["voz_id"]
     roster = [{"nome_locutor": "Outro", "personalidade": "x", "voz_id": voz_em_uso, "programas": []}]
     prompt = _montar_system_prompt_persona(roster_existente=roster)
-    linha_voz = next(l for l in prompt.splitlines() if voz_em_uso in l)
+    linha_voz = next(linha for linha in prompt.splitlines() if voz_em_uso in linha)
     assert "ja usada" in linha_voz.lower()
 
 

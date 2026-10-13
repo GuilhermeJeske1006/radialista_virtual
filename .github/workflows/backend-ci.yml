@@ -1,11 +1,9 @@
 name: backend-ci
 
+# Na master estes testes rodam dentro do deploy.yml (o deploy so sai se
+# passarem); aqui ficam os pull requests.
 on:
-  push:
-    branches: [master]
-    paths:
-      - "backend/**"
-      - ".github/workflows/backend-ci.yml"
+  workflow_call:
   pull_request:
     paths:
       - "backend/**"

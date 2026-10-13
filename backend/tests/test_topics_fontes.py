@@ -2,8 +2,6 @@ import datetime
 
 import pytest
 
-from app.models.assunto import Assunto
-from app.models.fila_ao_vivo import FilaAoVivo
 from app.models.musica import Musica
 from app.models.musica_historico import MusicaHistorico
 from app.models.noticia import Noticia

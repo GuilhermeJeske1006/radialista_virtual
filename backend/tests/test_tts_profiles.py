@@ -1,9 +1,8 @@
-import datetime
 
 import pytest
 from fastapi import HTTPException
 
-from app.models.perfil_voz import ConfiguracaoVoz, MetadadosVoz
+from app.models.perfil_voz import MetadadosVoz
 from app.models.voz_clonada import VozClonada
 from app.tts.profiles import consultar_metadados, parametros_sintese
 from app.tts.voices import VOZES_DISPONIVEIS, voz_valida_para_conta
@@ -63,7 +62,8 @@ def test_configuracao_por_conta_e_por_voz(client, account_factory, auth_headers,
 def test_nao_configura_voz_privada_de_outra_conta(client, account_factory, auth_headers, db_session):
     a = account_factory(email="a@test.com")
     b = account_factory(email="b@test.com")
-    db_session.add(VozClonada(account_id=a.id, nome="Privada", voz_id="privada")); db_session.commit()
+    db_session.add(VozClonada(account_id=a.id, nome="Privada", voz_id="privada"))
+    db_session.commit()
     for method in (client.get, client.patch):
         kwargs = {"json": {}} if method == client.patch else {}
         assert method("/tts/configuracao-voz/privada", headers=auth_headers(b.id), **kwargs).status_code == 404

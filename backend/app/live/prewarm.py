@@ -56,7 +56,7 @@ def consumir_preparo_antecipado(programa_id: int) -> dict | None:
         return None
 
 
-from app.billing.contexto_ia import por_conta
+from app.billing.contexto_ia import por_conta  # noqa: E402
 
 
 @por_conta("programa_ao_vivo")
