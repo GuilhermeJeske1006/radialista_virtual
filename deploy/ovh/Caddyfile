@@ -1,0 +1,43 @@
+# HTTPS automatico (Let's Encrypt) para todos os dominios abaixo.
+# Os registros DNS precisam apontar para o IP do VPS antes da primeira subida.
+{
+	email {$ACME_EMAIL:locufybrasil@gmail.com}
+}
+
+(comum) {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		-Server
+	}
+}
+
+app.locufybr.com {
+	import comum
+	# Fala longa (/live/.../tts) leva ate ~75s; o proxy do Next aguenta 90s.
+	reverse_proxy frontend:3000 {
+		transport http {
+			read_timeout 120s
+		}
+	}
+}
+
+# Acesso direto ao backend: webhook do Stripe e chamadas externas.
+api.locufybr.com {
+	import comum
+	reverse_proxy backend:8000 {
+		transport http {
+			read_timeout 120s
+		}
+	}
+}
+
+locufybr.com {
+	import comum
+	reverse_proxy landing:80
+}
+
+www.locufybr.com {
+	redir https://locufybr.com{uri} permanent
+}
