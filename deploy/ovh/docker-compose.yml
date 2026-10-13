@@ -1,0 +1,116 @@
+# Producao no VPS da OVH. Sobe com:
+#   docker compose --env-file .env up -d
+# Imagens do app vem do GHCR (ver .github/workflows/docker-publish.yml);
+# IMAGE_TAG escolhe a versao (latest ou o sha do commit).
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - frontend
+      - backend
+      - landing
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: radialista
+      POSTGRES_PASSWORD: ${APP_DB_PASSWORD:?defina APP_DB_PASSWORD}
+      POSTGRES_DB: radialista
+      WUZAPI_DB_PASSWORD: ${WUZAPI_DB_PASSWORD:?defina WUZAPI_DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Cria o banco/usuario do WuzAPI na primeira subida (volume vazio).
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U radialista"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+
+  wuzapi:
+    image: asternic/wuzapi:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      WUZAPI_ADMIN_TOKEN: ${WUZAPI_ADMIN_TOKEN:?defina WUZAPI_ADMIN_TOKEN}
+      WUZAPI_GLOBAL_ENCRYPTION_KEY: ${WUZAPI_GLOBAL_ENCRYPTION_KEY:?defina WUZAPI_GLOBAL_ENCRYPTION_KEY}
+      WUZAPI_GLOBAL_HMAC_KEY: ${WUZAPI_GLOBAL_HMAC_KEY:?defina WUZAPI_GLOBAL_HMAC_KEY}
+      WUZAPI_GLOBAL_WEBHOOK: http://backend:8000/webhook/whatsapp
+      WEBHOOK_FORMAT: json
+      # O binario ignora DB_URI: sem estas 5 variaveis ele cai num SQLite
+      # efemero dentro do container e perde todos os usuarios a cada restart.
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: wuzapi
+      DB_USER: wuzapi
+      DB_PASSWORD: ${WUZAPI_DB_PASSWORD}
+      DB_SSLMODE: disable
+    volumes:
+      - wuzapi_sessions:/app/sessions
+
+  backend:
+    image: ghcr.io/guilhermejeske1006/locufy-backend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      wuzapi:
+        condition: service_started
+    env_file:
+      - .env.backend
+    environment:
+      DATABASE_URL: postgresql://radialista:${APP_DB_PASSWORD}@postgres:5432/radialista
+      REDIS_URL: redis://redis:6379/0
+      WUZAPI_BASE_URL: http://wuzapi:8080
+      WUZAPI_WEBHOOK_URL: http://backend:8000/webhook/whatsapp
+      WUZAPI_ADMIN_TOKEN: ${WUZAPI_ADMIN_TOKEN}
+    # --proxy-headers: o rate limit usa request.client.host; atras do Caddy
+    # todo mundo viraria o IP do proxy sem isso.
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
+    volumes:
+      - backend_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  frontend:
+    image: ghcr.io/guilhermejeske1006/locufy-frontend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: /api
+      INTERNAL_API_URL: http://backend:8000
+
+  landing:
+    image: ghcr.io/guilhermejeske1006/locufy-landing:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:
+  postgres_data:
+  wuzapi_sessions:
+  backend_logs:
