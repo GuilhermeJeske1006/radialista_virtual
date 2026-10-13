@@ -90,7 +90,7 @@ def test_agentes_cheio_envia_notificacao_e_email(db_session, monkeypatch):
 
 
 def test_nao_reenvia_mesmo_sinal_no_mesmo_mes(db_session, monkeypatch):
-    account = _conta_consolidada_com_admin(
+    _conta_consolidada_com_admin(
         db_session,
         plano="starter",
         plano_status="ativo",

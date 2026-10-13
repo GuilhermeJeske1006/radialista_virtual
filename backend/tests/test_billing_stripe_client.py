@@ -48,13 +48,15 @@ def test_checkout_reusa_assinatura_incompleta(db_session, account, stripe_api):
 def test_preco_configurado_incorreto_bloqueia(db_session, account, stripe_api, amount,currency):
     stripe_api.v1.prices.retrieve.return_value.unit_amount = amount
     stripe_api.v1.prices.retrieve.return_value.currency = currency
-    with pytest.raises(HTTPException): sc.criar_sessao_checkout(account,'flex',db_session)
+    with pytest.raises(HTTPException):
+        sc.criar_sessao_checkout(account,'flex',db_session)
     stripe_api.v1.subscriptions.create.assert_not_called()
 
 
 def test_cartao_salvo_ausente(db_session, account, stripe_api):
     stripe_api.v1.payment_methods.list.return_value.data = []
-    with pytest.raises(sc.CartaoSalvoNaoEncontrado): sc.criar_sessao_checkout(account,'flex',db_session,True)
+    with pytest.raises(sc.CartaoSalvoNaoEncontrado):
+        sc.criar_sessao_checkout(account,'flex',db_session,True)
 
 
 def test_cartao_salvo_e_portal(db_session, account, stripe_api):

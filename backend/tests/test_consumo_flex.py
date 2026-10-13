@@ -171,7 +171,8 @@ def test_extrato_paginado(client, db_session, flex, auth_headers):
         finalizar(db_session, uso(db_session, flex), {'entrada': 1000})
     db_session.commit()
     todos = [u['id'] for u in client.get('/billing/extrato', headers=auth_headers(flex.id)).json()]
-    pagina = lambda q: [u['id'] for u in client.get(f'/billing/extrato?{q}', headers=auth_headers(flex.id)).json()]
+    def pagina(q):
+        return [u['id'] for u in client.get(f'/billing/extrato?{q}', headers=auth_headers(flex.id)).json()]
     assert pagina('limite=2') == todos[:2]
     assert pagina('offset=2&limite=2') == todos[2:]
     assert client.get('/billing/extrato?limite=101', headers=auth_headers(flex.id)).status_code == 422

@@ -68,24 +68,28 @@ def test_falha_retentativa_na_mesma_fatura(client, db_session,account_factory,st
     invoice={'id':'in_1','customer':'cus_1','subscription':'sub_1','status':'open','period_start':1000,'period_end':2000,'total':6990}
     stripe_api.v1.invoices.retrieve.return_value=invoice
     assert evento(client,'invoice.payment_failed',invoice).status_code==200
-    db_session.refresh(a); assert a.plano_status=='inadimplente'
+    db_session.refresh(a)
+    assert a.plano_status=='inadimplente'
     stripe_api.v1.invoices.retrieve.return_value={**invoice,'status':'paid'}
     assert evento(client,'invoice.paid',invoice,'evt_2').status_code==200
-    db_session.refresh(a); assert a.plano_status=='ativo'
+    db_session.refresh(a)
+    assert a.plano_status=='ativo'
     assert db_session.query(FaturaConsumo).count()==1
 
 
 def test_evento_nao_confirmado_em_falha_pode_ser_reentregue(client,db_session,account_factory,stripe_api):
     account_factory(stripe_customer_id='cus_1',stripe_subscription_id='sub_1')
     stripe_api.v1.invoices.retrieve.side_effect=RuntimeError('indisponível')
-    with pytest.raises(RuntimeError): evento(client,'invoice.paid',{'id':'in_1','customer':'cus_1'})
+    with pytest.raises(RuntimeError):
+        evento(client,'invoice.paid',{'id':'in_1','customer':'cus_1'})
     assert db_session.get(EventoCobranca,'evt_1') is None
 
 
 def test_evento_outra_assinatura_nao_altera_conta(client,db_session,account_factory,stripe_api):
     a=account_factory(stripe_customer_id='cus_1',stripe_subscription_id='sub_principal',plano_status='ativo')
     assert evento(client,'customer.subscription.deleted',{'id':'sub_outra','customer':'cus_1'}).status_code==200
-    db_session.refresh(a); assert a.plano_status=='ativo'
+    db_session.refresh(a)
+    assert a.plano_status=='ativo'
     stripe_api.v1.subscriptions.retrieve.assert_not_called()
 
 

@@ -1,6 +1,6 @@
 import pytest
 
-from app.numeros import numero_por_extenso, substituir_valores_monetarios, valor_monetario_por_extenso
+from app.numeros import normalizar_texto_fala, numero_por_extenso, substituir_valores_monetarios, valor_monetario_por_extenso
 
 
 @pytest.mark.parametrize(
@@ -65,7 +65,6 @@ def test_substituir_valores_monetarios_multiplas_ocorrencias():
 
 def test_substituir_valores_monetarios_sem_valor_nao_altera_texto():
     assert substituir_valores_monetarios("Sem preco nenhum aqui.") == "Sem preco nenhum aqui."
-from app.numeros import normalizar_texto_fala
 
 
 @pytest.mark.parametrize("texto,esperado", [

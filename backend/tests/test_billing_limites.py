@@ -50,7 +50,6 @@ def test_limite_mensagens_efetivo_soma_extras(db_session, account_factory):
     )
     db_session.commit()
 
-    esperado = limites_do_plano("starter").mensagens_mes + 1000
     assert limite_mensagens_efetivo(db_session, account) is None
 
 

@@ -58,6 +58,11 @@ __all__ = [
     "ConversaOuvinte",
     "MensagemOuvinte",
     "FunnelEvent",
+    "TarifaIA",
+    "ContaConsumo",
+    "UsoIA",
+    "FaturaConsumo",
+    "EventoCobranca",
 ]
 
 from app.models.conversa_ouvinte import ConversaOuvinte

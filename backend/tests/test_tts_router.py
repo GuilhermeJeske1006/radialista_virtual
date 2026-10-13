@@ -85,7 +85,8 @@ def test_silencio_nao_chama_provedor(client, account_factory, auth_headers, monk
     monkeypatch.setattr("app.config.settings.settings.elevenlabs_api_key", "fake-key")
     provedor = Mock()
     monkeypatch.setattr("app.tts.router.clonar_voz", provedor)
-    buf = io.BytesIO(); AudioSegment.silent(duration=60000).export(buf, format="wav")
+    buf = io.BytesIO()
+    AudioSegment.silent(duration=60000).export(buf, format="wav")
     r = client.post("/tts/vozes-clonadas", data={"nome": "Teste"}, files={"arquivo": ("silent.wav", buf.getvalue(), "audio/wav")}, headers=auth_headers(account.id))
     assert r.status_code == 400
     provedor.assert_not_called()
@@ -113,7 +114,8 @@ def test_analise_nao_cria_clone(client, account_factory, auth_headers, monkeypat
     from unittest.mock import Mock
     from app.models.voz_clonada import VozClonada
     account = account_factory(plano="growth")
-    provedor = Mock(); monkeypatch.setattr("app.tts.router.clonar_voz", provedor)
+    provedor = Mock()
+    monkeypatch.setattr("app.tts.router.clonar_voz", provedor)
     r = client.post("/tts/analisar-voz", files={"arquivo": ("a.wav", _audio_valido_bytes(), "audio/wav")}, headers=auth_headers(account.id))
     assert r.status_code == 200
     assert r.json()["fala_segundos"] >= 20

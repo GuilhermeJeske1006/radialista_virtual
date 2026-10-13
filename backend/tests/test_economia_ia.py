@@ -4,9 +4,7 @@ from types import SimpleNamespace
 import time
 
 from fastapi import HTTPException
-from freezegun import freeze_time
 import pytest
-from sqlalchemy import select
 
 from app.billing import consumo_ia
 from app.billing.contexto_ia import atual, contexto_conta, tarefa_com_contexto
@@ -183,10 +181,8 @@ def test_regeracao_explicita_pode_ignorar_cache():
 
 
 def test_consumo_http_isola_contas_e_mostra_alerta(client, account_factory, auth_headers, db_session, monkeypatch):
-    import datetime
     conta1 = account_factory(email="custo1@teste.com")
     conta2 = account_factory(email="custo2@teste.com")
-    mes = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m")
     monkeypatch.setattr(settings, "ia_orcamentos_brl", {"starter": 10})
     db_session.add(ContaConsumo(account_id=conta1.id, limite=10_000_000, exposicao=9_000_000))
     db_session.commit()
