@@ -22,16 +22,29 @@ Os dois `.env` ficam só no servidor, com `chmod 600`.
 
 ## Deploy de nova versão
 
-O push na `master` publica as imagens no GHCR (`.github/workflows/docker-publish.yml`).
-No VPS:
+Automático a cada push na `master` (`.github/workflows/deploy.yml`):
+
+1. roda os testes do backend e do painel (`backend-ci.yml` e `frontend-ci.yml`);
+2. se passarem, publica as imagens no GHCR com a tag do commit;
+3. entra no VPS por SSH e roda `deploy.sh`, que puxa as imagens, sobe e
+   confere se backend e painel ficaram saudáveis. Se não ficarem, volta
+   sozinho para a versão anterior e o job falha.
+
+A chave usada pelo Actions (secret `OVH_SSH_KEY`) só consegue rodar o
+`deploy.sh`: no `authorized_keys` ela tem `restrict,command="/opt/locufy/deploy.sh"`.
+O login no GHCR usa o token temporário do próprio job, então nenhum token
+fica salvo no VPS.
+
+A versão no ar é o `IMAGE_TAG` do `.env`. Para voltar uma versão na mão:
 
 ```sh
 cd /opt/locufy
-docker compose pull
+sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=<sha>/' .env
 docker compose up -d
 ```
 
-Para fixar uma versão, use `IMAGE_TAG=<sha do commit>` no `.env`.
+Mudanças no `docker-compose.yml`, no `Caddyfile` ou no `deploy.sh` não são
+copiadas pelo deploy: copie para `/opt/locufy` e rode `docker compose up -d`.
 
 ## Backup do Postgres
 

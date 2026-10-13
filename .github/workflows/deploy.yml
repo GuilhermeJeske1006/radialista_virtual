@@ -1,7 +1,7 @@
-name: docker-publish
+name: deploy
 
-# Publica as imagens de producao no GHCR a cada push na master.
-# O VPS da OVH puxa com: docker compose pull && docker compose up -d
+# Push na master: testes -> imagens no GHCR -> deploy no VPS da OVH.
+# Se qualquer teste falhar, nada e publicado nem implantado.
 on:
   push:
     branches: [master]
@@ -9,18 +9,30 @@ on:
       - "backend/**"
       - "frontend-painel/**"
       - "landing-page/**"
-      - ".github/workflows/docker-publish.yml"
+      - ".github/workflows/**"
   workflow_dispatch:
 
 permissions:
   contents: read
   packages: write
 
+# Um deploy por vez; um push novo espera o anterior terminar.
+concurrency:
+  group: deploy-producao
+  cancel-in-progress: false
+
 jobs:
+  backend:
+    uses: ./.github/workflows/backend-ci.yml
+
+  frontend:
+    uses: ./.github/workflows/frontend-ci.yml
+
   publish:
+    needs: [backend, frontend]
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         include:
           - image: locufy-backend
@@ -50,6 +62,9 @@ jobs:
           tags: |
             ghcr.io/guilhermejeske1006/${{ matrix.image }}:latest
             ghcr.io/guilhermejeske1006/${{ matrix.image }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
           build-args: |
             NEXT_PUBLIC_API_URL=/api
             INTERNAL_API_URL=http://backend:8000
@@ -58,3 +73,23 @@ jobs:
             NEXT_PUBLIC_SENTRY_ENVIRONMENT=production
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  deploy:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      # A chave so consegue rodar /opt/locufy/deploy.sh no VPS (authorized_keys
+      # com restrict,command=...). O sha vai como comando; usuario e token
+      # temporario do GHCR vao pela entrada padrao.
+      - name: Deploy no VPS
+        env:
+          SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.OVH_KNOWN_HOSTS }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf '%s\n%s\n' "$GITHUB_ACTOR" "$GHCR_TOKEN" |
+            ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes ubuntu@40.160.150.84 "$GITHUB_SHA"
