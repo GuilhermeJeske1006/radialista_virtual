@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "./Sidebar";
@@ -7,10 +8,11 @@ import NotificationBell from "./NotificationBell";
 import OnboardingTour from "./OnboardingTour";
 import SuporteChat from "./SuporteChat";
 import { apiFetch } from "../lib/api";
+import { assinaturaObrigatoria } from "../lib/assinatura";
 import { limparContaCache, useConta } from "../lib/useConta";
 import { useConfiguracaoInicialCompleta } from "../lib/useConfiguracaoInicial";
 import { useNoAr } from "../lib/useNoAr";
-import { LocufyMark, LocufyWaveform } from "./LocufyLogo";
+import { LocufyMark, LocufySpin, LocufyWaveform } from "./LocufyLogo";
 import { LINK_AJUDA, LINK_PERFIL, NAV_LINKS } from "./nav";
 import ThemeToggle from "./ThemeToggle";
 import AssinaturaPendenteAviso from "./AssinaturaPendenteAviso";
@@ -37,11 +39,25 @@ export default function AppShell({
   const links = NAV_LINKS.filter((link) => !link.adminOnly || conta?.role === "admin");
   // acompanha o recolhimento automático da sidebar na tela Ao Vivo (ver Sidebar.tsx)
   const sidebarColapsada = pathname === "/live";
+  // Cadastro parou antes do pagamento: o painel só abre depois de ativar o Locufy Flex.
+  const semAssinatura = assinaturaObrigatoria(conta);
+
+  useEffect(() => {
+    if (semAssinatura) router.replace("/onboarding/assinatura");
+  }, [semAssinatura, router]);
 
   function sair() {
     apiFetch("/auth/logout", { method: "POST" }).catch(() => {});
     limparContaCache();
     router.push("/login");
+  }
+
+  if (semAssinatura) {
+    return (
+      <p className="flex min-h-screen items-center justify-center gap-2 bg-bg text-sm text-fg/65">
+        <LocufySpin size={16} /> Carregando…
+      </p>
+    );
   }
 
   return (

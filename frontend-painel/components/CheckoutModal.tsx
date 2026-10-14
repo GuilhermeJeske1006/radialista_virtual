@@ -25,7 +25,7 @@ function resolverVariaveisDoTema() {
   };
 }
 
-function Formulario({ onSuccess }: { onSuccess: () => void }) {
+function Formulario({ onSuccess, returnUrl, rotuloBotao }: { onSuccess: () => void; returnUrl?: string; rotuloBotao: string }) {
   const stripe = useStripe();
   const elements = useElements();
   const [enviando, setEnviando] = useState(false);
@@ -39,7 +39,7 @@ function Formulario({ onSuccess }: { onSuccess: () => void }) {
 
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
-      confirmParams: { return_url: window.location.href },
+      confirmParams: { return_url: returnUrl ? new URL(returnUrl, window.location.origin).href : window.location.href },
       redirect: "if_required",
     });
 
@@ -69,25 +69,32 @@ function Formulario({ onSuccess }: { onSuccess: () => void }) {
             <LocufySpin size={14} /> Processando…
           </>
         ) : (
-          "Confirmar pagamento"
+          rotuloBotao
         )}
       </button>
     </form>
   );
 }
 
-type CheckoutModalProps = {
-  open: boolean;
-  onClose: () => void;
+type CheckoutPagamentoProps = {
   onSuccess: () => void;
   // Endpoint de billing que cria a assinatura/payment intent e devolve { client_secret }
   // (ex.: /billing/checkout).
   // O mesmo endpoint aceita "usar_cartao_salvo" pra reusar o ultimo cartao sem PaymentElement.
   endpoint: string;
   body?: Record<string, unknown>;
-  titulo?: string;
   // O que está sendo contratado, acima do cartão -- a pessoa confere o valor antes de pagar.
   resumo?: React.ReactNode;
+  // Pra onde o banco devolve quando o pagamento exige sair da pagina (3DS com redirecionamento).
+  // Sem valor, volta pra pagina atual.
+  returnUrl?: string;
+  rotuloBotao?: string;
+};
+
+type CheckoutModalProps = CheckoutPagamentoProps & {
+  open: boolean;
+  onClose: () => void;
+  titulo?: string;
 };
 
 // Checkout transparente de verdade: formulario proprio (Tailwind, LocufySpin, texto de
@@ -95,18 +102,28 @@ type CheckoutModalProps = {
 // (<PaymentElement>, obrigatorio por PCI compliance), estilizado via `appearance` pra
 // combinar com o tema. O client_secret vem de uma Subscription/PaymentIntent criada direto
 // via API (ver stripe_client.py), nao de uma Checkout Session -- sem UI pronta do Stripe.
-export default function CheckoutModal({ open, onClose, onSuccess, endpoint, body, titulo = "Pagamento", resumo }: CheckoutModalProps) {
+export default function CheckoutModal({ open, onClose, titulo = "Pagamento", ...pagamento }: CheckoutModalProps) {
+  return (
+    <Modal open={open} onClose={onClose} title={titulo} maxWidthClassName="max-w-lg">
+      {open && <CheckoutPagamento {...pagamento} />}
+    </Modal>
+  );
+}
+
+/** O mesmo checkout do modal, dentro da pagina (passo de assinatura do cadastro e do onboarding). */
+export function CheckoutPagamento({ onSuccess, endpoint, body, resumo, returnUrl, rotuloBotao = "Confirmar pagamento" }: CheckoutPagamentoProps) {
   // undefined == ainda checando se tem cartao salvo pra oferecer reuso.
   const [cartaoSalvo, setCartaoSalvo] = useState<Cartao | null | undefined>(undefined);
   const [modo, setModo] = useState<"salvo" | "novo">("novo");
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [processandoSalvo, setProcessandoSalvo] = useState(false);
   const [erro, setErro] = useState("");
+  // "Tentar de novo" depois de falhar ao iniciar o pagamento (dentro da página não há modal para
+  // fechar e abrir de novo).
+  const [tentativa, setTentativa] = useState(0);
   const bodyKey = JSON.stringify(body ?? {});
 
   useEffect(() => {
-    if (!open) return;
-    setCartaoSalvo(undefined);
     apiFetch<{ cartao: Cartao | null }>("/billing/cartao")
       .then((r) => {
         setCartaoSalvo(r.cartao);
@@ -116,13 +133,13 @@ export default function CheckoutModal({ open, onClose, onSuccess, endpoint, body
         setCartaoSalvo(null);
         setModo("novo");
       });
-  }, [open]);
+  }, []);
 
   // "novo" busca client_secret pro <PaymentElement> (fluxo de sempre). "salvo" reusa o
   // ultimo cartao anexado ao customer -- confirma direto via Stripe.js, so' completando 3DS
   // se o banco exigir (confirmCardPayment sem paymentMethod novo -- usa o ja' anexado ao PI).
   useEffect(() => {
-    if (!open || cartaoSalvo === undefined) return;
+    if (cartaoSalvo === undefined) return;
     setErro("");
     setClientSecret(null);
 
@@ -172,7 +189,7 @@ export default function CheckoutModal({ open, onClose, onSuccess, endpoint, body
       cancelado = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, modo, cartaoSalvo, endpoint, bodyKey]);
+  }, [modo, cartaoSalvo, endpoint, bodyKey, tentativa]);
 
   const tema = typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "light" ? "stripe" : "night";
   const options: StripeElementsOptions | undefined = clientSecret
@@ -180,7 +197,7 @@ export default function CheckoutModal({ open, onClose, onSuccess, endpoint, body
     : undefined;
 
   return (
-    <Modal open={open} onClose={onClose} title={titulo} maxWidthClassName="max-w-lg">
+    <>
       {resumo}
       {cartaoSalvo && (
         <div className="mb-4 flex gap-2">
@@ -209,7 +226,20 @@ export default function CheckoutModal({ open, onClose, onSuccess, endpoint, body
         </div>
       )}
 
-      {erro && <p className="mb-3 text-sm text-laranja">{erro}</p>}
+      {erro && (
+        <div className="mb-3">
+          <p role="alert" className="text-sm text-laranja">{erro}</p>
+          {!clientSecret && !processandoSalvo && (
+            <button
+              type="button"
+              onClick={() => setTentativa((t) => t + 1)}
+              className="mt-2 rounded-xl border border-border-strong px-3 py-2 text-sm font-medium text-fg hover:bg-fg/5"
+            >
+              Tentar de novo
+            </button>
+          )}
+        </div>
+      )}
 
       {modo === "salvo" ? (
         processandoSalvo && !erro && (
@@ -226,11 +256,11 @@ export default function CheckoutModal({ open, onClose, onSuccess, endpoint, body
           )}
           {clientSecret && options && (
             <Elements key={tema} stripe={stripePromise} options={options}>
-              <Formulario onSuccess={onSuccess} />
+              <Formulario onSuccess={onSuccess} returnUrl={returnUrl} rotuloBotao={rotuloBotao} />
             </Elements>
           )}
         </>
       )}
-    </Modal>
+    </>
   );
 }

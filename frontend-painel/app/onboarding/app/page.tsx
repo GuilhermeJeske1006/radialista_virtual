@@ -7,7 +7,7 @@ import AppShell from "../../../components/AppShell";
 import { sondarAutoplayComSom } from "../../../lib/autoplay";
 import { marcarAppConfigurado, Navegador, useInstalarApp } from "../../../lib/instalarApp";
 
-// Passo 4 do onboarding (lib/tour.ts): o aceite do cliente pra radio tocar sem ninguem clicar.
+// Passo 5 do onboarding (lib/tour.ts): o aceite do cliente pra radio tocar sem ninguem clicar.
 // Instalar o painel como app (PWA) libera autoplay com som no Chrome/Edge de desktop; no Firefox
 // o equivalente e' a permissao de reproducao automatica do site.
 

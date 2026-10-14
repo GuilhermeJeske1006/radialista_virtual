@@ -3,15 +3,17 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import AppShell from "../AppShell";
 
-const { push, apiFetch, limparContaCache } = vi.hoisted(() => ({
+const { push, replace, apiFetch, limparContaCache, estado } = vi.hoisted(() => ({
   push: vi.fn(),
+  replace: vi.fn(),
   apiFetch: vi.fn().mockResolvedValue(undefined),
   limparContaCache: vi.fn(),
+  estado: { conta: { nome: "Rádio Teste", role: "membro" } as Record<string, unknown> },
 }));
-vi.mock("next/navigation", () => ({ usePathname: () => "/perfil", useRouter: () => ({ push }) }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/perfil", useRouter: () => ({ push, replace }) }));
 vi.mock("../../lib/api", () => ({ apiFetch }));
 vi.mock("../../lib/useConta", () => ({
-  useConta: () => ({ nome: "Rádio Teste", role: "membro" }),
+  useConta: () => estado.conta,
   limparContaCache,
 }));
 vi.mock("../../lib/useConfiguracaoInicial", () => ({
@@ -22,7 +24,30 @@ vi.mock("../NotificationBell", () => ({ default: () => null }));
 vi.mock("../OnboardingTour", () => ({ default: () => null }));
 vi.mock("../SuporteChat", () => ({ default: () => null }));
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  estado.conta = { nome: "Rádio Teste", role: "membro" };
+});
+
+describe("conta sem assinatura", () => {
+  it("cadastro parou antes de pagar: manda para a assinatura e não mostra o painel", () => {
+    estado.conta = { nome: "Ana", role: "admin", plano_status: "trial" };
+    render(<AppShell title="Perfil">Tela da rádio</AppShell>);
+    expect(replace).toHaveBeenCalledWith("/onboarding/assinatura");
+    expect(screen.queryByText("Tela da rádio")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["cancelada", { plano_status: "cancelado" }],
+    ["isenta de cobrança", { plano_status: "trial", cobranca_isenta: true }],
+    ["ativa", { plano_status: "ativo" }],
+  ])("conta %s entra no painel", (_, extra) => {
+    estado.conta = { nome: "Ana", role: "admin", ...extra };
+    render(<AppShell title="Perfil">Tela da rádio</AppShell>);
+    expect(replace).not.toHaveBeenCalled();
+    expect(screen.getByText("Tela da rádio")).toBeInTheDocument();
+  });
+});
 
 describe("navegação da conta", () => {
   it("mantém Ajuda, Perfil e Sair na navegação mobile de membros", async () => {

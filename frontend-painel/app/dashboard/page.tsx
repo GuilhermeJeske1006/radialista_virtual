@@ -11,6 +11,7 @@ import { UpsellBanner } from "../../components/UpsellBanner";
 import { useAppConfigurado } from "../../lib/instalarApp";
 import { useNoAr } from "../../lib/useNoAr";
 import { PASSOS_TOUR } from "../../lib/tour";
+import { precisaAssinar } from "../../lib/assinatura";
 import { rotuloStatusAssinatura } from "../../lib/rotulosConsumo";
 import { reais } from "../../lib/combinacoes";
 
@@ -144,13 +145,14 @@ export default function DashboardPage() {
   const temProgramaAtivo = programasAtivos > 0;
   const patrocinadoresAtivos = patrocinadores.filter((p) => p.ativo).length;
   const temPatrocinador = patrocinadoresAtivos > 0;
-  // Os quatro passos obrigatórios são os mesmos do tour e da barra lateral (lib/tour.ts).
+  // Os passos obrigatórios são os mesmos do tour e da barra lateral (lib/tour.ts).
   const estadoSetup = {
     radialistaPronto: temRadialistaPronto,
     programaAtivo: temProgramaAtivo,
     whatsappConectado,
     completa: temRadialistaPronto && temProgramaAtivo && whatsappConectado,
     appPronto,
+    assinaturaAtiva: !precisaAssinar(conta),
   };
   const TAREFAS_AO_VIVO = [
     ...PASSOS_TOUR.map((p) => ({ feita: p.feito(estadoSetup), label: `${p.numero}. ${p.titulo}`, descricao: p.texto, href: p.href, opcional: false })),

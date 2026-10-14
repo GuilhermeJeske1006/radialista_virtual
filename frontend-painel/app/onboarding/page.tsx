@@ -6,6 +6,8 @@ import { LocufySpin } from "../../components/LocufyLogo";
 import { appConfigurado } from "../../lib/instalarApp";
 import { passoAtual } from "../../lib/tour";
 import { obterConfiguracaoInicial } from "../../lib/useConfiguracaoInicial";
+import { precisaAssinar } from "../../lib/assinatura";
+import { recarregarConta } from "../../lib/useConta";
 
 // "Continuar →" dos passos do onboarding (ex.: app/onboarding/locutor) cai aqui: manda pro
 // proximo passo pendente do tour (lib/tour.ts) ou, com tudo pronto, pro painel.
@@ -14,9 +16,10 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     let ativo = true;
-    obterConfiguracaoInicial().then((configuracao) => {
+    // conta buscada de novo: quem acabou de assinar chega aqui com o status em cache desatualizado.
+    Promise.all([obterConfiguracaoInicial(), recarregarConta().catch(() => null)]).then(([configuracao, conta]) => {
       if (!ativo) return;
-      const passo = passoAtual({ ...configuracao, appPronto: appConfigurado() });
+      const passo = passoAtual({ ...configuracao, appPronto: appConfigurado(), assinaturaAtiva: !precisaAssinar(conta) });
       router.replace(passo?.href ?? "/dashboard");
     });
     return () => { ativo = false; };

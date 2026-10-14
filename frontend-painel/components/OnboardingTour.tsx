@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { useConfiguracaoInicial } from "../lib/useConfiguracaoInicial";
 import { paginaDoPasso, passoAtual, PASSOS_TOUR } from "../lib/tour";
 import { useAppConfigurado, useInstalarApp } from "../lib/instalarApp";
+import { precisaAssinar } from "../lib/assinatura";
+import { useConta } from "../lib/useConta";
 
 const CHAVE_COLAPSADO = "locufy_tour_colapsado";
 
@@ -13,7 +15,8 @@ export default function OnboardingTour() {
   const pathname = usePathname();
   const configuracao = useConfiguracaoInicial();
   const appPronto = useAppConfigurado();
-  const estado = { ...configuracao, appPronto };
+  const conta = useConta();
+  const estado = { ...configuracao, appPronto, assinaturaAtiva: !precisaAssinar(conta) };
   // passo do app: instala direto daqui, sem passar pela pagina do passo -- o cliente so' clica
   // "Instalar" (+ confirmacao do navegador) e o app abre sozinho no ao vivo.
   const { podeInstalar, instalar } = useInstalarApp();

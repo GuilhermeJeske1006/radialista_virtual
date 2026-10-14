@@ -7,6 +7,7 @@ import { apiFetch } from "../lib/api";
 import { limparContaCache, useConta } from "../lib/useConta";
 import { useConfiguracaoInicial } from "../lib/useConfiguracaoInicial";
 import { useAppConfigurado } from "../lib/instalarApp";
+import { precisaAssinar } from "../lib/assinatura";
 import { PASSOS_TOUR } from "../lib/tour";
 import { LocufyMark } from "./LocufyLogo";
 import { ICONE_SAIR, LINK_AJUDA, LINK_PERFIL, NAV_LINKS, NavGroup, NavIcone } from "./nav";
@@ -114,7 +115,8 @@ export default function Sidebar() {
   const configuracao = useConfiguracaoInicial();
   const appPronto = useAppConfigurado();
   // Mesmos passos do tour e do checklist do dashboard (lib/tour.ts) -- um progresso só.
-  const passosFeitos = PASSOS_TOUR.filter((p) => p.feito({ ...configuracao, appPronto })).length;
+  const estadoTour = { ...configuracao, appPronto, assinaturaAtiva: !precisaAssinar(conta) };
+  const passosFeitos = PASSOS_TOUR.filter((p) => p.feito(estadoTour)).length;
   // Some junto com o tour (AppShell): o passo do app é por computador e não deve ficar pendente
   // para sempre numa rádio que já opera pelo navegador.
   const setupPendente = !configuracao.completa;

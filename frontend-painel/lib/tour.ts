@@ -1,8 +1,11 @@
+import { formatarReais, PRECO_MENSAL_FLEX } from "./planos";
 import { ConfiguracaoInicialEstado } from "./useConfiguracaoInicial";
 
 // appPronto e' do aparelho (localStorage/app instalado, ver lib/instalarApp.ts), nao da conta --
 // fica fora de ConfiguracaoInicialEstado pra nao mexer em `completa` (menu numerado).
-export type EstadoTour = ConfiguracaoInicialEstado & { appPronto: boolean };
+// assinaturaAtiva vem de /auth/me (lib/assinatura.ts: !precisaAssinar), tambem fora de `completa`:
+// cancelar a assinatura nao desfaz a configuracao da radio.
+export type EstadoTour = ConfiguracaoInicialEstado & { appPronto: boolean; assinaturaAtiva: boolean };
 
 export type PassoTour = {
   numero: number;
@@ -16,6 +19,14 @@ export type PassoTour = {
 export const PASSOS_TOUR: PassoTour[] = [
   {
     numero: 1,
+    titulo: "Ative sua assinatura",
+    texto: `O Locufy Flex libera a geração com IA e o ao vivo: R$ ${formatarReais(PRECO_MENSAL_FLEX)}/mês + uso, com limite financeiro definido por você.`,
+    cta: "Ativar assinatura",
+    href: "/onboarding/assinatura",
+    feito: (e) => e.assinaturaAtiva,
+  },
+  {
+    numero: 2,
     titulo: "Crie seu radialista",
     texto:
       "Gere um radialista com IA em segundos (nome, voz e personalidade prontos) ou cadastre cada campo manualmente.",
@@ -24,7 +35,7 @@ export const PASSOS_TOUR: PassoTour[] = [
     feito: (e) => e.radialistaPronto,
   },
   {
-    numero: 2,
+    numero: 3,
     titulo: "Cadastre um programa",
     texto:
       "Defina dias, horário e o que o radialista toca ou fala nesse programa. Sem isso ele não sabe quando entrar no ar.",
@@ -33,7 +44,7 @@ export const PASSOS_TOUR: PassoTour[] = [
     feito: (e) => e.programaAtivo,
   },
   {
-    numero: 3,
+    numero: 4,
     titulo: "Conecte o WhatsApp da rádio",
     texto:
       "Escaneie o QR Code com o número que vai atender os ouvintes. Só depois disso o radialista responde de verdade.",
@@ -42,7 +53,7 @@ export const PASSOS_TOUR: PassoTour[] = [
     feito: (e) => e.whatsappConectado,
   },
   {
-    numero: 4,
+    numero: 5,
     titulo: "Instale o app e libere o som",
     texto:
       "Sem isso o navegador bloqueia a voz e a música até alguém clicar na página. Instalado, o painel toca sozinho, mesmo depois de reiniciar o computador.",

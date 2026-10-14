@@ -5,11 +5,14 @@ vi.mock("next/navigation", () => ({ usePathname: () => "/dashboard" }));
 vi.mock("../../lib/useConfiguracaoInicial", () => ({
   useConfiguracaoInicial: () => ({ radialistaPronto: true, programaAtivo: true, whatsappConectado: true, completa: true }),
 }));
+const estado = vi.hoisted(() => ({ conta: { role: "admin", plano_status: "ativo" } as Record<string, unknown> }));
+vi.mock("../../lib/useConta", () => ({ useConta: () => estado.conta }));
 
 import OnboardingTour from "../OnboardingTour";
 import { CAPTURA_INSTALACAO_SCRIPT } from "../../lib/instalarApp";
 
 beforeEach(() => {
+  estado.conta = { role: "admin", plano_status: "ativo" };
   localStorage.clear();
   window.__locufyInstalar = null;
   vi.stubGlobal("matchMedia", (q: string) => ({ matches: false, media: q }));
@@ -39,4 +42,12 @@ it("sem oferta de instalação do navegador: leva pro passo a passo", async () =
   render(<OnboardingTour />);
   const link = await screen.findByRole("link", { name: /Instalar e liberar som/ });
   expect(link.getAttribute("href")).toBe("/onboarding/app");
+});
+
+it("assinatura cancelada: o primeiro passo pendente é reativar", async () => {
+  estado.conta = { role: "admin", plano_status: "cancelado" };
+  render(<OnboardingTour />);
+  expect(await screen.findByText("Ative sua assinatura")).toBeTruthy();
+  expect(screen.getByText("Passo 1 de 5")).toBeTruthy();
+  expect(screen.getByRole("link", { name: /Ativar assinatura/ }).getAttribute("href")).toBe("/onboarding/assinatura");
 });

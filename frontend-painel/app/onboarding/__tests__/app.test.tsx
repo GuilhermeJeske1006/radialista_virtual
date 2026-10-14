@@ -1,11 +1,12 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ sondar: vi.fn(), push: vi.fn(), replace: vi.fn(), configuracao: vi.fn() }));
+const mocks = vi.hoisted(() => ({ sondar: vi.fn(), push: vi.fn(), replace: vi.fn(), configuracao: vi.fn(), conta: vi.fn() }));
 vi.mock("../../../lib/autoplay", () => ({ sondarAutoplayComSom: mocks.sondar }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mocks.push, replace: mocks.replace }) }));
 vi.mock("../../../components/AppShell", () => ({ default: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }));
 vi.mock("../../../lib/useConfiguracaoInicial", () => ({ obterConfiguracaoInicial: mocks.configuracao }));
+vi.mock("../../../lib/useConta", () => ({ recarregarConta: mocks.conta }));
 
 import OnboardingAppPage from "../app/page";
 import OnboardingPage from "../page";
@@ -91,6 +92,22 @@ describe("/onboarding/app", () => {
 
 describe("/onboarding", () => {
   const pronto = { radialistaPronto: true, programaAtivo: true, whatsappConectado: true, completa: true };
+  beforeEach(() => mocks.conta.mockResolvedValue({ role: "admin", plano_status: "ativo" }));
+
+  it("sem assinatura: o primeiro passo é ativar o Locufy Flex", async () => {
+    mocks.conta.mockResolvedValue({ role: "admin", plano_status: "trial" });
+    mocks.configuracao.mockResolvedValue({ ...pronto, radialistaPronto: false, completa: false });
+    render(<OnboardingPage />);
+    await act(async () => {});
+    expect(mocks.replace).toHaveBeenCalledWith("/onboarding/assinatura");
+  });
+
+  it("acabou de assinar: segue para o radialista", async () => {
+    mocks.configuracao.mockResolvedValue({ ...pronto, radialistaPronto: false, completa: false });
+    render(<OnboardingPage />);
+    await act(async () => {});
+    expect(mocks.replace).toHaveBeenCalledWith("/onboarding/locutor");
+  });
 
   it("manda pro próximo passo pendente", async () => {
     mocks.configuracao.mockResolvedValue({ ...pronto, whatsappConectado: false, completa: false });

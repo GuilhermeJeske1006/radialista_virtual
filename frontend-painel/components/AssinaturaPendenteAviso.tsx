@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import CheckoutModal from "./CheckoutModal";
-import { ResumoFlex, precisaAssinar } from "./AssinaturaGate";
+import { ResumoFlex } from "./AssinaturaGate";
+import { precisaAssinar } from "../lib/assinatura";
 import { recarregarConta, useConta } from "../lib/useConta";
 import { PRECO_MENSAL_FLEX, formatarReais } from "../lib/planos";
 
-/** Conta nova entra sem pagar: configura radialista e programa à vontade. Este aviso diz o que
- * falta para gerar com IA e ir ao ar, com o checkout a um clique. */
+/** Assinatura cancelada: diz o que falta para gerar com IA e ir ao ar, com o checkout a um clique.
+ * Conta que nunca pagou nem chega aqui -- o AppShell manda para /onboarding/assinatura. */
 export default function AssinaturaPendenteAviso() {
   const conta = useConta();
   const [checkout, setCheckout] = useState(false);
@@ -18,7 +19,7 @@ export default function AssinaturaPendenteAviso() {
     <div role="status" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-acento-claro/40 bg-acento/10 px-5 py-4">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-fg">
-          {cancelada ? "Sua assinatura foi cancelada." : "Sua conta está pronta para configurar."}
+          {cancelada ? "Sua assinatura foi cancelada." : "Falta ativar a assinatura."}
         </p>
         <p className="mt-0.5 text-sm text-fg/80">
           Para gerar com IA e colocar a rádio no ar, ative o Locufy Flex: R$ {formatarReais(PRECO_MENSAL_FLEX)}/mês + uso,

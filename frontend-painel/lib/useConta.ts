@@ -12,11 +12,18 @@ const assinantes = new Set<(conta: Conta) => void>();
 
 function buscarConta(): Promise<Conta> {
   if (!buscaEmVoo) {
-    buscaEmVoo = apiFetch<Conta>("/auth/me").then((conta) => {
-      contaCache = conta;
-      assinantes.forEach((avisar) => avisar(conta));
-      return conta;
-    });
+    buscaEmVoo = apiFetch<Conta>("/auth/me").then(
+      (conta) => {
+        contaCache = conta;
+        assinantes.forEach((avisar) => avisar(conta));
+        return conta;
+      },
+      (erro) => {
+        // sem isso, toda tela montada depois herdaria a mesma falha até um reload
+        buscaEmVoo = null;
+        throw erro;
+      },
+    );
   }
   return buscaEmVoo;
 }
@@ -24,6 +31,11 @@ function buscarConta(): Promise<Conta> {
 export function limparContaCache(): void {
   contaCache = null;
   buscaEmVoo = null;
+}
+
+/** Conta já carregada (cache) ou a busca em andamento -- pra quem precisa saber se falhou. */
+export function obterConta(): Promise<Conta> {
+  return contaCache ? Promise.resolve(contaCache) : buscarConta();
 }
 
 /** Busca a conta de novo e avisa quem está montado -- depois do checkout o status muda. */

@@ -6,6 +6,7 @@ import { apiFetch, ApiError } from "../../lib/api";
 import { RADIALISTA_VAZIO, Radialista } from "../../lib/types";
 import { PRECO_MENSAL_FLEX, formatarReais } from "../../lib/planos";
 import { LocufyLogo, LocufySpin } from "../../components/LocufyLogo";
+import EtapasCadastro from "../../components/EtapasCadastro";
 import ThemeToggle from "../../components/ThemeToggle";
 import { captureCampaign, trackFunnel } from "../../lib/funnel";
 
@@ -167,6 +168,7 @@ export default function RegisterPage() {
     trackFunnel("register_radio_step", { plano: "flex" });
     setCarregando(true);
     let contaCriada = false;
+    let incompleto = false;
     try {
       // sessao ja vem via cookie httpOnly no Set-Cookie da resposta -- nada pra guardar aqui.
       await apiFetch("/auth/register", {
@@ -190,24 +192,27 @@ export default function RegisterPage() {
           body: JSON.stringify(RADIALISTA_VAZIO),
         });
       }
-
-      // Conta pronta: vai direto criar o primeiro radialista. O pagamento é pedido na primeira
-      // geração com IA (ver components/AssinaturaGate.tsx), depois de a pessoa ver o produto.
-      window.location.href = "/onboarding/locutor";
     } catch (err) {
-      if (contaCriada) {
-        // conta ja existe (registro deu certo) -- mostrar "erro ao criar conta" aqui seria
-        // enganoso e levaria a um retry que falha por e-mail duplicado. Manda pro dashboard,
-        // que sinaliza a assinatura pendente.
-        window.location.href = "/dashboard?onboarding=incompleto";
+      if (!contaCriada) {
+        setErro(err instanceof ApiError ? err.message : "Erro ao criar conta");
+        setCarregando(false);
         return;
       }
-      setErro(err instanceof ApiError ? err.message : "Erro ao criar conta");
-      setCarregando(false);
+      // conta ja existe (registro deu certo) -- mostrar "erro ao criar conta" aqui seria
+      // enganoso e levaria a um retry que falha por e-mail duplicado. Segue pra assinatura.
+      incompleto = true;
     }
+    // Conta criada: o passo 3 (assinatura) é a própria /onboarding/assinatura -- a mesma tela em que
+    // cai quem recarrega a página, volta do banco (3DS) ou entra de novo sem ter pago.
+    trackFunnel("register_checkout_step", { plano: "flex" });
+    window.location.href = incompleto ? "/onboarding/assinatura?dados=incompletos" : "/onboarding/assinatura";
   }
 
-  const PASSOS = ["Seus dados", "Sua rádio"];
+  const TITULOS = { 1: "Crie sua conta", 2: "Qual é o nome da sua rádio?" };
+  const SUBTITULOS = {
+    1: "Informe seus dados de acesso. Depois vêm o nome da rádio e a assinatura.",
+    2: "Por enquanto, só precisamos do nome. Voz, programação e os outros dados você configura em seguida.",
+  };
   const fields: { key: keyof CampoErros; label: string; type: string; value: string; change: (v: string) => void; autoComplete: string }[] = [
     { key: "nome", label: "Seu nome", type: "text", value: nome, change: onChangeNome, autoComplete: "name" },
     { key: "email", label: "E-mail", type: "email", value: email, change: onChangeEmail, autoComplete: "email" },
@@ -215,6 +220,11 @@ export default function RegisterPage() {
     { key: "confirmarSenha", label: "Confirmar senha", type: "password", value: confirmarSenha, change: onChangeConfirmarSenha, autoComplete: "new-password" },
   ];
   const inputClass = "w-full rounded-xl border border-border-strong bg-bg px-3 py-3 text-base text-fg focus:outline-none focus:ring-2 focus:ring-acento-claro";
+  const cabecalho = <>
+    <EtapasCadastro atual={passo} />
+    <h1 ref={headingRef} tabIndex={-1} className="font-display text-xl font-bold text-fg mb-2 outline-none">{TITULOS[passo]}</h1>
+    <p className="text-sm text-fg/65 mb-6">{SUBTITULOS[passo]}</p>
+  </>;
   return (
     <main className="min-h-screen bg-bg flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-2xl">
@@ -222,15 +232,7 @@ export default function RegisterPage() {
           <LocufyLogo wordmarkClassName="text-2xl" /><ThemeToggle />
         </div>
         <form noValidate onSubmit={concluir} className="bg-surface rounded-3xl border border-border-strong shadow-theme-sm p-5 sm:p-8">
-          <ol aria-label="Etapas do cadastro" className="flex gap-3 mb-8">
-            {PASSOS.map((label, i) => <li key={label} aria-current={passo === i + 1 ? "step" : undefined} className={`flex-1 text-sm border-b-2 pb-3 ${passo === i + 1 ? "border-acento-claro text-fg font-semibold" : "border-border text-fg/65"}`}>
-              <span aria-hidden="true">{i + 1}. </span>{label}
-            </li>)}
-          </ol>
-          <h1 ref={headingRef} tabIndex={-1} className="font-display text-xl font-bold text-fg mb-2 outline-none">
-            {passo === 1 ? "Crie sua conta" : "Qual é o nome da sua rádio?"}
-          </h1>
-          <p className="text-sm text-fg/65 mb-6">{passo === 1 ? "Informe seus dados de acesso. Criar a conta não tem custo." : "Por enquanto, só precisamos do nome. Voz, programação e os outros dados você configura em seguida."}</p>
+          {cabecalho}
           {passo === 1 && <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {fields.map(field => {
               const error = tocado[field.key] && campoErros[field.key];
@@ -253,8 +255,8 @@ export default function RegisterPage() {
             {tocado.nomeRadio && campoErros.nomeRadio && <p id="nomeRadio-erro" className="mt-2 text-sm text-laranja">{campoErros.nomeRadio}</p>}
           </div>}
           {passo === 2 && <div className="mt-6 max-w-lg rounded-xl border border-border-strong bg-bg p-4 text-sm">
-            <p className="font-semibold text-fg">Como funciona a cobrança</p>
-            <p className="mt-1 text-fg/80">Você configura o radialista e ouve as amostras sem pagar. Para gerar com IA e ir ao ar, ative o Locufy Flex: <span className="font-semibold text-fg tabular-nums">R$ {formatarReais(PRECO_MENSAL_FLEX)}/mês</span> + uso de IA, com limite financeiro definido por você.</p>
+            <p className="font-semibold text-fg">Próximo passo: assinatura</p>
+            <p className="mt-1 text-fg/80">Para concluir o cadastro, você ativa o Locufy Flex: <span className="font-semibold text-fg tabular-nums">R$ {formatarReais(PRECO_MENSAL_FLEX)}/mês</span> + uso de IA cobrado no fim do ciclo, com limite financeiro definido por você.</p>
           </div>}
           <p role="alert" className={erro ? "mt-5 text-sm text-laranja" : "sr-only"}>{erro}</p>
           <div className="flex justify-between gap-3 mt-8">

@@ -4,24 +4,23 @@ import { useState } from "react";
 import Link from "next/link";
 import CheckoutModal from "./CheckoutModal";
 import Modal from "./Modal";
-import { Conta } from "../lib/types";
+import { apiFetch } from "../lib/api";
+import { precisaAssinar } from "../lib/assinatura";
 import { recarregarConta, useConta } from "../lib/useConta";
 import { PRECO_MENSAL_FLEX, formatarReais } from "../lib/planos";
 
-/** Conta criada no cadastro fica em "trial" até pagar: configura tudo, mas geração com IA e ao
- * vivo pedem assinatura ativa. Conta isenta de cobrança gera sem assinatura. */
-export function precisaAssinar(conta: Conta | null): boolean {
-  if (!conta || conta.cobranca_isenta) return false;
-  return conta.plano_status === "trial" || conta.plano_status === "cancelado";
-}
-
-// O webhook do Stripe confirma a assinatura alguns segundos depois do pagamento.
-async function aguardarAtivacao(tentativas = 6, esperaMs = 1500): Promise<void> {
+/** Depois do pagamento, espera a conta virar "ativo". /billing/confirmar consulta o Stripe direto,
+ * sem depender do webhook chegar; devolve false se ainda não confirmou ao fim das tentativas. */
+export async function aguardarAtivacao(tentativas = 10, esperaMs = 2000): Promise<boolean> {
   for (let i = 0; i < tentativas; i++) {
-    const conta = await recarregarConta().catch(() => null);
-    if (conta && !precisaAssinar(conta)) return;
-    await new Promise((r) => setTimeout(r, esperaMs));
+    const confirmacao = await apiFetch<{ plano_status: string }>("/billing/confirmar", { method: "POST" }).catch(() => null);
+    // Ainda sem pagamento confirmado: nem busca a conta. Mudou (ou /confirmar falhou): a conta decide.
+    const pendente = confirmacao?.plano_status === "trial" || confirmacao?.plano_status === "cancelado";
+    const conta = pendente ? null : await recarregarConta().catch(() => null);
+    if (conta && !precisaAssinar(conta)) return true;
+    if (i < tentativas - 1) await new Promise((r) => setTimeout(r, esperaMs));
   }
+  return false;
 }
 
 export function ResumoFlex() {
