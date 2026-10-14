@@ -8,11 +8,16 @@ from sqlalchemy import select, update
 from app.billing.flex import absorver_abandonadas, centavos, conta_consumo
 from app.billing.stripe_client import dados_stripe
 from app.config.settings import settings
+from app.funnel.service import record_event
 from app.models.consumo_flex import FaturaConsumo, UsoIA, ContaConsumo, agora
 
 
 def periodo(valor):
     return datetime.fromtimestamp(valor, timezone.utc)
+
+
+def assinatura_fatura(invoice):
+    return ((invoice.get('parent') or {}).get('subscription_details') or {}).get('subscription') or invoice.get('subscription')
 
 
 def fechar(db, account, invoice, stripe_client):
@@ -88,6 +93,13 @@ def fechar(db, account, invoice, stripe_client):
     return fatura
 
 
+def adesao_nova(db, account, invoice):
+    # Reassinatura reativa conta cancelada; a assinatura cancelada já tem fatura final e não reativa.
+    return (invoice.get('billing_reason') == 'subscription_create' and assinatura_fatura(invoice) == account.stripe_subscription_id
+        and not db.scalar(select(FaturaConsumo.id).where(FaturaConsumo.account_id == account.id, FaturaConsumo.id != invoice['id'],
+            FaturaConsumo.assinatura == account.stripe_subscription_id).limit(1)))
+
+
 def registrar_pagamento(db, account, invoice, *, pendente=True):
     conta_consumo(db, account.id)
     fatura = db.get(FaturaConsumo, invoice['id'])
@@ -103,12 +115,28 @@ def registrar_pagamento(db, account, invoice, *, pendente=True):
             .values(exposicao=ContaConsumo.exposicao - (fatura.consumo or 0)))
         fatura.estado = 'paga'
         outra_pendente = db.scalar(select(FaturaConsumo.id).where(FaturaConsumo.account_id == account.id, FaturaConsumo.id != fatura.id, FaturaConsumo.estado == 'pendente').limit(1))
-        if account.plano_status != 'cancelado':
+        if account.plano_status != 'cancelado' or adesao_nova(db, account, invoice):
             account.plano_status = 'inadimplente' if outra_pendente else 'ativo'
         account.plano = 'flex'
+        if invoice.get('billing_reason') == 'subscription_create':
+            # Flush fora do savepoint: falha do pagamento não pode ser engolida pela métrica.
+            db.flush()
+            record_event(db, 'subscription_confirmed', event_id=f'subscription:{account.stripe_subscription_id}',
+                account_id=account.id, plano='flex', valor_centavos=invoice.get('amount_paid', invoice.get('total')) or 0)
     elif invoice.get('status') == 'open':
+        # Adesão recusada deixa a assinatura incomplete, que expira sem dívida: conta segue trial/cancelado.
+        pendente = pendente and invoice.get('billing_reason') != 'subscription_create'
         fatura.estado = 'pendente' if pendente else 'emitida'
         if pendente:
             account.plano_status = 'inadimplente'
     fatura.total_centavos = invoice.get('total', fatura.total_centavos or 0)
     fatura.url = invoice.get('hosted_invoice_url')
+
+
+def atualizar_ciclo(db, account, invoice):
+    for linha in invoice.get('lines', {}).get('data', []):
+        if ((linha.get('parent') or {}).get('type') == 'subscription_item_details' or linha.get('type') == 'subscription') and linha.get('period'):
+            conta = conta_consumo(db, account.id)
+            inicio, fim = periodo(linha['period']['start']), periodo(linha['period']['end'])
+            if conta.ciclo_fim is None or conta.ciclo_fim.replace(tzinfo=inicio.tzinfo) < fim:
+                conta.ciclo_inicio, conta.ciclo_fim = inicio, fim

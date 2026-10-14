@@ -20,7 +20,7 @@ class PublicEvent(BaseModel):
     model_config = ConfigDict(extra="forbid")
     id: UUID
     evento: Literal["landing_view", "register_click", "whatsapp_click", "demo_play", "video_play",
-                    "register_started", "register_account_step", "register_radio_step", "plan_selected"]
+                    "register_started", "register_account_step", "register_radio_step", "register_checkout_step", "plan_selected"]
     local: Literal["header", "hero", "pricing-flex", "pricing-starter", "pricing-growth", "pricing-professional", "faq", "footer",
                    "contact", "floating", "demo-abertura", "demo-recado", "demo-chamada", "video", "register", "landing"] = "register"
     plano: Literal["", "flex", "starter", "growth", "professional"] = ""

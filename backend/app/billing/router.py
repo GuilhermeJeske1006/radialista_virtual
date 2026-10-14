@@ -6,8 +6,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.auth.dependencies import exigir_admin, get_current_account
 from app.billing.limites import mensagens_respondidas_no_mes
-from app.billing.stripe_client import cliente, criar_sessao_checkout, criar_portal_sessao, obter_cartao_mais_recente, dados_stripe
-from app.billing.fechamento import fechar, registrar_pagamento, periodo
+from app.billing.stripe_client import cliente, criar_sessao_checkout, criar_portal_sessao, obter_cartao_mais_recente, dados_stripe, CartaoSalvoNaoEncontrado
+from app.billing.fechamento import fechar, registrar_pagamento, atualizar_ciclo, assinatura_fatura
 from app.billing.flex import conta_consumo
 from app.config.settings import settings
 from app.db.database import get_db
@@ -29,7 +29,10 @@ def checkout(dados: CheckoutRequest, account=Depends(get_current_account), db=De
         raise HTTPException(400, 'O plano disponível é Locufy Flex')
     if account.plano_status == 'ativo':
         raise HTTPException(409, 'Assinatura já ativa')
-    sub = criar_sessao_checkout(account, 'flex', db, dados.usar_cartao_salvo)
+    try:
+        sub = criar_sessao_checkout(account, 'flex', db, dados.usar_cartao_salvo)
+    except CartaoSalvoNaoEncontrado:
+        raise HTTPException(409, 'Nenhum cartão salvo. Informe um novo cartão.') from None
     secret = dados_stripe(sub.latest_invoice).get('confirmation_secret')
     return {'client_secret': secret.get('client_secret') if secret else None}
 
@@ -62,8 +65,25 @@ def oferta_encerrada(_admin=Depends(exigir_admin)):
     raise HTTPException(410, 'Locufy Flex inclui WhatsApp completo, sem pacotes ou planos adicionais')
 
 
-def assinatura_fatura(invoice):
-    return ((invoice.get('parent') or {}).get('subscription_details') or {}).get('subscription') or invoice.get('subscription')
+@router.post('/confirmar')
+def confirmar(account=Depends(get_current_account), db=Depends(get_db), _admin=Depends(exigir_admin)):
+    # Webhook pode atrasar: consulta o Stripe direto para liberar quem acabou de pagar a adesão.
+    if not account.stripe_subscription_id or account.plano_status == 'ativo':
+        return {'plano_status': account.plano_status}
+    try:
+        sub = dados_stripe(cliente().v1.subscriptions.retrieve(account.stripe_subscription_id, {'expand': ['latest_invoice']}))
+    except stripe.StripeError:
+        raise HTTPException(502, 'Não foi possível confirmar o pagamento agora. Tente novamente.') from None
+    invoice = dados_stripe(sub.get('latest_invoice'))
+    # Renovações dependem do fechamento de consumo (invoice.created); ficam só com o webhook.
+    if (isinstance(invoice, dict) and invoice.get('billing_reason') == 'subscription_create'
+            and assinatura_fatura(invoice) == account.stripe_subscription_id and invoice.get('status') == 'paid'):
+        conta_consumo(db, account.id)
+        db.refresh(account)
+        registrar_pagamento(db, account, invoice)
+        atualizar_ciclo(db, account, invoice)
+        db.commit()
+    return {'plano_status': account.plano_status}
 
 
 @router.post('/webhook')
@@ -81,6 +101,7 @@ async def webhook_stripe(request: Request, db: Session = Depends(get_db)):
         conta_consumo(db, account.id)
         if db.get(EventoCobranca, event['id']):
             return {'status': 'duplicado'}
+        db.refresh(account)
         c = cliente()
         if tipo.startswith('invoice.'):
             # Estado atual vence webhooks atrasados (paid seguido de payment_failed antigo).
@@ -90,12 +111,7 @@ async def webhook_stripe(request: Request, db: Session = Depends(get_db)):
                     fechar(db, account, invoice, c)
                 elif tipo in ('invoice.paid', 'invoice.payment_failed', 'invoice.payment_action_required', 'invoice.finalized'):
                     registrar_pagamento(db, account, invoice, pendente=tipo != 'invoice.finalized')
-                    for linha in invoice.get('lines', {}).get('data', []):
-                        if ((linha.get('parent') or {}).get('type') == 'subscription_item_details' or linha.get('type') == 'subscription') and linha.get('period'):
-                            conta = conta_consumo(db, account.id)
-                            inicio, fim = periodo(linha['period']['start']), periodo(linha['period']['end'])
-                            if conta.ciclo_fim is None or conta.ciclo_fim.replace(tzinfo=inicio.tzinfo) < fim:
-                                conta.ciclo_inicio, conta.ciclo_fim = inicio, fim
+                    atualizar_ciclo(db, account, invoice)
         elif tipo in ('customer.subscription.updated', 'customer.subscription.deleted') and dados['id'] == account.stripe_subscription_id:
             sub = dados_stripe(c.v1.subscriptions.retrieve(dados['id']))
             if sub['status'] in ('canceled', 'unpaid', 'past_due'):

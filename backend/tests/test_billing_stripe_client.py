@@ -59,6 +59,14 @@ def test_cartao_salvo_ausente(db_session, account, stripe_api):
         sc.criar_sessao_checkout(account,'flex',db_session,True)
 
 
+def test_checkout_cartao_salvo_ausente_responde_409(client, account, auth_headers, stripe_api):
+    stripe_api.v1.payment_methods.list.return_value.data = []
+    r = client.post('/billing/checkout', json={'plano_id':'flex','usar_cartao_salvo':True}, headers=auth_headers(account.id))
+    assert r.status_code == 409
+    assert r.json()['detail'] == 'Nenhum cartão salvo. Informe um novo cartão.'
+    stripe_api.v1.subscriptions.create.assert_not_called()
+
+
 def test_cartao_salvo_e_portal(db_session, account, stripe_api):
     stripe_api.v1.payment_methods.list.return_value.data = [SimpleNamespace(id='pm_1',card=SimpleNamespace(brand='visa',last4='4242',exp_month=12,exp_year=2030))]
     sc.criar_sessao_checkout(account,'flex',db_session,True)
