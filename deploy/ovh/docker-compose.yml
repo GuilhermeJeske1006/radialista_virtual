@@ -27,6 +27,10 @@ services:
       POSTGRES_PASSWORD: ${APP_DB_PASSWORD:?defina APP_DB_PASSWORD}
       POSTGRES_DB: radialista
       WUZAPI_DB_PASSWORD: ${WUZAPI_DB_PASSWORD:?defina WUZAPI_DB_PASSWORD}
+    # So no localhost do VPS, fechado para a internet. Acesso do Mac por tunel:
+    #   ssh -N -L 5434:127.0.0.1:5432 ubuntu@40.160.150.84
+    ports:
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       # Cria o banco/usuario do WuzAPI na primeira subida (volume vazio).
