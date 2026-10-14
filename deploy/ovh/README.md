@@ -46,6 +46,21 @@ docker compose up -d
 Mudanças no `docker-compose.yml`, no `Caddyfile` ou no `deploy.sh` não são
 copiadas pelo deploy: copie para `/opt/locufy` e rode `docker compose up -d`.
 
+## Acessar o banco do seu computador
+
+O Postgres só escuta no `127.0.0.1` do VPS. Abra um túnel SSH:
+
+```sh
+ssh -N -L 5434:127.0.0.1:5432 ubuntu@40.160.150.84
+```
+
+e conecte em `localhost:5434`, banco `radialista`, usuário `radialista`
+(ou banco/usuário `wuzapi`). As senhas estão no `.env` do VPS:
+
+```sh
+ssh ubuntu@40.160.150.84 'grep -E "^(APP|WUZAPI)_DB_PASSWORD=" /opt/locufy/.env'
+```
+
 ## Backup do Postgres
 
 ```sh
