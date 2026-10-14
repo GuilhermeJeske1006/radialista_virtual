@@ -30,7 +30,7 @@ Publique o conteúdo de `dist/` em uma hospedagem estática, na raiz de https://
 
 ## Conteúdo e conversão
 
-CTA principal: `/register` no painel ("Criar conta grátis"). Criar a conta e configurar não pede cartão; o painel pede a assinatura do Locufy Flex na primeira geração com IA. Recursos baseados no código e na central de ajuda.
+CTA principal: `/register` no painel ("Criar conta"). O cadastro tem três passos: dados de acesso, nome da rádio e pagamento com cartão (Stripe), que ativa o Locufy Flex. Não há conta grátis. Sem conta, só as amostras de voz (`#ouvir`) e os exemplos do simulador (`#simulador`). Recursos baseados no código e na central de ajuda.
 
 Parâmetros UTM (`source`, `medium`, `campaign`, `content`, `term`) são preservados nos links de cadastro. Cliques emitem o evento local `locufy:conversion` com `detail.location` e `detail.destination`. Sem cookies, rastreadores ou integração de analytics; o painel precisa implementar armazenamento de atribuição para isso ser medido.
 

@@ -128,6 +128,11 @@ export default function AjudaPage() {
               </p>
               <ol className="list-decimal pl-5 mt-2 space-y-1">
                 <li>
+                  <strong className="text-fg">Ativar a assinatura</strong> — o Locufy Flex é ativado
+                  no último passo do cadastro. Se a assinatura for cancelada, o passo volta a aparecer
+                  para reativar.
+                </li>
+                <li>
                   <strong className="text-fg">Criar o radialista</strong> — descreva o perfil (gênero
                   musical, tom, público) e a Locufy gera nome, voz, personalidade e o primeiro programa.
                   Ou configure cada campo manualmente.
@@ -148,10 +153,14 @@ export default function AjudaPage() {
                 </li>
               </ol>
               <p className="mt-2">
-                Os mesmos quatro passos aparecem no guia do canto da tela e no progresso da barra
-                lateral. Completar os dados da rádio e cadastrar vinhetagem são opcionais. Criar a
-                conta não tem custo: você configura radialista e programa à vontade, e a assinatura
-                é pedida na primeira geração com IA ou para colocar a rádio no ar.
+                Os mesmos cinco passos aparecem no guia do canto da tela e no progresso da barra
+                lateral. Completar os dados da rádio e cadastrar vinhetagem são opcionais. O
+                checklist aparece depois do cadastro, que tem três passos: dados de acesso, nome da
+                rádio e ativação do Locufy Flex com cartão (veja{" "}
+                <a href="#assinatura" className="text-acento-claro underline hover:text-acento-dim">
+                  Assinatura e consumo
+                </a>
+                ).
               </p>
               <Shot src="dashboard" legenda="Visão geral logo após criar a conta, com o checklist de setup." />
             </section>

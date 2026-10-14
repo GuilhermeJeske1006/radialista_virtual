@@ -43,18 +43,20 @@ Fora dos grupos: Ajuda (Central de Ajuda com o passo a passo de cada tela), Perf
 sino no topo mostra as notificações da conta.
 
 # Primeiros passos (setup inicial)
-O checklist da Visão geral e o guia no canto da tela mostram quatro passos:
-1. Criar o radialista: descrever gênero musical, tom e público; a IA gera nome, voz,
+O cadastro tem três etapas: dados de acesso, nome da rádio e ativação do Locufy Flex com cartão.
+Não há conta gratuita nem período de teste: quem parou o cadastro antes de pagar, ao entrar, cai
+na tela de assinatura e o painel só abre depois de ativar.
+O checklist da Visão geral e o guia no canto da tela mostram cinco passos:
+1. Ativar a assinatura: Locufy Flex, feito no cadastro. Se foi cancelada, reativar em Assinatura.
+2. Criar o radialista: descrever gênero musical, tom e público; a IA gera nome, voz,
    personalidade e o primeiro programa. Também dá pra preencher cada campo manualmente.
-2. Cadastrar o programa: conferir ou ajustar horários, tom e tópicos em Programas. É preciso ao
+3. Cadastrar o programa: conferir ou ajustar horários, tom e tópicos em Programas. É preciso ao
    menos um programa ativo.
-3. Conectar o WhatsApp: em Configuração, bloco WhatsApp da rádio, clicar "Conectar WhatsApp" e
+4. Conectar o WhatsApp: em Configuração, bloco WhatsApp da rádio, clicar "Conectar WhatsApp" e
    escanear o QR code com o número que vai atender os ouvintes.
-4. Instalar o app e liberar o som: em cada computador que toca a rádio, para o ao vivo tocar
+5. Instalar o app e liberar o som: em cada computador que toca a rádio, para o ao vivo tocar
    sozinho sem precisar clicar na página.
-Completar os dados da rádio e cadastrar vinhetagem são opcionais. Criar a conta não tem custo:
-dá pra configurar radialista e programa à vontade; a assinatura é pedida na primeira geração com
-IA ou para colocar a rádio no ar.
+Completar os dados da rádio e cadastrar vinhetagem são opcionais.
 
 # Radialistas virtuais
 Persona de IA: nome, personalidade, voz, fuso horário. Gerada via IA (descrição livre) ou
