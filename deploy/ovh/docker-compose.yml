@@ -27,13 +27,14 @@ services:
       POSTGRES_PASSWORD: ${APP_DB_PASSWORD:?defina APP_DB_PASSWORD}
       POSTGRES_DB: radialista
       WUZAPI_DB_PASSWORD: ${WUZAPI_DB_PASSWORD:?defina WUZAPI_DB_PASSWORD}
+      BARBERYA_WUZAPI_DB_PASSWORD: ${BARBERYA_WUZAPI_DB_PASSWORD:?defina BARBERYA_WUZAPI_DB_PASSWORD}
     # So no localhost do VPS, fechado para a internet. Acesso do Mac por tunel:
     #   ssh -N -L 5434:127.0.0.1:5432 ubuntu@40.160.150.84
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      # Cria o banco/usuario do WuzAPI na primeira subida (volume vazio).
+      # Cria os bancos/usuarios dos WuzAPI na primeira subida (volume vazio).
       - ./postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U radialista"]
@@ -68,6 +69,35 @@ services:
       DB_SSLMODE: disable
     volumes:
       - wuzapi_sessions:/app/sessions
+
+  # WhatsApp da Barberya (outro sistema), provisorio enquanto ela nao tem
+  # servidor proprio. Instancia separada de proposito: o WUZAPI_GLOBAL_WEBHOOK
+  # acima manda eventos de todos os usuarios para o backend do Locufy, e o
+  # admin token de uma instancia nao pode mexer nas sessoes da outra.
+  # Publicado em wa.locufybr.com (Caddyfile) porque a Barberya roda fora daqui.
+  wuzapi-barberya:
+    image: asternic/wuzapi:1.0.9
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Teto para nunca disputar CPU/RAM com o Locufy.
+    mem_limit: 256m
+    cpus: "0.5"
+    environment:
+      WUZAPI_ADMIN_TOKEN: ${BARBERYA_WUZAPI_ADMIN_TOKEN:?defina BARBERYA_WUZAPI_ADMIN_TOKEN}
+      WUZAPI_GLOBAL_ENCRYPTION_KEY: ${BARBERYA_WUZAPI_ENCRYPTION_KEY:?defina BARBERYA_WUZAPI_ENCRYPTION_KEY}
+      WUZAPI_GLOBAL_HMAC_KEY: ${BARBERYA_WUZAPI_HMAC_KEY:?defina BARBERYA_WUZAPI_HMAC_KEY}
+      # Sem webhook global e sem WEBHOOK_FORMAT: a Barberya configura o webhook
+      # por sessao e le o formato padrao (form com o evento em "jsonData").
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: wuzapi_barberya
+      DB_USER: wuzapi_barberya
+      DB_PASSWORD: ${BARBERYA_WUZAPI_DB_PASSWORD}
+      DB_SSLMODE: disable
+    volumes:
+      - wuzapi_barberya_sessions:/app/sessions
 
   backend:
     image: ghcr.io/guilhermejeske1006/locufy-backend:${IMAGE_TAG:-latest}
@@ -117,4 +147,5 @@ volumes:
   caddy_config:
   postgres_data:
   wuzapi_sessions:
+  wuzapi_barberya_sessions:
   backend_logs:

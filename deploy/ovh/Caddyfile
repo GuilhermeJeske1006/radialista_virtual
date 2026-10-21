@@ -41,3 +41,10 @@ locufybr.com {
 www.locufybr.com {
 	redir https://locufybr.com{uri} permanent
 }
+
+# WuzAPI da Barberya (ver wuzapi-barberya no docker-compose.yml). A API
+# exige o admin token ou o token da sessao em todo request.
+wa.locufybr.com {
+	import comum
+	reverse_proxy wuzapi-barberya:8080
+}
