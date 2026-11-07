@@ -1,0 +1,327 @@
+{
+  "id": "musical_adulto",
+  "descricao": "Música brasileira adulta fictícia para o perfil musical adulto. Nomes inventados.",
+  "faixas": [
+    {
+      "video_id": "sim-mad-01",
+      "titulo": "Rua das Acácias",
+      "artista": "Duo Estrada Velha",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 264
+    },
+    {
+      "video_id": "sim-mad-02",
+      "titulo": "Varanda de Pedra",
+      "artista": "Trio Ventania",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 280,
+      "contexto": "Gravada ao vivo num teatro pequeno, segundo o encarte fictício do disco."
+    },
+    {
+      "video_id": "sim-mad-03",
+      "titulo": "Lua no Telhado",
+      "artista": "Coral Alto",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 278
+    },
+    {
+      "video_id": "sim-mad-04",
+      "titulo": "Ponte de Madeira",
+      "artista": "Helena Marés",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 257,
+      "fim_s": 249
+    },
+    {
+      "video_id": "sim-mad-05",
+      "titulo": "Janela para o Mar",
+      "artista": "Tomás Ribeira",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 246
+    },
+    {
+      "video_id": "sim-mad-06",
+      "titulo": "Cais do Entardecer",
+      "artista": "Banda Fio de Prata",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 274,
+      "contexto": "Faixa que abre o disco, com arranjo só de violão e voz."
+    },
+    {
+      "video_id": "sim-mad-07",
+      "titulo": "Cartas de Outono",
+      "artista": "Dora Vilarejo",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 236
+    },
+    {
+      "video_id": "sim-mad-08",
+      "titulo": "Jardim Suspenso",
+      "artista": "Otávio Pedregal",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 230
+    },
+    {
+      "video_id": "sim-mad-09",
+      "titulo": "Vento de Agosto",
+      "artista": "Nina Arrebol",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 271,
+      "fim_s": 266
+    },
+    {
+      "video_id": "sim-mad-10",
+      "titulo": "Bicicleta Azul",
+      "artista": "Conjunto Maré Mansa",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 210,
+      "contexto": "Composta numa viagem de trem, conta o encarte fictício."
+    },
+    {
+      "video_id": "sim-mad-11",
+      "titulo": "Chuva de Domingo",
+      "artista": "Rui Lamparina",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 226
+    },
+    {
+      "video_id": "sim-mad-12",
+      "titulo": "Estação Primavera",
+      "artista": "Clara Bromélia",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 261
+    },
+    {
+      "video_id": "sim-mad-indisponivel",
+      "titulo": "Canção do Sereno",
+      "artista": "Lia Candeia",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 230,
+      "indisponivel": true
+    },
+    {
+      "video_id": "sim-mad-13",
+      "titulo": "Café com Neblina",
+      "artista": "Duo Estrada Velha",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 264
+    },
+    {
+      "video_id": "sim-mad-14",
+      "titulo": "Barquinho de Jornal",
+      "artista": "Trio Ventania",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 216,
+      "fim_s": 211,
+      "contexto": "Gravada ao vivo num teatro pequeno, segundo o encarte fictício do disco."
+    },
+    {
+      "video_id": "sim-mad-15",
+      "titulo": "Telhados de Lisboa",
+      "artista": "Coral Alto",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 234
+    },
+    {
+      "video_id": "sim-mad-16",
+      "titulo": "Pássaro Sem Pressa",
+      "artista": "Helena Marés",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 252
+    },
+    {
+      "video_id": "sim-mad-17",
+      "titulo": "Sal da Maré",
+      "artista": "Tomás Ribeira",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 267
+    },
+    {
+      "video_id": "sim-mad-18",
+      "titulo": "Caminho das Pitangas",
+      "artista": "Banda Fio de Prata",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 222,
+      "contexto": "Faixa que abre o disco, com arranjo só de violão e voz."
+    },
+    {
+      "video_id": "sim-mad-19",
+      "titulo": "Varal de Estrelas",
+      "artista": "Dora Vilarejo",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 203,
+      "fim_s": 195
+    },
+    {
+      "video_id": "sim-mad-20",
+      "titulo": "Moinho Antigo",
+      "artista": "Otávio Pedregal",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 285
+    },
+    {
+      "video_id": "sim-mad-21",
+      "titulo": "Canção para Helena",
+      "artista": "Nina Arrebol",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 254
+    },
+    {
+      "video_id": "sim-mad-22",
+      "titulo": "Sobrado Amarelo",
+      "artista": "Conjunto Maré Mansa",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 269,
+      "contexto": "Composta numa viagem de trem, conta o encarte fictício."
+    },
+    {
+      "video_id": "sim-mad-23",
+      "titulo": "Areia Fina",
+      "artista": "Rui Lamparina",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 247
+    },
+    {
+      "video_id": "sim-mad-24",
+      "titulo": "Relógio de Sol",
+      "artista": "Clara Bromélia",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 258,
+      "fim_s": 254
+    },
+    {
+      "video_id": "sim-mad-25",
+      "titulo": "Quintal de Mangueiras",
+      "artista": "Duo Estrada Velha",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 228
+    },
+    {
+      "video_id": "sim-mad-26",
+      "titulo": "Farol Distante",
+      "artista": "Trio Ventania",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 253,
+      "contexto": "Gravada ao vivo num teatro pequeno, segundo o encarte fictício do disco."
+    },
+    {
+      "video_id": "sim-mad-27",
+      "titulo": "Noite de Vagalumes",
+      "artista": "Coral Alto",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 241
+    },
+    {
+      "video_id": "sim-mad-28",
+      "titulo": "Vitrola Velha",
+      "artista": "Helena Marés",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 209
+    },
+    {
+      "video_id": "sim-mad-29",
+      "titulo": "Porto das Gaivotas",
+      "artista": "Tomás Ribeira",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 256,
+      "fim_s": 248
+    },
+    {
+      "video_id": "sim-mad-30",
+      "titulo": "Serenata no Beco",
+      "artista": "Banda Fio de Prata",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 213,
+      "contexto": "Faixa que abre o disco, com arranjo só de violão e voz."
+    },
+    {
+      "video_id": "sim-mad-31",
+      "titulo": "Rio Sem Margem",
+      "artista": "Dora Vilarejo",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 219
+    },
+    {
+      "video_id": "sim-mad-32",
+      "titulo": "Tecelã de Nuvens",
+      "artista": "Otávio Pedregal",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 256
+    },
+    {
+      "video_id": "sim-mad-33",
+      "titulo": "Ladeira do Sol",
+      "artista": "Nina Arrebol",
+      "generos": [
+        "mpb"
+      ],
+      "duracao_s": 220
+    }
+  ]
+}

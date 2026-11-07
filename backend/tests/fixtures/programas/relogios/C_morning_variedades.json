@@ -1,0 +1,142 @@
+{
+  "id": "C",
+  "nome": "Morning show/variedades",
+  "fonte": "docs/pesquisa-radio-locufy.md §9.C",
+  "hipotese": true,
+  "nota": "Hipótese de projeto: os intervalos da §9 são reservas ilustrativas, não recomendação comercial. hard_time marca o que não pode atrasar (tolerância de 5 s, critério da F1). Na F0 o backend ainda não conhece relógios: este arquivo só mede.",
+  "eventos": [
+    {
+      "inicio_s": 0,
+      "duracao_s": 120,
+      "tipo": "abertura",
+      "grupo": "fala",
+      "rotulo": "Abertura e pergunta do dia",
+      "natureza": "obrigatorio",
+      "hard_time": true,
+      "corresponde_a": [
+        "abertura"
+      ]
+    },
+    {
+      "inicio_s": 120,
+      "duracao_s": 480,
+      "tipo": "musica",
+      "grupo": "musica",
+      "rotulo": "Música",
+      "natureza": "ajustavel",
+      "hard_time": false,
+      "corresponde_a": [
+        "musica"
+      ]
+    },
+    {
+      "inicio_s": 600,
+      "duracao_s": 360,
+      "tipo": "bancada",
+      "grupo": "fala",
+      "rotulo": "Conversa de bancada",
+      "natureza": "ajustavel",
+      "hard_time": false,
+      "corresponde_a": [
+        "comentario"
+      ]
+    },
+    {
+      "inicio_s": 960,
+      "duracao_s": 180,
+      "tipo": "intervalo",
+      "grupo": "intervalo",
+      "rotulo": "Intervalo",
+      "natureza": "obrigatorio",
+      "hard_time": true,
+      "corresponde_a": [
+        "intervalo"
+      ]
+    },
+    {
+      "inicio_s": 1140,
+      "duracao_s": 360,
+      "tipo": "servico",
+      "grupo": "fala",
+      "rotulo": "Serviço e pauta do dia",
+      "natureza": "ajustavel",
+      "hard_time": false,
+      "corresponde_a": [
+        "servico",
+        "comentario"
+      ]
+    },
+    {
+      "inicio_s": 1500,
+      "duracao_s": 540,
+      "tipo": "musica",
+      "grupo": "musica",
+      "rotulo": "Música",
+      "natureza": "ajustavel",
+      "hard_time": false,
+      "corresponde_a": [
+        "musica"
+      ]
+    },
+    {
+      "inicio_s": 2040,
+      "duracao_s": 420,
+      "tipo": "jogo",
+      "grupo": "fala",
+      "rotulo": "Participação ou jogo",
+      "natureza": "ajustavel",
+      "hard_time": false,
+      "corresponde_a": [
+        "chamada_ouvinte"
+      ]
+    },
+    {
+      "inicio_s": 2460,
+      "duracao_s": 180,
+      "tipo": "intervalo",
+      "grupo": "intervalo",
+      "rotulo": "Intervalo",
+      "natureza": "obrigatorio",
+      "hard_time": true,
+      "corresponde_a": [
+        "intervalo"
+      ]
+    },
+    {
+      "inicio_s": 2640,
+      "duracao_s": 360,
+      "tipo": "quadro",
+      "grupo": "fala",
+      "rotulo": "Quadro recorrente",
+      "natureza": "ajustavel",
+      "hard_time": false,
+      "corresponde_a": [
+        "comentario"
+      ]
+    },
+    {
+      "inicio_s": 3000,
+      "duracao_s": 480,
+      "tipo": "musica",
+      "grupo": "musica",
+      "rotulo": "Música",
+      "natureza": "ajustavel",
+      "hard_time": false,
+      "corresponde_a": [
+        "musica"
+      ]
+    },
+    {
+      "inicio_s": 3480,
+      "duracao_s": 120,
+      "tipo": "fechamento",
+      "grupo": "fala",
+      "rotulo": "Fechamento e próxima edição",
+      "natureza": "obrigatorio",
+      "hard_time": true,
+      "corresponde_a": [
+        "encerramento"
+      ]
+    }
+  ]
+}
