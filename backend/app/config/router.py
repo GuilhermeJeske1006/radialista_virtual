@@ -2,8 +2,8 @@ import datetime
 import logging
 from typing import Literal
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
-from pydantic import BaseModel, Field, ValidationError
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, status
+from pydantic import BaseModel, Field, ValidationError, ValidatorFunctionWrapHandler, field_validator
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_account
@@ -20,6 +20,7 @@ from app.llm.config_generator import (
     reparar_programa_ia,
 )
 from app.llm.tipos_radio import TIPOS_RADIO, tipo_radio_valido
+from app.live.relogio import PRESETS_INFO, RelogioHora, TotaisRelogio, mensagens_de_erro, totais
 from app.models.account import Account
 from app.models.assunto_programa import AssuntoPrograma
 from app.models.fila_ao_vivo import FilaAoVivo
@@ -167,8 +168,33 @@ class ProgramaRequest(BaseModel):
 class ProgramaResponse(ProgramaRequest):
     id: int
     radio_config_id: int
+    # Relogio da hora (F1). Fora de ProgramaRequest de proposito (D6): os PUTs atuais ecoam o
+    # programa inteiro e nao podem apaga-lo; grava-se por PUT/DELETE /programas/{id}/relogio.
+    relogio_hora: RelogioHora | None = None
 
     model_config = {"from_attributes": True}
+
+    @field_validator("relogio_hora", mode="wrap")
+    @classmethod
+    def _relogio_tolerante(cls, valor, handler: ValidatorFunctionWrapHandler):
+        """JSON invalido no banco aparece como null (com log), em vez de derrubar a leitura."""
+        if valor is None:
+            return None
+        try:
+            return handler(valor)
+        except ValidationError as erro:
+            logger.warning("relogio_hora_invalido_na_leitura erros=%s", mensagens_de_erro(erro))
+            return None
+
+
+class PresetRelogioResponse(BaseModel):
+    id: str
+    nome: str
+    descricao: str
+    fonte: str
+    nota: str = ""
+    relogio: RelogioHora
+    totais: TotaisRelogio
 
 
 class RadialistaProgramaRequest(BaseModel):
@@ -1316,6 +1342,52 @@ def atualizar_programa(
     _validar_conflito_horario(db, account.id, dados, programa_id=programa.id)
     for campo, valor in dados.model_dump().items():
         setattr(programa, campo, valor)
+    db.commit()
+    db.refresh(programa)
+    return programa
+
+
+@router.get("/relogios/presets", response_model=list[PresetRelogioResponse])
+def listar_presets_relogio(account: Account = Depends(get_current_account)):
+    """Relogios de referencia A, B e C (pesquisa §9; hipoteses de projeto, ver app/live/relogios)."""
+    return [
+        PresetRelogioResponse(id=p.id, nome=p.nome, descricao=p.descricao, fonte=p.fonte, nota=p.nota,
+                              relogio=p.relogio, totais=totais(p.relogio))
+        for p in PRESETS_INFO.values()
+    ]
+
+
+@router.put("/programas/{programa_id}/relogio", response_model=ProgramaResponse)
+def gravar_relogio_programa(
+    programa_id: int,
+    dados: dict = Body(...),
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Substitui o relogio da hora do programa inteiro. Relogio invalido = 422 com a mensagem em
+    portugues e nada gravado."""
+    programa = _buscar_programa(db, account, programa_id)
+    try:
+        relogio = RelogioHora.model_validate(dados)
+    except ValidationError as erro:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail=" ".join(mensagens_de_erro(erro))) from erro
+    programa.relogio_hora = relogio.model_dump(mode="json")
+    db.commit()
+    db.refresh(programa)
+    logger.info("Relogio do programa gravado: id=%s preset=%s", programa.id, relogio.preset)
+    return programa
+
+
+@router.delete("/programas/{programa_id}/relogio", response_model=ProgramaResponse)
+def remover_relogio_programa(
+    programa_id: int,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Volta o programa a seguir a estrutura_blocos (sem relogio)."""
+    programa = _buscar_programa(db, account, programa_id)
+    programa.relogio_hora = None
     db.commit()
     db.refresh(programa)
     return programa
