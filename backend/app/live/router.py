@@ -39,6 +39,7 @@ from app.live.relogio import (
     Plano,
     RelogioAoVivo,
     duracao_musica_s,
+    duracao_preferida_musica_s,
     duracao_prevista_bloco,
     etapas_executadas,
     instante_previsto,
@@ -1656,7 +1657,7 @@ def _selecionar_musica_que_cabe(
     for _ in range(CONFIG_RELOGIO.musica_tentativas_teto):
         musica, query = _selecionar_musica_para_bloco(
             db, programa, rotulo_bloco, evitar_ids=rejeitadas, evitar_titulos=titulos_rejeitados,
-            duracao_max_s=plano.duracao_max_musica_s,
+            duracao_max_s=duracao_preferida_musica_s(plano, CONFIG_RELOGIO),
         )
         if musica is None:
             break

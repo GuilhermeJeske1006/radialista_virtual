@@ -221,6 +221,8 @@ UNIDADES_PADRAO: dict[str, tuple[int, int]] = {
     "fechamento_curto": (6, 15),
     # Parte de um fechamento longo (B, C: 2 min) que vem antes do encerramento propriamente dito.
     "resumo": (20, 90),
+    # Link de preenchimento (formato padrão) quando nenhuma faixa cabe antes do hard time.
+    "preenchimento": (10, 60),
     # Anúncio de pedido real numa etapa de música.
     "musica": (4, 20),
 }
@@ -231,12 +233,19 @@ class ConfigRelogio:
     wpm: float = 145                       # mesmo ritmo da F0; a F2 calibra por voz
     tolerancia_hard_time_s: int = 5        # critério de aceite da F1
     adiantamento_max_s: int = 90           # quanto um compromisso pode começar mais cedo (D3)
+    # No fim do programa, começar cedo vira buraco no ar: a sobra antes do encerramento é menor.
+    adiantamento_final_max_s: int = 45
+    # Faixa ou peça pode terminar até este tanto depois do hard time: a pausa entre blocos (até 0,8 s no
+    # ritmo editorial) ainda cabe na tolerância de 5 s do início do compromisso.
+    folga_teto_s: int = 3
+    # O encerramento usa a parte de cima do espaço que tem: mínimo = máximo − esta janela.
+    janela_encerramento_s: int = 10
     graca_pos_fim_s: int = 1200            # igual a schedule._GRACA_APOS_FIM_MIN
     inicio_previsto_max_s: int = 1800      # horário previsto acima disso é ignorado
     musica_duracao_padrao_s: int = 210     # faixa de duração desconhecida
     # Menor faixa que se espera achar: uma sobra menor que isto antes do hard time não cabe outra
     # música. Usada para não escolher uma faixa que deixe uma sobra impossível de preencher.
-    musica_duracao_min_s: int = 180
+    musica_duracao_min_s: int = 200
     # Abaixo disso nem se busca música (a busca rejeita faixas mais curtas, ver app.live.music).
     musica_busca_min_s: int = 120
     # Quanto uma faixa pode avançar sobre a etapa ajustável seguinte (que então se desloca).
@@ -406,6 +415,17 @@ def _utc(valor: datetime.datetime) -> datetime.datetime:
     if valor.tzinfo is None:
         valor = valor.replace(tzinfo=datetime.timezone.utc)
     return valor.astimezone(datetime.timezone.utc)
+
+
+def ler_inicio_previsto(texto: str | None) -> datetime.datetime | None:
+    """ISO 8601 do painel. Inválido → None (vale o horário atual), com log."""
+    if not texto:
+        return None
+    try:
+        return datetime.datetime.fromisoformat(texto.strip().replace("Z", "+00:00"))
+    except ValueError:
+        logger.info("relogio_inicio_previsto_invalido valor=%r", texto[:64])
+        return None
 
 
 def instante_previsto(valor: datetime.datetime | None, agora: datetime.datetime,
@@ -731,7 +751,7 @@ class _Decisao:
             if chave in self.executadas:
                 continue
             if tipo == "vinheta":
-                if valor.duracao_s > espaco + self.cfg.tolerancia_hard_time_s:
+                if valor.duracao_s > espaco + self.cfg.folga_teto_s:
                     continue
                 return self._plano(indice, "peca", f"vinheta:{valor.id}", chave_estado=chave)
             bloco, unidade, primeira = valor
@@ -746,7 +766,7 @@ class _Decisao:
         espaco = self.espaco(indice, self.compromisso_apos(indice))
         for peca in self.pecas.patrocinadores:
             chave = f"{etapa.chave}:patrocinador:{peca.id}"
-            if chave in self.executadas or peca.duracao_s > espaco + self.cfg.tolerancia_hard_time_s:
+            if chave in self.executadas or peca.duracao_s > espaco + self.cfg.folga_teto_s:
                 continue
             return self._plano(indice, "intervalo", f"patrocinador:{peca.id}", chave_estado=chave)
         return None
@@ -759,7 +779,7 @@ class _Decisao:
         if seguinte == compromisso:
             return self._janela(indice, compromisso, puladas)
         espaco = self.espaco(indice, compromisso)
-        teto = min(espaco + self.cfg.tolerancia_hard_time_s,
+        teto = min(espaco + self.cfg.folga_teto_s,
                    max(0.0, self._ate(self.espelho[seguinte].inicio)) + self.cfg.musica_invasao_max_s)
         # Nenhuma faixa cabe: a etapa ajustável seguinte começa mais cedo (desloca para antes).
         alternativa = self._a_partir(seguinte, puladas)
@@ -781,35 +801,45 @@ class _Decisao:
         deixar sobra impossível), senão reserva, link de preenchimento e, por último, adiantamento."""
         espaco = self.espaco(base, compromisso)
         alternativa = self._alternativa_antes_do_compromisso(base, compromisso, espaco, puladas)
-        teto = espaco + self.cfg.tolerancia_hard_time_s
+        teto = espaco + self.cfg.folga_teto_s
         if teto < self.cfg.musica_busca_min_s:
             return alternativa
-        preenchimento = 0 if self.formato_musical else self.cfg.unidades["link"][1]
-        piso, topo = self.cfg.adiantamento_max_s + preenchimento, self.cfg.musica_duracao_min_s
+        preenchimento = 0 if self.formato_musical else self.cfg.unidades["preenchimento"][1]
+        final = self.espelho[compromisso].tipo_efetivo == "encerramento"
+        adiantamento = self.cfg.adiantamento_final_max_s if final else self.cfg.adiantamento_max_s
+        piso, topo = adiantamento + preenchimento, self.cfg.musica_duracao_min_s
         return self._plano_musica(base, teto, (piso, topo) if topo > piso else None, alternativa, puladas)
 
     def _alternativa_antes_do_compromisso(self, indice: int, compromisso: int, espaco: float,
                                           puladas: list[str]) -> Plano:
-        """Nenhuma faixa cabe antes do hard time: reserva, link de preenchimento, adiantamento."""
+        """Nenhuma faixa cabe antes do hard time: reserva, link de preenchimento, adiantamento. Reserva e
+        link usam o mínimo que deixa o resto dentro do adiantamento permitido, quando a unidade deixa."""
         etapa = self.espelho[indice]
+        final = self.espelho[compromisso].tipo_efetivo == "encerramento"
+        permitido = self.cfg.adiantamento_final_max_s if final else self.cfg.adiantamento_max_s
+
+        def orcamento(minimo: int, maximo: int) -> tuple[int, int]:
+            limite = math.floor(min(maximo, espaco))
+            return max(minimo, min(limite, math.floor(espaco - permitido))), limite
+
         chave_reserva = f"{etapa.chave}:reserva"
         if chave_reserva not in self.executadas:
             vinheta = next((v for v in self.pecas.vinhetas_passagem
-                            if v.duracao_s <= espaco + self.cfg.tolerancia_hard_time_s), None)
+                            if v.duracao_s <= espaco + self.cfg.folga_teto_s), None)
             if vinheta is not None:
                 return self._plano(indice, "reserva", f"vinheta:{vinheta.id}", chave_estado=chave_reserva,
                                    puladas=tuple(puladas))
             p_min, p_max, teto_palavras = self.unidade("passagem", "identificacao", False)
             if espaco >= p_min:
-                limite = math.floor(min(p_max, espaco))
-                return self._plano(indice, "reserva", "identificacao", orcamento_s=(p_min, limite),
+                minimo, limite = orcamento(p_min, p_max)
+                return self._plano(indice, "reserva", "identificacao", orcamento_s=(minimo, limite),
                                    palavras_max=self._palavras(limite, teto_palavras), chave_estado=chave_reserva,
                                    puladas=tuple(puladas))
         chave_link = f"{etapa.chave}:preenchimento"
-        l_min, l_max = self.cfg.unidades["link"]
+        l_min, l_max = self.cfg.unidades["preenchimento"]
         if not self.formato_musical and chave_link not in self.executadas and espaco >= l_min:
-            limite = math.floor(min(l_max, espaco))
-            return self._plano(indice, "reserva", "comentario", orcamento_s=(l_min, limite),
+            minimo, limite = orcamento(l_min, l_max)
+            return self._plano(indice, "reserva", "comentario", orcamento_s=(minimo, limite),
                                palavras_max=self._palavras(limite, None), chave_estado=chave_link,
                                puladas=tuple(puladas))
         return self._a_partir(compromisso, puladas, adiantar=True)
@@ -818,6 +848,7 @@ class _Decisao:
         minimo, maximo, teto_palavras = self.unidade("encerramento", "encerramento", False)
         disponivel = self._ate(self.ocorrencia.fim) - self.pecas.vinheta_encerramento_s
         limite = max(minimo, min(maximo, math.floor(disponivel)))
+        minimo = max(minimo, limite - self.cfg.janela_encerramento_s)
         return self._plano(indice, "encerramento", "encerramento", orcamento_s=(minimo, limite),
                            palavras_max=self._palavras(limite, teto_palavras), puladas=tuple(puladas))
 
@@ -915,6 +946,18 @@ def duracao_prevista_bloco(resposta, cfg: ConfigRelogio = CONFIG_PADRAO, *, dura
     return round(total, 2)
 
 
+def duracao_preferida_musica_s(plano: Plano, cfg: ConfigRelogio = CONFIG_PADRAO) -> int | None:
+    """Duração máxima a preferir na busca: com sobra proibida e espaço para mais de uma faixa, uma que
+    ainda deixe lugar para outra música; senão o próprio teto."""
+    if plano.duracao_max_musica_s is None:
+        return None
+    if plano.sobra_proibida_s is not None and plano.espaco_s is not None:
+        com_folga = math.floor(plano.espaco_s - plano.sobra_proibida_s[1])
+        if com_folga >= cfg.musica_busca_min_s:
+            return min(com_folga, plano.duracao_max_musica_s)
+    return plano.duracao_max_musica_s
+
+
 def musica_cabe(duracao_s: float, plano: Plano, cfg: ConfigRelogio = CONFIG_PADRAO, *, estrito: bool = True) -> bool:
     """A faixa cabe no teto do plano e (no modo estrito) não deixa uma sobra impossível."""
     if plano.duracao_max_musica_s is not None and duracao_s > plano.duracao_max_musica_s:
@@ -954,6 +997,8 @@ class RelogioAoVivo(BaseModel):
     espaco_s: float | None = None
     acao: str
     orcamento_s: tuple[int, int] | None = None
+    # Etapas puladas nesta decisão (sem espaço), marcadas como executadas.
+    puladas: list[str] = []
 
 
 def _etapa_ao_vivo(etapa: Etapa) -> EtapaAoVivo:
@@ -968,7 +1013,7 @@ def relogio_ao_vivo(plano: Plano, preset: str | None, aceito: bool) -> RelogioAo
         etapa=_etapa_ao_vivo(plano.etapa),
         proximo_compromisso=_etapa_ao_vivo(plano.proximo_compromisso) if plano.proximo_compromisso else None,
         segundos_ate_hard_time=plano.segundos_ate_hard_time, espaco_s=plano.espaco_s, acao=plano.acao,
-        orcamento_s=plano.orcamento_s,
+        orcamento_s=plano.orcamento_s, puladas=list(plano.puladas),
     )
 
 

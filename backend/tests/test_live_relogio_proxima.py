@@ -281,7 +281,8 @@ def test_i7_teto_de_musica_so_com_relogio_e_faixa_longa_nao_registrada(
     monkeypatch.setattr("app.live.router._selecionar_musica_para_bloco", selecionar)
     _marcar(programa, "0:0:fala:abertura", "0:720")
     dados = _post(client, account, auth_headers, radialista, programa, inicio_previsto="2026-11-10T12:20:00-03:00")
-    assert chamadas and all(c["duracao_max_s"] == 245 for c in chamadas)
+    assert len(chamadas) == 3 and all(c["duracao_max_s"] == 243 for c in chamadas)
+    assert chamadas[-1]["evitar_ids"] == {"longa1", "longa2", "longa3"}  # a rejeitada não volta
     assert _historico_musicas(programa.id)[0] == set()
     assert dados["video_id"] is None and dados["relogio"]["acao"] == "reserva"
 

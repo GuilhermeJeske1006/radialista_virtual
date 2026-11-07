@@ -291,8 +291,10 @@ def test_u13_musica_teto_e_alternativas(caplog):
     instante = _em(10, 14, 20, 0)  # 240 s antes do intervalo de 14:24
     feito = ABERTURA_FEITA + ("0:720",)
     plano = _planejar(programa, instante, executadas=feito)
-    assert (plano.acao, plano.duracao_max_musica_s) == ("musica", 245)
-    assert plano.sobra_proibida_s == (125, 180)
+    # Teto = espaço + folga (3 s: a pausa entre blocos ainda cabe nos 5 s de tolerância do hard time).
+    assert (plano.acao, plano.duracao_max_musica_s) == ("musica", 243)
+    # Sobra que nem faixa (mín. 200 s) nem preenchimento (60 s) + adiantamento (90 s) cobrem.
+    assert plano.sobra_proibida_s == (150, 200)
     assert (plano.alternativa.acao, plano.alternativa.tipo_bloco) == ("reserva", "identificacao")
     plano = _planejar(programa, instante, executadas=feito + ("0:755:reserva",))
     assert (plano.alternativa.acao, plano.alternativa.tipo_bloco) == ("reserva", "comentario")
@@ -303,8 +305,13 @@ def test_u13_musica_teto_e_alternativas(caplog):
 
     perto = _planejar(programa, _em(10, 14, 22, 40), executadas=feito + ("0:755:reserva", "0:755:preenchimento"))
     assert (perto.acao, perto.tipo_bloco, perto.forcado) == ("adiantamento", "patrocinador:5", False)
-    assert r.musica_cabe(240, plano) and not r.musica_cabe(246, plano)
-    assert not r.musica_cabe(100, plano) and r.musica_cabe(100, plano, estrito=False)
+    assert r.musica_cabe(240, plano) and not r.musica_cabe(244, plano)
+    assert not r.musica_cabe(60, plano) and r.musica_cabe(60, plano, estrito=False)
+    assert r.duracao_preferida_musica_s(plano) == 243  # espaço para uma faixa só
+    longe = _planejar(programa, _em(10, 14, 13), executadas=feito)
+    assert r.duracao_preferida_musica_s(longe) == 660 - 200  # deixa lugar para outra música
+    # Antes de uma etapa ajustável, a faixa pode avançar no máximo 60 s sobre ela.
+    assert _planejar(programa, _em(10, 14, 10), executadas=ABERTURA_FEITA).duracao_max_musica_s == 120 + 60
 
 
 def test_u14_intervalo_por_patrocinador():
@@ -332,7 +339,8 @@ def test_u15_etapa_deslocada_acontece_antes_do_hard_time():
 def test_u16_encerramento():
     programa = _programa()
     plano = _planejar(programa, _em(10, 14, 59, 30))
-    assert (plano.acao, plano.orcamento_s) == ("encerramento", (15, 27))  # 30 s − 3 s da vinheta
+    # 30 s − 3 s da vinheta; usa a parte de cima do espaço (janela de 10 s).
+    assert (plano.acao, plano.orcamento_s) == ("encerramento", (17, 27))
     assert _planejar(programa, _em(10, 14, 59, 50)).orcamento_s == (15, 15)
     assert _planejar(programa, _em(10, 15, 5)).acao == "encerramento"  # depois do fim, na graça
     assert _planejar(programa, _em(10, 14, 59, 30), musical=True).orcamento_s == (10, 18)
@@ -380,8 +388,10 @@ def test_u20_numeros_vem_da_configuracao():
     assert (plano.orcamento_s, plano.palavras_max) == ((10, 20), 40)
     instante = _em(10, 14, 20, 0)
     feito = ABERTURA_FEITA + ("0:720",)
-    tolerante = r.ConfigRelogio(tolerancia_hard_time_s=20)
+    tolerante = r.ConfigRelogio(folga_teto_s=20)
     assert _planejar(programa, instante, executadas=feito, cfg=tolerante).duracao_max_musica_s == 260
+    sem_folga = r.ConfigRelogio(musica_duracao_min_s=170, adiantamento_max_s=60)
+    assert _planejar(programa, instante, executadas=feito, cfg=sem_folga).sobra_proibida_s == (120, 170)
 
 
 def test_u21_estado_no_redis_falha_aberto(monkeypatch, caplog):
