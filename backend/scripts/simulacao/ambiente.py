@@ -161,3 +161,32 @@ def semear(sessao, fixture) -> Cenario:
         timezone=fixture.radialista.timezone, vinhetas=vinhetas, patrocinadores=patrocinadores,
         estrutura_blocos=list(programa.estrutura_blocos),
     )
+
+
+def aplicar_relogio(sessao, cenario: Cenario, relogio_fixture, duracao_programa_s: int) -> dict:
+    """Grava no programa o relógio da fixture (F1). Os presets de app.live.relogio são a fonte de verdade;
+    um relógio de arquivo que não é preset é validado pelo mesmo modelo do backend. Devolve, para o as_run,
+    o preset e os hard times da primeira hora que o espelho efetivo do backend mantém (por exemplo, intervalo
+    sem patrocinador na sequência vira música e deixa de ser hard time)."""
+    import datetime
+
+    from app.live import relogio as r
+    from app.live.router import _pecas_do_relogio
+    from app.models.account import Account
+    from app.models.programa import Programa
+
+    modelo = r.PRESETS.get(relogio_fixture.id) or r.RelogioHora.model_validate(relogio_fixture.model_dump())
+    programa = sessao.get(Programa, cenario.programa_id)
+    programa.relogio_hora = modelo.model_dump(mode="json")
+    sessao.commit()
+    pecas = _pecas_do_relogio(sessao, sessao.get(Account, cenario.account_id), programa)
+    inicio = datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc)
+    ocorrencia = r.Ocorrencia(inicio=inicio, fim=inicio + datetime.timedelta(seconds=duracao_programa_s),
+                              data=inicio.date())
+    espelho = r.montar_espelho(modelo, ocorrencia, pecas=pecas)
+    return {
+        "preset": modelo.preset,
+        "hard_times_efetivos": sorted({e.evento.inicio_s for e in espelho if e.hard_time and e.hora == 0}),
+        "patrocinadores": len(pecas.patrocinadores),
+        "tem_fonte_noticia": pecas.tem_fonte_noticia,
+    }

@@ -4,11 +4,16 @@ Uso (a partir de backend/):
 
     PYTHONPATH=. .venv/bin/python scripts/simular_hora.py --programa musical_adulto --saida /tmp/sim/musical_adulto \
         [--modo fake|llm|completo] [--semente 7] [--wpm 145] [--relogio A|B|C|<caminho>] [--antecedencia 2] \
-        [--preparo-antecipado-s 90] [--corte agendado|manual] [--confirmo-custo]
+        [--preparo-antecipado-s 90] [--corte agendado|manual] [--relogio-backend fixture|nenhum]
+        [--sem-inicio-previsto] [--confirmo-custo]
 
 - fake (padrão): sem rede. LLM, TTS, música, notícia e clima são dublês; a fala dura palavras/wpm.
 - llm: texto real da Anthropic (consome créditos); TTS continua estimado.
 - completo: Anthropic + ElevenLabs (consome créditos); mede a duração real do áudio.
+
+--relogio-backend fixture (padrão do CLI desde a F1) grava no programa o relógio da fixture
+(app.live.relogio.PRESETS, fonte de verdade) e o backend decide pelo relógio; nenhum reproduz a linha de
+base da F0 (a função simular() mantém nenhum como padrão). --sem-inicio-previsto imita o painel antigo.
 
 llm e completo sem --confirmo-custo rodam só o modo fake, imprimem a estimativa e saem com código 3.
 Só passe --confirmo-custo com aprovação explícita do usuário. Códigos de saída: 0 simulação concluída
@@ -36,6 +41,7 @@ from scripts.simulacao.fixtures import FixturePrograma, carregar_catalogo, carre
 
 MODOS = ("fake", "llm", "completo")
 CORTES = ("agendado", "manual")
+RELOGIOS_BACKEND = ("fixture", "nenhum")
 VERSAO_FORMATO = 1
 # Revisões por orçamento/repetição fazem o LLM real ser chamado mais vezes que o número de falas.
 FATOR_REVISOES_ESTIMADO = 1.2
@@ -68,7 +74,8 @@ def _gravar(caminho: pathlib.Path, dados: dict) -> None:
 
 
 def simular(programa, modo: str = "fake", semente: int = 7, wpm: float = 145, saida=None, relogio=None,
-            antecedencia: int = 2, preparo_antecipado_s: float = 90, corte: str = "agendado") -> Resultado:
+            antecedencia: int = 2, preparo_antecipado_s: float = 90, corte: str = "agendado",
+            relogio_backend: str = "nenhum", inicio_previsto: bool = True) -> Resultado:
     """Roda uma hora de programa. `programa` aceita o id da fixture, o caminho ou um FixturePrograma.
 
     Pressupõe o ambiente pronto (main() ou tests/conftest.py). Guarda e restaura random global e
@@ -78,6 +85,8 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float = 145, sa
         raise ValueError(f"modo inválido: {modo}")
     if corte not in CORTES:
         raise ValueError(f"corte inválido: {corte}")
+    if relogio_backend not in RELOGIOS_BACKEND:
+        raise ValueError(f"relogio_backend inválido: {relogio_backend}")
     from contextlib import nullcontext
     from zoneinfo import ZoneInfo
 
@@ -106,11 +115,13 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float = 145, sa
                 aplicar_dubles(fixture, catalogo, modo=modo, sessao=sessao, wpm=wpm, semente=semente) as dubles, \
                 (bloqueio or nullcontext()):
             cenario = ambiente.semear(sessao, fixture)
+            relogio_aplicado = ambiente.aplicar_relogio(sessao, cenario, relogio_fixture, fixture.duracao_programa_s()) \
+                if relogio_backend == "fixture" else None
             headers = {"Authorization": f"Bearer {criar_token(cenario.usuario_id)}"}
             emissao = Emissao(
                 client=client, headers=headers, sessao=sessao, fixture=fixture, cenario=cenario, dubles=dubles,
                 relogio=relogio_virtual, base=base, modo=modo, wpm=wpm, antecedencia=antecedencia,
-                preparo_antecipado_s=preparo_antecipado_s, corte=corte,
+                preparo_antecipado_s=preparo_antecipado_s, corte=corte, enviar_inicio_previsto=inicio_previsto,
             )
             emissao.executar()
             pedidos = emissao.pedidos_finais()
@@ -133,6 +144,7 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float = 145, sa
         "fim_programa": (base + datetime.timedelta(seconds=fixture.duracao_programa_s())).isoformat(),
         "duracao_programa_s": fixture.duracao_programa_s(),
         "relogio": relogio_fixture.model_dump(),
+        "relogio_backend": relogio_aplicado,
         "ouvintes": {
             "fixture": [p.nome for p in fixture.pedidos],
             "inexistentes": [i.nome for i in fixture.injecoes if i.tipo == "cita_ouvinte" and i.nome],
@@ -154,7 +166,8 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float = 145, sa
         "config": {
             "modo": modo, "semente": semente, "wpm": wpm, "antecedencia": antecedencia,
             "preparo_antecipado_s": preparo_antecipado_s, "corte": corte, "fixture": fixture.id,
-            "relogio": relogio_fixture.id, "commit": _commit_atual(), "versao_formato": VERSAO_FORMATO,
+            "relogio": relogio_fixture.id, "relogio_backend": relogio_backend, "inicio_previsto": inicio_previsto,
+            "commit": _commit_atual(), "versao_formato": VERSAO_FORMATO,
         },
         "chamadas_proxima": contagem["chamadas_proxima"],
         "chamadas_llm": {
@@ -212,7 +225,9 @@ def _linha_resumo(resumo: dict) -> str:
         f"fora_orcamento_pct={resumo['fora_orcamento_pct']} anuncio_sem_confirmacao={resumo['anuncio_sem_confirmacao']} "
         f"promessa_vencida={resumo['promessa_vencida']} pedido_indevido={resumo['pedido_indevido']} "
         f"hard_times_perdidos={resumo['hard_times_perdidos']} encerramento_no_ar={resumo['encerramento_no_ar']} "
-        f"estouro_fim_s={resumo['estouro_fim_programa_s']}"
+        f"estouro_fim_s={resumo['estouro_fim_programa_s']} relogio_backend={resumo['config']['relogio_backend']} "
+        f"atraso_hard_time_s={resumo['atraso_hard_time_s']} fim_antecipado_s={resumo['fim_antecipado_s']} "
+        f"falas_abaixo_minimo={resumo['falas_abaixo_minimo']}"
     )
 
 
@@ -239,6 +254,10 @@ def _argumentos(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--antecedencia", type=int, default=2)
     parser.add_argument("--preparo-antecipado-s", type=float, default=90)
     parser.add_argument("--corte", choices=CORTES, default="agendado")
+    parser.add_argument("--relogio-backend", choices=RELOGIOS_BACKEND, default="fixture",
+                        help="fixture: o backend decide pelo relógio da fixture (F1); nenhum: linha de base da F0")
+    parser.add_argument("--sem-inicio-previsto", action="store_true",
+                        help="não envia inicio_previsto em /proxima (painel antigo)")
     parser.add_argument("--confirmo-custo", action="store_true",
                         help="autoriza os modos pagos (só com aprovação explícita do usuário)")
     return parser.parse_args(argv)
@@ -262,6 +281,7 @@ def main(argv: list[str] | None = None) -> int:
             args.programa, modo=modo_efetivo, semente=args.semente, wpm=args.wpm,
             saida=None if pago_sem_confirmacao else args.saida, relogio=args.relogio,
             antecedencia=args.antecedencia, preparo_antecipado_s=args.preparo_antecipado_s, corte=args.corte,
+            relogio_backend=args.relogio_backend, inicio_previsto=not args.sem_inicio_previsto,
         )
     except Exception as erro:  # noqa: BLE001 -- o CLI devolve código 2 com a causa
         print(f"erro na simulação: {type(erro).__name__}: {erro}", file=sys.stderr)

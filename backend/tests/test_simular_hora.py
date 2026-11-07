@@ -561,3 +561,60 @@ def test_casos_de_avaliacao_cobrem_as_regras():
     for chave in chaves:
         assert positivos[chave] >= 1 and negativos[chave] >= 1, chave
     assert {c["formato"] for c in casos} == set(PERFIS)
+
+
+# ---------------------------------------------------------------------------------------------
+# F1: relógio no backend (S1, S2 de docs/melhoria-radio/f1/auditoria.md §6)
+# ---------------------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("perfil, relogio", [
+    ("musical_adulto", "A"), ("popular_sertanejo", "A"), ("variedades_leves", "C"), ("variedades_leves", "B"),
+])
+def test_relogio_hard_times_sem_atraso(perfil, relogio, tmp_path):
+    from scripts.simular_hora import simular
+
+    inicio = time.perf_counter()
+    resultado = simular(perfil, relogio=relogio, relogio_backend="fixture", saida=tmp_path)
+    assert time.perf_counter() - inicio < 30
+    resumo, as_run = resultado.resumo, resultado.as_run
+    assert resumo["tentativas_rede"] == 0 and resumo["erros_http"] == 0
+    assert as_run["relogio_backend"]["preset"] == relogio
+    for hard_time in resumo["hard_times"]:
+        assert hard_time["status"] != "perdido", hard_time
+        assert hard_time["atraso_s"] is None or hard_time["atraso_s"] <= 5, hard_time
+    assert resumo["atraso_hard_time_s"] <= 5
+    assert resumo["falas_abaixo_minimo"] == 0
+    falas = _falas(as_run)
+    assert falas and all(f["relogio"] is not None and f["orcamento_s"]["fonte"] == "relogio" for f in falas)
+    assert all(f["orcamento_s"]["max"] >= f["orcamento_s"]["min"] for f in falas)
+    assert resumo["encerramento_no_ar"] is True
+    assert resumo["segundos_cortados"] == 0
+    assert resumo["fim_antecipado_s"] <= 60
+    # O painel encadeia o horário previsto com a duração prevista pelo backend: no modo fake, exata.
+    for evento in as_run["eventos"]:
+        assert evento["inicio_previsto_s"] is not None
+        assert evento["inicio_s"] - evento["pausa_antes_s"] >= evento["inicio_previsto_s"] - 1.0
+
+
+def test_sem_relogio_inicio_previsto_nao_muda_as_run():
+    from scripts.simular_hora import simular
+
+    novos = {"inicio_previsto_s", "duracao_prevista_backend_s", "relogio"}
+
+    def limpo(as_run):
+        return [{k: v for k, v in e.items() if k not in novos} for e in as_run["eventos"]]
+
+    for perfil in PERFIS:
+        com = simular(perfil, relogio_backend="nenhum", inicio_previsto=True).as_run
+        sem = simular(perfil, relogio_backend="nenhum", inicio_previsto=False).as_run
+        assert limpo(com) == limpo(sem), perfil
+        assert all(e["relogio"] is None for e in com["eventos"])
+        assert com["relogio_backend"] is None
+
+
+def test_cli_relogio_backend_e_padrao_fixture(tmp_path):
+    processo = _rodar_cli("--programa", "popular_sertanejo", tmp_path=tmp_path)
+    assert processo.returncode == 0, processo.stderr[-2000:]
+    resumo = json.loads((tmp_path / "saida" / "resumo.json").read_text(encoding="utf-8"))
+    assert resumo["config"]["relogio_backend"] == "fixture" and resumo["config"]["inicio_previsto"] is True
+    assert "fim_antecipado_s=" in processo.stdout

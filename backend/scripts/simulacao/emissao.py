@@ -5,6 +5,10 @@ Espelha o player do painel, não o backend: o bloco N+2 é gerado quando o bloco
 agendamento é cortado em horario_fim + 1 s. O GET /preparo (preparo prévio no servidor) fica de
 fora: a primeira fala sai do /proxima normal.
 
+Desde a F1, cada pedido leva `inicio_previsto` como o painel (lib/relogioAoVivo.ts): a cadeia bruta
+(início agendado + pausa + duração prevista de cada bloco gerado) mais o desvio medido quando o bloco
+anterior começou a tocar. `enviar_inicio_previsto=False` imita o painel antigo.
+
 Importa app.*: só carregue este módulo depois de preparar o ambiente.
 """
 
@@ -15,6 +19,7 @@ import math
 from typing import Any
 
 from app.live.formato import contar_palavras
+from app.live.orcamento import estimar_duracao_s
 from app.models.fila_ao_vivo import FilaAoVivo
 from app.models.programa import Programa
 
@@ -30,6 +35,7 @@ PLAYER = {
     "perfil_pos_producao": "radio_fm",
     "historico_max": 8,             # hooks/useLiveEngine.ts: historicoBase.slice(0, 8)
     "historico_guardado": 20,       # hooks/useLiveEngine.ts: avancar, slice(0, 20)
+    "palavras_por_segundo": 2.5,    # lib/duracaoBloco.ts: estimativa sem duracao_prevista_s
 }
 TRAVAS = {"chamadas_proxima": 400, "apos_fim_s": 1800}
 
@@ -61,16 +67,23 @@ class Bloco:
     chamadas_llm: int = 0
     revisada: bool = False
     duracao_medida_s: float | None = None
+    inicio_bruto_s: float | None = None
+    inicio_previsto_s: float | None = None
 
 
 class Emissao:
     def __init__(self, *, client, headers: dict, sessao, fixture, cenario, dubles, relogio, base: datetime.datetime,
-                 modo: str, wpm: float, antecedencia: int, preparo_antecipado_s: float, corte: str):
+                 modo: str, wpm: float, antecedencia: int, preparo_antecipado_s: float, corte: str,
+                 enviar_inicio_previsto: bool = True):
         self.client, self.headers, self.sessao = client, headers, sessao
         self.fixture, self.cenario, self.dubles = fixture, cenario, dubles
         self.relogio, self.base = relogio, base
         self.modo, self.wpm, self.antecedencia = modo, wpm, antecedencia
         self.preparo_antecipado_s, self.corte = preparo_antecipado_s, corte
+        self.enviar_inicio_previsto = enviar_inicio_previsto
+        # Cadeia do horário previsto (painel): início bruto do próximo bloco a gerar e desvio medido.
+        self.inicio_bruto_s = 0.0
+        self.desvio_s = 0.0
         self.fim_s = float(fixture.duracao_programa_s())
         self.fila: collections.deque[Bloco] = collections.deque()
         self.ctx: dict | None = {"historico": [], "total_falas": 0, "ultima_fala": None}
@@ -101,6 +114,9 @@ class Emissao:
             self.preencher(t)
             bloco = self.fila.popleft()
             self.preencher(t)
+            if bloco.inicio_bruto_s is not None:
+                # Como o painel: o desvio é medido quando o bloco começa e corrige os pedidos seguintes.
+                self.desvio_s = t - bloco.inicio_bruto_s
             pausa = self._pausa(bloco)
             fim, cortado, foi_ao_ar = self._reproduzir(bloco, t + pausa, pausa)
             if foi_ao_ar:
@@ -138,6 +154,7 @@ class Emissao:
             segmento = bloco.segmento
             if segmento is None:
                 continue
+            self.inicio_bruto_s += self._pausa(bloco) + self._duracao_prevista(segmento)
             if segmento.get("tipo") == "encerramento":
                 self.ctx, self.gerando = None, False
             else:
@@ -164,6 +181,9 @@ class Emissao:
             "perfil_pos_producao": PLAYER["perfil_pos_producao"],
             "ultima_fala": self.ctx["ultima_fala"],
         }
+        inicio_previsto = max(t, self.inicio_bruto_s + self.desvio_s)
+        if self.enviar_inicio_previsto:
+            payload["inicio_previsto"] = self._instante(inicio_previsto).isoformat()
         resposta = self.client.post(self._url_proxima, json=payload, headers=self.headers)
         self.contagem["chamadas_proxima"] += 1
         delta = collections.Counter(self.dubles.llm.contadores)
@@ -173,6 +193,7 @@ class Emissao:
             segmento=resposta.json() if resposta.status_code == 200 else None,
             chamadas_llm=delta["gerar_resposta"] + delta["gerar_dialogo_multivoz"],
             revisada=delta["revisoes"] > 0,
+            inicio_bruto_s=round(self.inicio_bruto_s, 3), inicio_previsto_s=round(inicio_previsto, 3),
         )
         if resposta.status_code != 200:
             self.contagem["erros_http"] += 1
@@ -219,7 +240,19 @@ class Emissao:
         return ms / 1000
 
     def _estimar(self, texto: str) -> float:
-        return contar_palavras(texto or "") / self.wpm * 60
+        return estimar_duracao_s(texto or "", self.wpm)
+
+    @staticmethod
+    def _duracao_prevista(segmento: dict) -> float:
+        """lib/relogioAoVivo.ts (estimarDuracaoSegmento): a estimativa do backend; sem ela, palavras ÷ 2,5
+        mais as músicas, como o painel antigo."""
+        if segmento.get("duracao_prevista_s") is not None:
+            return float(segmento["duracao_prevista_s"])
+        texto = " ".join(f.get("texto", "") for f in segmento.get("falas") or []) or segmento.get("fala") or ""
+        musicas = segmento.get("musicas") or ([segmento] if segmento.get("video_id") else [])
+        return contar_palavras(texto) / PLAYER["palavras_por_segundo"] + sum(
+            max(0, (m.get("fim_segundos") or m.get("duracao_segundos") or 0) - (m.get("inicio_segundos") or 0))
+            for m in musicas)
 
     def _planejar(self, bloco: Bloco) -> list[dict[str, Any]]:
         """O que o player toca para o bloco: fala, músicas e, no encerramento, a vinheta de fechamento."""
@@ -291,6 +324,13 @@ class Emissao:
         })
 
     def _orcamentos(self, segmento: dict, tipo: str, categoria: str) -> tuple[dict, dict]:
+        alvo = segmento.get("duracao_alvo_segundos")
+        if alvo and segmento.get("relogio"):
+            # Com relógio, o orçamento é o do backend (backtiming) nos dois formatos.
+            orcamento = self.fixture.unidade_fala if self.fixture.formato_musical else \
+                self.fixture.orcamento_para(tipo, categoria)
+            return {"min": alvo[0], "max": alvo[1], "fonte": "relogio"}, \
+                {"min": orcamento.min, "max": orcamento.max, "fonte": "formato"}
         if self.fixture.formato_musical:
             referencia = self.fixture.unidade_fala
             ref = {"min": referencia.min, "max": referencia.max, "fonte": "formato"}
@@ -309,6 +349,10 @@ class Emissao:
         orcamento, referencia = self._orcamentos(segmento, tipo_bloco, categoria) if eh_fala else (None, None)
         musica = plano.get("musica")
         prevista = self._estimar(texto) if eh_fala else plano["duracao"]
+        relogio = segmento.get("relogio")
+        tipo_evento = plano["tipo"]
+        if tipo_evento == "patrocinador" and relogio and relogio["etapa"]["tipo"] == "intervalo":
+            tipo_evento = "intervalo"
         return {
             "n": len(self.eventos) + 1,
             "bloco_n": bloco.n,
@@ -318,7 +362,7 @@ class Emissao:
             "fim_s": round(fim, 2),
             "gerado_em_s": bloco.gerado_em_s,
             "pausa_antes_s": round(pausa, 3),
-            "tipo": plano["tipo"],
+            "tipo": tipo_evento,
             "bloco": tipo_bloco,
             "categoria": categoria,
             "formato": self.fixture.formato,
@@ -346,6 +390,9 @@ class Emissao:
             "cortado": False,
             "cortado_s": 0.0,
             "video_id": musica.get("video_id") if musica else None,
+            "inicio_previsto_s": bloco.inicio_previsto_s,
+            "duracao_prevista_backend_s": segmento.get("duracao_prevista_s"),
+            "relogio": relogio,
         }
 
     # --- pedidos -------------------------------------------------------------------------------------

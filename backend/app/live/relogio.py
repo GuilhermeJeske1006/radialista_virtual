@@ -700,7 +700,8 @@ class _Decisao:
         compromisso = self.compromisso_apos(indice)
         espaco = self.espaco(indice, compromisso)
         alvo = self.espelho[compromisso] if compromisso is not None else None
-        if etapa.hard_time and self._ate(etapa.inicio) > self.cfg.tolerancia_hard_time_s and acao != "encerramento":
+        if etapa.hard_time and self._ate(etapa.inicio) > self.cfg.tolerancia_hard_time_s \
+                and acao not in ("encerramento", "reserva"):
             # O compromisso começa antes da hora marcada: nunca atrasado, no máximo adiantado.
             campos.setdefault("forcado", self._ate(etapa.inicio) > self.cfg.adiantamento_max_s)
             acao = "adiantamento"

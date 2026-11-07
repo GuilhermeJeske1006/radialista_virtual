@@ -5,7 +5,8 @@ Dois mecanismos aplicados juntos:
 - por identidade: todo atributo de módulo app.* que *seja* a função original é trocado. Isso continua
   valendo quando a F3 mover chamadas para outros módulos.
 
-O dublê do LLM lê do prompt só o tipo do bloco, o pedido de revisão e o limite de palavras. A faixa
+O dublê do LLM lê do prompt só o tipo do bloco, o pedido de revisão, o limite de palavras e a meta
+de duração do bloco (formato musical e relógio da hora). A faixa
 confirmada e o pedido da chamada chegam por canal lateral (EstadoChamada), porque as frentes
 seguintes reescrevem os prompts. RNG próprio: mexer no dublê não muda a sequência aleatória do backend.
 
@@ -35,6 +36,8 @@ from scripts.simulacao.fixtures import Catalogo, Faixa, FixturePrograma
 # por repetição). Tudo o mais vem do canal lateral.
 TIPO_BLOCO_RE = re.compile(r"Tipo do próximo bloco: (.+)\.")
 LIMITE_REVISAO_RE = re.compile(r"Reescreva com no máximo (\d+) palavras")
+# Meta de duração do bloco no prompt (formato musical e relógio da hora, F1): mínimo, máximo, palavras.
+META_BLOCO_RE = re.compile(r"(\d+) a (\d+) segundos, no máximo (\d+) palavras")
 MARCA_REVISAO_PARECIDA = "ficou muito parecida"
 
 _BASES_CATEGORIA = (
@@ -184,7 +187,7 @@ class DubleLLM:
             "artista": faixa.artista if faixa else "",
         }
 
-        alvo, teto = self._palavras(tipo, categoria, primeira)
+        alvo, teto = self._palavras(tipo, categoria, primeira, META_BLOCO_RE.findall(system_prompt or ""))
         limite = LIMITE_REVISAO_RE.search(system_prompt or "")
         if limite:
             teto = min(teto, int(limite.group(1)))
@@ -215,8 +218,12 @@ class DubleLLM:
         self.temas[texto] = tema
         return texto
 
-    def _palavras(self, tipo: str, categoria: str, primeira: bool) -> tuple[int, int]:
-        if self.fixture.formato_musical:
+    def _palavras(self, tipo: str, categoria: str, primeira: bool, metas=()) -> tuple[int, int]:
+        if metas:
+            # Meta que o backend pôs no prompt (a última vale): a mesma conta do formato musical abaixo.
+            minimo, maximo, palavras = (int(v) for v in metas[-1])
+            alvo_s, teto = (minimo + maximo) / 2, min(palavras, math.floor(self.wpm * maximo / 60))
+        elif self.fixture.formato_musical:
             # Mesma função do backend (app/live/formato.py): meta em segundos e teto de palavras.
             minimo, maximo, palavras = orcamento_fala(tipo, primeira)
             alvo_s, teto = (minimo + maximo) / 2, min(palavras, math.floor(self.wpm * maximo / 60))
@@ -365,9 +372,13 @@ class CatalogoSimulado:
         else:
             tokens = set(consulta.split())
             candidatas = [f for f in self.faixas if tokens and tokens <= set(normalizar(f"{f.titulo} {f.artista}").split())]
-        for faixa in candidatas:
-            if self._livre(faixa, bloqueados, evitar_video_ids, titulos_tocados):
-                return self._encontrada(faixa)
+        # Como app.live.music.buscar_musica: duracao_max_segundos é preferência (faixa mais longa só se não
+        # houver outra), nunca bloqueio. O padrão do backend (8 min) não exclui nada do catálogo fictício.
+        duracao_max = _opcoes.get("duracao_max_segundos")
+        livres = [f for f in candidatas if self._livre(f, bloqueados, evitar_video_ids, titulos_tocados)]
+        preferidas = [f for f in livres if duracao_max is None or f.duracao_tocada_s <= duracao_max]
+        if preferidas or livres:
+            return self._encontrada((preferidas or livres)[0])
         return None
 
     def resolver_musica_catalogada(self, db, titulo: str, artista: str, bloqueados=None, evitar_video_ids=None,

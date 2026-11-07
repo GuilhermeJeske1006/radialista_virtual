@@ -118,18 +118,35 @@ def _pedido_indevido(evento: dict, nomes: list[str], config: dict) -> bool:
     return False
 
 
-def _hard_times(eventos: list[dict], relogio: dict, tolerancia: float) -> list[dict]:
+def _etapa(evento: dict) -> tuple[int, int] | None:
+    relogio = evento.get("relogio")
+    return (relogio["etapa"]["hora"], relogio["etapa"]["inicio_s"]) if relogio else None
+
+
+def _hard_times(eventos: list[dict], relogio: dict, tolerancia: float, backend: dict | None = None) -> list[dict]:
+    """Casa cada hard time do relógio com o evento que o cumpriu. Com o relógio no backend (F1), pela etapa
+    da resposta (hora 0, inicio_s); sem ele, por corresponde_a (F0). Hard time que o espelho efetivo do
+    backend não tem (intervalo sem patrocinador) fica como "dispensado", não como perdido."""
     usados: set[int] = set()
     resultado = []
+    efetivos = set((backend or {}).get("hard_times_efetivos") or [])
     for previsto in sorted((e for e in relogio.get("eventos", []) if e.get("hard_time")), key=lambda e: e["inicio_s"]):
         alvo = set(previsto.get("corresponde_a") or [])
-        candidatos = [
-            e for e in eventos
-            if e["n"] not in usados and alvo & {e["tipo"], e.get("categoria"), e.get("bloco")}
-            and (e["tipo"] != "musica" or "musica" in alvo)
-        ]
+        if backend:
+            candidatos = [e for e in eventos if e["n"] not in usados and _etapa(e) == (0, previsto["inicio_s"])]
+            candidatos = candidatos[:1]
+        else:
+            candidatos = [
+                e for e in eventos
+                if e["n"] not in usados and alvo & {e["tipo"], e.get("categoria"), e.get("bloco")}
+                and (e["tipo"] != "musica" or "musica" in alvo)
+            ]
         item = {"inicio_s": previsto["inicio_s"], "tipo": previsto["tipo"], "executado_em_s": None,
                 "atraso_s": None, "status": "perdido", "cortado": False}
+        if backend and previsto["inicio_s"] not in efetivos:
+            item["status"] = "dispensado"
+            resultado.append(item)
+            continue
         if candidatos:
             escolhido = min(candidatos, key=lambda e: (abs(e["inicio_s"] - previsto["inicio_s"]), e["n"]))
             usados.add(escolhido["n"])
@@ -213,7 +230,8 @@ def calcular_metricas(as_run: dict, config: dict | None = None) -> dict:
     fechadas = {pid for e in eventos for pid in e.get("promessas_fechadas") or []}
     abertas = [p for e in eventos for p in e.get("promessas_abertas") or []]
 
-    hard_times = _hard_times(eventos, as_run.get("relogio") or {}, config["hard_time"]["tolerancia_s"])
+    hard_times = _hard_times(eventos, as_run.get("relogio") or {}, config["hard_time"]["tolerancia_s"],
+                             as_run.get("relogio_backend"))
     atrasos = [h["atraso_s"] for h in hard_times if h["atraso_s"] is not None and h["atraso_s"] > 0]
     silencio, silencio_editorial = _silencio(eventos, config)
 
@@ -227,6 +245,8 @@ def calcular_metricas(as_run: dict, config: dict | None = None) -> dict:
 
     ultimo_fim = max((float(e["fim_s"]) for e in eventos), default=0.0)
     encerramentos = [f for f in falas if f.get("categoria") == "encerramento"]
+    encerramento_no_ar = any(not f.get("cortado") for f in encerramentos)
+    blocos_relogio = {e["bloco_n"]: e["relogio"] for e in eventos if e.get("relogio")}
     return {
         "fora_orcamento_pct": round(100 * fora / len(com_orcamento), 1) if com_orcamento else 0.0,
         "estouro_max_pct": round(max(0.0, (max(razoes) - 1) * 100), 1) if razoes else 0.0,
@@ -249,8 +269,23 @@ def calcular_metricas(as_run: dict, config: dict | None = None) -> dict:
         "relogio_previsto_s": {"fala": previsto["fala"], "musica": previsto["musica"], "intervalo": previsto["intervalo"]},
         "hard_times": hard_times,
         "hard_times_perdidos": sum(1 for h in hard_times if h["status"] == "perdido"),
-        "encerramento_no_ar": any(not f.get("cortado") for f in encerramentos),
+        "encerramento_no_ar": encerramento_no_ar,
         "estouro_fim_programa_s": round(max(0.0, ultimo_fim - duracao_programa_s), 2),
+        # F1: buraco no fim quando o encerramento foi ao ar antes do horário (com corte, não se aplica).
+        "fim_antecipado_s": round(max(0.0, duracao_programa_s - ultimo_fim), 2) if encerramento_no_ar else None,
+        # Fala com orçamento abaixo do mínimo do tipo: máximo < mínimo, ou espaço até o hard time menor
+        # que o mínimo (o backend não deveria ter gerado a fala).
+        "falas_abaixo_minimo": sum(
+            1 for f in com_orcamento
+            if float(f["orcamento_s"]["max"]) < float(f["orcamento_s"]["min"])
+            or (f.get("relogio") and f["relogio"].get("espaco_s") is not None
+                and float(f["relogio"]["espaco_s"]) < float(f["orcamento_s"]["min"]))
+        ),
+        "relogio_acoes": dict(sorted(collections.Counter(r["acao"] for r in blocos_relogio.values()).items())),
+        "etapas_puladas": sorted({p for r in blocos_relogio.values() for p in r.get("puladas") or []}),
+        "adiantamentos": sum(1 for r in blocos_relogio.values() if r["acao"] == "adiantamento"),
+        "fechamentos_curtos": sum(1 for r in blocos_relogio.values() if r["acao"] == "fechamento_curto"),
+        "hard_times_dispensados": sum(1 for h in hard_times if h["status"] == "dispensado"),
         "pedidos": _pedidos(as_run.get("pedidos") or []),
         "eventos_por_tipo": dict(sorted(collections.Counter(e["tipo"] for e in eventos).items())),
         "falas_por_bloco": dict(sorted(collections.Counter(f["bloco"] for f in falas).items())),
