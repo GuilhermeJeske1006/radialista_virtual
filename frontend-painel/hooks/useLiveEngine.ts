@@ -3,6 +3,7 @@
 import { confirmarParticipacao } from "../lib/participacoes";
 import { esperarTransicao, pausaAntesDoBloco, reproduzirGrupoDeFalas } from "../lib/continuidadeAudio";
 import { FilaPreparo } from "../lib/filaPreparo";
+import { inicioAEnviar, medirDesvio, proximoInicioBruto } from "../lib/relogioAoVivo";
 
 import { useEffect, useRef, useState } from "react";
 import { sondarAutoplayComSom as sondarAutoplay } from "../lib/autoplay";
@@ -65,6 +66,9 @@ type ContextoPreparo = {
   historicoBase: HistoricoFonte[];
   totalFalas: number;
   ultimaFala: string | null;
+  // Início previsto (bruto, sem o desvio) do bloco a gerar com este contexto -- o relógio da hora
+  // do backend decide pelo horário em que o bloco vai ao ar (ver lib/relogioAoVivo.ts).
+  inicioBrutoMs: number;
 };
 type TextoPreparado = {
   segmento: Omit<ProgramSegment, "id">;
@@ -290,6 +294,8 @@ export function useLiveEngine() {
   // clicou em "Proxima fala") depois que ela acorda do pararFala/musicStopRef,
   // pra ela nao concorrer com a nova execucao nem re-agendar o timer do loop.
   const execucaoAtualRef = useRef(0);
+  // Quanto o último bloco que começou a tocar ficou atrás da cadeia bruta de horário previsto.
+  const desvioPrevistoRef = useRef(0);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1269,6 +1275,11 @@ export function useLiveEngine() {
 
   // Entrega o texto antes do TTS para liberar a escrita do próximo bloco.
   async function prepararTexto(contexto: ContextoPreparo, ativa: () => boolean): Promise<TextoPreparado> {
+    const texto = await prepararTextoSemHorario(contexto, ativa);
+    return { ...texto, segmento: { ...texto.segmento, inicio_bruto_ms: contexto.inicioBrutoMs } };
+  }
+
+  async function prepararTextoSemHorario(contexto: ContextoPreparo, ativa: () => boolean): Promise<TextoPreparado> {
     const { historicoBase, totalFalas: totalFalasAtual, ultimaFala: ultimaFalaAtual } = contexto;
     let segmento: Omit<ProgramSegment, "id">;
     // audio ja sintetizado dentro de /proxima (ver Plano B.3) -- so' preenchido quando o backend
@@ -1306,6 +1317,7 @@ export function useLiveEngine() {
       }
     }
 
+    const inicioPrevistoMs = inicioAEnviar(contexto.inicioBrutoMs, desvioPrevistoRef.current, Date.now());
     try {
       const { audio_base64, audio_status, audio_erro, audios_falas_base64, ...resposta } =
         await apiFetchComTimeout<LiveProgramResponse>(
@@ -1321,6 +1333,7 @@ export function useLiveEngine() {
               total_falas: totalFalasAtual,
               perfil_pos_producao: "radio_fm",
               ultima_fala: ultimaFalaAtual,
+              inicio_previsto: new Date(inicioPrevistoMs).toISOString(),
             }),
           },
           // Inclui apuração jornalística antes da locução; o áudio segue preparado em paralelo.
@@ -1330,7 +1343,7 @@ export function useLiveEngine() {
       audioStatus = audio_status;
       audioErro = audio_erro;
       audiosFalasBase64 = audios_falas_base64 ?? null;
-      segmento = { ...resposta, origem: "ia" };
+      segmento = { ...resposta, origem: "ia", inicio_previsto_ms: inicioPrevistoMs };
       if (ativa()) setErro("");
     } catch (err) {
       const radialistaAtual = radialistas.find((r) => r.id === contexto.radialistaId);
@@ -1473,6 +1486,16 @@ export function useLiveEngine() {
   function descartarPreparo() {
     filaPreparoRef.current?.cancelar();
     filaPreparoRef.current = null;
+    desvioPrevistoRef.current = 0;
+  }
+
+  // Primeiro bloco da fila: o horario_inicio quando a fila nasce no pré-aquecimento do programa
+  // agendado (até ANTECEDENCIA_PREPARO_SEGUNDOS antes), senão agora.
+  function inicioDaFila(): number {
+    const programa = programasTodos.find((p) => p.id === programaIdRef.current);
+    const radialista = radialistas.find((r) => r.id === programa?.radialistaId);
+    const restante = programa && radialista ? segundosParaInicio(programa, radialista.timezone) : null;
+    return Date.now() + (restante !== null && restante <= ANTECEDENCIA_PREPARO_SEGUNDOS ? restante * 1000 : 0);
   }
 
   function obterFilaPreparo(): FilaPreparo<ContextoPreparo, TextoPreparado, SegmentoPreparado> {
@@ -1483,6 +1506,7 @@ export function useLiveEngine() {
         historicoBase: [...falasProgramaRef.current],
         totalFalas: totalFalasRef.current,
         ultimaFala: falasProgramaRef.current[0]?.fala ?? null,
+        inicioBrutoMs: inicioDaFila(),
       }, {
         gerarTexto: (contexto) => prepararTexto(contexto, () => fila.ativa),
         prepararAudio: (texto, contexto) => prepararAudio(texto, contexto, () => fila.ativa),
@@ -1492,6 +1516,7 @@ export function useLiveEngine() {
           historicoBase: [segmento, ...contexto.historicoBase].slice(0, 20),
           totalFalas: contexto.totalFalas + (segmento.passos_roteiro ?? 1),
           ultimaFala: segmento.fala,
+          inicioBrutoMs: proximoInicioBruto(contexto.inicioBrutoMs, segmento),
         }),
         descartar: (preparado) => {
           if (preparado.audioUrl) URL.revokeObjectURL(preparado.audioUrl);
@@ -1563,8 +1588,11 @@ export function useLiveEngine() {
 
     const transicao = new AbortController();
     transicaoRef.current = transicao;
-    const podeTocar = await esperarTransicao(pausaAntesDoBloco(novaFala.pausa_antes_ms), transicao.signal);
+    const pausaAplicadaMs = pausaAntesDoBloco(novaFala.pausa_antes_ms);
+    const podeTocar = await esperarTransicao(pausaAplicadaMs, transicao.signal);
     if (transicaoRef.current === transicao) transicaoRef.current = null;
+    const desvio = medirDesvio(novaFala.inicio_bruto_ms, Date.now(), pausaAplicadaMs);
+    if (podeTocar && desvio !== null) desvioPrevistoRef.current = desvio;
     if (!podeTocar || !programaAtivoRef.current || execucaoAtualRef.current !== minhaExecucao) {
       if (preparado.audioUrl) URL.revokeObjectURL(preparado.audioUrl);
       preparado.audiosFalas?.forEach((a) => a.url && URL.revokeObjectURL(a.url));
@@ -1923,9 +1951,36 @@ export function useLiveEngine() {
       selecionarPrograma(proximo);
     }
 
-    verificarHorarioAgendado();
-    const intervalo = setInterval(verificarHorarioAgendado, 15000);
-    return () => clearInterval(intervalo);
+    // Início pontual: o polling de 15 s atrasaria a abertura (hard time das 00:00 do relógio) em até
+    // 15 s. Com um programa a até ANTECEDENCIA_PREPARO_SEGUNDOS de começar, um timer dispara a
+    // verificação exatamente no horario_inicio.
+    let timerInicio: ReturnType<typeof setTimeout> | null = null;
+    function agendarInicioPontual() {
+      if (timerInicio || programaAtivoRef.current) return;
+      const restantes = programasTodos
+        .map((p) => {
+          const radialista = radialistas.find((r) => r.id === p.radialistaId);
+          return radialista ? segundosParaInicio(p, radialista.timezone) : null;
+        })
+        .filter((r): r is number => r !== null && r <= ANTECEDENCIA_PREPARO_SEGUNDOS);
+      if (restantes.length === 0) return;
+      timerInicio = setTimeout(() => {
+        timerInicio = null;
+        verificarHorarioAgendado();
+      }, Math.min(...restantes) * 1000);
+    }
+
+    function verificarEAgendar() {
+      verificarHorarioAgendado();
+      agendarInicioPontual();
+    }
+
+    verificarEAgendar();
+    const intervalo = setInterval(verificarEAgendar, 15000);
+    return () => {
+      clearInterval(intervalo);
+      if (timerInicio) clearTimeout(timerInicio);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [carregandoProgramas, programasTodos, radialistas]);
 

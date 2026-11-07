@@ -187,6 +187,42 @@ export type Programa = {
   // deriva um briefing observado (horário, gênero, cidade, pedido do público) em vez de travar.
   publico_alvo?: string;
   densidade_assunto?: "leve" | "equilibrada" | "informado";
+
+  // Relógio da hora (F1 do plano de melhoria de rádio, backend app/live/relogio.py). null = sem
+  // relógio: o ao vivo segue a estrutura_blocos. Gravado por rota própria (PUT/DELETE
+  // /config/programas/{id}/relogio); o PUT do programa ignora este campo.
+  relogio_hora?: RelogioHora | null;
+};
+
+export type NaturezaEventoRelogio = "obrigatorio" | "ajustavel" | "reserva";
+
+export type EventoRelogio = {
+  inicio_s: number;
+  duracao_s: number;
+  tipo: string;
+  rotulo: string;
+  natureza: NaturezaEventoRelogio;
+  hard_time: boolean;
+};
+
+export type RelogioHora = {
+  versao: 1;
+  preset: "A" | "B" | "C" | null;
+  eventos: EventoRelogio[];
+  em_feriado: "mesmo" | "sem_intervalos" | "sem_relogio";
+};
+
+export type TotaisRelogio = { musica_s: number; fala_s: number; intervalo_s: number };
+
+// GET /config/relogios/presets (hipóteses de projeto da pesquisa §9).
+export type PresetRelogio = {
+  id: "A" | "B" | "C";
+  nome: string;
+  descricao: string;
+  fonte: string;
+  nota?: string;
+  relogio: RelogioHora;
+  totais: TotaisRelogio;
 };
 
 // Um gancho de conversa ja' casado com este programa (ver backend app/topics/router.py) --
@@ -313,6 +349,7 @@ export function normalizarPrograma(p: Programa): Programa {
     dose_noticia: p.dose_noticia ?? "jornalistica",
     publico_alvo: p.publico_alvo ?? "",
     densidade_assunto: p.densidade_assunto ?? "leve",
+    relogio_hora: p.relogio_hora ?? null,
   };
 }
 

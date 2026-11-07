@@ -64,6 +64,40 @@ export type ProgramSegment = ConfirmacaoPedido & {
   intervalo_ms?: number | null;
   pausa_antes_ms?: number | null;
   duracao_alvo_segundos?: [number, number] | null;
+  // Estimativa do backend (fala a 145 palavras/min, músicas, vinhetas) -- encadeia o horário
+  // previsto do bloco seguinte (ver lib/relogioAoVivo.ts).
+  duracao_prevista_s?: number | null;
+  // Só em programa com relógio da hora: etapa, próximo compromisso e espaço (backtiming).
+  relogio?: RelogioAoVivo | null;
+  // Horário previsto enviado ao backend e início bruto da cadeia (ms desde a época).
+  inicio_previsto_ms?: number;
+  inicio_bruto_ms?: number;
+};
+
+export type EtapaRelogioAoVivo = {
+  hora: number;
+  inicio_s: number;
+  tipo: string;
+  tipo_efetivo: string;
+  rotulo: string;
+  natureza: string;
+  hard_time: boolean;
+  inicio: string;
+  fim: string;
+};
+
+export type RelogioAoVivo = {
+  preset: string | null;
+  inicio_previsto: string;
+  inicio_previsto_aceito: boolean;
+  hora: number;
+  etapa: EtapaRelogioAoVivo;
+  proximo_compromisso: EtapaRelogioAoVivo | null;
+  segundos_ate_hard_time: number | null;
+  espaco_s: number | null;
+  acao: string;
+  orcamento_s: [number, number] | null;
+  puladas?: string[];
 };
 
 export type LiveProgramResponse = ConfirmacaoPedido & {
@@ -106,6 +140,8 @@ export type LiveProgramResponse = ConfirmacaoPedido & {
   // dentro do proprio /proxima pra dialogo multi-voz (ver _sintetizar_falas_multivoz no
   // backend). Item null = aquela linha falhou; prepararAudio cai pro /tts avulso so' pra ela.
   audios_falas_base64?: (string | null)[] | null;
+  duracao_prevista_s?: number | null;
+  relogio?: RelogioAoVivo | null;
 };
 
 export type ProgramaOpcao = Programa & { radialistaId: number; radialistaNome: string };
