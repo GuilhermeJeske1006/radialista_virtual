@@ -138,6 +138,7 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float = 145, sa
             "inexistentes": [i.nome for i in fixture.injecoes if i.tipo == "cita_ouvinte" and i.nome],
         },
         "pedidos": pedidos,
+        "blocos_nao_tocados": emissao.nao_tocados,
         "eventos": emissao.eventos,
         "observacoes": OBSERVACOES,
     }

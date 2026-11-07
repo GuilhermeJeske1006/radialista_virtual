@@ -421,6 +421,9 @@ def test_corte_agendado_trunca_no_horario_fim(simulacoes):
     assert any(e["cortado"] for e in eventos) or resultado.resumo["segundos_cortados"] > 0
     assert resultado.resumo["estouro_fim_programa_s"] <= 1.0 + 1e-6
     assert resultado.resumo["config"]["corte"] == "agendado"
+    # O que não foi ao ar fica registrado com o instante de geração (insumo da F1).
+    assert len(resultado.as_run["blocos_nao_tocados"]) == resultado.resumo["blocos_nao_tocados"]
+    assert all(b["gerado_em_s"] <= 3601 for b in resultado.as_run["blocos_nao_tocados"])
 
 
 def test_corte_manual_mede_estouro():

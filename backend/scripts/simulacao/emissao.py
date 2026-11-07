@@ -79,6 +79,7 @@ class Emissao:
         self.eventos: list[dict] = []
         self.pedidos = [{"fixture": p, "id": None} for p in sorted(fixture.pedidos, key=lambda p: p.chega_em_s)]
         self.contagem: collections.Counter = collections.Counter()
+        self.nao_tocados: list[dict] = []
         self.t_final = 0.0
         self._url_proxima = f"/live/{cenario.radialista_id}/programas/{cenario.programa_id}/proxima"
 
@@ -112,10 +113,9 @@ class Emissao:
             if t > self.fim_s + TRAVAS["apos_fim_s"]:
                 self.contagem["trava_tempo"] += 1
                 break
-        self.contagem["blocos_nao_tocados"] += len(self.fila)
-        self.contagem["segundos_nao_tocados"] += sum(
-            sum(p["duracao"] for p in self._planejar(b)) for b in self.fila
-        )
+        for bloco in self.fila:
+            self._registrar_nao_tocado(bloco)
+            self.contagem["segundos_nao_tocados"] += sum(p["duracao"] for p in self._planejar(bloco))
         self.fila.clear()
         self._inserir_pedidos_ate(min(t, self.fim_s))
         self.t_final = t
@@ -277,8 +277,18 @@ class Emissao:
             foi_ao_ar = True
             t = fim
         if not foi_ao_ar:
-            self.contagem["blocos_nao_tocados"] += 1
+            self._registrar_nao_tocado(bloco)
         return t, cortado, foi_ao_ar
+
+    def _registrar_nao_tocado(self, bloco: Bloco) -> None:
+        """Bloco gerado que não foi ao ar (corte do watchdog ou fila descartada no fim)."""
+        self.contagem["blocos_nao_tocados"] += 1
+        self.nao_tocados.append({
+            "bloco_n": bloco.n, "bloco": (bloco.segmento or {}).get("tipo") or "erro",
+            "gerado_em_s": bloco.gerado_em_s,
+            "duracao_planejada_s": round(sum(p["duracao"] for p in self._planejar(bloco)), 2),
+            "texto": ((bloco.segmento or {}).get("fala") or "")[:200],
+        })
 
     def _orcamentos(self, segmento: dict, tipo: str, categoria: str) -> tuple[dict, dict]:
         if self.fixture.formato_musical:
