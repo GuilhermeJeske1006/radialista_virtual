@@ -111,6 +111,12 @@ class Programa(Base):
     # plano-assuntos.md -- mesmo espirito de dose_noticia, mas pro banco de assuntos.
     densidade_assunto: Mapped[str] = mapped_column(String, default="leve")
 
+    # Relogio da hora (ver app.live.relogio.RelogioHora e F1 do plano de melhoria de radio): eventos
+    # com inicio, duracao, natureza e hard time. Nulo = sem relogio, o ao vivo segue estrutura_blocos
+    # como sempre. Sempre substituido inteiro (PUT /config/programas/{id}/relogio), fora de
+    # ProgramaRequest para os PUTs atuais (que ecoam o programa inteiro) nao o apagarem.
+    relogio_hora: Mapped[dict | None] = mapped_column(JSON, nullable=True, default=None)
+
     criado_em: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.datetime.now(datetime.timezone.utc)
     )

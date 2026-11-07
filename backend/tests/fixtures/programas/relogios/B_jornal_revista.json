@@ -3,12 +3,12 @@
   "nome": "Jornal/revista informativa",
   "fonte": "docs/pesquisa-radio-locufy.md §9.B",
   "hipotese": true,
-  "nota": "Hipótese de projeto: os intervalos da §9 são reservas ilustrativas, não recomendação comercial. hard_time marca o que não pode atrasar (tolerância de 5 s, critério da F1). Na F0 o backend ainda não conhece relógios: este arquivo só mede.",
+  "nota": "Hipótese de projeto: os intervalos da §9 são reservas ilustrativas, não recomendação comercial. hard_time marca o que não pode atrasar (tolerância de 5 s, critério da F1). A fonte de verdade é backend/app/live/relogios/ (teste de paridade em tests/test_live_relogio.py); este arquivo só mede.",
   "eventos": [
     {
       "inicio_s": 0,
       "duracao_s": 180,
-      "tipo": "abertura",
+      "tipo": "manchetes",
       "grupo": "fala",
       "rotulo": "Abertura e manchetes",
       "natureza": "obrigatorio",
@@ -21,7 +21,7 @@
     {
       "inicio_s": 180,
       "duracao_s": 480,
-      "tipo": "cobertura",
+      "tipo": "noticia",
       "grupo": "fala",
       "rotulo": "Principal cobertura",
       "natureza": "ajustavel",
@@ -82,7 +82,7 @@
     {
       "inicio_s": 1980,
       "duracao_s": 480,
-      "tipo": "cotidiano",
+      "tipo": "noticia",
       "grupo": "fala",
       "rotulo": "Economia ou cotidiano",
       "natureza": "ajustavel",

@@ -1,0 +1,111 @@
+{
+  "id": "A",
+  "nome": "Musical com companhia",
+  "descricao": "Música no centro, fala curta e identidade; dois intervalos e passagem de hora.",
+  "fonte": "docs/pesquisa-radio-locufy.md §9.A",
+  "hipotese": true,
+  "nota": "Hipótese de projeto (docs/pesquisa-radio-locufy.md §9 e skill referencia-radio): os intervalos são reservas ilustrativas, não recomendação comercial. hard_time marca o início que não pode atrasar (tolerância de 5 s). Ajuste os tempos à sua operação.",
+  "relogio": {
+    "versao": 1,
+    "preset": "A",
+    "em_feriado": "mesmo",
+    "eventos": [
+      {
+        "inicio_s": 0,
+        "tipo": "abertura",
+        "duracao_s": 40,
+        "rotulo": "Identidade e abertura",
+        "natureza": "obrigatorio",
+        "hard_time": true
+      },
+      {
+        "inicio_s": 40,
+        "tipo": "musica",
+        "duracao_s": 680,
+        "rotulo": "Sequência musical A",
+        "natureza": "ajustavel",
+        "hard_time": false
+      },
+      {
+        "inicio_s": 720,
+        "tipo": "link",
+        "duracao_s": 35,
+        "rotulo": "Link com um assunto",
+        "natureza": "ajustavel",
+        "hard_time": false
+      },
+      {
+        "inicio_s": 755,
+        "tipo": "musica",
+        "duracao_s": 685,
+        "rotulo": "Sequência musical B",
+        "natureza": "ajustavel",
+        "hard_time": false
+      },
+      {
+        "inicio_s": 1440,
+        "tipo": "intervalo",
+        "duracao_s": 180,
+        "rotulo": "Intervalo",
+        "natureza": "obrigatorio",
+        "hard_time": true
+      },
+      {
+        "inicio_s": 1620,
+        "tipo": "retorno",
+        "duracao_s": 60,
+        "rotulo": "Retorno e participação",
+        "natureza": "ajustavel",
+        "hard_time": false
+      },
+      {
+        "inicio_s": 1680,
+        "tipo": "musica",
+        "duracao_s": 720,
+        "rotulo": "Sequência musical C",
+        "natureza": "ajustavel",
+        "hard_time": false
+      },
+      {
+        "inicio_s": 2400,
+        "tipo": "curadoria",
+        "duracao_s": 60,
+        "rotulo": "Agenda ou curadoria",
+        "natureza": "ajustavel",
+        "hard_time": false
+      },
+      {
+        "inicio_s": 2460,
+        "tipo": "musica",
+        "duracao_s": 720,
+        "rotulo": "Sequência musical D",
+        "natureza": "ajustavel",
+        "hard_time": false
+      },
+      {
+        "inicio_s": 3180,
+        "tipo": "intervalo",
+        "duracao_s": 180,
+        "rotulo": "Intervalo",
+        "natureza": "obrigatorio",
+        "hard_time": true
+      },
+      {
+        "inicio_s": 3360,
+        "tipo": "musica",
+        "duracao_s": 210,
+        "rotulo": "Música de fechamento",
+        "natureza": "ajustavel",
+        "hard_time": false
+      },
+      {
+        "inicio_s": 3570,
+        "tipo": "passagem",
+        "duracao_s": 30,
+        "rotulo": "Passagem de hora",
+        "natureza": "obrigatorio",
+        "hard_time": true
+      }
+    ]
+  }
+}

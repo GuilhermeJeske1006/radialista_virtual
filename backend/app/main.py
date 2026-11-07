@@ -157,6 +157,8 @@ async def criar_tabelas():
     garantir_colunas_radio_config()
     garantir_colunas_account()
     garantir_colunas_programa()
+    from app.db.migrations.relogio_20261107 import aplicar as aplicar_relogio
+    aplicar_relogio(engine)
     garantir_colunas_interaction_log()
     garantir_colunas_fila_ao_vivo()
     garantir_colunas_musica_historico()

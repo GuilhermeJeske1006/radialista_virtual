@@ -3,7 +3,7 @@
   "nome": "Musical com companhia",
   "fonte": "docs/pesquisa-radio-locufy.md §9.A",
   "hipotese": true,
-  "nota": "Hipótese de projeto: os intervalos da §9 são reservas ilustrativas, não recomendação comercial. hard_time marca o que não pode atrasar (tolerância de 5 s, critério da F1). Na F0 o backend ainda não conhece relógios: este arquivo só mede.",
+  "nota": "Hipótese de projeto: os intervalos da §9 são reservas ilustrativas, não recomendação comercial. hard_time marca o que não pode atrasar (tolerância de 5 s, critério da F1). A fonte de verdade é backend/app/live/relogios/ (teste de paridade em tests/test_live_relogio.py); este arquivo só mede.",
   "eventos": [
     {
       "inicio_s": 0,

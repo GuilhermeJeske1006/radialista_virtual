@@ -59,3 +59,17 @@ def feriados_nacionais(ano: int) -> dict[datetime.date, str]:
 
 def feriado_nacional_do_dia(data: datetime.date) -> str | None:
     return feriados_nacionais(data.year).get(data)
+
+
+def feriado_do_dia(data: datetime.date, feriados_municipais: list[dict] | None = None) -> str | None:
+    """Nome do feriado (nacional ou municipal cadastrado em programa.feriados_municipais, formato
+    "MM-DD") que cai em `data`, ou None. Usado pelo relógio da hora (app.live.relogio), que decide
+    pela data da ocorrência do programa; o prompt continua com o helper próprio dele."""
+    nacional = feriado_nacional_do_dia(data)
+    if nacional:
+        return nacional
+    chave = data.strftime("%m-%d")
+    for item in feriados_municipais or []:
+        if isinstance(item, dict) and str(item.get("data", "")).strip() == chave:
+            return str(item.get("nome") or "Feriado municipal")
+    return None

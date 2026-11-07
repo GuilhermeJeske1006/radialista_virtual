@@ -3,7 +3,7 @@
   "nome": "Morning show/variedades",
   "fonte": "docs/pesquisa-radio-locufy.md §9.C",
   "hipotese": true,
-  "nota": "Hipótese de projeto: os intervalos da §9 são reservas ilustrativas, não recomendação comercial. hard_time marca o que não pode atrasar (tolerância de 5 s, critério da F1). Na F0 o backend ainda não conhece relógios: este arquivo só mede.",
+  "nota": "Hipótese de projeto: os intervalos da §9 são reservas ilustrativas, não recomendação comercial. hard_time marca o que não pode atrasar (tolerância de 5 s, critério da F1). A fonte de verdade é backend/app/live/relogios/ (teste de paridade em tests/test_live_relogio.py); este arquivo só mede.",
   "eventos": [
     {
       "inicio_s": 0,
@@ -32,7 +32,7 @@
     {
       "inicio_s": 600,
       "duracao_s": 360,
-      "tipo": "bancada",
+      "tipo": "conversa",
       "grupo": "fala",
       "rotulo": "Conversa de bancada",
       "natureza": "ajustavel",
@@ -81,7 +81,7 @@
     {
       "inicio_s": 2040,
       "duracao_s": 420,
-      "tipo": "jogo",
+      "tipo": "participacao",
       "grupo": "fala",
       "rotulo": "Participação ou jogo",
       "natureza": "ajustavel",
