@@ -104,3 +104,24 @@ it("prévia musical acompanha o ciclo do backend e não promete comentários ext
   expect(textos[0]).toContain("Retomada");
   expect(textos.some((t) => t.includes("Abertura"))).toBe(false);
 });
+
+describe("ProximosBlocosPanel com relógio da hora", () => {
+  it("troca a prévia por sequência pelo aviso do relógio, com etapa e próximo horário fixo", async () => {
+    const { relogioA } = await import("../../../lib/__tests__/relogioFixtures");
+    const relogioAoVivo = {
+      preset: "A", inicio_previsto: "2026-11-10T15:12:10Z", inicio_previsto_aceito: true, hora: 0,
+      etapa: { hora: 0, inicio_s: 720, tipo: "link", tipo_efetivo: "link", rotulo: "Link com um assunto",
+        natureza: "ajustavel", hard_time: false, inicio: "2026-11-10T15:12:00Z", fim: "2026-11-10T15:12:35Z" },
+      proximo_compromisso: { hora: 0, inicio_s: 1440, tipo: "intervalo", tipo_efetivo: "intervalo", rotulo: "Intervalo",
+        natureza: "obrigatorio", hard_time: true, inicio: "2026-11-10T15:24:00Z", fim: "2026-11-10T15:27:00Z" },
+      segundos_ate_hard_time: 710, espaco_s: 710, acao: "fala", orcamento_s: [10, 35] as [number, number],
+    };
+    render(
+      <ProximosBlocosPanel programa={programa({ relogio_hora: relogioA() })} totalFalas={3} relogioAoVivo={relogioAoVivo} />,
+    );
+    expect(screen.getByText("Segue o relógio A: a ordem vem do horário.")).toBeInTheDocument();
+    expect(screen.getByText(/Etapa: Link com um assunto \(12:00 da hora\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Próximo horário fixo: Intervalo às/)).toBeInTheDocument();
+    expect(screen.queryAllByRole("listitem").some((li) => li.textContent?.includes("Abertura"))).toBe(false);
+  });
+});

@@ -11,12 +11,14 @@ import RadialistasProgramaSection from "./RadialistasProgramaSection";
 import FontesNoticiaSection from "./FontesNoticiaSection";
 import PautaDoDiaSection from "./PautaDoDiaSection";
 import VinhetasProgramaSection, { marcarVinhetasCriadas } from "./VinhetasProgramaSection";
+import RelogioHoraEditor from "./RelogioHoraEditor";
 import { apiFetch, ApiError } from "../lib/api";
 import {
   CategoriaVinheta,
   DIAS_SEMANA_LABEL,
   normalizarPrograma,
   Patrocinador,
+  PresetRelogio,
   Programa,
   PROGRAMA_VAZIO,
   ProgramaIAPreview,
@@ -75,6 +77,7 @@ export default function EditarProgramaForm({
   const [patrocinadores, setPatrocinadores] = useState<Patrocinador[]>([]);
   const [vinhetas, setVinhetas] = useState<BibliotecaAudioItem[]>([]);
   const [categorias, setCategorias] = useState<CategoriaVinheta[]>([]);
+  const [presetsRelogio, setPresetsRelogio] = useState<PresetRelogio[]>([]);
   const [iaAberto, setIaAberto] = useState(false);
   const [descricaoIA, setDescricaoIA] = useState("");
   const [gerandoIA, setGerandoIA] = useState(false);
@@ -92,6 +95,9 @@ export default function EditarProgramaForm({
     apiFetch<TipoRadio[]>("/config/tipos-radio")
       .then(setTiposRadio)
       .catch(() => {});
+    apiFetch<PresetRelogio[]>("/config/relogios/presets")
+      .then((presets) => setPresetsRelogio(Array.isArray(presets) ? presets : []))
+      .catch(() => setPresetsRelogio([]));
   }, []);
 
   const labelTipoRadioConta = tiposRadio.find((t) => t.value === tipoRadioConta)?.label;
@@ -173,11 +179,32 @@ export default function EditarProgramaForm({
         setIdCriado(atualizado.id);
         marcarVinhetasCriadas(atualizado.id);
       }
-      const salvo = normalizarPrograma(atualizado);
-      setPrograma(salvo);
-      setOriginal(JSON.stringify(salvo));
-      setMensagem(criando ? "Programa criado." : "Programa salvo.");
-      onSalvo?.(atualizado);
+      // O relógio da hora tem rota própria (o PUT do programa ignora o campo): só chama se mudou.
+      const relogio = programa.relogio_hora ?? null;
+      const relogioOriginal = original ? (JSON.parse(original) as Programa).relogio_hora ?? null : null;
+      let final = atualizado;
+      let erroRelogio = "";
+      if (JSON.stringify(relogio) !== JSON.stringify(relogioOriginal)) {
+        try {
+          final = await apiFetch<Programa>(`/config/programas/${atualizado.id}/relogio`, relogio
+            ? { method: "PUT", body: JSON.stringify(relogio) }
+            : { method: "DELETE" });
+        } catch (err) {
+          erroRelogio = err instanceof ApiError ? err.message : "erro ao salvar o relógio";
+        }
+      }
+      const salvo = normalizarPrograma(final);
+      if (erroRelogio) {
+        // Mantém o relógio editado na tela (alteração pendente) para tentar de novo.
+        setPrograma({ ...salvo, relogio_hora: relogio });
+        setOriginal(JSON.stringify(salvo));
+        setErro(`Programa salvo, mas o relógio não foi salvo: ${erroRelogio}`);
+      } else {
+        setPrograma(salvo);
+        setOriginal(JSON.stringify(salvo));
+        setMensagem(criando ? "Programa criado." : "Programa salvo.");
+      }
+      onSalvo?.(final);
     } catch (err) {
       setErro(err instanceof ApiError ? err.message : "Erro ao salvar");
     } finally {
@@ -620,6 +647,17 @@ export default function EditarProgramaForm({
             </div>
           )}
         </div>
+
+        <RelogioHoraEditor
+          valor={programa.relogio_hora ?? null}
+          presets={presetsRelogio}
+          onChange={(relogio) => setPrograma({ ...programa, relogio_hora: relogio })}
+          janelaSegundos={janelaSegundos(programa.horario_inicio, programa.horario_fim)}
+          semFonteNoticia={
+            programa.dose_noticia === "nenhuma"
+            || !(programa.pode_pesquisar || programa.tipos_noticias.length > 0 || programa.fontes_noticias.length > 0)
+          }
+        />
 
         {criando ? (
           <RoteiroBlocosEditor

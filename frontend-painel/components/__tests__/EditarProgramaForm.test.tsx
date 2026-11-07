@@ -87,3 +87,57 @@ it("permite selecionar o perfil jornalismo e aplicar a estrutura sugerida", asyn
   expect(screen.getAllByText("Notícia").length).toBeGreaterThan(0);
   expect(screen.getByText("Giro de notícias")).toBeInTheDocument();
 });
+
+describe("EditarProgramaForm (relógio da hora)", () => {
+  async function renderEdicao(comRelogio: boolean) {
+    const { PROGRAMA_VAZIO } = await import("../../lib/types");
+    const { presetsFixture, relogioA } = await import("../../lib/__tests__/relogioFixtures");
+    const programa = { ...PROGRAMA_VAZIO, id: 5, radio_config_id: 1, nome: "Tarde", relogio_hora: comRelogio ? relogioA() : null };
+    apiFetchMock.mockReset();
+    apiFetchMock.mockImplementation((path: string, opcoes?: { method?: string; body?: string }) => {
+      if (path === "/config/relogios/presets") return Promise.resolve(presetsFixture());
+      if (path === "/config/radio") return Promise.reject(new Error("sem radio configurado"));
+      if (path === "/config/programas/5" && opcoes?.method === "PUT") return Promise.resolve(programa);
+      if (path === "/config/programas/5") return Promise.resolve(programa);
+      if (path === "/config/programas/5/relogio" && opcoes?.method === "PUT") {
+        return Promise.resolve({ ...programa, relogio_hora: JSON.parse(opcoes.body!) });
+      }
+      if (path === "/config/programas/5/relogio") return Promise.resolve({ ...programa, relogio_hora: null });
+      return Promise.resolve([]);
+    });
+    render(<EditarProgramaForm programaId={5} />);
+    await screen.findByText("Editar programa");
+    await screen.findByRole("option", { name: "A: Musical com companhia" });
+  }
+
+  const chamadas = () => apiFetchMock.mock.calls
+    .filter(([, opcoes]) => opcoes?.method)
+    .map(([path, opcoes]) => `${opcoes.method} ${path}`);
+
+  it("salvar com o relógio alterado chama PUT do programa e depois PUT do relógio", async () => {
+    await renderEdicao(false);
+    await userEvent.selectOptions(screen.getByLabelText("Relógio da hora"), "A");
+    await userEvent.click(screen.getByRole("button", { name: "Salvar programa" }));
+    expect((await screen.findAllByText("Programa salvo.")).length).toBeGreaterThan(0);
+    expect(chamadas()).toEqual(["PUT /config/programas/5", "PUT /config/programas/5/relogio"]);
+    const corpo = JSON.parse(apiFetchMock.mock.calls.find(([p, o]) => p === "/config/programas/5/relogio" && o)![1].body);
+    expect(corpo.preset).toBe("A");
+    expect(corpo.eventos).toHaveLength(12);
+  });
+
+  it("'Sem relógio' num programa com relógio chama DELETE", async () => {
+    await renderEdicao(true);
+    expect(screen.getByLabelText("Relógio da hora")).toHaveValue("A");
+    await userEvent.selectOptions(screen.getByLabelText("Relógio da hora"), "");
+    await userEvent.click(screen.getByRole("button", { name: "Salvar programa" }));
+    expect((await screen.findAllByText("Programa salvo.")).length).toBeGreaterThan(0);
+    expect(chamadas()).toEqual(["PUT /config/programas/5", "DELETE /config/programas/5/relogio"]);
+  });
+
+  it("programa sem relógio e sem mudança não chama a rota do relógio", async () => {
+    await renderEdicao(false);
+    await userEvent.click(screen.getByRole("button", { name: "Salvar programa" }));
+    expect((await screen.findAllByText("Programa salvo.")).length).toBeGreaterThan(0);
+    expect(chamadas()).toEqual(["PUT /config/programas/5"]);
+  });
+});

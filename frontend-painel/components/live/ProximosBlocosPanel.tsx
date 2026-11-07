@@ -5,6 +5,8 @@ import { apiFetch } from "../../lib/api";
 import { Patrocinador, Programa, rotuloBloco } from "../../lib/types";
 import { BibliotecaAudioItem } from "../../lib/bibliotecaAudio";
 import { tipoMusical } from "../../lib/formatoPrograma";
+import { RelogioAoVivo } from "../../lib/liveTypes";
+import { formatarMinSeg } from "../../lib/relogio";
 
 // Porta em JS a logica de _tipo_proximo_bloco (backend/app/live/router.py) -- so os TIPOS,
 // sem gerar conteudo real (LLM/TTS) antecipadamente. Fiel a parte deterministica do motor;
@@ -56,11 +58,45 @@ type Props = {
   programa: Programa | null;
   totalFalas: number;
   variant?: "card" | "strip";
+  /** Campo `relogio` da última resposta de /proxima (só em programa com relógio da hora). */
+  relogioAoVivo?: RelogioAoVivo | null;
 };
+
+function horaLocal(iso: string): string {
+  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+// Com relógio da hora (F1), a ordem vem do horário (backend app/live/relogio.py): a prévia por
+// contagem de falas seria falsa. Mostra o relógio, a etapa atual e o próximo compromisso.
+function AvisoRelogio({ programa, relogioAoVivo, variant }: {
+  programa: Programa;
+  relogioAoVivo?: RelogioAoVivo | null;
+  variant: "card" | "strip";
+}) {
+  const preset = programa.relogio_hora?.preset;
+  const compromisso = relogioAoVivo?.proximo_compromisso;
+  return (
+    <div className={variant === "strip" ? "" : "mt-4"}>
+      <p className="text-sm text-fg/80">
+        {`Segue o relógio ${preset ?? "personalizado"}: a ordem vem do horário.`}
+      </p>
+      {relogioAoVivo && (
+        <ul className="mt-2 space-y-1 text-xs text-fg/65">
+          <li>
+            {`Etapa: ${relogioAoVivo.etapa.rotulo || relogioAoVivo.etapa.tipo} (${formatarMinSeg(relogioAoVivo.etapa.inicio_s)} da hora)`}
+          </li>
+          {compromisso && (
+            <li>{`Próximo horário fixo: ${compromisso.rotulo || compromisso.tipo} às ${horaLocal(compromisso.inicio)}`}</li>
+          )}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 const QUANTIDADE_PREVIEW = 5;
 
-export default function ProximosBlocosPanel({ programa, totalFalas, variant = "card" }: Props) {
+export default function ProximosBlocosPanel({ programa, totalFalas, variant = "card", relogioAoVivo }: Props) {
   const [patrocinadores, setPatrocinadores] = useState<Patrocinador[]>([]);
   const [vinhetas, setVinhetas] = useState<BibliotecaAudioItem[]>([]);
 
@@ -74,6 +110,23 @@ export default function ProximosBlocosPanel({ programa, totalFalas, variant = "c
   }, []);
 
   if (!programa) return null;
+
+  if (programa.relogio_hora) {
+    if (variant === "strip") {
+      return (
+        <div>
+          <p className="text-xs font-mono font-semibold uppercase tracking-wide text-fg/65 mb-2">A seguir na grade</p>
+          <AvisoRelogio programa={programa} relogioAoVivo={relogioAoVivo} variant={variant} />
+        </div>
+      );
+    }
+    return (
+      <section className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
+        <h2 className="font-display text-base font-bold text-fg">Próximos blocos</h2>
+        <AvisoRelogio programa={programa} relogioAoVivo={relogioAoVivo} variant={variant} />
+      </section>
+    );
+  }
 
   const nomesPatrocinadores = Object.fromEntries(patrocinadores.map((p) => [p.id, p.nome]));
   const nomesVinhetas = Object.fromEntries(vinhetas.map((v) => [v.id, v.nome]));
