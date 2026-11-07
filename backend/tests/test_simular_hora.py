@@ -1,0 +1,560 @@
+"""Bancada de simulação de uma hora de programa (F0 do plano de melhoria de rádio).
+
+Desenho em docs/melhoria-radio/f0/auditoria.md §5 e §6. O simulador passa pelo POST /proxima real;
+só LLM, TTS, música, notícia e clima são dublês. Nenhum teste aqui compara as_run byte a byte:
+as frentes seguintes mudam o comportamento de propósito, então os testes conferem invariantes e
+métricas.
+"""
+
+import json
+import os
+import pathlib
+import subprocess
+import sys
+import time
+
+import pytest
+
+from app.live.formato import contar_palavras, orcamento_fala
+
+BACKEND = pathlib.Path(__file__).resolve().parents[1]
+DIR_PROGRAMAS = BACKEND / "tests" / "fixtures" / "programas"
+PERFIS = ("musical_adulto", "popular_sertanejo", "variedades_leves")
+
+# As 14 chaves que a skill avaliar-locucao lê de cada evento.
+CHAVES_SKILL = (
+    "inicio", "fim", "tipo", "formato", "texto", "duracao_prevista_s", "duracao_medida_s",
+    "orcamento_s", "musica_anunciada", "musica_tocada", "promessas_abertas", "promessas_fechadas",
+    "pedido_id", "pedido_estado",
+)
+
+
+# ---------------------------------------------------------------------------------------------
+# Simulações compartilhadas: cada perfil roda uma vez por módulo (modo fake, padrões do CLI).
+# ---------------------------------------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def simulacoes(tmp_path_factory):
+    from scripts.simular_hora import simular
+
+    resultados = {}
+    for perfil in PERFIS:
+        saida = tmp_path_factory.mktemp(f"sim_{perfil}")
+        inicio = time.perf_counter()
+        resultado = simular(perfil, saida=saida)
+        resultados[perfil] = {
+            "resultado": resultado,
+            "saida": saida,
+            "parede_s": time.perf_counter() - inicio,
+        }
+    return resultados
+
+
+def _falas(as_run):
+    return [e for e in as_run["eventos"] if e["tipo"] == "fala"]
+
+
+# ---------------------------------------------------------------------------------------------
+# Unitários
+# ---------------------------------------------------------------------------------------------
+
+def test_relogios_somam_3600_e_sao_continuos():
+    from scripts.simulacao.fixtures import carregar_relogio
+
+    hard_times_esperados = {
+        "A": [0, 1440, 3180, 3570],
+        "B": [0, 900, 1080, 2460, 3480],
+        "C": [0, 960, 2460, 3480],
+    }
+    for relogio_id, esperados in hard_times_esperados.items():
+        relogio = carregar_relogio(relogio_id)
+        assert relogio.id == relogio_id
+        assert relogio.hipotese is True
+        inicio = 0
+        for evento in relogio.eventos:
+            assert evento.inicio_s == inicio, f"{relogio_id}: lacuna ou sobreposição em {evento.rotulo}"
+            assert evento.duracao_s > 0
+            inicio += evento.duracao_s
+        assert inicio == 3600
+        assert [e.inicio_s for e in relogio.eventos if e.hard_time] == esperados
+
+    relogio_a = carregar_relogio("A")
+    por_grupo = relogio_a.duracao_por_grupo()
+    assert por_grupo == {"musica": 3015, "fala": 225, "intervalo": 360}
+
+
+def test_fixtures_de_programa_validas():
+    from app.live.music import _titulo_normalizado, titulo_ja_tocado
+    from app.models.programa import Programa
+    from scripts.simulacao.fixtures import FixturePrograma, Relogio, carregar_catalogo, carregar_relogio
+
+    colunas_programa = set(Programa.__table__.columns.keys())
+    arquivos = sorted(DIR_PROGRAMAS.glob("*.json"))
+    assert {a.stem for a in arquivos} == set(PERFIS)
+
+    for arquivo in arquivos:
+        dados = json.loads(arquivo.read_text(encoding="utf-8"))
+        # O testador percorre o topo da pasta: nenhum arquivo ali pode ser um relógio.
+        with pytest.raises(ValueError):
+            Relogio.model_validate(dados)
+        fixture = FixturePrograma.model_validate(dados)
+        assert fixture.id == arquivo.stem
+
+        carregar_relogio(fixture.relogio)
+        assert set(fixture.programa) <= colunas_programa, set(fixture.programa) - colunas_programa
+        assert fixture.programa.get("ia_pode_adicionar_blocos") is False
+        assert fixture.conta.cidade == ""
+        assert fixture.programa.get("dose_noticia") == "nenhuma"
+        assert fixture.programa.get("pode_pesquisar") is False
+
+        catalogo = carregar_catalogo(fixture.catalogo)
+        assert len(catalogo.faixas) >= 30
+        assert sum(f.duracao_tocada_s for f in catalogo.faixas if not f.indisponivel) >= 100 * 60
+        rotulos = {f"{f.artista} - {f.titulo}" for f in catalogo.faixas}
+        for permitida in fixture.programa.get("musicas_permitidas", []):
+            assert permitida in rotulos, permitida
+
+        # Títulos distintos não podem ser "a mesma música" para o backend (contenção de palavras).
+        titulos = [f.titulo for f in catalogo.faixas]
+        for i, titulo in enumerate(titulos):
+            outros = {_titulo_normalizado(t) for j, t in enumerate(titulos) if j != i}
+            assert not titulo_ja_tocado(titulo, outros), titulo
+
+        papeis = {v.papel for v in fixture.vinhetas}
+        chaves = {p.chave for p in fixture.patrocinadores}
+        for bloco in fixture.programa.get("estrutura_blocos", []):
+            if bloco.startswith("vinheta:@"):
+                assert bloco.removeprefix("vinheta:@") in papeis
+            if bloco.startswith("patrocinador:@"):
+                assert bloco.removeprefix("patrocinador:@") in chaves
+
+
+def test_linha_historico_igual_ao_painel():
+    """Espelha linhaMusicasHistorico + map de prepararTexto (frontend-painel/hooks/useLiveEngine.ts:1241)."""
+    from scripts.simulacao.emissao import linha_historico
+
+    segmento = {"tipo": "musica", "fala": "Vem aí", "musicas": [
+        {"titulo": "T", "canal": "C"}, {"titulo": "U", "canal": "D"},
+    ]}
+    assert linha_historico(segmento) == "musica: Vem aí [Música(s) tocada(s) nesse bloco: T - C, U - D]"
+    assert linha_historico({"tipo": "abertura", "fala": "Oi", "musicas": []}) == "abertura: Oi"
+    assert linha_historico({"tipo": "musica", "fala": "", "musicas": [{"titulo": "T", "canal": ""}]}) == (
+        "musica:  [Música(s) tocada(s) nesse bloco: T]"
+    )
+
+
+def test_duble_llm_respeita_orcamento_tipo_e_faixa_confirmada():
+    from scripts.simulacao.dubles import DubleLLM, EstadoChamada
+    from scripts.simulacao.fixtures import carregar_catalogo, carregar_fixture
+
+    musical = carregar_fixture("musical_adulto").model_copy(update={"injecoes": []})
+    catalogo = carregar_catalogo(musical.catalogo)
+    faixa = next(f for f in catalogo.faixas if not f.indisponivel)
+    estado = EstadoChamada()
+    duble = DubleLLM(musical, estado, wpm=145, semente=7)
+
+    # Faixa confirmada chega pelo canal lateral: o prompt não precisa citar a música.
+    estado.nova_chamada(bloco_n=4, total_falas=3)
+    estado.registrar_faixa(faixa)
+    texto = duble.gerar_resposta("prompt sem nome de música", "Tipo do próximo bloco: musica.\nHistórico:")
+    assert faixa.titulo in texto and faixa.artista in texto
+    assert contar_palavras(texto) <= orcamento_fala("musica")[2]
+
+    # Orçamento do backend no formato musical: identificação cabe na meta em segundos.
+    estado.nova_chamada(bloco_n=5, total_falas=4)
+    texto = duble.gerar_resposta("prompt", "Tipo do próximo bloco: identificacao.\n")
+    minimo, maximo, palavras = orcamento_fala("identificacao")
+    assert contar_palavras(texto) <= palavras
+    assert contar_palavras(texto) / 145 * 60 <= maximo
+
+    # Revisão obedece ao limite pedido, mesmo menor que a meta.
+    texto = duble.gerar_resposta("prompt\nReescreva com no máximo 6 palavras, preservando os fatos.",
+                                 "Tipo do próximo bloco: identificacao.\n")
+    assert contar_palavras(texto) <= 6
+
+    # Sem faixa confirmada, a fala de música não anuncia nenhuma faixa do catálogo.
+    estado.nova_chamada(bloco_n=6, total_falas=5)
+    texto = duble.gerar_resposta("prompt", "Tipo do próximo bloco: musica.\n")
+    assert not any(f.titulo in texto for f in catalogo.faixas)
+
+    # Formato padrão: orçamento de referência da fixture.
+    variedades = carregar_fixture("variedades_leves").model_copy(update={"injecoes": []})
+    duble_padrao = DubleLLM(variedades, EstadoChamada(), wpm=145, semente=7)
+    duble_padrao.estado.nova_chamada(bloco_n=2, total_falas=1)
+    texto = duble_padrao.gerar_resposta("prompt", "Tipo do próximo bloco: comentario.\n")
+    assert contar_palavras(texto) / 145 * 60 <= variedades.orcamento_para("comentario").max
+
+    assert duble.contadores["tipo_reconhecido"] == 4
+    duble.gerar_resposta("prompt", "mensagem sem o tipo")
+    assert duble.contadores["tipo_nao_reconhecido"] == 1
+
+
+def test_duble_musica_respeita_evitar_e_titulos_tocados():
+    from app.live.music import _titulo_normalizado
+    from scripts.simulacao.dubles import CatalogoSimulado, EstadoChamada
+    from scripts.simulacao.fixtures import carregar_catalogo
+
+    catalogo = carregar_catalogo("popular_sertanejo")
+    disponiveis = [f for f in catalogo.faixas if not f.indisponivel]
+    indisponivel = next(f for f in catalogo.faixas if f.indisponivel)
+    estado = EstadoChamada()
+    estado.nova_chamada(bloco_n=1, total_falas=0)
+    musicas = CatalogoSimulado(catalogo, estado)
+
+    primeira = musicas.buscar_musica("sucessos musica brasileira")
+    assert primeira.video_id == disponiveis[0].video_id
+    assert primeira.canal == disponiveis[0].artista
+    assert estado.faixa.video_id == disponiveis[0].video_id
+
+    segunda = musicas.buscar_musica("sucessos musica brasileira", evitar_video_ids={disponiveis[0].video_id})
+    assert segunda.video_id == disponiveis[1].video_id
+
+    tocados = {_titulo_normalizado(disponiveis[0].titulo), _titulo_normalizado(disponiveis[1].titulo)}
+    terceira = musicas.buscar_musica("sertanejo musica", genero="sertanejo", titulos_tocados=tocados)
+    assert terceira.video_id == disponiveis[2].video_id
+
+    # Pedido pelo título: tokens da query no texto da faixa; faixa indisponível nunca volta.
+    assert musicas.buscar_musica(disponiveis[5].titulo).video_id == disponiveis[5].video_id
+    assert musicas.buscar_musica(indisponivel.titulo) is None
+    assert musicas.resolver_musica_catalogada(None, indisponivel.titulo, indisponivel.artista) is None
+
+    resolvida = musicas.resolver_musica_catalogada(None, disponiveis[3].titulo, disponiveis[3].artista)
+    assert resolvida.video_id == disponiveis[3].video_id
+    assert musicas.resolver_musica_catalogada(
+        None, disponiveis[3].titulo, disponiveis[3].artista, evitar_video_ids={disponiveis[3].video_id},
+    ) is None
+
+    faixas = musicas.buscar_faixas_por_categoria("sertanejo", excluir_titulos=tocados)
+    assert (disponiveis[0].artista, disponiveis[0].titulo) not in faixas
+    assert faixas[0] == (disponiveis[2].artista, disponiveis[2].titulo)
+
+    duracao = (resolvida.fim_segundos or resolvida.duracao_segundos) - resolvida.inicio_segundos
+    assert duracao == disponiveis[3].duracao_tocada_s
+
+    citadas = musicas.extrair_musicas_citadas(
+        f"Lembrei de {disponiveis[4].titulo} e de {disponiveis[6].titulo}.",
+        [f"{disponiveis[6].titulo} - {disponiveis[6].artista}"],
+    )
+    assert citadas == [f"{disponiveis[4].artista} - {disponiveis[4].titulo}"]
+
+
+def test_banco_de_falas_respeita_regras_editoriais():
+    """Falas originais do dublê: sem algarismo, sem promessa, sem pedido simulado, sem título do catálogo."""
+    from scripts.simulacao import banco_falas
+    from scripts.simulacao.fixtures import carregar_catalogo
+    from scripts.simulacao.metricas import CONFIG_METRICAS, detectar_promessas, normalizar
+
+    titulos = [normalizar(f.titulo) for perfil in PERFIS for f in carregar_catalogo(perfil).faixas]
+    espacos = {"radio": "Rádio Teste", "programa": "Programa Teste", "locutor": "Locutor Teste", "titulo": "",
+               "artista": "", "nome": "", "quadro": "Quadro Teste"}
+    for modelo, partes in banco_falas.BANCO.items():
+        for parte in ("aberturas", "ganchos", "fechamentos"):
+            assert len(partes[parte]) >= 8, (modelo, parte)
+        for frase in [f for lista in partes.values() for f in lista]:
+            texto = frase.format(**espacos)
+            assert not any(ch.isdigit() for ch in texto), frase
+            assert detectar_promessas(texto, 0, 3600, 1) == [], frase
+            normalizado = f" {normalizar(texto)} "
+            if not modelo.startswith("musica_pedido"):
+                for padrao in CONFIG_METRICAS["pedido_indevido"]["padroes"]:
+                    assert f" {normalizar(padrao)} " not in normalizado, (modelo, frase)
+            for titulo in titulos:
+                assert f" {titulo} " not in normalizado, (modelo, frase, titulo)
+
+
+def _as_run_artificial():
+    def evento(n, bloco_n, tipo, inicio_s, fim_s, **extra):
+        base = {
+            "n": n, "bloco_n": bloco_n, "tipo": tipo, "bloco": extra.pop("bloco", tipo),
+            "categoria": extra.pop("categoria", tipo), "formato": "musical_adulto",
+            "inicio_s": inicio_s, "fim_s": fim_s, "pausa_antes_s": extra.pop("pausa_antes_s", 0.0),
+            "texto": extra.pop("texto", ""), "duracao_prevista_s": fim_s - inicio_s, "duracao_medida_s": None,
+            "orcamento_s": extra.pop("orcamento_s", None), "musicas_citadas": [],
+            "musica_anunciada": extra.pop("musica_anunciada", []), "musica_tocada": extra.pop("musica_tocada", None),
+            "musicas_bloco": [], "promessas_abertas": extra.pop("promessas_abertas", []),
+            "promessas_fechadas": [], "pedido_id": None, "pedido_estado": None, "pedido_estado_final": None,
+            "cortado": False,
+        }
+        base.update(extra)
+        return base
+
+    def orc(maximo):
+        return {"min": 1, "max": maximo, "fonte": "backend"}
+
+    eventos = [
+        evento(1, 1, "fala", 0.0, 18.0, bloco="abertura", categoria="abertura",
+               texto="Boa tarde, começa a Tarde Serena.", orcamento_s=orc(35)),
+        evento(2, 2, "musica", 18.0, 200.0, bloco="musica", categoria="musica",
+               musica_tocada="Rua das Acácias - Duo Estrada Velha"),
+        evento(3, 3, "fala", 200.0, 212.0, bloco="retomada", categoria="abertura",
+               texto="Você ouve a Rádio Serra Clara nesta tarde.", orcamento_s=orc(12),
+               musica_anunciada=["Varanda de Pedra - Trio Ventania"], musica_tocada="Lua no Telhado - Coral Alto"),
+        evento(4, 3, "musica", 212.0, 400.0, bloco="retomada", categoria="abertura",
+               musica_tocada="Lua no Telhado - Coral Alto"),
+        evento(5, 4, "fala", 400.0, 440.0, bloco="identificacao", categoria="abertura",
+               texto="Você ouve a Rádio Serra Clara, e daqui a pouco tem novidade.", orcamento_s=orc(20),
+               promessas_abertas=[{"id": "p1", "padrao": "daqui a pouco", "trecho": "daqui a pouco", "prazo_s": 900}]),
+        evento(6, 5, "bloco_vazio", 450.0, 455.0, pausa_antes_s=2.0),
+        evento(7, 6, "fala", 455.0, 470.0, bloco="chamada_ouvinte", categoria="chamada_ouvinte",
+               texto="Você ouve a Marina Tavares, que pediu esta, toca agora.", orcamento_s=orc(60)),
+        evento(8, 6, "musica", 470.0, 582.0, bloco="chamada_ouvinte", categoria="chamada_ouvinte",
+               musica_tocada="Ponte de Madeira - Coral Alto"),
+        evento(9, 7, "fala", 582.0, 600.0, bloco="encerramento", categoria="encerramento",
+               texto="Obrigado pela companhia nesta tarde.", orcamento_s=orc(18)),
+    ]
+    relogio = {"id": "T", "eventos": [
+        {"inicio_s": 0, "duracao_s": 60, "tipo": "abertura", "grupo": "fala", "hard_time": True,
+         "corresponde_a": ["abertura"]},
+        {"inicio_s": 60, "duracao_s": 240, "tipo": "musica", "grupo": "musica", "hard_time": False,
+         "corresponde_a": []},
+        {"inicio_s": 300, "duracao_s": 120, "tipo": "intervalo", "grupo": "intervalo", "hard_time": True,
+         "corresponde_a": ["intervalo"]},
+        {"inicio_s": 420, "duracao_s": 150, "tipo": "musica", "grupo": "musica", "hard_time": False,
+         "corresponde_a": []},
+        {"inicio_s": 570, "duracao_s": 30, "tipo": "passagem", "grupo": "fala", "hard_time": True,
+         "corresponde_a": ["encerramento"]},
+    ]}
+    return {
+        "versao": 1, "programa": "artificial", "formato": "musical_adulto", "modo": "fake",
+        "inicio": "2026-11-10T14:00:00-03:00", "fim_programa": "2026-11-10T14:10:00-03:00",
+        "duracao_programa_s": 600, "relogio": relogio,
+        "ouvintes": {"fixture": ["Marina Tavares"], "inexistentes": []},
+        "pedidos": [], "eventos": eventos,
+    }
+
+
+def test_metricas_em_as_run_artificial():
+    from scripts.simulacao.metricas import calcular_metricas
+
+    m = calcular_metricas(_as_run_artificial())
+    assert m["anuncio_sem_confirmacao"] == 1
+    assert m["promessa_vencida"] == 1
+    assert m["pedido_indevido"] == 1
+    assert m["silencio_s"] == pytest.approx(13.0)
+    assert m["silencio_editorial_s"] == pytest.approx(2.0)
+    assert m["fora_orcamento_pct"] == pytest.approx(20.0)
+    assert m["estouro_max_pct"] == pytest.approx(100.0)
+    assert m["atraso_hard_time_s"] == pytest.approx(12.0)
+    assert m["hard_times_perdidos"] == 1
+    assert [h["status"] for h in m["hard_times"]] == ["ok", "perdido", "atrasado"]
+    assert m["abertura_repetida"] == 1
+    assert m["tempo_fala_s"] == pytest.approx(103.0)
+    assert m["tempo_musica_s"] == pytest.approx(482.0)
+    assert m["tempo_outros_s"] == pytest.approx(5.0)
+    assert m["aviso_oralidade"] is None
+    assert m["repeticao_estrutura"] is None
+
+    # Controle negativo: sem as violações, as contagens zeram.
+    limpo = _as_run_artificial()
+    limpo["eventos"] = [e for e in limpo["eventos"] if e["n"] not in (3, 5, 6, 7)]
+    m_limpo = calcular_metricas(limpo)
+    assert (m_limpo["anuncio_sem_confirmacao"], m_limpo["promessa_vencida"], m_limpo["pedido_indevido"]) == (0, 0, 0)
+    assert m_limpo["abertura_repetida"] == 0
+
+
+# ---------------------------------------------------------------------------------------------
+# Integração (pelo /proxima real)
+# ---------------------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("perfil", PERFIS)
+def test_simulacao_fake_rapida_e_sem_rede(simulacoes, perfil):
+    sim = simulacoes[perfil]
+    resultado, saida = sim["resultado"], sim["saida"]
+    assert sim["parede_s"] < 30
+    assert resultado.resumo["tempo_execucao_s"] < 30
+    assert resultado.resumo["tentativas_rede"] == 0
+    assert resultado.resumo["erros_http"] == 0
+
+    as_run = json.loads((saida / "as_run.json").read_text(encoding="utf-8"))
+    resumo = json.loads((saida / "resumo.json").read_text(encoding="utf-8"))
+    assert as_run["programa"] == perfil
+    assert resumo["config"]["modo"] == "fake"
+
+    eventos = as_run["eventos"]
+    assert len(eventos) > 10
+    for evento in eventos:
+        faltando = [c for c in CHAVES_SKILL if c not in evento]
+        assert not faltando, (evento["n"], faltando)
+        assert evento["tipo"] in ("fala", "musica", "vinheta", "patrocinador", "intervalo", "bloco_vazio", "erro")
+    for anterior, seguinte in zip(eventos, eventos[1:]):
+        assert anterior["fim_s"] <= seguinte["inicio_s"] + 1e-6
+        assert anterior["bloco_n"] <= seguinte["bloco_n"]
+    assert eventos[0]["inicio_s"] >= 0
+    assert any(e["tipo"] == "musica" for e in eventos)
+    assert _falas(as_run)
+
+
+def test_determinismo_mesma_semente(simulacoes):
+    from scripts.simular_hora import simular
+
+    base = simulacoes["variedades_leves"]["resultado"]
+    outra = simular("variedades_leves")
+    assert outra.as_run == base.as_run
+    resumo_a = {k: v for k, v in base.resumo.items() if k != "tempo_execucao_s"}
+    resumo_b = {k: v for k, v in outra.resumo.items() if k != "tempo_execucao_s"}
+    assert resumo_a == resumo_b
+
+
+def test_fila_de_preparo_gera_dois_blocos_a_frente(simulacoes):
+    as_run = simulacoes["popular_sertanejo"]["resultado"].as_run
+    inicio_bloco = {}
+    gerado_em = {}
+    for evento in as_run["eventos"]:
+        if evento["bloco_n"] not in inicio_bloco:
+            inicio_bloco[evento["bloco_n"]] = evento["inicio_s"] - evento["pausa_antes_s"]
+            gerado_em[evento["bloco_n"]] = evento["gerado_em_s"]
+    blocos = sorted(inicio_bloco)
+    assert gerado_em[blocos[0]] == pytest.approx(-90.0)
+    assert gerado_em[blocos[1]] == pytest.approx(-90.0)
+    conferidos = 0
+    for k in blocos[2:]:
+        if k - 2 in inicio_bloco:
+            assert gerado_em[k] == pytest.approx(inicio_bloco[k - 2], abs=5.0), k
+            conferidos += 1
+    assert conferidos >= 5
+
+
+def test_corte_agendado_trunca_no_horario_fim(simulacoes):
+    resultado = simulacoes["musical_adulto"]["resultado"]
+    eventos = resultado.as_run["eventos"]
+    assert max(e["fim_s"] for e in eventos) <= 3601.0 + 1e-6
+    assert any(e["cortado"] for e in eventos) or resultado.resumo["segundos_cortados"] > 0
+    assert resultado.resumo["estouro_fim_programa_s"] <= 1.0 + 1e-6
+    assert resultado.resumo["config"]["corte"] == "agendado"
+
+
+def test_corte_manual_mede_estouro():
+    from scripts.simular_hora import simular
+
+    resultado = simular("musical_adulto", corte="manual")
+    eventos = resultado.as_run["eventos"]
+    assert not any(e["cortado"] for e in eventos)
+    assert resultado.resumo["estouro_fim_programa_s"] > 0
+    assert resultado.resumo["encerramento_no_ar"] is True
+    assert _falas(resultado.as_run)[-1]["bloco"] == "encerramento"
+
+
+def test_pedido_fluxo_novo_selecionado_vira_executado(simulacoes):
+    resultado = simulacoes["popular_sertanejo"]["resultado"]
+    executados = [
+        e for e in resultado.as_run["eventos"]
+        if e["tipo"] == "fala" and e["pedido_estado"] == "selecionado" and e["pedido_estado_final"] == "executado"
+    ]
+    assert executados
+    pedidos = resultado.resumo["pedidos"]
+    assert pedidos["executados"] >= 1
+    assert pedidos["atendidos_antes_de_tocar"] == 0
+    assert pedidos["recebidos"] == 4
+
+
+def test_pedido_fluxo_legado_atendido_antes_de_tocar(simulacoes):
+    resultado = simulacoes["variedades_leves"]["resultado"]
+    legados = [e for e in resultado.as_run["eventos"] if e["pedido_estado"] == "historico_legado"]
+    assert legados
+    assert resultado.resumo["pedidos"]["atendidos_antes_de_tocar"] >= 1
+    # O fluxo legado marca o pedido como atendido antes de tocar: conta como pedido indevido de propósito.
+    assert resultado.resumo["pedido_indevido"] >= 1
+
+
+def test_injecoes_aparecem_nas_metricas(simulacoes):
+    popular = simulacoes["popular_sertanejo"]["resultado"].resumo
+    musical = simulacoes["musical_adulto"]["resultado"].resumo
+    variedades = simulacoes["variedades_leves"]["resultado"].resumo
+
+    assert popular["promessa_vencida"] >= 1
+    assert musical["chamadas_llm"]["total"] > musical["chamadas_llm"]["falas"]
+    assert musical["chamadas_llm"]["revisoes"] >= 1
+    assert musical["anuncio_sem_confirmacao"] >= 1
+    assert variedades["fora_orcamento_pct"] > 0
+    assert variedades["ouvinte_inexistente"] >= 1
+
+
+def test_dubles_cobrem_alvos_existentes(simulacoes, db_session):
+    import importlib
+
+    from scripts.simulacao.dubles import ALVOS, aplicar_dubles
+    from scripts.simulacao.fixtures import carregar_catalogo, carregar_fixture
+
+    originais = {}
+    for alvo in ALVOS:
+        modulo = importlib.import_module(alvo.modulo)
+        assert hasattr(modulo, alvo.nome), f"{alvo.modulo}.{alvo.nome} não existe mais"
+        originais[(alvo.modulo, alvo.nome)] = getattr(modulo, alvo.nome)
+
+    fixture = carregar_fixture("popular_sertanejo")
+    with aplicar_dubles(fixture, carregar_catalogo(fixture.catalogo), modo="fake", sessao=db_session):
+        for nome_modulo, modulo in list(sys.modules.items()):
+            if not nome_modulo.startswith("app.") or modulo is None:
+                continue
+            for atributo, valor in list(vars(modulo).items()):
+                for (origem, nome), original in originais.items():
+                    if callable(original) and valor is original:
+                        pytest.fail(f"{nome_modulo}.{atributo} ainda aponta para {origem}.{nome} original")
+
+    for (origem, nome), original in originais.items():
+        assert getattr(importlib.import_module(origem), nome) is original
+
+    assert simulacoes["popular_sertanejo"]["resultado"].resumo["dubles"]["faixa_reconhecida_pct"] >= 95
+
+
+def _rodar_cli(*args, tmp_path):
+    env = {**os.environ, "PYTHONPATH": str(BACKEND), "PYTHONHASHSEED": "0",
+           "ANTHROPIC_API_KEY": "chave-falsa-do-teste", "ELEVENLABS_API_KEY": ""}
+    return subprocess.run(
+        [sys.executable, "scripts/simular_hora.py", *args, "--saida", str(tmp_path / "saida")],
+        cwd=BACKEND, env=env, capture_output=True, text=True, timeout=120,
+    )
+
+
+@pytest.mark.parametrize("modo", ["llm", "completo"])
+def test_modos_pagos_exigem_confirmacao(tmp_path, modo):
+    processo = _rodar_cli("--programa", "musical_adulto", "--modo", modo, tmp_path=tmp_path)
+    assert processo.returncode == 3, processo.stderr[-2000:]
+    assert "estimativa" in processo.stdout
+    assert "tentativas_rede=0" in processo.stdout
+    assert "--confirmo-custo" in processo.stdout
+    assert not (tmp_path / "saida" / "as_run.json").exists()
+
+
+def test_cli_modo_fake_grava_saidas(tmp_path):
+    processo = _rodar_cli("--programa", str(DIR_PROGRAMAS / "musical_adulto.json"), tmp_path=tmp_path)
+    assert processo.returncode == 0, processo.stderr[-2000:]
+    resumo = json.loads((tmp_path / "saida" / "resumo.json").read_text(encoding="utf-8"))
+    assert resumo["tentativas_rede"] == 0
+    assert "musical_adulto" in processo.stdout
+
+
+def test_casos_de_avaliacao_cobrem_as_regras():
+    caminho = BACKEND.parent / "docs" / "benchmarks" / "2026-11-06-formatos" / "casos.json"
+    dados = json.loads(caminho.read_text(encoding="utf-8"))
+    casos = dados["casos"]
+    assert len(casos) >= 30
+    assert len({c["id"] for c in casos}) == len(casos)
+    chaves = {
+        "anuncio_sem_confirmacao", "promessa_sem_evento", "pedido_indevido", "ouvinte_inexistente",
+        "dado_sem_fonte", "dado_vencido", "avisos_oralidade_min", "excede_orcamento", "abertura_repetida",
+    }
+    contexto_chaves = {
+        "tocou", "proxima_confirmada", "pedidos", "promessas_pendentes", "eventos_agendados", "dados",
+        "segundos_ate_hard_time", "orcamento_s",
+    }
+    positivos = {c: 0 for c in chaves}
+    negativos = {c: 0 for c in chaves}
+    wpm = dados["regras"]["wpm_referencia"]
+    for caso in casos:
+        assert {"id", "formato", "bloco", "frentes", "dimensoes", "contexto", "criterio", "falas_rotuladas"} <= set(caso)
+        assert caso["formato"] in PERFIS
+        assert contexto_chaves <= set(caso["contexto"])
+        for fala in caso["falas_rotuladas"]:
+            assert set(fala["esperado"]) == chaves, caso["id"]
+            assert not any(ch.isdigit() for ch in fala["texto"]), caso["id"]
+            for chave, valor in fala["esperado"].items():
+                ativo = valor > 0 if chave == "avisos_oralidade_min" else bool(valor)
+                (positivos if ativo else negativos)[chave] += 1
+            orcamento = caso["contexto"]["orcamento_s"]
+            if orcamento:
+                excede = contar_palavras(fala["texto"]) / wpm * 60 > orcamento["max"]
+                assert fala["esperado"]["excede_orcamento"] == excede, caso["id"]
+    for chave in chaves:
+        assert positivos[chave] >= 1 and negativos[chave] >= 1, chave
+    assert {c["formato"] for c in casos} == set(PERFIS)
