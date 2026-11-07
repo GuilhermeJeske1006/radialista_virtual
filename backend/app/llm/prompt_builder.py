@@ -149,11 +149,15 @@ def rotulo_bloco_prompt(bloco: str) -> str:
     return match.group(1) if match else bloco
 
 
-def _contexto_atual(radialista: RadioConfig, account: Account, programa: Programa) -> str:
+def _contexto_atual(
+    radialista: RadioConfig, account: Account, programa: Programa, agora: datetime.datetime | None = None
+) -> str:
     """Data, hora e clima reais no fuso do radialista -- sem isso o modelo chuta
     (ou herda a data de treino) e erra dia da semana, hora do dia e clima quando
-    o ouvinte pergunta ou quando o locutor comenta o tempo espontaneamente."""
-    agora = datetime.datetime.now(ZoneInfo(radialista.timezone))
+    o ouvinte pergunta ou quando o locutor comenta o tempo espontaneamente.
+
+    `agora` (opcional) e' o horario previsto de ir ao ar do bloco (relogio da hora, F1); padrao now()."""
+    agora = agora.astimezone(ZoneInfo(radialista.timezone)) if agora else datetime.datetime.now(ZoneInfo(radialista.timezone))
     dia_semana = _DIAS_SEMANA[agora.weekday()]
     texto = (
         f"Contexto atual (use pra se situar no tempo, nunca invente outra data/hora): "
@@ -209,6 +213,7 @@ def montar_system_prompt(
     radialista: RadioConfig,
     programa: Programa,
     roster: list[ParticipantePrograma] | None = None,
+    agora: datetime.datetime | None = None,
 ) -> str:
     topicos = lista_ou(programa.topicos_permitidos, "assuntos gerais da rádio")
     generos = lista_ou(programa.generos_musicais, "perfil musical geral da rádio")
@@ -284,7 +289,7 @@ def montar_system_prompt(
     partes += [
         f"Agora {'vocês apresentam' if multi_voz else 'você apresenta'} o programa '{programa.nome}'.",
     ]
-    partes.append(_contexto_atual(radialista, account, programa))
+    partes.append(_contexto_atual(radialista, account, programa, agora))
     partes.append(
         "Divulgação de eventos: só mencione espontaneamente um evento específico quando houver "
         "autorização explícita da rádio nas instruções configuradas para divulgar aquele evento. "

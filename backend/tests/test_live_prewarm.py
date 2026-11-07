@@ -111,3 +111,17 @@ def test_executar_tick_fora_da_janela_nao_prepara(monkeypatch, db_session, accou
     prewarm.executar_tick()
 
     assert chamadas == []
+
+
+@freeze_time(AGORA_UTC)
+def test_preparar_programa_informa_o_horario_de_inicio(monkeypatch, db_session, account, radialista_e_programa):
+    """O relógio da hora (F1) decide a primeira fala pelo horario_inicio, não pelo instante do preparo."""
+    radio_config, programa = radialista_e_programa
+    pedidos = []
+    monkeypatch.setattr(
+        prewarm, "gerar_proxima_fala",
+        lambda radialista_id, programa_id, dados, account, db: pedidos.append(dados) or _resposta_fake(),
+    )
+    prewarm.preparar_programa(db_session, account, radio_config, programa)
+    assert datetime.datetime.fromisoformat(pedidos[0].inicio_previsto) == datetime.datetime(
+        2026, 8, 10, 12, 1, 30, tzinfo=datetime.timezone(datetime.timedelta(hours=-3)))

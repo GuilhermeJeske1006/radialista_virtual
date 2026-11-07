@@ -28,7 +28,27 @@ from app.db.database import SessionLocal, get_db
 from app.guardrails.http_rate_limit import limite_excedido
 from app.guardrails.schedule import encontrar_programa_atual, minutos_restantes
 from app.live.music import (
-    MusicaEncontrada, _titulo_normalizado, buscar_musica, buscar_musica_fundo, marcar_video_quebrado, titulo_ja_tocado,
+    _DURACAO_MAX_SEGUNDOS, MusicaEncontrada, _titulo_normalizado, buscar_musica, buscar_musica_fundo,
+    marcar_video_quebrado, titulo_ja_tocado,
+)
+from app.live.orcamento import estimar_duracao_s
+from app.live.relogio import (
+    CONFIG_PADRAO as CONFIG_RELOGIO,
+    Peca,
+    PecasDisponiveis,
+    Plano,
+    RelogioAoVivo,
+    duracao_musica_s,
+    duracao_prevista_bloco,
+    etapas_executadas,
+    instante_previsto,
+    marcar_executada,
+    musica_cabe,
+    ocorrencia_em,
+    planejar,
+    ler_inicio_previsto,
+    relogio_ao_vivo,
+    relogio_do_programa,
 )
 from app.live.formato import ROTEIRO_MUSICAL, ROTEIRO_PADRAO, contar_palavras, direcao_musical, musical_companhia, orcamento_fala
 from app.live.song_service import dividir_artista_titulo, esquecer_video_catalogado, resolver_musica_catalogada
@@ -108,6 +128,12 @@ class LiveProgramRequest(BaseModel):
     # Plano B.3) -- mesmo campo que texto_anterior em LiveTtsRequest, so' com outro nome porque
     # aqui nao ha' "chamada de TTS anterior", e' a fala anterior no ar mesmo.
     ultima_fala: str | None = None
+    # Horario previsto para este bloco ir ao ar (ISO 8601 com fuso), calculado pelo painel a partir
+    # da fila de preparo (ver lib/relogioAoVivo.ts). So' programas com relogio da hora (F1) usam;
+    # ausente, passado ou mais de 30 min a frente vale o horario atual. Clientes antigos nao mandam.
+    # Texto (nao datetime) de proposito: lido por app.live.relogio.ler_inicio_previsto, que ignora
+    # valor invalido em vez de recusar o bloco.
+    inicio_previsto: str | None = Field(default=None, max_length=64)
 
 
 class LiveTtsRequest(BaseModel):
@@ -213,6 +239,11 @@ class LiveProgramResponse(BaseModel):
     pedido_token: str | None = None
     pedido_programa_id: int | None = None
     pedido_radialista_id: int | None = None
+    # Duracao estimada do bloco inteiro (fala a CONFIG_RELOGIO.wpm, musicas, vinheta/patrocinador e
+    # vinheta de encerramento) -- o painel encadeia o horario previsto do bloco seguinte com ela.
+    duracao_prevista_s: float | None = None
+    # So' em programa com relogio da hora: etapa, proximo compromisso, backtiming e orcamento.
+    relogio: RelogioAoVivo | None = None
 
 
 class MusicaFundoResponse(BaseModel):
@@ -1599,14 +1630,70 @@ def _fora_do_genero(programa_id: int, musica: MusicaEncontrada, generos: list[st
 
 
 def _buscar_musica_para_bloco(
-    db: Session, programa: Programa, rotulo_bloco: str | None = None
+    db: Session, programa: Programa, rotulo_bloco: str | None = None, *, plano_relogio: Plano | None = None
 ) -> MusicaEncontrada | None:
+    """Escolhe e registra a faixa do bloco. Com `plano_relogio` (programa com relogio da hora, F1),
+    a faixa precisa caber no teto do plano: ate' CONFIG_RELOGIO.musica_tentativas_teto buscas, sem
+    repetir a rejeitada; a que nao deixa sobra impossivel antes do hard time tem preferencia, senao
+    a mais longa que cabe. Nada cabe = None, sem registrar nada (o caller usa a alternativa do plano).
+    Sem plano, o comportamento de sempre (o kwarg so' e' passado com relogio)."""
+    if plano_relogio is None:
+        musica, query = _selecionar_musica_para_bloco(db, programa, rotulo_bloco)
+    else:
+        musica, query = _selecionar_musica_que_cabe(db, programa, rotulo_bloco, plano_relogio)
+    if musica is not None:
+        _registrar_musica_tocada(programa.id, musica)
+        _registrar_historico_persistente(db, programa.id, musica, query, origem="auto")
+    return musica
+
+
+def _selecionar_musica_que_cabe(
+    db: Session, programa: Programa, rotulo_bloco: str | None, plano: Plano
+) -> tuple[MusicaEncontrada | None, str]:
+    rejeitadas: set[str] = set()
+    titulos_rejeitados: set[str] = set()
+    melhor: tuple[MusicaEncontrada, str] | None = None
+    for _ in range(CONFIG_RELOGIO.musica_tentativas_teto):
+        musica, query = _selecionar_musica_para_bloco(
+            db, programa, rotulo_bloco, evitar_ids=rejeitadas, evitar_titulos=titulos_rejeitados,
+            duracao_max_s=plano.duracao_max_musica_s,
+        )
+        if musica is None:
+            break
+        duracao = duracao_musica_s(musica, CONFIG_RELOGIO)
+        if musica_cabe(duracao, plano, CONFIG_RELOGIO):
+            return musica, query
+        if musica_cabe(duracao, plano, CONFIG_RELOGIO, estrito=False) and (
+            melhor is None or duracao > duracao_musica_s(melhor[0], CONFIG_RELOGIO)
+        ):
+            melhor = (musica, query)
+        rejeitadas.add(musica.video_id)
+        titulos_rejeitados.add(_titulo_normalizado(musica.titulo))
+    if melhor is not None:
+        return melhor
+    logger.info("relogio_musica_sem_faixa_que_caiba programa_id=%s teto_s=%s rejeitadas=%s",
+                programa.id, plano.duracao_max_musica_s, len(rejeitadas))
+    return None, ""
+
+
+def _selecionar_musica_para_bloco(
+    db: Session,
+    programa: Programa,
+    rotulo_bloco: str | None = None,
+    evitar_ids: set[str] | None = None,
+    evitar_titulos: set[str] | None = None,
+    duracao_max_s: int | None = None,
+) -> tuple[MusicaEncontrada | None, str]:
+    """Busca a faixa do bloco sem registrar (ver _buscar_musica_para_bloco). evitar_ids/
+    evitar_titulos e duracao_max_s so' vem preenchidos pela escolha com teto do relogio."""
     genero_bloco = _genero_do_rotulo(rotulo_bloco) if rotulo_bloco else ""
+    # Preferencia de duracao repassada a buscar_musica so' com teto do relogio (nao e' bloqueio).
+    preferencia = {} if duracao_max_s is None else {"duracao_max_segundos": min(duracao_max_s, _DURACAO_MAX_SEGUNDOS)}
 
     ids_tocadas, titulos_tocados, canais_tocados = _historico_musicas(programa.id)
     ids_radio, titulos_radio = _musicas_recentes_da_radio(db, programa.radio_config_id)
-    ids_tocadas |= ids_radio
-    titulos_tocados |= titulos_radio
+    ids_tocadas |= ids_radio | set(evitar_ids or ())
+    titulos_tocados |= titulos_radio | set(evitar_titulos or ())
 
     if genero_bloco and _sem_acento(genero_bloco.lower()) != "musica":
         # rotulo do bloco customizado carrega o proprio genero/estilo (ex.: "Vaneira", "Xote")
@@ -1639,6 +1726,7 @@ def _buscar_musica_para_bloco(
             # oficial quando a query e' uma musica especifica (curadoria do admin/pedido do
             # publico), nao trava o bloco genero-so' sem musica.
             exigir_canal_oficial=genero_filtro is None,
+            **preferencia,
         )
     if musica is not None and _fora_do_genero(programa.id, musica, generos_escolha):
         musica = None
@@ -1656,6 +1744,7 @@ def _buscar_musica_para_bloco(
             titulos_tocados=titulos_tocados,
             canais_recentes=canais_tocados,
             exigir_cantada=True,
+            **preferencia,
         )
         if musica is not None and _fora_do_genero(programa.id, musica, generos_alvo):
             musica = None
@@ -1669,10 +1758,7 @@ def _buscar_musica_para_bloco(
         fallback = _fallback_curado_genero(db, programa, ids_tocadas, titulos_tocados, canais_tocados)
         if fallback is not None:
             musica, query = fallback
-    if musica is not None:
-        _registrar_musica_tocada(programa.id, musica)
-        _registrar_historico_persistente(db, programa.id, musica, query, origem="auto")
-    return musica
+    return musica, query
 
 
 # Tentativas de resolucao YouTube (via resolver_musica_catalogada, cada uma podendo custar
@@ -1896,6 +1982,194 @@ def _sintetizar_falas_multivoz(
     return resultados
 
 
+# --- Relogio da hora (F1, ver app.live.relogio) ---------------------------------------------------
+# So' entra em programa com programa.relogio_hora preenchido; sem ele nada abaixo e' chamado.
+
+
+def _pecas_do_relogio(db: Session, account: Account, programa: Programa) -> PecasDisponiveis:
+    """Vinhetas de papel abertura/passagem, patrocinadores citados na estrutura (na ordem), quadros
+    e a vinheta de encerramento, com a duracao conhecida ou estimada por palavras."""
+    wpm = CONFIG_RELOGIO.wpm
+
+    def _duracao(tem_audio: bool, duracao: int | None, texto: str | None) -> float:
+        return float(duracao) if tem_audio and duracao else estimar_duracao_s(texto or "", wpm)
+
+    vinhetas: dict[str, list[Peca]] = {"abertura": [], "passagem": []}
+    for item in (
+        db.query(BibliotecaAudioItem)
+        .filter(BibliotecaAudioItem.account_id == account.id, BibliotecaAudioItem.programa_id == programa.id,
+                BibliotecaAudioItem.ativo.is_(True), BibliotecaAudioItem.papel.in_(tuple(vinhetas)))
+        .order_by(BibliotecaAudioItem.id.asc())
+        .all()
+    ):
+        if item.audio_path or (item.texto or "").strip():
+            vinhetas[item.papel].append(Peca(item.id, _duracao(bool(item.audio_path), item.duracao_segundos, item.texto)))
+
+    ids: list[int] = []
+    for bloco in programa.estrutura_blocos or []:
+        achado = _PATROCINADOR_RE.match(bloco.strip())
+        if achado and int(achado.group(1)) not in ids:
+            ids.append(int(achado.group(1)))
+    ativos = {
+        p.id: p for p in db.query(Patrocinador).filter(
+            Patrocinador.id.in_(ids), Patrocinador.account_id == account.id, Patrocinador.ativo.is_(True)
+        ).all()
+    } if ids else {}
+    patrocinadores = tuple(
+        Peca(pid, _duracao(ativos[pid].tipo_conteudo == "audio", ativos[pid].duracao_segundos, ativos[pid].texto))
+        for pid in ids if pid in ativos
+    )
+    quadros = tuple(t for t in programa.estrutura_blocos or [] if (programa.quadros_fixos or {}).get(t))
+    vinheta_fim = vinheta_encerramento(db, account.id, programa.id)
+    return PecasDisponiveis(
+        vinhetas_abertura=tuple(vinhetas["abertura"]), vinhetas_passagem=tuple(vinhetas["passagem"]),
+        patrocinadores=patrocinadores, quadros=quadros,
+        vinheta_encerramento_s=_duracao(bool(vinheta_fim.audio_path), vinheta_fim.duracao_segundos, vinheta_fim.texto)
+        if vinheta_fim else 0.0,
+        tem_fonte_noticia=getattr(programa, "dose_noticia", "jornalistica") != "nenhuma"
+        and bool(programa.pode_pesquisar or programa.tipos_noticias or programa.fontes_noticias),
+    )
+
+
+def _planejar_relogio(
+    db: Session, account: Account, radialista: RadioConfig, programa: Programa, dados: LiveProgramRequest, *,
+    formato_musical: bool, ultima_categoria: str | None, ja_encerrou: bool,
+) -> tuple[Plano | None, bool, str | None]:
+    """(plano, inicio_previsto_aceito, preset). Plano None = caminho de sempre (estrutura_blocos)."""
+    relogio = relogio_do_programa(programa)
+    if relogio is None:
+        return None, False, None
+    agora = datetime.datetime.now(datetime.timezone.utc)
+    instante, aceito = instante_previsto(ler_inicio_previsto(dados.inicio_previsto), agora, CONFIG_RELOGIO)
+    ocorrencia = ocorrencia_em(programa, radialista.timezone, instante, CONFIG_RELOGIO)
+    if ocorrencia is None or ja_encerrou:
+        return None, aceito, relogio.preset
+    plano = planejar(
+        programa, relogio, radialista.timezone, instante, formato_musical=formato_musical,
+        ultima_categoria=ultima_categoria, ja_encerrou=ja_encerrou,
+        executadas=etapas_executadas(programa.id, ocorrencia), pecas=_pecas_do_relogio(db, account, programa),
+        cfg=CONFIG_RELOGIO,
+    )
+    if plano is not None:
+        logger.info(
+            "relogio_plano programa_id=%s etapa=%s acao=%s tipo=%s espaco_s=%s ate_hard_time_s=%s",
+            programa.id, plano.etapa.chave, plano.acao, plano.tipo_bloco, plano.espaco_s, plano.segundos_ate_hard_time,
+        )
+    return plano, aceito, relogio.preset
+
+
+def _ha_pedido_musica_pendente(db: Session, radialista: RadioConfig, programa: Programa, novo_atendimento: bool) -> bool:
+    """Espia (sem consumir) se a selecao de pedido de musica acharia algo -- mesmos filtros de
+    app.whatsapp.atendimento.selecionar (fluxo novo) e de _proximo_pedido_fila (legado)."""
+    consulta = db.query(FilaAoVivo.id).filter(FilaAoVivo.radio_config_id == radialista.id, FilaAoVivo.tipo == "musica")
+    if novo_atendimento:
+        from app.guardrails.schedule import programa_no_ar
+        from app.whatsapp.atendimento import ocorrencia as ocorrencia_atendimento
+
+        if not programa_no_ar(programa, radialista.timezone):
+            return False
+        consulta = consulta.filter(
+            FilaAoVivo.programa_id == programa.id, FilaAoVivo.estado == "em_fila", FilaAoVivo.texto_autorizado != "",
+            FilaAoVivo.transmissao == ocorrencia_atendimento(programa, radialista.timezone),
+        )
+    else:
+        consulta = consulta.filter(FilaAoVivo.programa_id.is_(None), FilaAoVivo.atendido.is_(False))
+    return consulta.first() is not None
+
+
+def _teto_musica(plano: Plano) -> Plano:
+    """Plano com teto de musica mesmo quando o bloco virou musica fora de uma etapa de musica."""
+    if plano.duracao_max_musica_s is not None or plano.espaco_s is None:
+        return plano
+    from dataclasses import replace
+    return replace(plano, duracao_max_musica_s=math.floor(plano.espaco_s + CONFIG_RELOGIO.tolerancia_hard_time_s))
+
+
+def _resolver_musica_do_relogio(
+    db: Session, radialista: RadioConfig, programa: Programa, plano: Plano, novo_atendimento: bool
+) -> tuple[Plano, MusicaEncontrada | None, bool]:
+    """Busca a faixa da etapa de musica antes de decidir o bloco: se nenhuma couber, o bloco passa a
+    ser a alternativa do plano (reserva, link de preenchimento, etapa seguinte ou adiantamento).
+    Devolve (plano, musica, buscou). Com pedido de musica pendente a busca fica pro caminho normal."""
+    buscou = False
+    for _ in range(3):
+        if plano.acao != "musica":
+            break
+        if plano.aceita_pedido_musica and _ha_pedido_musica_pendente(db, radialista, programa, novo_atendimento):
+            return plano, None, False
+        buscou = True
+        musica = _buscar_musica_para_bloco(db, programa, plano.tipo_bloco, plano_relogio=plano)
+        if musica is not None:
+            return plano, musica, True
+        if plano.alternativa is None:
+            break
+        logger.info("relogio_sem_musica_que_caiba programa_id=%s etapa=%s alternativa=%s/%s", programa.id,
+                    plano.etapa.chave, plano.alternativa.acao, plano.alternativa.tipo_bloco)
+        plano = plano.alternativa
+    return plano, None, buscou and plano.acao == "musica"
+
+
+def _situacao_relogio_prompt(plano: Plano) -> str:
+    rotulo = plano.etapa.evento.rotulo or plano.etapa.evento.tipo
+    return (
+        "O programa segue um relógio por horário: a ordem dos blocos vem da hora e do tempo disponível, "
+        f"não de uma sequência fixa. Momento atual do relógio: '{rotulo}'. Conecte a fala com o que veio antes, "
+        "mantendo transição natural (não repita a mesma abertura ou o mesmo gancho toda vez)."
+    )
+
+
+def _instrucao_relogio(plano: Plano) -> str:
+    minimo, maximo = plano.orcamento_s
+    return (
+        f"A duração deve seguir a meta deste bloco. Meta: {minimo} a {maximo} segundos, no máximo "
+        f"{plano.palavras_max} palavras. Não anuncie o que vem a seguir nem prometa conteúdo."
+    )
+
+
+_INSTRUCAO_FECHAMENTO_CURTO = (
+    "Feche o assunto em andamento: conclua a ideia, resuma em uma frase e não abra assunto novo. "
+    "Não prometa retorno."
+)
+
+
+def _citadas_que_cabem(plano: Plano, fala: str, musicas: list[MusicaEncontrada], programa_id: int) -> list[MusicaEncontrada]:
+    """Musicas citadas na fala so' entram no bloco se couberem antes do proximo hard time."""
+    if plano.espaco_s is None:
+        return musicas
+    restante = plano.espaco_s - estimar_duracao_s(fala, CONFIG_RELOGIO.wpm) + CONFIG_RELOGIO.tolerancia_hard_time_s
+    cabem = []
+    for musica in musicas:
+        duracao = duracao_musica_s(musica, CONFIG_RELOGIO)
+        if duracao <= restante:
+            cabem.append(musica)
+            restante -= duracao
+    if len(cabem) < len(musicas):
+        logger.warning("relogio_musica_citada_sem_espaco programa_id=%s descartadas=%s", programa_id,
+                       [m.titulo for m in musicas if m not in cabem])
+    return cabem
+
+
+def _com_relogio(
+    resposta: LiveProgramResponse, programa_id: int, plano: Plano | None, preset: str | None, aceito: bool, *,
+    duracao_peca_s: float | None = None, duracao_vinheta_fim_s: float | None = None,
+) -> LiveProgramResponse:
+    """Completa a resposta com duracao_prevista_s (todos os programas) e, com relogio, o campo
+    `relogio`; so' aqui, com o bloco decidido, marca a etapa/peca como executada."""
+    resposta.duracao_prevista_s = duracao_prevista_bloco(
+        resposta, CONFIG_RELOGIO, duracao_peca_s=duracao_peca_s, duracao_vinheta_fim_s=duracao_vinheta_fim_s,
+    )
+    if plano is None:
+        return resposta
+    resposta.relogio = relogio_ao_vivo(plano, preset, aceito)
+    marcar_executada(programa_id, plano.ocorrencia, plano.chave_estado, *plano.puladas, cfg=CONFIG_RELOGIO)
+    if plano.orcamento_s and resposta.fala.strip() and resposta.tipo not in ("vinheta", "patrocinador"):
+        prevista = estimar_duracao_s(resposta.fala, CONFIG_RELOGIO.wpm)
+        if prevista > plano.orcamento_s[1] + CONFIG_RELOGIO.tolerancia_hard_time_s:
+            logger.warning("relogio_fala_acima_do_espaco programa_id=%s tipo=%s prevista_s=%s maximo_s=%s",
+                           programa_id, resposta.tipo, round(prevista, 1), plano.orcamento_s[1])
+    return resposta
+
+
 @router.post("/{radialista_id}/programas/{programa_id}/proxima", response_model=LiveProgramResponse)
 def gerar_proxima_fala(
     radialista_id: int,
@@ -1928,13 +2202,27 @@ def gerar_proxima_fala(
     ultima_categoria = _ultima_categoria_bloco(dados.historico)
 
     ja_encerrou = any(linha.startswith("encerramento:") for linha in dados.historico)
-    perto_do_fim = minutos_restantes(programa, radialista.timezone) <= _LIMIAR_ENCERRAMENTO_MIN
-    if perto_do_fim and not ja_encerrou:
-        # Estrutura do programa roda em loop ate' chegar perto do horario_fim --
-        # daqui em diante, para o loop e gera a fala de encerramento.
-        tipo = "encerramento"
+    # Relogio da hora (F1): com programa.relogio_hora, o tipo do bloco vem da etapa do relogio no
+    # horario previsto de ir ao ar (dados.inicio_previsto), nao da posicao na estrutura_blocos.
+    plano, inicio_previsto_aceito, preset_relogio = _planejar_relogio(
+        db, account, radialista, programa, dados, formato_musical=formato_musical,
+        ultima_categoria=ultima_categoria, ja_encerrou=ja_encerrou,
+    )
+    musica_relogio, buscou_musica_relogio = None, False
+    if plano is not None:
+        plano, musica_relogio, buscou_musica_relogio = _resolver_musica_do_relogio(
+            db, radialista, programa, plano, account.atendimento_ouvinte_ativo,
+        )
+        tipo = plano.tipo_bloco
     else:
-        tipo = _tipo_proximo_bloco(programa, total_falas, ultima_categoria)
+        perto_do_fim = minutos_restantes(programa, radialista.timezone) <= _LIMIAR_ENCERRAMENTO_MIN
+        if perto_do_fim and not ja_encerrou:
+            # Estrutura do programa roda em loop ate' chegar perto do horario_fim --
+            # daqui em diante, para o loop e gera a fala de encerramento.
+            tipo = "encerramento"
+        else:
+            tipo = _tipo_proximo_bloco(programa, total_falas, ultima_categoria)
+    primeira_fala = plano.primeira if plano is not None else total_falas == 0
 
     # Vinheta (tratada ANTES de _categoria_bloco: "vinheta:12" nunca vai pra classificacao por
     # LLM nem pro cache do Redis). Conteudo fixo -- sem LLM, sem checagem de similaridade, sem
@@ -1944,7 +2232,7 @@ def gerar_proxima_fala(
         vinheta = _buscar_vinheta_ativa(db, account, tipo)
         texto_vinheta = ((vinheta.texto or "").strip() if vinheta is not None else "")
         if vinheta is not None and (vinheta.audio_path or texto_vinheta):
-            return LiveProgramResponse(
+            return _com_relogio(LiveProgramResponse(
                 tipo="vinheta",
                 fala=texto_vinheta,
                 criado_em=datetime.datetime.now(datetime.timezone.utc),
@@ -1953,7 +2241,11 @@ def gerar_proxima_fala(
                 vinheta_audio=bool(vinheta.audio_path),
                 passos_roteiro=passos_roteiro,
                 pausa_antes_ms=_pausa_antes_ms(ultima_categoria, "vinheta"),
-            )
+            ), programa.id, plano, preset_relogio, inicio_previsto_aceito,
+                duracao_peca_s=float(vinheta.duracao_segundos) if vinheta.audio_path and vinheta.duracao_segundos else None)
+        if plano is not None:
+            tipo = "identificacao"  # peca do relogio indisponivel: identificacao curta no lugar
+            break
         if passos_roteiro > len(programa.estrutura_blocos or []):
             tipo = "comentario"  # roteiro inteiro de vinhetas mortas -- nao trava o ao vivo
             break
@@ -1964,7 +2256,7 @@ def gerar_proxima_fala(
         patrocinador = _buscar_patrocinador_ativo(db, account, tipo)
         if patrocinador is not None:
             # Conteudo de patrocinador e fixo (contrato comercial) -- nunca passa pelo LLM.
-            return LiveProgramResponse(
+            return _com_relogio(LiveProgramResponse(
                 tipo="patrocinador",
                 fala=(patrocinador.texto or "").strip(),
                 criado_em=datetime.datetime.now(datetime.timezone.utc),
@@ -1974,7 +2266,9 @@ def gerar_proxima_fala(
                 patrocinador_voz_id=patrocinador.voz_id,
                 passos_roteiro=passos_roteiro,
                 pausa_antes_ms=_pausa_antes_ms(ultima_categoria, "patrocinador"),
-            )
+            ), programa.id, plano, preset_relogio, inicio_previsto_aceito,
+                duracao_peca_s=float(patrocinador.duracao_segundos)
+                if patrocinador.tipo_conteudo == "audio" and patrocinador.duracao_segundos else None)
         tipo = "comentario"  # patrocinador excluido/desativado -- nao trava o ao vivo
 
     categoria = _categoria_bloco(tipo)
@@ -1999,7 +2293,9 @@ def gerar_proxima_fala(
     assunto_escolhido: AssuntoConversa | None = None
     if categoria == "comentario":
         assunto_escolhido = proximo_assunto(db, programa)
-        if assunto_escolhido is None and not programa.assuntos_ao_vivo and pipeline_tem_estoque(db, programa.id):
+        # Com relogio a etapa e' de fala: comentario livre em vez de virar musica fora do teto.
+        if assunto_escolhido is None and not programa.assuntos_ao_vivo and plano is None \
+                and pipeline_tem_estoque(db, programa.id):
             logger.warning("live_assunto_esgotado_vira_musica programa_id=%s", programa.id)
             tipo = "musica"
             categoria = "musica"
@@ -2008,7 +2304,10 @@ def gerar_proxima_fala(
 
     # Reaproveitado pelo resto da funcao (efemerides, nudge de noticia leve, hora certa, marco de
     # tempo) -- um so calculo de "agora" por requisicao, em vez de recalcular em cada ponto.
-    agora_local = datetime.datetime.now(ZoneInfo(radialista.timezone))
+    agora_local = (
+        plano.instante.astimezone(ZoneInfo(radialista.timezone)) if plano is not None
+        else datetime.datetime.now(ZoneInfo(radialista.timezone))
+    )
 
     # Dialogo multi-voz so pros blocos de fala -- musica e patrocinador (ja retornado acima)
     # continuam single-voice, sempre na voz do dono.
@@ -2020,7 +2319,7 @@ def gerar_proxima_fala(
     pedido_musica = (
         selecionar(db, radialista, programa, ("musica",)) if novo_atendimento
         else _proximo_pedido_fila(db, radialista, "musica")
-    ) if categoria == "musica" else None
+    ) if categoria == "musica" and (plano is None or plano.aceita_pedido_musica) else None
     pedido_sem_resultado = False
     if pedido_musica is not None:
         query = pedido_musica.musica_query or pedido_musica.mensagem_usuario
@@ -2035,6 +2334,10 @@ def gerar_proxima_fala(
             exigir_canal_oficial=True,
         )
         if musica is not None:
+            if plano is not None and plano.duracao_max_musica_s is not None \
+                    and duracao_musica_s(musica, CONFIG_RELOGIO) > plano.duracao_max_musica_s:
+                logger.warning("relogio_pedido_acima_do_espaco programa_id=%s duracao_s=%s teto_s=%s", programa.id,
+                               duracao_musica_s(musica, CONFIG_RELOGIO), plano.duracao_max_musica_s)
             _registrar_musica_tocada(programa.id, musica)
             # pedido real do ouvinte via WhatsApp -- alimenta o sinal de preferencia do
             # publico (ver _pedidos_publico_mais_frequentes) usado em blocos futuros sem
@@ -2053,14 +2356,25 @@ def gerar_proxima_fala(
                 programa.id,
                 query,
             )
-            musica = _buscar_musica_para_bloco(db, programa, tipo)
+            musica = (
+                _buscar_musica_para_bloco(db, programa, tipo) if plano is None
+                else _buscar_musica_para_bloco(db, programa, tipo, plano_relogio=_teto_musica(plano))
+            )
+    elif categoria != "musica":
+        musica = None
+    elif plano is None:
+        musica = _buscar_musica_para_bloco(db, programa, tipo)
+    elif musica_relogio is not None or buscou_musica_relogio:
+        musica = musica_relogio
     else:
-        musica = _buscar_musica_para_bloco(db, programa, tipo) if categoria == "musica" else None
+        musica = _buscar_musica_para_bloco(db, programa, tipo, plano_relogio=_teto_musica(plano))
 
-    if formato_musical and categoria == "musica" and musica is not None and pedido_musica is None:
+    # Com relogio (D2) a janela de musica nao tem fala tambem no formato padrao, exceto pedido real.
+    if (formato_musical or (plano is not None and plano.musica_sem_fala)) and categoria == "musica" \
+            and musica is not None and pedido_musica is None:
         # A seleção/histórico da música continuam pelo caminho normal; só a locução é dispensada.
         # Pedido real mantém o anúncio e a confirmação de execução existentes abaixo.
-        return LiveProgramResponse(
+        return _com_relogio(LiveProgramResponse(
             tipo=tipo, fala="", criado_em=datetime.datetime.now(datetime.timezone.utc),
             programa_atual=programa.nome, video_id=musica.video_id, titulo_musica=musica.titulo,
             inicio_segundos=musica.inicio_segundos, fim_segundos=musica.fim_segundos,
@@ -2073,7 +2387,7 @@ def gerar_proxima_fala(
             pausa_antes_ms=_pausa_antes_ms(ultima_categoria, "musica"),
             audio_status="nao_aplicavel",
             passos_roteiro=passos_roteiro,
-        )
+        ), programa.id, plano, preset_relogio, inicio_previsto_aceito)
 
     pedido_ouvinte = (
         (selecionar(db, radialista, programa, ("abraco", "sorteio")) if novo_atendimento
@@ -2183,7 +2497,7 @@ def gerar_proxima_fala(
         else [
             "Você também apresenta um programa de rádio ao vivo dentro do painel.",
             "Gere somente a fala do locutor, sem aspas, sem markdown e sem narração externa.",
-            "A duração deve seguir a meta específica deste bloco." if formato_musical else
+            "A duração deve seguir a meta específica deste bloco." if formato_musical or plano is not None else
             "A fala deve durar o equivalente a umas 4 a 6 frases de rádio, mas varie o tamanho de cada uma "
             "como alguém fala de verdade -- misture frase curta de impacto com uma frase mais longa emendada "
             "por vírgula. Não force um número fixo de frases nem um tamanho parecido pra todas.",
@@ -2191,19 +2505,28 @@ def gerar_proxima_fala(
     )
 
     system_prompt_linhas = [
-        montar_system_prompt(account, radialista, programa, roster=roster if multi_voz else None),
+        montar_system_prompt(account, radialista, programa, roster=roster if multi_voz else None,
+                             agora=agora_local if plano is not None else None),
         *introducao_ao_vivo,
         "Prefira ponto final firme pra fechar cada ideia e vírgula pra dar ritmo dentro da frase -- fale "
         "como locutor de verdade, não como texto escrito. Reticências (\"...\") são exceção rara, só "
         "quando a frase fica de propósito em suspenso -- não vire hábito de pontuação.",
-        f"O programa segue esta sequência lógica de blocos, em loop: {posicao_roteiro}. "
-        "Tenha consciência de qual momento do programa você está vivendo agora e conecte a fala com o que "
-        "vem antes e depois dela, mantendo transição natural (não repita a mesma abertura ou o mesmo gancho "
-        "toda vez).",
-        f"Esta é aproximadamente a fala número {total_falas + 1} desde que o programa entrou no ar, na volta "
-        f"{total_falas // len(roteiro_ativo) + 1} da estrutura de blocos acima. Quanto mais alto esse número, "
-        "maior a chance de você já ter usado uma piada, gancho ou frase parecida antes -- redobre o cuidado "
-        "pra trazer algo com cara nova em vez de cair no automático.",
+        (
+            f"O programa segue esta sequência lógica de blocos, em loop: {posicao_roteiro}. "
+            "Tenha consciência de qual momento do programa você está vivendo agora e conecte a fala com o que "
+            "vem antes e depois dela, mantendo transição natural (não repita a mesma abertura ou o mesmo gancho "
+            "toda vez)."
+        ) if plano is None else _situacao_relogio_prompt(plano),
+        (
+            f"Esta é aproximadamente a fala número {total_falas + 1} desde que o programa entrou no ar, na volta "
+            f"{total_falas // len(roteiro_ativo) + 1} da estrutura de blocos acima. Quanto mais alto esse número, "
+            "maior a chance de você já ter usado uma piada, gancho ou frase parecida antes -- redobre o cuidado "
+            "pra trazer algo com cara nova em vez de cair no automático."
+        ) if plano is None else (
+            f"Esta é aproximadamente a fala número {total_falas + 1} desde que o programa entrou no ar. Quanto "
+            "mais alto esse número, maior a chance de você já ter usado uma piada, gancho ou frase parecida antes "
+            "-- redobre o cuidado pra trazer algo com cara nova em vez de cair no automático."
+        ),
         "Antes de escrever, releia a última fala do histórico (a mais recente na lista) e identifique um "
         "detalhe concreto nela -- um assunto, um nome, uma palavra, um clima que ficou no ar. Abra ou emende "
         "a fala atual com um gancho real (callback) nesse detalhe, em vez de uma transição genérica tipo "
@@ -2492,7 +2815,7 @@ def gerar_proxima_fala(
             "não é motivo para substituir jornalismo por curiosidade."
         )
 
-    if categoria == "abertura" and total_falas == 0:
+    if categoria == "abertura" and primeira_fala:
         system_prompt_linhas.append(
             "Se fizer sentido, lance na abertura uma pequena pergunta ou expectativa pro dia de hoje (ex.: "
             "'será que hoje bate recorde de calor?', 'será que consigo tocar todos os pedidos de sexta?') -- "
@@ -2598,6 +2921,11 @@ def gerar_proxima_fala(
             "Toda música específica que você citar pelo nome nesta fala vai tocar de verdade, em sequência, "
             "logo depois da anunciada -- então só cite outra música se quiser mesmo que ela toque agora."
         )
+    elif categoria != "musica" and plano is not None:
+        system_prompt_linhas.append(
+            "Não cite nem prometa música específica pelo nome nesta fala: a programação musical segue o "
+            "relógio do programa."
+        )
     elif categoria != "musica":
         system_prompt_linhas.append(
             "Se você citar, comentar ou prometer uma música específica pelo nome nesta fala (fora as que já "
@@ -2659,7 +2987,14 @@ def gerar_proxima_fala(
         )
 
     if formato_musical:
-        system_prompt_linhas.append(direcao_musical(tipo, total_falas == 0))
+        system_prompt_linhas.append(direcao_musical(
+            tipo, primeira_fala,
+            orcamento=(*plano.orcamento_s, plano.palavras_max) if plano is not None and plano.orcamento_s else None,
+        ))
+    elif plano is not None and plano.orcamento_s:
+        system_prompt_linhas.append(_instrucao_relogio(plano))
+    if plano is not None and plano.instrucao == "fechamento_curto":
+        system_prompt_linhas.append(_INSTRUCAO_FECHAMENTO_CURTO)
     system_prompt = "\n".join(system_prompt_linhas)
 
     mensagem = "\n".join(
@@ -2703,7 +3038,9 @@ def gerar_proxima_fala(
         return [], "Seguimos no ar, ja volto com mais uma novidade."
 
     falas_bloco, fala = _gerar_falas_bloco(system_prompt)
-    limite_palavras = orcamento_fala(tipo, total_falas == 0)[2] if formato_musical else None
+    limite_palavras = plano.palavras_max if plano is not None else (
+        orcamento_fala(tipo, total_falas == 0)[2] if formato_musical else None
+    )
     excedeu_orcamento = limite_palavras is not None and contar_palavras(fala) > limite_palavras
 
     # Rede de seguranca: se a fala saiu parecida com uma fala recente do mesmo tipo de bloco
@@ -2762,13 +3099,13 @@ def gerar_proxima_fala(
     musicas_bloco: list[MusicaEncontrada] = []
     if categoria == "musica":
         fala, quantidade = _extrair_quantidade_musicas(fala)
-        if formato_musical:
+        if formato_musical or plano is not None:
             quantidade = 1
         if musica is not None:
             # Musica que o locutor citou alem da anunciada tambem toca no bloco (ver
             # _musicas_citadas_na_fala) -- formato musical mantem uma faixa so' por bloco.
             citadas = (
-                [] if formato_musical
+                [] if formato_musical or plano is not None
                 else _musicas_citadas_na_fala(db, programa, fala, dados.historico, ja_no_bloco=[musica])
             )
             musicas_bloco = _montar_bloco_musicas(db, programa, musica, quantidade, tipo, citadas=citadas)
@@ -2777,6 +3114,8 @@ def gerar_proxima_fala(
         # ouvinte, abertura...) -- se citou uma especifica, ela toca logo depois da fala, em vez
         # de ficar prometida e nunca tocar.
         musicas_bloco = _musicas_citadas_na_fala(db, programa, fala, dados.historico)
+        if plano is not None and musicas_bloco:
+            musicas_bloco = _citadas_que_cabem(plano, fala, musicas_bloco, programa.id)
         if musicas_bloco:
             musica = musicas_bloco[0]
 
@@ -2810,7 +3149,7 @@ def gerar_proxima_fala(
             # outro eixo (ver app.topics.pauta_conversa._BONUS_CALLBACK_NOTICIA).
             registrar_callback_noticia(programa.id, pauta_noticia.noticia_id)
 
-    if categoria == "abertura" and total_falas == 0 and fala.strip():
+    if categoria == "abertura" and primeira_fala and fala.strip():
         fio_condutor_novo = classificar_fio_condutor(fala)
         if fio_condutor_novo:
             _registrar_fio_condutor(programa.id, fio_condutor_novo)
@@ -2915,7 +3254,7 @@ def gerar_proxima_fala(
 
     vinheta_fim = vinheta_encerramento(db, account.id, programa.id) if categoria == "encerramento" else None
 
-    return LiveProgramResponse(
+    return _com_relogio(LiveProgramResponse(
         pedido_id=pedido_confirmavel.id if pedido_confirmavel else None,
         pesquisa_noticias=pesquisa_noticias,
         pedido_token=pedido_confirmavel.selecao_token if pedido_confirmavel else None,
@@ -2945,7 +3284,9 @@ def gerar_proxima_fala(
         audios_falas_base64=audios_falas_base64,
         intervalo_ms=_intervalo_transicao_ms(ultima_categoria, categoria),
         pausa_antes_ms=_pausa_antes_ms(ultima_categoria, categoria),
-        duracao_alvo_segundos=orcamento_fala(tipo, total_falas == 0)[:2] if formato_musical else None,
+        duracao_alvo_segundos=plano.orcamento_s if plano is not None else (
+            orcamento_fala(tipo, total_falas == 0)[:2] if formato_musical else None
+        ),
         audio_base64=audio_base64,
         audio_status=audio_status,
         audio_erro=audio_erro,
@@ -2954,7 +3295,9 @@ def gerar_proxima_fala(
         vinheta_encerramento_id=vinheta_fim.id if vinheta_fim else None,
         vinheta_encerramento_audio=bool(vinheta_fim and vinheta_fim.audio_path),
         vinheta_encerramento_texto=(vinheta_fim.texto or None) if vinheta_fim else None,
-    )
+    ), programa.id, plano, preset_relogio, inicio_previsto_aceito,
+        duracao_vinheta_fim_s=float(vinheta_fim.duracao_segundos)
+        if vinheta_fim and vinheta_fim.audio_path and vinheta_fim.duracao_segundos else None)
 
 
 @router.get("/{radialista_id}/programas/{programa_id}/preparo")

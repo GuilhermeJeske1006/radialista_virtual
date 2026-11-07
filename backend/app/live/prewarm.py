@@ -61,7 +61,11 @@ from app.billing.contexto_ia import por_conta  # noqa: E402
 
 @por_conta("programa_ao_vivo")
 def preparar_programa(db: Session, account: Account, radialista: RadioConfig, programa: Programa) -> None:
-    dados = LiveProgramRequest(incluir_audio=True, historico=[], total_falas=0, perfil_pos_producao="radio_fm")
+    # Horario em que a primeira fala vai ao ar: o relogio da hora (F1) decide por ele, nao por now().
+    fuso = ZoneInfo(radialista.timezone)
+    inicio_previsto = datetime.datetime.combine(datetime.datetime.now(fuso).date(), programa.horario_inicio, tzinfo=fuso)
+    dados = LiveProgramRequest(incluir_audio=True, historico=[], total_falas=0, perfil_pos_producao="radio_fm",
+                               inicio_previsto=inicio_previsto.isoformat())
     try:
         resposta = gerar_proxima_fala(radialista.id, programa.id, dados, account=account, db=db)
     except Exception:

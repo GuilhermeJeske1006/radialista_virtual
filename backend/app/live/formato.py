@@ -40,9 +40,11 @@ def _tipo_fala(tipo: str) -> str:
     return normalizado.split(" ", 1)[0]
 
 
-def direcao_musical(tipo: str, primeira: bool = False) -> str:
+def direcao_musical(tipo: str, primeira: bool = False, orcamento: tuple[int, int, int] | None = None) -> str:
+    """`orcamento` (mínimo s, máximo s, palavras) substitui o de ORCAMENTOS quando o relógio da hora
+    (app.live.relogio) calculou o espaço deste bloco."""
     tipo = _tipo_fala(tipo)
-    minimo, maximo, palavras = orcamento_fala(tipo, primeira)
+    minimo, maximo, palavras = orcamento or orcamento_fala(tipo, primeira)
     funcao = {
         "abertura": "Receba o ouvinte e apresente o programa uma única vez." if primeira else
         "Faça uma retomada breve; o programa já está em andamento.",
