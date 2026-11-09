@@ -77,3 +77,31 @@ Next 16); não conta como regressão.
   `inicio_previsto` a programas sem relógio fica para decisão do usuário (D4).
 - Pendências: [`f1/pendencias.md`](f1/pendencias.md) — painel antigo sem `inicio_previsto` atrasa
   hard time até 412 s (F3).
+
+### F2 — Duração real da fala — CONCLUÍDA
+
+- Branch: `melhoria/f2-duracao-fala` (a partir de `melhoria/f1-relogio`).
+- Commits: `07a27ef`, `830cbcb`, `68560e6`, `2c6f2e6`, `3f16e4f`, `9ece2f0`, `dffebbb`, `781f199`,
+  `d68c39f` (+ registro do portão). `2c6f2e6` e `3f16e4f` sozinhos deixam testes da F1 vermelhos
+  (corrigido em `9ece2f0`); não usar como ponto de bisseção.
+- Entregas: duração do mp3 final medida (`duracao_mp3_s`) e devolvida (`duracao_fala_s`,
+  `duracao_fala_estimada_s`, `orcamento_fala_s`, `fala_ajuste`, cabeçalho `X-Duracao-Fala-S` no `/tts`,
+  todos opcionais); estimativa única em `app/live/orcamento.py` (pausas e números) com
+  `orcamento_para(formato, tipo, primeira, teto_relogio_s)`; reescrita única acima de 115% e
+  encurtamento por frases sem LLM; ritmo por voz na tabela `ritmos_voz` (migração aditiva
+  `ritmo_voz_20261109.py`) e cadeia `wpm_para` (voz calibrada → modelo → `fala_wpm_padrao = 150`).
+  O 145 da F1 saiu do código.
+- Limite de desenho: no caminho do painel o texto sai antes do `/tts`, então o excesso medido no áudio
+  só calibra; a decisão de reescrever é tomada antes, pela estimativa calibrada.
+- Portão: ruff limpo; pytest 1280/1280, cobertura 86% (live 93%); vitest 318/318; `tsc` ok.
+- Simulação fake (com relógio): 100% das falas dentro do orçamento nos três perfis, estouro máximo 0%,
+  atraso máximo em hard time 0,18 s, no máximo 2 chamadas de LLM por fala e nenhuma ressíntese.
+  Erro da estimativa cai a 0–1,7% após a 5ª amostra da voz.
+- Juiz: APROVADO (só métricas automáticas; rubrica exige `--modo llm`). Nenhuma reprovação automática
+  nova; as já existentes pertencem à F3 (anúncio sem confirmação no musical) e à F4 (promessa vencida,
+  pedido indevido).
+- Fora da meta, aceito como limite conhecido: voz nova 26% mais lenta que o padrão (estresse
+  `voz_120`) atrasa um hard time em 12 s e deixa 85,7% das falas no orçamento até a 5ª amostra.
+- Achado do juiz levado à F3: o encurtamento pode deixar um fragmento ("Rádio.", 0,4 s) no ar.
+- Pendências: [`f2/pendencias.md`](f2/pendencias.md). Peça de reserva não implementada (sem
+  catálogo de reservas ainda — F11).

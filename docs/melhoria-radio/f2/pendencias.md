@@ -64,3 +64,9 @@ Achados e ideias fora do escopo da F2 (duração real da fala). Nada aqui foi im
   falando a 145.
 - Modos `llm` e `completo` não rodados (custo): falta medir a taxa real de reescrita por duração e o erro da
   estimativa com áudio real da ElevenLabs.
+
+## Achado do juiz (avaliação da F2)
+- `encurtar_por_frases` pode reduzir uma fala a um fragmento sem sentido: no `popular_sertanejo` com relógio, a
+  identificação virou "Rádio." (0,4 s) quando a voz falou mais devagar que a estimativa. Regra a aplicar no
+  validador pós-geração da F3: se o encurtamento deixa a fala abaixo do mínimo do tipo, não levar o fragmento ao
+  ar (música segue, ou reserva quando houver) e registrar no as-run.
