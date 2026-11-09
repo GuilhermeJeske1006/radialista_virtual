@@ -1205,21 +1205,23 @@ def _musicas_citadas_na_fala(
     fala: str,
     historico: list[str],
     ja_no_bloco: list[MusicaEncontrada] | None = None,
-) -> tuple[list[MusicaEncontrada], list[str]]:
+) -> tuple[list[MusicaEncontrada], list[str], dict[str, str]]:
     """Musicas especificas que o locutor citou/comentou na fala e que ainda nao tocaram,
     resolvidas pra tocar logo depois dela. Sem isso o locutor comentava uma musica (ou prometia
     'daqui a pouco vem aquela do fulano'), mudava de assunto e ela nunca tocava -- a musica do
     bloco era escolhida antes da fala, sem saber o que ele ia dizer. Musica que ja tocou nesta
     sessao nao volta (e' comentario sobre o que acabou de tocar), e citada que nao existe no
     YouTube so' gera log -- nao trava o bloco. Devolve tambem as citadas que nao viraram faixa (o validador
-    tira a mencao delas da fala, F3)."""
+    tira a mencao delas da fala, F3) e a consulta de cada faixa resolvida. So' resolve: quem chama registra como
+    tocadas so' as que ficam no bloco (ver _registrar_citadas; antes do F3 a descartada pelo relogio ficava
+    registrada sem tocar)."""
     ja_no_bloco = ja_no_bloco or []
     ignorar = [f"{m.titulo} - {m.canal}" for m in ja_no_bloco]
     for linha in historico[-6:]:
         ignorar += [t.strip() for achado in _MUSICAS_TOCADAS_HISTORICO_RE.findall(linha) for t in achado.split(",")]
     citadas = extrair_musicas_citadas(fala, ignorar)[:_MAX_MUSICAS_CITADAS]
     if not citadas:
-        return [], []
+        return [], [], {}
 
     ids_tocadas, titulos_tocados, canais_tocados = _historico_musicas(programa.id)
     ids_tocadas |= {m.video_id for m in ja_no_bloco}
@@ -1228,6 +1230,7 @@ def _musicas_citadas_na_fala(
     titulos_tocados |= {_titulo_normalizado(t.rsplit(" - ", 1)[0]) for t in ignorar}
     resolvidas: list[MusicaEncontrada] = []
     nao_resolvidas: list[str] = []
+    consultas: dict[str, str] = {}
     for citada in citadas:
         encontrada = None
         parsed = dividir_artista_titulo(citada)
@@ -1267,11 +1270,19 @@ def _musicas_citadas_na_fala(
             nao_resolvidas.append(citada)
             continue
         resolvidas.append(encontrada)
+        consultas[encontrada.video_id] = citada
         ids_tocadas.add(encontrada.video_id)
         titulos_tocados.add(_titulo_normalizado(encontrada.titulo))
-        _registrar_musica_tocada(programa.id, encontrada)
-        _registrar_historico_persistente(db, programa.id, encontrada, citada, origem="citada_locutor")
-    return resolvidas, nao_resolvidas
+    return resolvidas, nao_resolvidas, consultas
+
+
+def _registrar_citadas(db: Session, programa_id: int, musicas: list[MusicaEncontrada], consultas: dict[str, str]) -> None:
+    """Registra como tocadas (sessao no Redis e MusicaHistorico) as citadas que ficaram no bloco."""
+    for musica in musicas:
+        if musica.video_id in consultas:
+            _registrar_musica_tocada(programa_id, musica)
+            _registrar_historico_persistente(db, programa_id, musica, consultas[musica.video_id],
+                                             origem="citada_locutor")
 
 
 def _pedidos_em_fila(db: Session, radialista: RadioConfig, programa: Programa) -> list[FilaAoVivo]:
@@ -1934,19 +1945,23 @@ def _musicas_do_bloco(db: Session, ctx: ContextoEmissao, musica: MusicaEncontrad
         if musica is not None:
             # Musica que o locutor citou alem da anunciada tambem toca no bloco -- formato musical e relogio
             # mantem uma faixa so' por bloco.
-            citadas, nao_resolvidas = (
-                ([], []) if ctx.formato_musical or plano is not None
+            citadas, nao_resolvidas, consultas = (
+                ([], [], {}) if ctx.formato_musical or plano is not None
                 else _musicas_citadas_na_fala(db, programa, fala, historico, ja_no_bloco=[musica])
             )
+            # Sem relogio todas as citadas resolvidas ficam no bloco: registradas antes de completar a sequencia,
+            # para a busca das faixas extras ([BLOCO_MUSICAS:N]) nao repetir nenhuma delas.
+            _registrar_citadas(db, programa.id, citadas, consultas)
             musicas_bloco = _montar_bloco_musicas(db, programa, musica, quantidade, ctx.tipo, citadas=citadas)
     elif fala.strip():
         # Fora do bloco de musica o locutor tambem comenta/promete musica -- se citou uma especifica, ela toca
         # logo depois da fala, em vez de ficar prometida e nunca tocar.
-        musicas_bloco, nao_resolvidas = _musicas_citadas_na_fala(db, programa, fala, historico)
+        musicas_bloco, nao_resolvidas, consultas = _musicas_citadas_na_fala(db, programa, fala, historico)
         if plano is not None and musicas_bloco:
             cabem = _citadas_que_cabem(plano, fala, musicas_bloco, programa.id, ctx.wpm_fala)
             nao_resolvidas += [m.titulo for m in musicas_bloco if m not in cabem]
             musicas_bloco = cabem
+        _registrar_citadas(db, programa.id, musicas_bloco, consultas)
         if musicas_bloco:
             musica = musicas_bloco[0]
     return musica, musicas_bloco, nao_resolvidas

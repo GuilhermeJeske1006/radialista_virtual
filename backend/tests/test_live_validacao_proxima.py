@@ -215,3 +215,49 @@ def test_campos_atuais_iguais_e_validacao_opcional(client, account, auth_headers
     dados = _post(client, account, auth_headers, radialista, prog, total_falas=1, historico=["abertura: oi"])
     assert dados["validacao_fala"] is None
     assert dados["fala"] == "Agora vem Estrada Aberta, com Banda Horizonte."
+
+
+_LEMBRANCA = ("Essa lembrança me leva para as tardes de domingo na casa da minha avó, com café passado na hora "
+              "e o rádio ligado na cozinha. Fica com a gente.")
+
+
+@freeze_time("2026-11-10 15:12:20")
+def test_i3_citada_descartada_pelo_relogio_nao_fica_registrada_e_sai_da_fala(client, account, auth_headers,
+                                                                             programa, db_session, monkeypatch):
+    from app.config.redis_client import redis_client
+    from app.live import relogio as r
+    from app.models.musica_historico import MusicaHistorico
+    from app.models.patrocinador import Patrocinador
+
+    radialista, prog = programa
+    patrocinadores = [Patrocinador(account_id=account.id, nome=n, texto=f"{n}, perto de você.", ativo=True,
+                                   tipo_conteudo="audio", audio_path=f"p/{n}.mp3", duracao_segundos=d)
+                      for n, d in (("Loja Um", 30), ("Loja Dois", 20))]
+    db_session.add_all(patrocinadores)
+    db_session.flush()
+    prog.horario_inicio, prog.horario_fim = datetime.time(12, 0), datetime.time(13, 0)
+    prog.estrutura_blocos = ["comentario", *[f"patrocinador:{p.id}" for p in patrocinadores]]
+    prog.relogio_hora = r.PRESETS["A"].model_dump()
+    db_session.commit()
+    instante = datetime.datetime(2026, 11, 10, 12, 0, tzinfo=datetime.timezone(datetime.timedelta(hours=-3)))
+    r.marcar_executada(prog.id, r.ocorrencia_em(prog, radialista.timezone, instante), "0:0:fala:abertura", "0:40")
+
+    faixas = {"Estrada Aberta": MusicaEncontrada(video_id="e1", titulo="Estrada Aberta", canal="Banda A",
+                                                 duracao_segundos=400),
+              "Moinho Grande": MusicaEncontrada(video_id="m1", titulo="Moinho Grande", canal="Banda B",
+                                                duracao_segundos=400)}
+    monkeypatch.setattr("app.live.router.buscar_musica",
+                        lambda query, **kw: next((f for t, f in faixas.items() if t in query), None))
+    monkeypatch.setattr("app.live.router.resolver_musica_catalogada", lambda *a, **k: None)
+    monkeypatch.setattr("app.live.router.extrair_musicas_citadas",
+                        lambda fala, ja_tocadas=None: ["Banda A - Estrada Aberta", "Banda B - Moinho Grande"])
+    monkeypatch.setattr("app.live.router.gerar_resposta",
+                        lambda *a: "Lembrei de Estrada Aberta, e também de Moinho Grande. " + _LEMBRANCA)
+    dados = _post(client, account, auth_headers, radialista, prog, total_falas=3, historico=["musica: anterior"],
+                  inicio_previsto="2026-11-10T12:12:30-03:00")
+    assert dados["tipo"] == "comentario" and dados["relogio"]["acao"] == "fala"
+    assert [m["video_id"] for m in dados["musicas"]] == ["e1"]
+    assert dados["fala"] == "Lembrei de Estrada Aberta. " + _LEMBRANCA
+    assert [v["ref_id"] for v in dados["validacao_fala"]["violacoes"]] == ["Moinho Grande"]
+    assert redis_client.smembers(f"musicas_tocadas:ids:{prog.id}") == {"e1"}
+    assert [m.video_id for m in db_session.query(MusicaHistorico).all()] == ["e1"]
