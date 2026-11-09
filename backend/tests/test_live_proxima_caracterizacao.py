@@ -18,6 +18,7 @@ import os
 import pathlib
 import random
 import re
+import sys
 from typing import Any, Callable
 
 import pytest
@@ -331,42 +332,56 @@ CENARIOS = [
 # Execução e retrato
 # ---------------------------------------------------------------------------------------------
 
-class _EspiaoRandom:
-    """Registra cada sorteio do módulo random (todos os módulos o usam pelo atributo do módulo)."""
+class _RandomGravado(random.Random):
+    """RNG próprio do cenário, com a semente dele, que registra cada sorteio. Entra no lugar do módulo `random`
+    em todo módulo app.* (como scripts/simulacao/ambiente.py::rng_isolado): outra thread do processo que use o
+    random global (o flush de logs do Sentry, na suíte inteira) não muda a sequência do cenário."""
 
-    def __init__(self, forcado: tuple[float, ...]):
+    def __init__(self, semente: int, forcado: tuple[float, ...]):
+        self._interno = True
+        super().__init__(semente)
         self.forcado = list(forcado)
         self.registro: list = []
-        self.originais = {n: getattr(random, n) for n in ("random", "randint", "choice", "choices", "shuffle")}
+        self._interno = False
+
+    def random(self):
+        if self._interno:
+            return super().random()
+        valor = self.forcado.pop(0) if self.forcado else super().random()
+        self.registro.append(["random", round(valor, 6)])
+        return valor
+
+    def _por_dentro(self, funcao, *args, **kwargs):
+        self._interno = True
+        try:
+            return funcao(*args, **kwargs)
+        finally:
+            self._interno = False
+
+    def randint(self, a, b):
+        valor = self._por_dentro(super().randint, a, b)
+        self.registro.append(["randint", [a, b], valor])
+        return valor
+
+    def choice(self, seq):
+        valor = self._por_dentro(super().choice, seq)
+        self.registro.append(["choice", len(seq), str(valor)[:60]])
+        return valor
+
+    def choices(self, population, weights=None, *, cum_weights=None, k=1):
+        valor = self._por_dentro(super().choices, population, weights=weights, cum_weights=cum_weights, k=k)
+        self.registro.append(["choices", len(population), [str(v)[:60] for v in valor]])
+        return valor
+
+    def shuffle(self, x):
+        self._por_dentro(super().shuffle, x)
+        self.registro.append(["shuffle", len(x)])
 
     def instalar(self, mp) -> None:
-        def _random():
-            valor = self.forcado.pop(0) if self.forcado else self.originais["random"]()
-            self.registro.append(["random", round(valor, 6)])
-            return valor
-
-        def _randint(a, b):
-            valor = self.originais["randint"](a, b)
-            self.registro.append(["randint", [a, b], valor])
-            return valor
-
-        def _choice(seq):
-            valor = self.originais["choice"](seq)
-            self.registro.append(["choice", len(seq), str(valor)[:60]])
-            return valor
-
-        def _choices(population, weights=None, *, cum_weights=None, k=1):
-            valor = self.originais["choices"](population, weights=weights, cum_weights=cum_weights, k=k)
-            self.registro.append(["choices", len(population), [str(v)[:60] for v in valor]])
-            return valor
-
-        def _shuffle(seq):
-            self.originais["shuffle"](seq)
-            self.registro.append(["shuffle", len(seq)])
-
-        for nome, funcao in (("random", _random), ("randint", _randint), ("choice", _choice),
-                             ("choices", _choices), ("shuffle", _shuffle)):
-            mp.setattr(random, nome, funcao)
+        for nome, modulo in list(sys.modules.items()):
+            if modulo is not None and (nome == "app" or nome.startswith("app.")) \
+                    and getattr(modulo, "random", None) is random:
+                mp.setattr(modulo, "random", self)
 
 
 def _retrato_redis() -> dict:
@@ -465,13 +480,12 @@ def _rodar(cenario: Cenario, client, account, auth_headers, db_session, monkeypa
     monkeypatch.setattr("app.live.router.buscar_faixas_por_categoria", lambda genero, excluir_titulos=None: [])
     monkeypatch.setattr("app.llm.prompt_builder.obter_clima_atual", lambda cidade: None)
 
-    espiao = _EspiaoRandom(cenario.random_forcado)
+    espiao = _RandomGravado(cenario.semente, cenario.random_forcado)
     with freeze_time(cenario.agora):
         redis_client.flushall()
         if cenario.preparar is not None:
             cenario.preparar(db_session, account, radialista, programa, monkeypatch)
         db_session.commit()
-        random.seed(cenario.semente)
         espiao.instalar(monkeypatch)
         corpo = {"incluir_audio": False, **cenario.corpo}
         resposta = client.post(f"/live/{radialista.id}/programas/{programa.id}/proxima", json=corpo,

@@ -89,7 +89,7 @@
     1800,
     2600
    ],
-   2263
+   2164
   ]
  ],
  "redis": {
@@ -124,7 +124,7 @@
   "fala": "A Joana pediu Estrada Aberta, com Banda Horizonte.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,
-  "intervalo_ms": 2263,
+  "intervalo_ms": 2164,
   "musicas": [
    {
     "canal": "Banda Horizonte",

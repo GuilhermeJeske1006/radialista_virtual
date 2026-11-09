@@ -99,7 +99,7 @@
     2800,
     3400
    ],
-   3276
+   2915
   ]
  ],
  "redis": {
@@ -119,7 +119,7 @@
   "fala": "Segundo a prefeitura, corrigindo a informação: a ponte foi liberada às catorze horas.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,
-  "intervalo_ms": 3276,
+  "intervalo_ms": 2915,
   "musicas": [],
   "orcamento_fala_s": {
    "alvo_s": 22.5,

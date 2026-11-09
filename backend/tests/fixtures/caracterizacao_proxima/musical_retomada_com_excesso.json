@@ -132,7 +132,7 @@
     900,
     1400
    ],
-   1131
+   925
   ]
  ],
  "redis": {
@@ -156,7 +156,7 @@
   "fala": "Você está na rádio, seguimos juntos.",
   "fala_ajuste": "reescrita",
   "inicio_segundos": 0,
-  "intervalo_ms": 1131,
+  "intervalo_ms": 925,
   "musicas": [],
   "orcamento_fala_s": {
    "alvo_s": 9.0,

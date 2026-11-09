@@ -110,7 +110,7 @@
     900,
     1400
    ],
-   1160
+   965
   ]
  ],
  "redis": {
@@ -143,7 +143,7 @@
   "fala": "A Joana pediu Estrada Aberta para a mãe, parabéns!",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,
-  "intervalo_ms": 1160,
+  "intervalo_ms": 965,
   "musicas": [
    {
     "canal": "Banda Horizonte",

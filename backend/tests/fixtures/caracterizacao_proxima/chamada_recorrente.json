@@ -106,7 +106,7 @@
     900,
     1400
    ],
-   1160
+   965
   ]
  ],
  "redis": {
@@ -126,7 +126,7 @@
   "fala": "Seu Valdir de novo por aqui, outro abraço!",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,
-  "intervalo_ms": 1160,
+  "intervalo_ms": 965,
   "musicas": [],
   "orcamento_fala_s": {
    "alvo_s": 22.5,

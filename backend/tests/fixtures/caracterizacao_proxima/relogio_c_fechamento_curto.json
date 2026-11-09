@@ -91,7 +91,7 @@
     1800,
     2600
    ],
-   2320
+   2330
   ]
  ],
  "redis": {
@@ -120,7 +120,7 @@
   "fala": "Fica a dica: devagar se vai longe.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,
-  "intervalo_ms": 2320,
+  "intervalo_ms": 2330,
   "musicas": [],
   "orcamento_fala_s": {
    "alvo_s": 9.0,

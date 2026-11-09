@@ -82,7 +82,7 @@
     900,
     1400
    ],
-   1373
+   958
   ]
  ],
  "redis": {
@@ -104,7 +104,7 @@
   "fala": "Obrigado pela companhia, até amanhã.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,
-  "intervalo_ms": 1373,
+  "intervalo_ms": 958,
   "musicas": [],
   "orcamento_fala_s": {
    "alvo_s": 22.5,

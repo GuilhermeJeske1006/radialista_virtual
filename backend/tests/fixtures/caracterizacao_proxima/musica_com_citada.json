@@ -107,7 +107,7 @@
     900,
     1400
    ],
-   1160
+   965
   ]
  ],
  "redis": {
@@ -143,7 +143,7 @@
   "fala": "Agora vem Estrada Aberta, com Banda Horizonte, e depois Outra Citada.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,
-  "intervalo_ms": 1160,
+  "intervalo_ms": 965,
   "musicas": [
    {
     "canal": "Banda Horizonte",
