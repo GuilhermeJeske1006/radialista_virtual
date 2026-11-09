@@ -21,7 +21,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_account
-from app.config.redis_client import redis_client
+from app.config.redis_client import redis_sessao as redis_client  # estado de sessão e cache: falha aberta (F3)
 from app.config.settings import settings
 from app.billing.contexto_ia import tarefa_com_contexto, tarefa_independente
 from app.db.database import SessionLocal, get_db

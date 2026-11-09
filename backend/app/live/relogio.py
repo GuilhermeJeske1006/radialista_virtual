@@ -1034,7 +1034,7 @@ def _chave_estado(programa_id: int, ocorrencia: Ocorrencia) -> str:
 def etapas_executadas(programa_id: int, ocorrencia: Ocorrencia) -> set[str]:
     """Peças e etapas já decididas nesta ocorrência. Redis fora → conjunto vazio (decide só pelo tempo)."""
     try:
-        from app.config.redis_client import redis_client
+        from app.config.redis_client import redis_sessao as redis_client
 
         return set(redis_client.smembers(_chave_estado(programa_id, ocorrencia)) or ())
     except Exception:
@@ -1048,7 +1048,7 @@ def marcar_executada(programa_id: int, ocorrencia: Ocorrencia, *chaves: str,
     if not chaves:
         return
     try:
-        from app.config.redis_client import redis_client
+        from app.config.redis_client import redis_sessao as redis_client
 
         chave = _chave_estado(programa_id, ocorrencia)
         redis_client.sadd(chave, *chaves)

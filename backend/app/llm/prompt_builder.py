@@ -3,7 +3,7 @@ import random
 import re
 from zoneinfo import ZoneInfo
 
-from app.config.redis_client import redis_client
+from app.config.redis_client import redis_sessao as redis_client  # estado de sessão e cache: falha aberta (F3)
 from app.feriados import feriado_nacional_do_dia
 from app.models.account import Account
 from app.models.programa import Programa

@@ -16,7 +16,7 @@ import datetime
 
 from sqlalchemy.orm import Session
 
-from app.config.redis_client import redis_client
+from app.config.redis_client import redis_sessao as redis_client  # estado de sessão e cache: falha aberta (F3)
 from app.models.assunto import Assunto
 from app.models.assunto_programa import AssuntoPrograma
 from app.models.programa import Programa

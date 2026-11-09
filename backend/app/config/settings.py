@@ -13,6 +13,12 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql://radialista:radialista@localhost:5433/radialista"
     redis_url: str = "redis://localhost:6379/0"
+    # Redis (F3, item 6 da docs/auditoria.md): timeouts do cliente e pausa do disjuntor do estado de sessão do ao vivo
+    # (app.config.redis_client.redis_sessao). Com o Redis fora, /proxima segue sem memória em vez de travar.
+    redis_connect_timeout_s: float = 0.5
+    redis_socket_timeout_s: float = 1.0
+    redis_health_check_s: int = 30
+    redis_pausa_apos_falha_s: float = 15.0
 
     # Sem default de proposito: segredo fraco/publico no repo permitiria forjar
     # token de qualquer conta. Gere com: openssl rand -hex 32

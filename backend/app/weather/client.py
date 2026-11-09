@@ -3,7 +3,7 @@ import logging
 
 import httpx
 
-from app.config.redis_client import redis_client
+from app.config.redis_client import redis_sessao as redis_client  # estado de sessão e cache: falha aberta (F3)
 
 logger = logging.getLogger("radialista.weather")
 

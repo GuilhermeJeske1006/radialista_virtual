@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 
 import httpx
 
-from app.config.redis_client import redis_client
+from app.config.redis_client import redis_sessao as redis_client  # estado de sessão e cache: falha aberta (F3)
 from app.config.settings import settings
 from app.live.audio_analysis import obter_fim_seguro, obter_inicio_seguro
 from app.util.texto import sem_acento as _sem_acento
