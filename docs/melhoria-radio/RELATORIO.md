@@ -13,7 +13,7 @@ Next 16); não conta como regressão.
 |---|---|---|
 | 4 — rate limit dos endpoints pagos | resolvido; resta sessão de 7 dias não revogada na troca de senha (segurança, fora do plano) | — |
 | 5 — race condition na fila | resolvido (`router.py:1796`) | — |
-| 6 — timeout do Redis | aberto | F3 |
+| 6 — timeout do Redis | resolvido na F3 (timeouts, disjuntor `redis_sessao`; travas do WhatsApp ainda no cliente cru) | F3 |
 | 9 — TTL do cache de categoria | aberto | F6 |
 
 ## Frentes
@@ -105,3 +105,40 @@ Next 16); não conta como regressão.
 - Achado do juiz levado à F3: o encurtamento pode deixar um fragmento ("Rádio.", 0,4 s) no ar.
 - Pendências: [`f2/pendencias.md`](f2/pendencias.md). Peça de reserva não implementada (sem
   catálogo de reservas ainda — F11).
+
+### F3 — Estado confiável da emissão — IMPLEMENTADA (aguarda portão e juiz)
+
+- Branch: `melhoria/f3-contexto-emissao` (a partir de `melhoria/f2-duracao-fala`).
+- Commits: `3edddaf` (caracterização), `2ac1497` (portas e textos de prompt), `bdda108` (RNG próprio dos
+  goldens), `d3e268a` (divisão de `gerar_proxima_fala`), `1d73585` (validador), `c0eaa55` (citadas),
+  `049a4b2` (Redis), `e3b2794` (painel antigo) e o registro da simulação. Todos com a suíte verde.
+- Entregas: `gerar_proxima_fala` cai de 1245 para 115 linhas: `roteiro.decidir_bloco`,
+  `contexto.resolver_musica_e_pedidos`/`montar_contexto` (`ContextoEmissao` congelado, sorteios e rotações na
+  ordem de antes), `prompt_emissao.montar_prompt(ctx)` puro e `geracao.gerar_fala` (reescrita única, momentos A
+  e B); o router fica com HTTP, TTS, registros e resposta. Portas com ligação tardia (`app/live/portas.py`)
+  mantêm os patches por nome dos testes e do simulador. Validador `app/live/validacao_fala.py` (V1 na reescrita
+  única, V2 antes do TTS, `validacao_fala` opcional na resposta, modo `corrigir`/`avisar`); o fragmento abaixo
+  do mínimo não vai ao ar; citada descartada pelo relógio não fica registrada; Redis com timeouts e disjuntor
+  (`redis_sessao`), rate limit fechado só nas rotas públicas de autenticação (D5); painel antigo com horário
+  estimado pela cadeia no servidor (`origem_instante`). Sem migração; campos novos só opcionais.
+- Caracterização: 28 goldens de `/proxima` (system e mensagem inteiros, resposta, Redis, banco, sorteios)
+  gravados antes de mover código e idênticos nos passos de extração; regravados só os 3 com relógio no passo
+  do painel antigo (campo novo e chave da cadeia). Ficam permanentes (D6).
+- Benchmark `casos.json`: 7 de 7 anúncios sem confirmação detectados, 0 falsos positivos nas outras 63 falas.
+- Testes existentes editados por mudança intencional: `test_simular_hora::test_injecoes_aparecem_nas_metricas`
+  (a injeção agora é removida) e `test_live_relogio_proxima::test_i1_i11` (cliente antigo agora é estimado).
+- Portão local: ruff limpo; pytest 1379/1379 (+99); vitest 318/318; `tsc` ok.
+- Simulação fake com dublê de TTS ([`f3/simulacao/`](f3/simulacao/)), F2 → F3:
+
+| | musical | popular | variedades |
+|---|---|---|---|
+| Anúncio sem confirmação (relógio / sem relógio / voz 120) | 1/1/1 → 0/0/0 | 0/0/0 → 0/0/0 | 0/0/0 → 0/0/0 |
+| Ação do validador (com relógio) | menção removida (injeção) | fala neutra no lugar de "Rádio." | — |
+| Atraso máximo em hard time (com relógio) | 0 → 0 s | 0 → 0,36 s | 0,18 → 0,18 s |
+| Painel antigo (`--sem-inicio-previsto`): atraso / encerramento / cortados | — → 0 s / sim / 0 | 412 s / não / 74 s (F1) → 0 s / sim / 0 | — → 0,18 s / sim / 0 |
+| Fora do orçamento (com relógio) | 0% | 0% | 0% |
+
+- Demais métricas iguais às da F2 (incluindo o estresse `voz_120`: popular 12,1 s e variedades 14,3% fora,
+  limites conhecidos da F2). No máximo 2 chamadas de LLM e 2 sínteses por fala.
+- Pendências: [`f3/pendencias.md`](f3/pendencias.md). Falsos positivos do validador com texto real só no
+  `--modo llm` (não rodado, exige aprovação de custo); travas do WhatsApp ainda no cliente Redis cru.
