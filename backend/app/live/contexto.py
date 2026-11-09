@@ -50,6 +50,9 @@ logger = logging.getLogger("radialista.live")
 # Quantos temas (sessão + outros programas da rádio) entram no prompt (e o teto da consulta ao banco).
 _MAX_TEMAS_RADIO_NO_PROMPT = 20
 
+# Linha do histórico com as faixas que tocaram num bloco (linhaMusicasHistorico em useLiveEngine.ts).
+_MUSICAS_TOCADAS_HISTORICO_RE = re.compile(r"\[Música\(s\) tocada\(s\) nesse bloco: (.+?)\]")
+
 
 # ---------------------------------------------------------------------------------------------------------
 # Estruturas
@@ -98,7 +101,8 @@ class EstadoMusical:
     resolve_citadas: bool = True         # False no bloco de música do formato musical ou com relógio
     citaveis: tuple[MusicaRef, ...] = ()  # títulos conhecidos (camada (a) do validador)
     contexto_faixa: str = ""
-    citadas_extraidas: tuple[str, ...] = ()  # o que o extrator de citadas devolveu (camada (c))
+    resolvido: bool = False              # True depois da resolução das citadas (fase "final" do validador)
+    citadas_nao_resolvidas: tuple[str, ...] = ()  # o extrator achou, mas não virou faixa (camada (c))
 
 
 @dataclasses.dataclass(frozen=True)
@@ -227,6 +231,30 @@ class ResolucaoBloco:
 # ---------------------------------------------------------------------------------------------------------
 # Fase 2: pedidos e música
 # ---------------------------------------------------------------------------------------------------------
+
+def tocadas_no_historico(historico) -> list[MusicaRef]:
+    """Faixas que o painel diz que tocaram (sufixo "[Música(s) tocada(s) nesse bloco: …]" das linhas)."""
+    tocadas: list[MusicaRef] = []
+    for linha in historico:
+        for achado in _MUSICAS_TOCADAS_HISTORICO_RE.findall(linha):
+            for rotulo in achado.split(","):
+                titulo, _, artista = rotulo.strip().rpartition(" - ")
+                tocadas.append(MusicaRef(titulo or artista, artista if titulo else "", origem="historico"))
+    return tocadas
+
+
+def _estado_da_fila(entrada: EntradaEmissao, portas: PortasEmissao) -> tuple[list[MusicaRef], list[str]]:
+    """Músicas pedidas (títulos conhecidos, camada (a) do validador) e nomes dos ouvintes da fila. Só leitura."""
+    from app.live.song_service import dividir_artista_titulo
+
+    pedidos = portas.pedidos_em_fila(entrada.db, entrada.radialista, entrada.programa)
+    citaveis = []
+    for item in [*(entrada.programa.musicas_permitidas or []), *(p.musica_query for p in pedidos if p.musica_query)]:
+        partes = dividir_artista_titulo(item)
+        citaveis.append(MusicaRef(partes[1], partes[0], origem="conhecida") if partes is not None
+                        else MusicaRef(item, origem="conhecida"))
+    return citaveis, [p.nome for p in pedidos if p.nome]
+
 
 def teto_musica(plano: Plano) -> Plano:
     """Plano com teto de musica mesmo quando o bloco virou musica fora de uma etapa de musica."""
@@ -540,6 +568,10 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
     wpm_fala = entrada.ritmos_voz.wpm(categoria_voz)
     limite_palavras = palavras_max(orcamento, wpm_fala) if orcamento.aplicar else None
 
+    # Estado musical para o validador (F3): só leituras, depois de todos os sorteios e rotações.
+    tocou = tocadas_no_historico(entrada.dados.historico) + [
+        MusicaRef(titulo, origem="sessao") for titulo in sorted(portas.historico_musicas(programa.id)[1])]
+    citaveis, nomes_fila = _estado_da_fila(entrada, portas)
     pedido_musica = PedidoRef.de(resolucao.pedido_musica, novo) if resolucao.pedido_musica is not None else None
     pedido_ouvinte = PedidoRef.de(resolucao.pedido_ouvinte, novo) if resolucao.pedido_ouvinte is not None else None
     pedido_recente = PedidoRef.de(resolucao.pedido_recente, novo) if resolucao.pedido_recente is not None else None
@@ -555,7 +587,8 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
                     inicio_previsto_aceito=decisao.inicio_previsto_aceito, ajuste_energia=ajuste_energia,
                     marco_tempo=marco, hora_certa=hora_certa),
         musica=EstadoMusical(
-            tocou=(), confirmada=MusicaRef.de(musica) if musica is not None else None,
+            tocou=tuple(tocou), confirmada=MusicaRef.de(musica) if musica is not None else None,
+            citaveis=tuple(citaveis),
             pedido_sem_resultado=resolucao.pedido_sem_resultado,
             resolve_citadas=not (categoria == "musica" and (formato_musical or plano is not None)),
             contexto_faixa=contexto_faixa,
@@ -566,6 +599,9 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
             ouvinte_recorrente_dias=(resolucao.ouvinte_recorrente_dias.tipo
                                      if resolucao.ouvinte_recorrente_dias else None),
             pedido_recente=pedido_recente,
+            nomes_autorizados=tuple(dict.fromkeys(
+                [p.nome for p in (pedido_musica, pedido_ouvinte, pedido_recente) if p is not None and p.nome]
+                + nomes_fila)),
         ),
         chamadas=Chamadas(fio_condutor=fio),
         memoria=Memoria(historico=tuple(entrada.dados.historico), historico_prompt=resolucao.historico_prompt,

@@ -1,8 +1,9 @@
-"""Detectores provisórios e métricas do resumo.json (auditoria F0 §5.7 e §5.8).
+"""Detectores e métricas do resumo.json (auditoria F0 §5.7 e §5.8).
 
-Promessa, abertura repetida e música anunciada são heurísticas da F0. A F3, a F4, a F7 e a F8 as
-substituem por código em app/live, que o simulador passa a importar; não manter dois validadores.
-Este módulo não importa app.* no carregamento: as métricas são recalculáveis só com o as_run.json.
+Música anunciada: desde a F3, o mesmo detector do backend (app.live.validacao_fala.mencoes_musica), importado
+na função; não existe um segundo validador aqui. Promessa e abertura repetida continuam heurísticas da F0, que a
+F4 e a F8 trocam por código em app/live. Este módulo não importa app.* no carregamento: as métricas são
+recalculáveis só com o as_run.json (os nomes que não são música vão em `nomes_nao_musica`).
 """
 
 import collections
@@ -59,21 +60,40 @@ def detectar_promessas(texto: str, inicio_s: float, fim_programa_s: float, n: in
     return achadas
 
 
+def mencoes(texto: str, citaveis: list[tuple[str, str]], nao_musica: list[str] | tuple = (),
+            confirmaveis: list[str] | tuple = ()) -> list[str]:
+    """Rótulos das músicas citadas no texto, em ordem: 'Título - Artista' quando o título é do catálogo, senão o
+    trecho da construção de anúncio. Uma menção que o backend aceita como uma das `confirmaveis` (outro sotaque de
+    título, ou só o artista) leva o rótulo dela. Delegado ao detector do backend (app.live.validacao_fala)."""
+    from app.live.contexto import MusicaRef
+    from app.live.validacao_fala import confirmada, mencoes_musica
+
+    refs = [MusicaRef(titulo, artista, origem="conhecida") for titulo, artista in citaveis]
+    rotulos = []
+    for mencao in mencoes_musica(texto, refs, nao_musica):
+        rotulo = mencao.rotulo
+        for candidata in (c for c in confirmaveis if c):
+            titulo, _, artista = candidata.rpartition(" - ")
+            if confirmada(mencao, [titulo or artista], [artista] if titulo else []):
+                rotulo = candidata
+                break
+        rotulos.append(rotulo)
+    return rotulos
+
+
 def titulos_citados(texto: str, citaveis: list[tuple[str, str]]) -> list[str]:
-    """Rótulos 'Título - Artista' cujo título aparece inteiro (palavras completas) no texto, em ordem."""
-    normalizado = f" {normalizar(texto)} "
-    achados = []
-    for titulo, artista in citaveis:
-        posicao = normalizado.find(f" {normalizar(titulo)} ")
-        if normalizar(titulo) and posicao >= 0:
-            achados.append((posicao, f"{titulo} - {artista}"))
-    return [rotulo for _, rotulo in sorted(achados)]
+    """Rótulos 'Título - Artista' dos títulos do catálogo citados no texto, em ordem (invólucro do detector do
+    backend, sem os trechos de título desconhecido)."""
+    rotulos = {f"{titulo} - {artista}" for titulo, artista in citaveis}
+    return [r for r in mencoes(texto, citaveis) if r in rotulos]
 
 
-def anotar_eventos(as_run: dict, citaveis: list[tuple[str, str]], config: dict | None = None) -> None:
+def anotar_eventos(as_run: dict, citaveis: list[tuple[str, str]], config: dict | None = None,
+                   nao_musica: list[str] | None = None) -> None:
     """Preenche musicas_citadas, musica_anunciada, musica_tocada e promessas de cada evento."""
     eventos = as_run["eventos"]
     fim_programa_s = float(as_run["duracao_programa_s"])
+    nao_musica = list(nao_musica if nao_musica is not None else as_run.get("nomes_nao_musica") or [])
     tocadas: set[str] = set()
     for indice, evento in enumerate(eventos):
         if evento["tipo"] == "musica":
@@ -81,11 +101,12 @@ def anotar_eventos(as_run: dict, citaveis: list[tuple[str, str]], config: dict |
             continue
         if evento["tipo"] != "fala":
             continue
-        citadas = titulos_citados(evento["texto"], citaveis)
-        evento["musicas_citadas"] = citadas
-        evento["musica_anunciada"] = [c for c in citadas if c not in tocadas]
         proxima = next((e for e in eventos[indice + 1:] if e["tipo"] == "musica"), None)
         evento["musica_tocada"] = proxima["musica_tocada"] if proxima else None
+        confirmaveis = [*(evento.get("musicas_bloco") or []), evento["musica_tocada"], *sorted(tocadas)]
+        citadas = mencoes(evento["texto"], citaveis, nao_musica, confirmaveis)
+        evento["musicas_citadas"] = citadas
+        evento["musica_anunciada"] = [c for c in citadas if c not in tocadas]
         evento["promessas_abertas"] = detectar_promessas(evento["texto"], evento["inicio_s"], fim_programa_s,
                                                          evento["n"], config)
     # Na F0 só fecha a promessa de música cumprida pela próxima faixa, dentro do prazo. O resto vence.
@@ -227,6 +248,16 @@ def _aviso_oralidade(falas: list[dict]) -> int | None:
     return sum(len(verificar(f["texto"]) or []) for f in falas)
 
 
+def _validacao(eventos: list[dict]) -> dict:
+    blocos = {e["bloco_n"]: e["validacao_fala"] for e in eventos if e.get("validacao_fala")}
+    return {
+        "blocos": len(blocos),
+        "acoes": dict(sorted(collections.Counter(v["acao"] for v in blocos.values()).items())),
+        "regras": dict(sorted(collections.Counter(x["regra"] for v in blocos.values()
+                                                  for x in v["violacoes"]).items())),
+    }
+
+
 def _pedidos(pedidos: list[dict]) -> dict:
     estados = collections.Counter(p["estado_final"] for p in pedidos)
     return {
@@ -326,6 +357,8 @@ def calcular_metricas(as_run: dict, config: dict | None = None) -> dict:
             or (f.get("relogio") and f["relogio"].get("espaco_s") is not None
                 and float(f["relogio"]["espaco_s"]) < float(f["orcamento_s"]["min"]))
         ),
+        # F3: o que o validador pós-geração fez (as-run de cada bloco, pela resposta do /proxima).
+        "validacao_fala": _validacao(eventos),
         "relogio_acoes": dict(sorted(collections.Counter(r["acao"] for r in blocos_relogio.values()).items())),
         "etapas_puladas": sorted({p for r in blocos_relogio.values() for p in r.get("puladas") or []}),
         "adiantamentos": sum(1 for r in blocos_relogio.values() if r["acao"] == "adiantamento"),

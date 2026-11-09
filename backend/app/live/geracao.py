@@ -160,6 +160,8 @@ class FalaGerada:
     manter_ultima: bool
     pode_cortar: bool
     revisada: bool = False
+    # Violações da fase "pre" do validador que entraram na reescrita única (F3).
+    violacoes_pre: list = dataclasses.field(default_factory=list)
 
 
 def _gerar_falas_bloco(ctx, mensagem: str, system: str, portas: PortasEmissao) -> tuple[list[FalaItem], str]:
@@ -193,9 +195,9 @@ def _gerar_falas_bloco(ctx, mensagem: str, system: str, portas: PortasEmissao) -
 
 
 def gerar_fala(ctx, prompt: PromptEmissao, portas: PortasEmissao,
-               checar_pre: Callable[[str], list[str]] | None = None) -> FalaGerada:
-    """Gera a fala do bloco. `checar_pre(fala)` devolve instruções de reescrita das checagens pós-geração da
-    fase "pre" (app.live.validacao_fala); elas entram como mais um motivo da MESMA reescrita única."""
+               checar_pre: Callable[[str], list] | None = None) -> FalaGerada:
+    """Gera a fala do bloco. `checar_pre(fala)` devolve as violações da fase "pre" do validador
+    (app.live.validacao_fala); as instruções delas entram como mais um motivo da MESMA reescrita única."""
     programa, tipo, categoria = ctx.programa, ctx.tipo, ctx.categoria
     orcamento, wpm_fala, limite_palavras = ctx.orcamento, ctx.wpm_fala, ctx.limite_palavras
 
@@ -206,6 +208,7 @@ def gerar_fala(ctx, prompt: PromptEmissao, portas: PortasEmissao,
     estimada_inicial = estimar_duracao_s(fala, wpm_fala)
     excedeu_duracao = acima_da_tolerancia(estimada_inicial, orcamento)
     pauta, pesquisa = ctx.jornalismo.pauta, ctx.jornalismo.pesquisa
+    violacoes_pre = list(checar_pre(fala)) if checar_pre is not None else []
     # Atribuição só é checada quando há UM fato central na pauta -- escalada lista várias manchetes.
     falta_atribuicao = (
         categoria in _CATEGORIAS_NOTICIA_LIKE
@@ -222,7 +225,7 @@ def gerar_fala(ctx, prompt: PromptEmissao, portas: PortasEmissao,
         # Locutor narrando a propria regra ("sem especular") em vez de noticiar.
         frase_proibida=frase_proibida_em(fala) if categoria in _CATEGORIAS_NOTICIA_LIKE else None,
         falta_atribuicao=falta_atribuicao,
-        instrucoes_extras=tuple(checar_pre(fala)) if checar_pre is not None else (),
+        instrucoes_extras=tuple(dict.fromkeys(v.instrucao_retry for v in violacoes_pre if v.instrucao_retry)),
     )
     fala_ajuste = "nenhum"
     if motivos.algum:
@@ -280,4 +283,4 @@ def gerar_fala(ctx, prompt: PromptEmissao, portas: PortasEmissao,
                         ctx.request_id, programa.id, tipo, ajuste_b)
     return FalaGerada(falas_bloco=falas_bloco, fala=fala, quantidade=quantidade, ajuste=fala_ajuste,
                       preservar=preservar, manter_frase=manter_frase, manter_ultima=manter_ultima,
-                      pode_cortar=pode_cortar, revisada=motivos.algum)
+                      pode_cortar=pode_cortar, revisada=motivos.algum, violacoes_pre=violacoes_pre)

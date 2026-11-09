@@ -228,17 +228,23 @@ def ajustar_ao_orcamento(texto: str, orcamento: OrcamentoFala, wpm: float, *, pr
     return ("", "cortada") if pode_cortar else (texto, "acima_do_teto")
 
 
+def wpm_da_medida(texto: str, medida_s: float) -> float | None:
+    """Ritmo do próprio áudio medido (palavras faladas por minuto, sem as pausas explícitas). None quando o áudio
+    não dá um ritmo plausível."""
+    fala_s = medida_s - contar_pausas(texto) * settings.fala_pausa_explicita_s
+    if fala_s <= 0:
+        return None
+    wpm = palavras_faladas(texto) / fala_s * 60
+    return wpm if wpm > 0 else None
+
+
 def encurtar_pela_medida(texto: str, orcamento: OrcamentoFala, medida_s: float, *, preservar: Iterable[str] = (),
                          manter: Callable[[str], bool] | None = None, manter_ultima: bool = False) -> str | None:
     """Encurtamento depois do TTS: o ritmo é o do próprio áudio medido (melhor previsão para a mesma voz e
     o mesmo texto). None quando nada cabe ou o áudio não dá um ritmo plausível."""
-    pausas = contar_pausas(texto)
-    fala_s = medida_s - pausas * settings.fala_pausa_explicita_s
-    if fala_s <= 0:
+    wpm_medido = wpm_da_medida(texto, medida_s)
+    if wpm_medido is None:
         return None
-    wpm_medido = palavras_faladas(texto) / fala_s * 60
-    if wpm_medido <= 0:
-        return None
-    curto = encurtar_por_frases(texto, palavras_max(orcamento, wpm_medido, pausas), preservar, manter=manter,
-                                manter_ultima=manter_ultima)
+    curto = encurtar_por_frases(texto, palavras_max(orcamento, wpm_medido, contar_pausas(texto)), preservar,
+                                manter=manter, manter_ultima=manter_ultima)
     return curto if curto is not None and curto != texto.strip() else None

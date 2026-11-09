@@ -319,7 +319,8 @@ class Emissao:
                 self.contagem["segundos_nao_tocados"] += plano["duracao"]
                 continue
             fim = t + plano["duracao"]
-            evento = self._evento(bloco, plano, t, min(fim, limite), pausa if indice == 0 else 0.0)
+            evento = self._evento(bloco, plano, t, min(fim, limite), pausa if indice == 0 else 0.0,
+                                  primeiro=indice == 0)
             if fim > limite:
                 evento["cortado"], evento["cortado_s"] = True, round(fim - limite, 2)
                 cortado, fim = True, limite
@@ -364,7 +365,8 @@ class Emissao:
         ref = {"min": orcamento.min, "max": orcamento.max, "fonte": "formato"}
         return dict(ref), ref
 
-    def _evento(self, bloco: Bloco, plano: dict, inicio: float, fim: float, pausa: float) -> dict:
+    def _evento(self, bloco: Bloco, plano: dict, inicio: float, fim: float, pausa: float,
+                primeiro: bool = True) -> dict:
         segmento = bloco.segmento or {}
         tipo_bloco = segmento.get("tipo") or "erro"
         categoria = categoria_do_tipo(tipo_bloco)
@@ -420,6 +422,8 @@ class Emissao:
             "inicio_previsto_s": bloco.inicio_previsto_s,
             "duracao_prevista_backend_s": segmento.get("duracao_prevista_s"),
             "relogio": relogio,
+            # F3: validador pós-geração, no primeiro evento do bloco (a fala, ou a música quando a fala saiu).
+            "validacao_fala": segmento.get("validacao_fala") if primeiro else None,
         }
 
     # --- pedidos -------------------------------------------------------------------------------------

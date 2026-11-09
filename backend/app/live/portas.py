@@ -35,6 +35,7 @@ class PortasEmissao:
     registrar_musica_tocada: Funcao
     registrar_historico_persistente: Funcao
     selecionar_pedido: Funcao
+    pedidos_em_fila: Funcao
     proximo_pedido_fila: Funcao
     proximo_pedido_fila_dentre: Funcao
     pedido_recente_nao_atendido: Funcao
@@ -73,6 +74,7 @@ class PortasEmissao:
         "registrar_musica_tocada": "_registrar_musica_tocada",
         "registrar_historico_persistente": "_registrar_historico_persistente",
         "selecionar_pedido": "_selecionar_pedido_atendimento",
+        "pedidos_em_fila": "_pedidos_em_fila",
         "proximo_pedido_fila": "_proximo_pedido_fila",
         "proximo_pedido_fila_dentre": "_proximo_pedido_fila_dentre",
         "pedido_recente_nao_atendido": "_pedido_recente_nao_atendido",

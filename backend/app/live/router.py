@@ -37,6 +37,7 @@ from app.live.orcamento import (
     contar_pausas,
     encurtar_pela_medida,
     estimar_duracao_s,
+    wpm_da_medida,
     palavras_faladas,
 )
 from app.live.ritmo_voz import (
@@ -98,7 +99,9 @@ from app.live.prompts import (  # noqa: F401
 from app.live.portas import PortasEmissao, ligar
 from app.live.contexto import (  # noqa: F401 -- reexportados: testes importam do router
     _MAX_TEMAS_RADIO_NO_PROMPT,
+    _MUSICAS_TOCADAS_HISTORICO_RE,
     ContextoEmissao,
+    MusicaRef,
     ResolucaoBloco,
     _aberturas_e_fechamentos,
     _hora_certa_por_extenso,
@@ -119,6 +122,13 @@ from app.live.geracao import (  # noqa: F401 -- reexportados
     gerar_fala,
 )
 from app.live.prompt_emissao import montar_prompt, segundos_prompt as _segundos  # noqa: F401
+from app.live.validacao_fala import (
+    Violacao,
+    corrigir as corrigir_fala,
+    fala_reserva_neutra,
+    fragmento,
+    validar,
+)
 from app.live.roteiro import (  # noqa: F401 -- reexportados
     _LIMIAR_ENCERRAMENTO_MIN,
     _PATROCINADOR_RE,
@@ -253,6 +263,18 @@ class OrcamentoFalaResponse(BaseModel):
     aplicado: bool
 
 
+class ViolacaoFalaResponse(BaseModel):
+    regra: str
+    trecho: str
+    ref_id: str = ""
+
+
+class ValidacaoFalaResponse(BaseModel):
+    """Validador pós-geração (F3, app.live.validacao_fala). So' vem quando ele achou algo."""
+    violacoes: list[ViolacaoFalaResponse]
+    acao: Literal["nenhuma", "reescrita", "mencao_removida", "fala_neutra", "fala_removida"]
+
+
 class LiveProgramResponse(BaseModel):
     tipo: str
     fala: str
@@ -325,6 +347,8 @@ class LiveProgramResponse(BaseModel):
     orcamento_fala_s: OrcamentoFalaResponse | None = None
     # O que foi feito pra caber no orcamento (ver app.live.orcamento.Ajuste); nunca acelera a voz.
     fala_ajuste: Literal["nenhum", "reescrita", "encurtada", "cortada", "acima_do_teto"] | None = None
+    # Validador pós-geração (F3): musica anunciada sem confirmacao ou fragmento abaixo do minimo. Nulo = nada achado.
+    validacao_fala: ValidacaoFalaResponse | None = None
 
 
 class MusicaFundoResponse(BaseModel):
@@ -1172,7 +1196,6 @@ def _montar_bloco_musicas(
 # Linha do historico com as faixas que tocaram num bloco (ver linhaMusicasHistorico em
 # useLiveEngine.ts) -- usada pra nao confundir comentario sobre o que acabou de tocar com musica
 # nova que o locutor prometeu.
-_MUSICAS_TOCADAS_HISTORICO_RE = re.compile(r"\[Música\(s\) tocada\(s\) nesse bloco: (.+?)\]")
 _MAX_MUSICAS_CITADAS = 3
 
 
@@ -1182,20 +1205,21 @@ def _musicas_citadas_na_fala(
     fala: str,
     historico: list[str],
     ja_no_bloco: list[MusicaEncontrada] | None = None,
-) -> list[MusicaEncontrada]:
+) -> tuple[list[MusicaEncontrada], list[str]]:
     """Musicas especificas que o locutor citou/comentou na fala e que ainda nao tocaram,
     resolvidas pra tocar logo depois dela. Sem isso o locutor comentava uma musica (ou prometia
     'daqui a pouco vem aquela do fulano'), mudava de assunto e ela nunca tocava -- a musica do
     bloco era escolhida antes da fala, sem saber o que ele ia dizer. Musica que ja tocou nesta
     sessao nao volta (e' comentario sobre o que acabou de tocar), e citada que nao existe no
-    YouTube so' gera log -- nao trava o bloco."""
+    YouTube so' gera log -- nao trava o bloco. Devolve tambem as citadas que nao viraram faixa (o validador
+    tira a mencao delas da fala, F3)."""
     ja_no_bloco = ja_no_bloco or []
     ignorar = [f"{m.titulo} - {m.canal}" for m in ja_no_bloco]
     for linha in historico[-6:]:
         ignorar += [t.strip() for achado in _MUSICAS_TOCADAS_HISTORICO_RE.findall(linha) for t in achado.split(",")]
     citadas = extrair_musicas_citadas(fala, ignorar)[:_MAX_MUSICAS_CITADAS]
     if not citadas:
-        return []
+        return [], []
 
     ids_tocadas, titulos_tocados, canais_tocados = _historico_musicas(programa.id)
     ids_tocadas |= {m.video_id for m in ja_no_bloco}
@@ -1203,6 +1227,7 @@ def _musicas_citadas_na_fala(
     # de uma delas (outra versao, outro "sotaque" de titulo) nao toca de novo em seguida.
     titulos_tocados |= {_titulo_normalizado(t.rsplit(" - ", 1)[0]) for t in ignorar}
     resolvidas: list[MusicaEncontrada] = []
+    nao_resolvidas: list[str] = []
     for citada in citadas:
         encontrada = None
         parsed = dividir_artista_titulo(citada)
@@ -1236,15 +1261,36 @@ def _musicas_citadas_na_fala(
             continue
         if encontrada is None or encontrada.video_id in ids_tocadas:
             logger.warning("live_musica_citada_sem_faixa programa_id=%s citada=%r", programa.id, citada)
+            nao_resolvidas.append(citada)
             continue
         if _fora_do_genero(programa.id, encontrada, programa.generos_musicais or []):
+            nao_resolvidas.append(citada)
             continue
         resolvidas.append(encontrada)
         ids_tocadas.add(encontrada.video_id)
         titulos_tocados.add(_titulo_normalizado(encontrada.titulo))
         _registrar_musica_tocada(programa.id, encontrada)
         _registrar_historico_persistente(db, programa.id, encontrada, citada, origem="citada_locutor")
-    return resolvidas
+    return resolvidas, nao_resolvidas
+
+
+def _pedidos_em_fila(db: Session, radialista: RadioConfig, programa: Programa) -> list[FilaAoVivo]:
+    """Pedidos ainda na fila (sem consumir): fluxo novo deste programa e legado da rádio. O validador usa os
+    títulos pedidos como títulos conhecidos e os nomes como ouvintes reais (nunca como confirmação)."""
+    return (
+        db.query(FilaAoVivo)
+        .filter(
+            FilaAoVivo.radio_config_id == radialista.id,
+            ((FilaAoVivo.programa_id == programa.id) & (FilaAoVivo.estado == "em_fila"))
+            | (FilaAoVivo.programa_id.is_(None) & FilaAoVivo.atendido.is_(False)),
+        )
+        .order_by(FilaAoVivo.criado_em.asc())
+        .limit(_MAX_PEDIDOS_FILA_VALIDACAO)
+        .all()
+    )
+
+
+_MAX_PEDIDOS_FILA_VALIDACAO = 30
 
 
 def _fora_do_genero(programa_id: int, musica: MusicaEncontrada, generos: list[str]) -> bool:
@@ -1876,29 +1922,34 @@ def _resposta_so_musica(decisao: DecisaoBloco, musica: MusicaEncontrada, program
 
 
 def _musicas_do_bloco(db: Session, ctx: ContextoEmissao, musica: MusicaEncontrada | None, fala: str,
-                      quantidade: int, historico: list[str]) -> tuple[MusicaEncontrada | None, list[MusicaEncontrada]]:
+                      quantidade: int, historico: list[str]
+                      ) -> tuple[MusicaEncontrada | None, list[MusicaEncontrada], list[str]]:
     """Faixas que tocam depois da fala: a confirmada (mais as citadas que se resolvem, no formato padrão sem
-    relógio) no bloco de música; nos outros blocos, as citadas na fala, com teto do relógio."""
+    relógio) no bloco de música; nos outros blocos, as citadas na fala, com teto do relógio. Devolve também as
+    citadas que não vão tocar (sem faixa, fora do gênero ou sem espaço), para o validador."""
     programa, categoria, plano = ctx.programa, ctx.categoria, ctx.tempo.plano
     musicas_bloco: list[MusicaEncontrada] = []
+    nao_resolvidas: list[str] = []
     if categoria == "musica":
         if musica is not None:
             # Musica que o locutor citou alem da anunciada tambem toca no bloco -- formato musical e relogio
             # mantem uma faixa so' por bloco.
-            citadas = (
-                [] if ctx.formato_musical or plano is not None
+            citadas, nao_resolvidas = (
+                ([], []) if ctx.formato_musical or plano is not None
                 else _musicas_citadas_na_fala(db, programa, fala, historico, ja_no_bloco=[musica])
             )
             musicas_bloco = _montar_bloco_musicas(db, programa, musica, quantidade, ctx.tipo, citadas=citadas)
     elif fala.strip():
         # Fora do bloco de musica o locutor tambem comenta/promete musica -- se citou uma especifica, ela toca
         # logo depois da fala, em vez de ficar prometida e nunca tocar.
-        musicas_bloco = _musicas_citadas_na_fala(db, programa, fala, historico)
+        musicas_bloco, nao_resolvidas = _musicas_citadas_na_fala(db, programa, fala, historico)
         if plano is not None and musicas_bloco:
-            musicas_bloco = _citadas_que_cabem(plano, fala, musicas_bloco, programa.id, ctx.wpm_fala)
+            cabem = _citadas_que_cabem(plano, fala, musicas_bloco, programa.id, ctx.wpm_fala)
+            nao_resolvidas += [m.titulo for m in musicas_bloco if m not in cabem]
+            musicas_bloco = cabem
         if musicas_bloco:
             musica = musicas_bloco[0]
-    return musica, musicas_bloco
+    return musica, musicas_bloco, nao_resolvidas
 
 
 @dataclasses.dataclass
@@ -1912,10 +1963,42 @@ class _Sintese:
     tom: str | None = None
     duracao_fala_s: float | None = None
     audios_falas_base64: list[str | None] | None = None
+    # Validador pós-geração (F3): violações achadas e o que foi feito com a fala.
+    violacoes: list[Violacao] = dataclasses.field(default_factory=list)
+    acao_validacao: str = "nenhuma"
+
+
+def _checagem_pre(ctx: ContextoEmissao):
+    """V1 do validador: as violações da fala recém-gerada entram na MESMA reescrita única (no modo corrigir)."""
+    if settings.validacao_musica_modo != "corrigir":
+        return None
+    return lambda fala: validar(fala, ctx, "pre")
+
+
+def _validar_fala_final(ctx: ContextoEmissao, gerada: FalaGerada, preservar: list[str], so_musica: bool) -> _Sintese:
+    """V2 do validador (F3): na fala final, depois do momento B e da resolução das citadas, antes do TTS e dos
+    registros. Tira a menção a música sem confirmação; fala vazia ou fragmento abaixo do mínimo vira só música
+    ou a reorientação neutra."""
+    resultado = corrigir_fala(
+        gerada.fala, gerada.falas_bloco, ctx, preservar=preservar, modo=settings.validacao_musica_modo,
+        so_musica_se_vazia=so_musica, alterada=gerada.ajuste == "encurtada", wpm=ctx.wpm_fala,
+        fracao_minimo=settings.validacao_fala_minimo_fracao, violacoes_pre=gerada.violacoes_pre,
+    )
+    return _Sintese(fala=resultado.fala, falas_bloco=resultado.falas_bloco, ajuste=gerada.ajuste,
+                    violacoes=list(resultado.violacoes), acao_validacao=resultado.acao)
+
+
+def _validacao_resposta(sintese: _Sintese) -> ValidacaoFalaResponse | None:
+    if not sintese.violacoes:
+        return None
+    return ValidacaoFalaResponse(
+        violacoes=[ViolacaoFalaResponse(regra=v.regra, trecho=v.trecho, ref_id=v.ref_id) for v in sintese.violacoes],
+        acao=sintese.acao_validacao,
+    )
 
 
 def _sintetizar_voz_unica(db: Session, entrada: EntradaEmissao, ctx: ContextoEmissao, sintese: _Sintese,
-                          gerada: FalaGerada, preservar: list[str]) -> None:
+                          gerada: FalaGerada, preservar: list[str], so_musica: bool = False) -> None:
     """Sintetiza o audio aqui dentro pra cortar o round-trip HTTP separado de /tts (Plano B.3) -- so' na voz
     padrao do radialista (nao multi-voz, nao patrocinador). Qualquer falha retorna estado explicito para evitar
     repeticao do TTS. Momento C (F2): medido acima de maximo + teto, encurta por frases e sintetiza UMA vez."""
@@ -1953,6 +2036,18 @@ def _sintetizar_voz_unica(db: Session, entrada: EntradaEmissao, ctx: ContextoEmi
                 and avaliar_duracao(sintese.duracao_fala_s, orcamento) == "acima_do_teto":
             curto = encurtar_pela_medida(sintese.fala, orcamento, sintese.duracao_fala_s, preservar=preservar,
                                          manter=gerada.manter_frase, manter_ultima=gerada.manter_ultima)
+            cortar = gerada.pode_cortar
+            wpm_medido = wpm_da_medida(sintese.fala, sintese.duracao_fala_s) or ctx.wpm_fala
+            if curto is not None and fragmento(curto, ctx, wpm_medido, settings.validacao_fala_minimo_fracao,
+                                               so_musica):
+                # Fragmento abaixo do minimo (achado do juiz da F2: "Radio.", 0,4 s) nao vai ao ar: a musica segue,
+                # ou entra a reorientacao neutra (uma ressintese so', o limite de 2 continua).
+                sintese.violacoes.append(Violacao("fala_abaixo_do_minimo", curto.strip()[:120],
+                                                  remediacao="fala_inteira"))
+                if so_musica:
+                    curto, cortar, sintese.acao_validacao = None, True, "fala_removida"
+                else:
+                    curto, sintese.acao_validacao = fala_reserva_neutra(ctx, wpm_medido), "fala_neutra"
             if curto is not None:
                 try:
                     audio_curto = _sintetizar(curto)
@@ -1965,7 +2060,7 @@ def _sintetizar_voz_unica(db: Session, entrada: EntradaEmissao, ctx: ContextoEmi
                     sintese.duracao_fala_s = duracao_mp3_s(audio_bytes)
                     _registrar_amostra_fala(db, entrada.voz_programa, ctx.categoria_voz, sintese.fala,
                                             sintese.duracao_fala_s, audio_bytes)
-            elif gerada.pode_cortar:
+            elif cortar:
                 sintese.fala, audio_bytes, sintese.ajuste, sintese.duracao_fala_s, sintese.tom = \
                     "", None, "cortada", None, None
             else:
@@ -2115,15 +2210,19 @@ def gerar_proxima_fala(
         return _resposta_so_musica(decisao, resolucao.musica, programa, cfg_relogio)
 
     ctx = montar_contexto(entrada, decisao, resolucao, portas)
-    gerada = gerar_fala(ctx, montar_prompt(ctx), portas)
+    gerada = gerar_fala(ctx, montar_prompt(ctx), portas, checar_pre=_checagem_pre(ctx))
     tipo, categoria = ctx.tipo, ctx.categoria
-    musica, musicas_bloco = _musicas_do_bloco(db, ctx, resolucao.musica, gerada.fala, gerada.quantidade,
-                                              dados.historico)
+    musica, musicas_bloco, nao_resolvidas = _musicas_do_bloco(db, ctx, resolucao.musica, gerada.fala,
+                                                              gerada.quantidade, dados.historico)
+    ctx = dataclasses.replace(ctx, musica=dataclasses.replace(
+        ctx.musica, bloco=tuple(MusicaRef.de(m) for m in musicas_bloco), resolvido=True,
+        citadas_nao_resolvidas=tuple(nao_resolvidas)))
     # O encurtamento depois do TTS tambem nao tira a frase que anuncia uma faixa do bloco.
     preservar = gerada.preservar + [m.titulo for m in musicas_bloco if m.titulo and m.titulo not in gerada.preservar]
+    so_musica = bool(musicas_bloco) and ctx.participacao.pedido_musica is None
 
-    sintese = _Sintese(fala=gerada.fala, falas_bloco=gerada.falas_bloco, ajuste=gerada.ajuste)
-    _sintetizar_voz_unica(db, entrada, ctx, sintese, gerada, preservar)
+    sintese = _validar_fala_final(ctx, gerada, preservar, so_musica)
+    _sintetizar_voz_unica(db, entrada, ctx, sintese, gerada, preservar, so_musica)
     _sintetizar_multivoz(db, entrada, ctx, sintese, preservar)
     fala, falas_bloco = sintese.fala, sintese.falas_bloco
     _registrar_fala_no_ar(db, ctx, fala)
@@ -2131,6 +2230,10 @@ def gerar_proxima_fala(
     duracao_fala_estimada_s = _estimar_fala_do_bloco(fala, falas_bloco, ctx.wpm_fala)
     _registrar_duracao_fala(request_id, programa.id, tipo, fala, falas_bloco, ctx.orcamento, ctx.wpm_fala,
                             duracao_fala_estimada_s, sintese.duracao_fala_s, sintese.ajuste, ctx.categoria_voz)
+    if sintese.violacoes:
+        logger.info("live_validacao_fala request_id=%s programa_id=%s tipo=%s acao=%s regras=%s refs=%s", request_id,
+                    programa.id, tipo, sintese.acao_validacao, [v.regra for v in sintese.violacoes],
+                    [v.ref_id for v in sintese.violacoes])
     logger.info("live_proxima_pronta request_id=%s programa_id=%s tipo=%s audio_status=%s total_ms=%s", request_id,
                 programa.id, tipo, sintese.audio_status, round((time.perf_counter() - inicio_request) * 1000))
 
@@ -2170,6 +2273,7 @@ def gerar_proxima_fala(
         orcamento_fala_s=OrcamentoFalaResponse(min_s=orcamento.min_s, alvo_s=orcamento.alvo_s, max_s=orcamento.max_s,
                                                fonte=orcamento.fonte, aplicado=orcamento.aplicar),
         fala_ajuste=sintese.ajuste,
+        validacao_fala=_validacao_resposta(sintese),
         vinheta_encerramento_id=vinheta_fim.id if vinheta_fim else None,
         vinheta_encerramento_audio=bool(vinheta_fim and vinheta_fim.audio_path),
         vinheta_encerramento_texto=(vinheta_fim.texto or None) if vinheta_fim else None,

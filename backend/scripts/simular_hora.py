@@ -60,7 +60,8 @@ OBSERVACOES = [
     "O GET /preparo (preparo prévio no servidor) fica de fora: a primeira fala sai do /proxima normal.",
     "Modo fake: o comprimento das falas é sintético (o dublê fala dentro da meta por construção); "
     "só a mecânica é medida (relógio, fila, corte, pedidos, continuidade e detectores).",
-    "Detectores de promessa, música anunciada e abertura repetida são provisórios da F0.",
+    "Música anunciada sem confirmação: o mesmo detector do backend (app/live/validacao_fala.py, F3). Promessa e "
+    "abertura repetida continuam detectores provisórios da F0.",
     "Com --tts duble (F2), a fala dura o que o /tts mede num mp3 silencioso à velocidade wpm_real; a calibração "
     "do ritmo por voz começa vazia em cada simulação (pior caso: a primeira hora de uma voz nova).",
     "SQLite em memória e execução sequencial: with_for_update(skip_locked) não é exercitado.",
@@ -176,6 +177,8 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
             "inexistentes": [i.nome for i in fixture.injecoes if i.tipo == "cita_ouvinte" and i.nome],
         },
         "pedidos": pedidos,
+        # Nomes próprios que não são música (detector de música anunciada, F3).
+        "nomes_nao_musica": _nomes_nao_musica(fixture),
         "blocos_nao_tocados": emissao.nao_tocados,
         "eventos": emissao.eventos,
         "observacoes": OBSERVACOES,
@@ -235,6 +238,14 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
         _gravar(pasta / "as_run.json", as_run)
         _gravar(pasta / "resumo.json", resumo)
     return Resultado(as_run=as_run, resumo=resumo)
+
+
+def _nomes_nao_musica(fixture) -> list[str]:
+    nomes = [fixture.conta.nome_radio, str(fixture.programa.get("nome", "")), fixture.radialista.nome_locutor,
+             getattr(fixture.conta, "cidade", "") or "", *fixture.rotulos_quadros.keys(),
+             *fixture.rotulos_quadros.values(), *(p.nome for p in fixture.pedidos),
+             *(i.nome for i in fixture.injecoes if i.tipo == "cita_ouvinte" and i.nome)]
+    return [n for n in dict.fromkeys(nomes) if n]
 
 
 def _custo_orcamento(blocos, contadores_llm: dict) -> dict:

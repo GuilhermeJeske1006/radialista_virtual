@@ -499,7 +499,10 @@ def test_injecoes_aparecem_nas_metricas(simulacoes):
     assert popular["promessa_vencida"] >= 1
     assert musical["chamadas_llm"]["total"] > musical["chamadas_llm"]["falas"]
     assert musical["chamadas_llm"]["revisoes"] >= 1
-    assert musical["anuncio_sem_confirmacao"] >= 1
+    # F3: a injeção de música não confirmada acontece e o validador do backend a tira da fala antes de ir ao ar.
+    assert musical["dubles"]["contadores"]["injecao_cita_musica"] >= 1
+    assert musical["anuncio_sem_confirmacao"] == 0
+    assert musical["validacao_fala"]["regras"]["musica_nao_confirmada"] >= 1
     # Desde a F2 o formato padrão sem relógio só observa o orçamento (o backend não reescreve nem encurta):
     # o excesso injetado aparece nas falas em observação, relatadas à parte.
     assert variedades["orcamento_observacao"]["fora_pct"] > 0

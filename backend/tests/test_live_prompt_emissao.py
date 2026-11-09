@@ -140,3 +140,35 @@ def test_prompt_revisao_mantem_a_frase_que_o_duble_le():
                             "máximo 12)")
     assert "Reescreva com no máximo 25 palavras" in texto
     assert texto.endswith("\nVocê citou 'X', que não vai tocar.")
+
+
+def test_tocadas_saem_das_linhas_do_painel():
+    from app.live.contexto import tocadas_no_historico
+
+    linhas = ["musica: boa [Música(s) tocada(s) nesse bloco: Rio de Prata - Dupla Serra, Varanda Azul - Trio Maré]",
+              "comentario: sem música", "musica: só título [Música(s) tocada(s) nesse bloco: Sem Canal]"]
+    assert [(m.titulo, m.artista, m.origem) for m in tocadas_no_historico(linhas)] == [
+        ("Rio de Prata", "Dupla Serra", "historico"), ("Varanda Azul", "Trio Maré", "historico"),
+        ("Sem Canal", "", "historico")]
+
+
+@freeze_time("2026-08-10 15:00:00")
+def test_contexto_traz_tocadas_da_sessao_e_ouvintes_da_fila_sem_aprovar(client, account, auth_headers, db_session,
+                                                                        monkeypatch):
+    from app.models.fila_ao_vivo import FilaAoVivo
+
+    def preparar(programa):
+        programa.musicas_permitidas = ["Banda Horizonte - Estrada Aberta"]
+        db_session.add(FilaAoVivo(radio_config_id=programa.radio_config_id, telefone="1", nome="Rosa", tipo="musica",
+                                  mensagem_usuario="toca Lenço no Portão", musica_query="Lenço no Portão"))
+
+    ctx, _ = _capturar_contexto(client, account, auth_headers, db_session, monkeypatch,
+                                {"total_falas": 3, "historico": [
+                                    "musica: boa [Música(s) tocada(s) nesse bloco: Rio de Prata - Dupla Serra]"]},
+                                preparar)
+    assert ctx.categoria == "comentario"
+    assert [m.titulo for m in ctx.musica.tocou if m.origem == "historico"] == ["Rio de Prata"]
+    assert {m.titulo for m in ctx.musica.citaveis} == {"Estrada Aberta", "Lenço no Portão"}
+    assert ctx.participacao.nomes_autorizados == ("Rosa",)
+    # Pedido em fila não vira pedido aprovado nem faixa confirmada.
+    assert ctx.participacao.pedido_musica is None and ctx.musica.confirmada is None

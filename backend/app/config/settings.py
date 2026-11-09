@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic_settings import BaseSettings
 
 
@@ -102,6 +104,12 @@ class Settings(BaseSettings):
     fala_calibracao_min_palavras: int = 8
     fala_calibracao_min_segundos: float = 2.0
     fala_calibracao_wpm_faixa: tuple[float, float] = (80, 320)
+    # Validador pós-geração (F3, app.live.validacao_fala): "corrigir" reescreve (dentro da reescrita única) e tira a
+    # frase com música anunciada sem confirmação; "avisar" só registra no log e na resposta (decisão D2).
+    validacao_musica_modo: Literal["corrigir", "avisar"] = "corrigir"
+    # Fala que o encurtamento ou o validador deixaram abaixo de (fração x mínimo do orçamento) não vai ao ar: vira só
+    # música ou a reorientação neutra. 0 desliga.
+    validacao_fala_minimo_fracao: float = 1.0
     ia_stt_usd_hora: float = 0.40  # Hipótese scribe_v1: substituir pela tarifa contratada.
     ia_music_usd_minuto: float = 0.15
 
