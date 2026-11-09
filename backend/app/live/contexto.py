@@ -1,0 +1,582 @@
+"""Estado da emissão (F3): o ContextoEmissao que a geração, o prompt e o validador leem.
+
+Montado em fases, na mesma ordem que app/live/router.py::gerar_proxima_fala seguia, porque a ordem dos
+sorteios do `random`, das rotações no Redis (`_proxima_variacao`) e dos `commit` da seleção de pedidos faz parte
+do comportamento (a simulação e os testes fixam a semente):
+
+1. app.live.roteiro.decidir_bloco: tipo, plano do relógio, vinheta ou patrocinador prontos;
+2. `resolver_musica_e_pedidos`: pedido de música (com `with_for_update`), faixa do bloco, pedido de ouvinte;
+3. `montar_contexto`: memória, variações, jornalismo, orçamento da F2 e o `prompt_base` do prompt_builder.
+
+Depois disso app.live.prompt_emissao.montar_prompt é pura. Os objetos ORM entram só para leitura; o que muda
+depois da geração (músicas do bloco) é trocado com `dataclasses.replace`. Desenho em
+docs/melhoria-radio/f3/auditoria.md §5.2. Este módulo não importa o router: o que os testes trocam por nome
+chega pelas portas (app.live.portas).
+"""
+
+import dataclasses
+import datetime
+import logging
+import math
+import random
+import re
+from typing import Any, Literal, Mapping
+from zoneinfo import ZoneInfo
+
+from app.billing.contexto_ia import modelo_efetivo
+from app.config.settings import settings
+from app.live.orcamento import OrcamentoFala, formato_do_programa, orcamento_para, palavras_max
+from app.live.portas import PortasEmissao
+from app.live.prompts import (
+    _CATEGORIAS_NOTICIA_LIKE,
+    _PROB_CALLBACK_TEMA_ANTERIOR,
+    _PROB_HORA_CERTA,
+    _PROB_IMPERFEICAO_GRAMATICAL,
+    _PROB_MARCO_TEMPO,
+    _PROB_MUDANCA_DE_IDEIA,
+    _VARIACOES_CONVITE_OUVINTE,
+    _VARIACOES_FORMATO_COMENTARIO,
+    _VARIACOES_VERBO_IDENTIFICACAO,
+)
+from app.live.relogio import CONFIG_PADRAO as CONFIG_RELOGIO, Plano, duracao_musica_s
+from app.live.ritmo_voz import categoria_ritmo
+from app.live.roteiro import _PATROCINADOR_RE, _VINHETA_RE, DecisaoBloco, EntradaEmissao
+from app.live.formato import ROTEIRO_MUSICAL, ROTEIRO_PADRAO
+from app.numeros import cardinal_feminino, numero_por_extenso
+from app.tts.modelos import MODELOS_COM_TAGS
+
+logger = logging.getLogger("radialista.live")
+
+# Quantos temas (sessão + outros programas da rádio) entram no prompt (e o teto da consulta ao banco).
+_MAX_TEMAS_RADIO_NO_PROMPT = 20
+
+
+# ---------------------------------------------------------------------------------------------------------
+# Estruturas
+# ---------------------------------------------------------------------------------------------------------
+
+@dataclasses.dataclass(frozen=True)
+class MusicaRef:
+    titulo: str
+    artista: str = ""
+    video_id: str | None = None
+    origem: Literal["bloco", "citada", "pedido", "historico", "sessao", "conhecida"] = "bloco"
+
+    @classmethod
+    def de(cls, musica, origem: str = "bloco") -> "MusicaRef":
+        return cls(titulo=musica.titulo, artista=musica.canal or "", video_id=musica.video_id, origem=origem)
+
+
+@dataclasses.dataclass(frozen=True)
+class PedidoRef:
+    """Pedido aprovado: "selecionado" (fluxo novo) ou o legado consumido. `texto` é o que o prompt cita."""
+
+    id: int
+    tipo: str
+    nome: str
+    natureza: str | None
+    texto: str                      # texto_autorizado (fluxo novo) ou mensagem_usuario (legado)
+    texto_autorizado: str
+    musica_query: str | None
+    estado: str
+    token: str | None
+
+    @classmethod
+    def de(cls, pedido, novo_atendimento: bool) -> "PedidoRef":
+        return cls(id=pedido.id, tipo=pedido.tipo, nome=pedido.nome or "", natureza=pedido.natureza,
+                   texto=pedido.texto_autorizado if novo_atendimento else pedido.mensagem_usuario,
+                   texto_autorizado=pedido.texto_autorizado or "", musica_query=pedido.musica_query,
+                   estado=pedido.estado, token=pedido.selecao_token)
+
+
+@dataclasses.dataclass(frozen=True)
+class EstadoMusical:
+    tocou: tuple[MusicaRef, ...]         # "[Música(s) tocada(s) nesse bloco: …]" das linhas do painel + sessão
+    confirmada: MusicaRef | None         # faixa deste bloco, que toca em seguida
+    bloco: tuple[MusicaRef, ...] = ()    # depois da geração: confirmada + citadas resolvidas que cabem
+    pedido_sem_resultado: bool = False
+    resolve_citadas: bool = True         # False no bloco de música do formato musical ou com relógio
+    citaveis: tuple[MusicaRef, ...] = ()  # títulos conhecidos (camada (a) do validador)
+    contexto_faixa: str = ""
+    citadas_extraidas: tuple[str, ...] = ()  # o que o extrator de citadas devolveu (camada (c))
+
+
+@dataclasses.dataclass(frozen=True)
+class Participacao:
+    novo_atendimento: bool
+    pedido_musica: PedidoRef | None
+    pedido_ouvinte: PedidoRef | None
+    ouvinte_recorrente: str | None       # tipo do pedido anterior do mesmo ouvinte nesta transmissão
+    ouvinte_recorrente_dias: str | None  # idem, numa transmissão de outro dia
+    pedido_recente: PedidoRef | None     # espiado, não consumido (legado)
+    nomes_autorizados: tuple[str, ...] = ()
+
+
+@dataclasses.dataclass(frozen=True)
+class Chamadas:
+    """Chamadas pendentes (pesquisa §12.4). A F4 liga as promessas ao relógio."""
+
+    fio_condutor: str | None
+    pedidos_em_fila: int = 0
+    promessas: tuple = ()
+
+
+@dataclasses.dataclass(frozen=True)
+class Tempo:
+    agora_local: datetime.datetime
+    instante: datetime.datetime
+    origem_instante: Literal["painel", "estimado", "agora"]
+    plano: Plano | None
+    preset_relogio: str | None
+    inicio_previsto_aceito: bool
+    ajuste_energia: str | None = None
+    marco_tempo: str | None = None
+    hora_certa: str | None = None
+
+
+@dataclasses.dataclass(frozen=True)
+class Memoria:
+    historico: tuple[str, ...]           # linhas do painel (as 8 últimas)
+    historico_prompt: str                # as 6 últimas, ou "Programa acabou de entrar no ar."
+    ultima_categoria: str | None
+    falas_categoria: tuple[str, ...] = ()
+    aberturas: tuple[str, ...] = ()
+    fechamentos: tuple[str, ...] = ()
+    tom_anterior: str | None = None
+    temas_usados: tuple[str, ...] = ()
+    tema_callback: str | None = None
+
+
+@dataclasses.dataclass(frozen=True)
+class Variacoes:
+    """Já sorteadas e rotacionadas, na ordem do router antigo."""
+
+    verbo_identificacao: str
+    transicao: str | None = None
+    formato_comentario: str | None = None
+    convite_ouvinte: str | None = None
+    expressao_regional: str | None = None
+    quadro_fixo: str | None = None
+    assunto_sugerido: str | None = None
+    assunto: Any = None                  # AssuntoConversa
+    mudanca_de_ideia: bool = False
+    imperfeicao: bool = False
+
+
+@dataclasses.dataclass(frozen=True)
+class Jornalismo:
+    pautas: tuple = ()                   # NoticiaPauta
+    pauta: Any = None
+    correcao: Any = None
+    pesquisa: Any = None                 # PesquisaNoticias
+    pesquisou: bool = False
+
+
+@dataclasses.dataclass(frozen=True)
+class ContextoEmissao:
+    request_id: str
+    account: Any
+    radialista: Any
+    programa: Any
+    tipo: str
+    categoria: str
+    primeira_fala: bool
+    total_falas: int
+    passos_roteiro: int
+    formato_musical: bool
+    multi_voz: bool
+    roster: tuple
+    roteiro: tuple[str, ...]
+    categorias_roteiro: tuple[str | None, ...]
+    tempo: Tempo
+    musica: EstadoMusical
+    participacao: Participacao
+    chamadas: Chamadas
+    memoria: Memoria
+    variacoes: Variacoes
+    jornalismo: Jornalismo
+    orcamento: OrcamentoFala
+    wpm_fala: float
+    categoria_voz: str
+    limite_palavras: int | None
+    prompt_base: str                     # montar_system_prompt(...), chamado no montador (efeitos no Redis)
+    modelo_com_tags: bool
+    dados: tuple = ()                    # F5: DadoVerificavel (a F3 não importa app.dados)
+    extensoes: Mapping[str, Any] = dataclasses.field(default_factory=dict)  # F4/F7/F8
+
+
+@dataclasses.dataclass(frozen=True)
+class ResolucaoBloco:
+    """Fase 2: pedidos e faixa. Guarda os objetos ORM que o router ainda confirma ou reprova no fim."""
+
+    historico_prompt: str
+    agora_local: datetime.datetime
+    roster: tuple
+    multi_voz: bool
+    novo_atendimento: bool
+    pedido_musica: Any = None
+    pedido_sem_resultado: bool = False
+    musica: Any = None                   # MusicaEncontrada
+    so_musica: bool = False              # bloco de música sem fala: o router responde já
+    pedido_ouvinte: Any = None
+    ouvinte_recorrente: Any = None
+    ouvinte_recorrente_dias: Any = None
+    pedido_recente: Any = None
+
+
+# ---------------------------------------------------------------------------------------------------------
+# Fase 2: pedidos e música
+# ---------------------------------------------------------------------------------------------------------
+
+def teto_musica(plano: Plano) -> Plano:
+    """Plano com teto de musica mesmo quando o bloco virou musica fora de uma etapa de musica."""
+    if plano.duracao_max_musica_s is not None or plano.espaco_s is None:
+        return plano
+    return dataclasses.replace(plano, duracao_max_musica_s=math.floor(plano.espaco_s
+                                                                       + CONFIG_RELOGIO.tolerancia_hard_time_s))
+
+
+def resolver_musica_e_pedidos(entrada: EntradaEmissao, decisao: DecisaoBloco, portas: PortasEmissao) -> ResolucaoBloco:
+    db, account, radialista, programa = entrada.db, entrada.account, entrada.radialista, entrada.programa
+    tipo, categoria, plano = decisao.tipo, decisao.categoria, decisao.plano
+    formato_musical = entrada.formato_musical
+
+    historico_prompt = "\n".join(entrada.dados.historico[-6:]) or "Programa acabou de entrar no ar."
+    # Um so calculo de "agora" por requisicao (efemerides, hora certa, marco de tempo).
+    agora_local = (
+        plano.instante.astimezone(ZoneInfo(radialista.timezone)) if plano is not None
+        else datetime.datetime.now(ZoneInfo(radialista.timezone))
+    )
+    # Dialogo multi-voz so pros blocos de fala -- musica continua single-voice, sempre na voz do dono.
+    roster = tuple(portas.buscar_roster(db, account, programa))
+    multi_voz = len(roster) > 1 and categoria != "musica" and not formato_musical
+
+    novo_atendimento = account.atendimento_ouvinte_ativo
+    pedido_musica = (
+        portas.selecionar_pedido(db, radialista, programa, ("musica",)) if novo_atendimento
+        else portas.proximo_pedido_fila(db, radialista, "musica")
+    ) if categoria == "musica" and (plano is None or plano.aceita_pedido_musica) else None
+    pedido_sem_resultado = False
+    if pedido_musica is not None:
+        query = pedido_musica.musica_query or pedido_musica.mensagem_usuario
+        ids_tocadas, titulos_tocados, canais_tocados = portas.historico_musicas(programa.id)
+        musica = portas.buscar_musica(
+            query,
+            bloqueados=programa.musicas_bloqueadas,
+            evitar_video_ids=ids_tocadas,
+            titulos_tocados=titulos_tocados,
+            canais_recentes=canais_tocados,
+            exigir_cantada=True,
+            exigir_canal_oficial=True,
+        )
+        if musica is not None:
+            if plano is not None and plano.duracao_max_musica_s is not None \
+                    and duracao_musica_s(musica, CONFIG_RELOGIO) > plano.duracao_max_musica_s:
+                logger.warning("relogio_pedido_acima_do_espaco programa_id=%s duracao_s=%s teto_s=%s", programa.id,
+                               duracao_musica_s(musica, CONFIG_RELOGIO), plano.duracao_max_musica_s)
+            portas.registrar_musica_tocada(programa.id, musica)
+            # pedido real do ouvinte -- alimenta o sinal de preferencia do publico em blocos futuros.
+            portas.registrar_historico_persistente(db, programa.id, musica, query, origem="pedido_ouvinte")
+        else:
+            # O pedido ja foi marcado como atendido antes da busca: sem esse fallback a musica pedida sumia.
+            # Cai pra escolha automatica pra sempre tocar algo neste bloco.
+            pedido_sem_resultado = True
+            logger.warning(
+                "Pedido de musica sem resultado na busca, caindo pra escolha automatica: programa_id=%s query=%r",
+                programa.id, query,
+            )
+            musica = (
+                portas.buscar_musica_para_bloco(db, programa, tipo) if plano is None
+                else portas.buscar_musica_para_bloco(db, programa, tipo, plano_relogio=teto_musica(plano))
+            )
+    elif categoria != "musica":
+        musica = None
+    elif plano is None:
+        musica = portas.buscar_musica_para_bloco(db, programa, tipo)
+    elif decisao.musica_relogio is not None or decisao.buscou_musica_relogio:
+        musica = decisao.musica_relogio
+    else:
+        musica = portas.buscar_musica_para_bloco(db, programa, tipo, plano_relogio=teto_musica(plano))
+
+    comum = dict(historico_prompt=historico_prompt, agora_local=agora_local, roster=roster, multi_voz=multi_voz,
+                 novo_atendimento=novo_atendimento, pedido_musica=pedido_musica,
+                 pedido_sem_resultado=pedido_sem_resultado, musica=musica)
+    # Com relogio (D2) a janela de musica nao tem fala tambem no formato padrao, exceto pedido real.
+    if (formato_musical or (plano is not None and plano.musica_sem_fala)) and categoria == "musica" \
+            and musica is not None and pedido_musica is None:
+        return ResolucaoBloco(so_musica=True, **comum)
+
+    pedido_ouvinte = (
+        (portas.selecionar_pedido(db, radialista, programa, ("abraco", "sorteio")) if novo_atendimento
+         else portas.proximo_pedido_fila_dentre(db, radialista, ("abraco", "sorteio")))
+        if categoria == "chamada_ouvinte" else None
+    )
+    ouvinte_recorrente = (
+        portas.ouvinte_recorrente_anterior(db, radialista.id, pedido_ouvinte) if pedido_ouvinte is not None else None
+    )
+    # So checa a janela de dias quando nao achou recorrencia dentro da sessao.
+    ouvinte_recorrente_dias = (
+        portas.ouvinte_recorrente_dias_anteriores(db, radialista.id, pedido_ouvinte)
+        if pedido_ouvinte is not None and ouvinte_recorrente is None
+        else None
+    )
+    # Peek (nao consome) em pedido que acabou de chegar enquanto o locutor gera outro tipo de bloco.
+    pedido_recente = None
+    if not novo_atendimento and categoria not in ("musica", "chamada_ouvinte"):
+        pedido_recente = (
+            portas.pedido_recente_nao_atendido(db, radialista, "abraco")
+            or portas.pedido_recente_nao_atendido(db, radialista, "sorteio")
+            or portas.pedido_recente_nao_atendido(db, radialista, "musica")
+        )
+    return ResolucaoBloco(pedido_ouvinte=pedido_ouvinte, ouvinte_recorrente=ouvinte_recorrente,
+                          ouvinte_recorrente_dias=ouvinte_recorrente_dias, pedido_recente=pedido_recente, **comum)
+
+
+# ---------------------------------------------------------------------------------------------------------
+# Fase 3: memória, variações, jornalismo, orçamento
+# ---------------------------------------------------------------------------------------------------------
+
+def _hora_certa_por_extenso(agora: datetime.datetime) -> str:
+    """Hora atual por extenso (ex.: 'catorze e trinta e cinco') pra injetar no prompt --
+    nunca em algarismo, porque o texto vai direto pro TTS e algarismo lido em portugues
+    e' onde o sintetizador mais erra (ver _LANGUAGE_CODE em app.tts.client).
+    """
+    hora_extenso = "uma" if agora.hour == 1 else cardinal_feminino(agora.hour)  # "horas" e' feminino
+    if agora.minute == 0:
+        return f"{hora_extenso} horas em ponto"
+    return f"{hora_extenso} e {numero_por_extenso(agora.minute)}"
+
+
+_FRASE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+
+
+# tag de direcao vocal do eleven_v3 que o LLM pode inserir inline na fala (ver instrucao
+# condicional em gerar_proxima_fala) -- removida antes de citar a frase de volta no prompt, pra
+# nao confundir o LLM com uma tag que nao faz parte do texto falado de verdade.
+_TAG_V3_DISPLAY_RE = re.compile(r"\[[a-zA-Z_]+\]\s*")
+_MAX_CHARS_FRASE_HISTORICO = 80
+
+
+def _frases(texto: str) -> list[str]:
+    texto_limpo = _TAG_V3_DISPLAY_RE.sub("", texto).strip()
+    return [f.strip() for f in _FRASE_SPLIT_RE.split(texto_limpo) if f.strip()]
+
+
+def _primeira_frase(texto: str) -> str:
+    frases = _frases(texto)
+    return frases[0][:_MAX_CHARS_FRASE_HISTORICO] if frases else ""
+
+
+def _ultima_frase(texto: str) -> str:
+    frases = _frases(texto)
+    return frases[-1][:_MAX_CHARS_FRASE_HISTORICO] if frases else ""
+
+
+# Quantas falas recentes (do mesmo tipo de bloco) considerar pro aviso de nao repetir
+# abertura/fechamento no prompt -- nao precisa cobrir toda a janela de _historico_falas, so as
+# poucas mais recentes bastam pra pegar o padrao mais obvio de repeticao.
+_MAX_ABERTURAS_FECHAMENTOS_NO_PROMPT = 5
+
+
+def _aberturas_e_fechamentos(historico_falas: list[str]) -> tuple[list[str], list[str]]:
+    """Primeira e ultima frase das falas recentes do mesmo tipo de bloco (ver _historico_falas) --
+    usado pro prompt avisar o LLM a nao repetir o mesmo padrao de abertura/fechamento entre voltas
+    do roteiro (ex: sempre comecar com "e ai galera" ou sempre fechar com "fica com a gente"),
+    problema que o aviso generico de "nao repita a mesma abertura" (ver introducao_ao_vivo) sozinho
+    nao resolve sem exemplos concretos do que ja foi usado.
+    """
+    aberturas: list[str] = []
+    fechamentos: list[str] = []
+    for fala_anterior in historico_falas[:_MAX_ABERTURAS_FECHAMENTOS_NO_PROMPT]:
+        primeira = _primeira_frase(fala_anterior)
+        ultima = _ultima_frase(fala_anterior)
+        if primeira:
+            aberturas.append(primeira)
+        if ultima and ultima != primeira:
+            fechamentos.append(ultima)
+    return aberturas, fechamentos
+
+
+def _temas(entrada: EntradaEmissao, categoria: str, portas: PortasEmissao) -> tuple[list[str], str | None]:
+    programa = entrada.programa
+    temas_usados: list[str] = []
+    tema_callback = None
+    if categoria in ("comentario", "noticia"):
+        # Sessao do proprio programa primeiro, depois o que outros programas da mesma radio ja comentaram.
+        temas_sessao_atual = portas.historico_temas(programa.id)
+        temas_outras_transmissoes = portas.temas_recentes_da_radio(entrada.db, programa.radio_config_id)
+        vistos: set[str] = set()
+        for tema in temas_sessao_atual + temas_outras_transmissoes:
+            if tema not in vistos:
+                vistos.add(tema)
+                temas_usados.append(tema)
+        temas_usados = temas_usados[:_MAX_TEMAS_RADIO_NO_PROMPT]
+        # So conta como "transmissao anterior" um tema que NAO veio da sessao atual.
+        so_de_outras = [t for t in temas_outras_transmissoes if t not in set(temas_sessao_atual)]
+        if so_de_outras and random.random() < _PROB_CALLBACK_TEMA_ANTERIOR:
+            tema_callback = portas.proxima_variacao(programa.id, "callback_tema_anterior", so_de_outras)
+    return temas_usados, tema_callback
+
+
+def _jornalismo(entrada: EntradaEmissao, categoria: str, tipo: str, agora_local, variacoes_assunto: dict,
+                portas: PortasEmissao) -> Jornalismo:
+    db, account, programa = entrada.db, entrada.account, entrada.programa
+    pauta = None
+    pautas: list = []
+    correcao = None
+    if categoria in _CATEGORIAS_NOTICIA_LIKE:
+        # Correção tem prioridade sobre qualquer outra pauta, inclusive sobre a escalada.
+        correcao = portas.correcao_pendente(db, programa)
+        if correcao is not None:
+            pauta = correcao
+            pautas = [correcao]
+        elif categoria == "escalada":
+            pautas = portas.proximas_noticias(db, programa, account, limite=3)
+        elif categoria == "plantao":
+            pauta = portas.proxima_para_plantao(db, programa, account)
+            pautas = [pauta] if pauta else []
+        else:
+            pauta = portas.proxima_noticia(db, programa, account)
+            pautas = [pauta] if pauta else []
+        if len(pautas) == 1:
+            pauta = pautas[0]
+    # Pauta real do worker tem prioridade sobre a pesquisa via web_search.
+    pesquisa = None
+    deve_pesquisar = categoria in _CATEGORIAS_NOTICIA_LIKE or (categoria == "comentario" and programa.pode_pesquisar)
+    pesquisou = not pautas and deve_pesquisar
+    if pesquisou:
+        quadro, assunto, sugerido = (variacoes_assunto["quadro"], variacoes_assunto["assunto"],
+                                     variacoes_assunto["sugerido"])
+        pesquisa = portas.pesquisar_noticias(
+            programa, account, agora=agora_local,
+            assunto=quadro or (
+                " ".join([assunto.titulo, assunto.gancho, *assunto.tags])
+                if categoria == "comentario" and assunto is not None
+                else sugerido if categoria == "comentario" else tipo
+            ),
+        )
+    return Jornalismo(pautas=tuple(pautas), pauta=pauta, correcao=correcao, pesquisa=pesquisa, pesquisou=pesquisou)
+
+
+def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: ResolucaoBloco,
+                    portas: PortasEmissao) -> ContextoEmissao:
+    """Fase 3. A ordem das chamadas abaixo é a do router antigo (sorteios, rotações e leituras)."""
+    account, radialista, programa = entrada.account, entrada.radialista, entrada.programa
+    tipo, categoria, plano = decisao.tipo, decisao.categoria, decisao.plano
+    formato_musical, ultima_categoria = entrada.formato_musical, decisao.ultima_categoria
+    agora_local, multi_voz = resolucao.agora_local, resolucao.multi_voz
+    novo = resolucao.novo_atendimento
+
+    # Buscado antes do prompt (aviso de abertura/fechamento) e reaproveitado na checagem de fala repetida.
+    falas_categoria = portas.historico_falas(programa.id, categoria)
+    temas_usados, tema_callback = _temas(entrada, categoria, portas)
+    verbo = portas.proxima_variacao(programa.id, "verbo_identificacao", _VARIACOES_VERBO_IDENTIFICACAO)
+    # Quadro fixo: identificado pelo label bruto do bloco (tipo), nao pela categoria.
+    quadro_pool = (programa.quadros_fixos or {}).get(tipo)
+    quadro = portas.proxima_variacao(programa.id, f"quadro_{tipo}", quadro_pool) if quadro_pool else None
+    # Pool rotativo de assuntos configurados -- so sem quadro fixo dando o conteudo do bloco.
+    sugerido = None
+    if quadro is None and categoria in ("comentario", "noticia", "chamada_ouvinte") and programa.assuntos_ao_vivo:
+        sugerido = portas.proxima_variacao(programa.id, "assunto_ao_vivo", programa.assuntos_ao_vivo)
+
+    roteiro = tuple(t.strip() for t in programa.estrutura_blocos if t.strip()) or (
+        ROTEIRO_MUSICAL if formato_musical else ROTEIRO_PADRAO
+    )
+    categorias_roteiro = tuple(
+        None if _VINHETA_RE.match(t) or _PATROCINADOR_RE.match(t) or t in ("retomada", "identificacao")
+        else portas.categoria_bloco(t)
+        for t in roteiro
+    )
+    prompt_base = portas.montar_system_prompt(account, radialista, programa,
+                                              roster=list(resolucao.roster) if multi_voz else None,
+                                              agora=agora_local if plano is not None else None)
+    transicao = portas.instrucao_transicao(programa.id, ultima_categoria, categoria)
+    ajuste_energia = portas.ajuste_energia_meio_programa(programa, radialista.timezone) \
+        if tipo != "encerramento" else None
+    expressao_regional = None
+    if categoria not in _CATEGORIAS_NOTICIA_LIKE and not formato_musical:
+        # Gírias/expressões regionais reais (Account.conhecimento_local), girando uma por vez.
+        expressoes = (account.conhecimento_local or {}).get("expressoes_regionais") or []
+        if expressoes:
+            expressao_regional = portas.proxima_variacao(programa.id, "expressao_regional", expressoes)
+    sorteia_estilo = not formato_musical and categoria not in _CATEGORIAS_NOTICIA_LIKE
+    mudanca_de_ideia = sorteia_estilo and random.random() < _PROB_MUDANCA_DE_IDEIA
+    imperfeicao = sorteia_estilo and random.random() < _PROB_IMPERFEICAO_GRAMATICAL
+    modelo_com_tags = modelo_efetivo("tts", settings.elevenlabs_model) in MODELOS_COM_TAGS
+
+    aberturas, fechamentos = _aberturas_e_fechamentos(falas_categoria)
+    tom_anterior = portas.ultimo_tom(programa.id)
+    formato_comentario = portas.proxima_variacao(programa.id, "formato_comentario", _VARIACOES_FORMATO_COMENTARIO) \
+        if categoria == "comentario" else None
+    jornalismo = _jornalismo(entrada, categoria, tipo, agora_local,
+                             {"quadro": quadro, "assunto": decisao.assunto, "sugerido": sugerido}, portas)
+    fio = portas.fio_condutor(programa.id) if categoria == "encerramento" else None
+
+    sorteia_tempo = not formato_musical and tipo != "encerramento"
+    hora_certa = _hora_certa_por_extenso(agora_local) if sorteia_tempo and random.random() < _PROB_HORA_CERTA else None
+    marco = portas.marco_tempo_programa(programa, radialista.timezone) \
+        if sorteia_tempo and random.random() < _PROB_MARCO_TEMPO else None
+
+    musica = resolucao.musica
+    contexto_faixa = ""
+    if musica is not None:
+        contexto_faixa = portas.contexto_musica(musica)
+        if contexto_faixa:
+            # Fase G do plano-assuntos.md: musica puxa assunto pro comentario seguinte, sem LLM extra.
+            portas.registrar_callback_musica(programa.id, f"{musica.titulo} - {musica.canal}", contexto_faixa)
+
+    convite = None
+    if resolucao.pedido_ouvinte is None and (not formato_musical or categoria == "chamada_ouvinte"):
+        convite = portas.proxima_variacao(programa.id, "convite_chamada_ouvinte", _VARIACOES_CONVITE_OUVINTE)
+
+    # Orcamento de duracao da fala (F2): o do relogio quando ha', senao o do formato. As palavras do prompt e da
+    # reescrita saem do ritmo da voz para esta categoria de bloco.
+    orcamento = orcamento_para(
+        formato_do_programa(programa), tipo, decisao.primeira_fala,
+        teto_relogio_s=plano.orcamento_s[1] if plano is not None and plano.orcamento_s else None,
+        minimo_relogio_s=plano.orcamento_s[0] if plano is not None and plano.orcamento_s else None,
+    )
+    categoria_voz = categoria_ritmo(tipo)
+    wpm_fala = entrada.ritmos_voz.wpm(categoria_voz)
+    limite_palavras = palavras_max(orcamento, wpm_fala) if orcamento.aplicar else None
+
+    pedido_musica = PedidoRef.de(resolucao.pedido_musica, novo) if resolucao.pedido_musica is not None else None
+    pedido_ouvinte = PedidoRef.de(resolucao.pedido_ouvinte, novo) if resolucao.pedido_ouvinte is not None else None
+    pedido_recente = PedidoRef.de(resolucao.pedido_recente, novo) if resolucao.pedido_recente is not None else None
+    instante = plano.instante if plano is not None else agora_local.astimezone(datetime.timezone.utc)
+    return ContextoEmissao(
+        request_id=entrada.request_id, account=account, radialista=radialista, programa=programa,
+        tipo=tipo, categoria=categoria, primeira_fala=decisao.primeira_fala, total_falas=entrada.total_falas,
+        passos_roteiro=decisao.passos_roteiro, formato_musical=formato_musical, multi_voz=multi_voz,
+        roster=resolucao.roster, roteiro=roteiro, categorias_roteiro=categorias_roteiro,
+        tempo=Tempo(agora_local=agora_local, instante=instante,
+                    origem_instante="painel" if decisao.inicio_previsto_aceito else "agora",
+                    plano=plano, preset_relogio=decisao.preset_relogio,
+                    inicio_previsto_aceito=decisao.inicio_previsto_aceito, ajuste_energia=ajuste_energia,
+                    marco_tempo=marco, hora_certa=hora_certa),
+        musica=EstadoMusical(
+            tocou=(), confirmada=MusicaRef.de(musica) if musica is not None else None,
+            pedido_sem_resultado=resolucao.pedido_sem_resultado,
+            resolve_citadas=not (categoria == "musica" and (formato_musical or plano is not None)),
+            contexto_faixa=contexto_faixa,
+        ),
+        participacao=Participacao(
+            novo_atendimento=novo, pedido_musica=pedido_musica, pedido_ouvinte=pedido_ouvinte,
+            ouvinte_recorrente=resolucao.ouvinte_recorrente.tipo if resolucao.ouvinte_recorrente else None,
+            ouvinte_recorrente_dias=(resolucao.ouvinte_recorrente_dias.tipo
+                                     if resolucao.ouvinte_recorrente_dias else None),
+            pedido_recente=pedido_recente,
+        ),
+        chamadas=Chamadas(fio_condutor=fio),
+        memoria=Memoria(historico=tuple(entrada.dados.historico), historico_prompt=resolucao.historico_prompt,
+                        ultima_categoria=ultima_categoria, falas_categoria=tuple(falas_categoria),
+                        aberturas=tuple(aberturas), fechamentos=tuple(fechamentos), tom_anterior=tom_anterior,
+                        temas_usados=tuple(temas_usados), tema_callback=tema_callback),
+        variacoes=Variacoes(verbo_identificacao=verbo, transicao=transicao, formato_comentario=formato_comentario,
+                            convite_ouvinte=convite, expressao_regional=expressao_regional, quadro_fixo=quadro,
+                            assunto_sugerido=sugerido, assunto=decisao.assunto, mudanca_de_ideia=mudanca_de_ideia,
+                            imperfeicao=imperfeicao),
+        jornalismo=jornalismo,
+        orcamento=orcamento, wpm_fala=wpm_fala, categoria_voz=categoria_voz, limite_palavras=limite_palavras,
+        prompt_base=prompt_base, modelo_com_tags=modelo_com_tags,
+    )

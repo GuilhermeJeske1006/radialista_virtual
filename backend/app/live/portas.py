@@ -53,6 +53,13 @@ class PortasEmissao:
     pipeline_tem_estoque: Funcao
     registrar_callback_musica: Funcao
     buscar_roster: Funcao
+    # Decisão do bloco (app.live.roteiro)
+    ultima_categoria_bloco: Funcao
+    tipo_proximo_bloco: Funcao
+    planejar_relogio: Funcao
+    resolver_musica_do_relogio: Funcao
+    buscar_vinheta_ativa: Funcao
+    buscar_patrocinador_ativo: Funcao
     # Relógio do programa
     ajuste_energia_meio_programa: Funcao
     marco_tempo_programa: Funcao
@@ -82,6 +89,12 @@ class PortasEmissao:
         "buscar_roster": "_buscar_roster",
         "ajuste_energia_meio_programa": "_ajuste_energia_meio_programa",
         "marco_tempo_programa": "_marco_tempo_programa",
+        "ultima_categoria_bloco": "_ultima_categoria_bloco",
+        "tipo_proximo_bloco": "_tipo_proximo_bloco",
+        "planejar_relogio": "_planejar_relogio",
+        "resolver_musica_do_relogio": "_resolver_musica_do_relogio",
+        "buscar_vinheta_ativa": "_buscar_vinheta_ativa",
+        "buscar_patrocinador_ativo": "_buscar_patrocinador_ativo",
     }
 
     @classmethod
