@@ -47,3 +47,11 @@ Achados e ideias fora do escopo da F1 (relógio, espelho e hard time). Nada aqui
 - O dublê do LLM decide "primeira fala" por `total_falas == 0`; com vinheta de abertura antes, a abertura usa o modelo de
   reabertura (cosmético, não muda tempo).
 - `simular()` mantém `relogio_backend="nenhum"` como padrão para os testes da F0; o CLI usa `fixture`.
+- **RNG da simulação (correção 1 da F1).** O backend sorteia pelo módulo `random`, global do processo, e o flush
+  de logs do Sentry (thread iniciada pelo primeiro `logger.warning`, mesmo com DSN vazio) chama `random.random()` a cada
+  ~5 s de parede. Desde a correção, `simular()` troca o `random` dos módulos `app.*` por um `random.Random(semente)`
+  próprio. A linha de base da F0 de `musical_adulto` (`f0/simulacao/musical_adulto`) foi gravada com um sorteio dessa
+  thread no meio: `--relogio-backend nenhum` agora reproduz a mesma sequência de blocos e de chamadas ao LLM, mas outras
+  faixas a partir do evento 7 (segundos cortados 146,1 → 100,1). Vale regravar essa linha de base no portão.
+- Fora da simulação, o mesmo compartilhamento do `random` global vale para testes que rodam o backend várias vezes no
+  mesmo processo; os testes que dependem de sorteio fixam `random.random` por monkeypatch.

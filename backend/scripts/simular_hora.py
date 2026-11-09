@@ -92,6 +92,9 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float = 145, sa
 
     from freezegun import freeze_time
 
+    import app.main  # noqa: F401 -- carrega o app (e o Sentry) antes do freeze_time: módulo importado durante o
+    # congelamento é varrido pelo freezegun na saída, o que dispara imports preguiçosos (numpy.testing) com o
+    # relógio já desfeito e deixa o datetime falso preso no Sentry.
     from app.auth.security import criar_token
     from app.config.redis_client import redis_client
     from scripts.simulacao import ambiente, metricas
@@ -111,6 +114,7 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float = 145, sa
     bloqueio = BloqueioRede() if modo == "fake" else None
     try:
         with freeze_time(base - datetime.timedelta(seconds=preparo_antecipado_s)) as relogio_virtual, \
+                ambiente.rng_isolado(semente), \
                 ambiente.cliente_http(sessao) as client, \
                 aplicar_dubles(fixture, catalogo, modo=modo, sessao=sessao, wpm=wpm, semente=semente) as dubles, \
                 (bloqueio or nullcontext()):

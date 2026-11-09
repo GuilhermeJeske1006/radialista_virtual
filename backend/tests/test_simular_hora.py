@@ -390,9 +390,41 @@ def test_determinismo_mesma_semente(simulacoes):
     base = simulacoes["variedades_leves"]["resultado"]
     outra = simular("variedades_leves")
     assert outra.as_run == base.as_run
-    resumo_a = {k: v for k, v in base.resumo.items() if k != "tempo_execucao_s"}
-    resumo_b = {k: v for k, v in outra.resumo.items() if k != "tempo_execucao_s"}
-    assert resumo_a == resumo_b
+    assert _resumo_comparavel(base.resumo) == _resumo_comparavel(outra.resumo)
+
+
+def _resumo_comparavel(resumo: dict) -> dict:
+    """Sem o que não é da simulação: tempo de parede e o commit do git (um commit durante a suíte o muda)."""
+    copia = {k: v for k, v in resumo.items() if k != "tempo_execucao_s"}
+    copia["config"] = {k: v for k, v in resumo["config"].items() if k != "commit"}
+    return copia
+
+
+def test_simulacao_isolada_do_random_global():
+    """Outra thread do processo usando o random global (como o flush de logs do Sentry, a cada ~5 s) não muda
+    a simulação: o backend sorteia com o RNG próprio da simulação."""
+    import random
+    import threading
+
+    from scripts.simular_hora import simular
+
+    base = simular("musical_adulto", relogio_backend="fixture")
+    parar = threading.Event()
+
+    def ruido():
+        while not parar.is_set():
+            random.random()
+            parar.wait(0.0005)
+
+    concorrente = threading.Thread(target=ruido, daemon=True)
+    concorrente.start()
+    try:
+        outra = simular("musical_adulto", relogio_backend="fixture")
+    finally:
+        parar.set()
+        concorrente.join()
+    assert outra.as_run == base.as_run
+    assert _resumo_comparavel(outra.resumo) == _resumo_comparavel(base.resumo)
 
 
 def test_fila_de_preparo_gera_dois_blocos_a_frente(simulacoes):

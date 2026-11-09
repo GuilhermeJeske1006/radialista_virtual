@@ -83,6 +83,26 @@ def cliente_http(sessao) -> Iterator:
         app.dependency_overrides.update(anteriores)
 
 
+@contextlib.contextmanager
+def rng_isolado(semente: int) -> Iterator:
+    """O backend sorteia (música, hora certa, variações) pelo módulo `random`, cujo estado é do processo
+    inteiro: outra thread que o use no meio da simulação muda a sequência. O flush de logs do Sentry faz isso
+    a cada ~5 s de relógio de parede, mesmo com DSN vazio, a partir do primeiro aviso de log. Durante a
+    simulação, todo módulo app.* que importou `random` passa a usar um `random.Random(semente)` próprio, que
+    dá a mesma sequência de `random.seed(semente)` sem ninguém mais consumir dela."""
+    import random
+    import sys
+    from unittest import mock
+
+    rng = random.Random(semente)
+    with contextlib.ExitStack() as pilha:
+        for nome, modulo in list(sys.modules.items()):
+            if modulo is not None and (nome == "app" or nome.startswith("app.")) \
+                    and getattr(modulo, "random", None) is random:
+                pilha.enter_context(mock.patch.object(modulo, "random", rng))
+        yield rng
+
+
 @dataclasses.dataclass
 class Cenario:
     account_id: int
