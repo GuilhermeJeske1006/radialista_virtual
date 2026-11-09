@@ -17,7 +17,7 @@
   "chamadas_tts": 0,
   "config": {
     "antecedencia": 2,
-    "commit": "aa74241",
+    "commit": "dff4259",
     "corte": "agendado",
     "fixture": "variedades_leves",
     "inicio_previsto": true,
@@ -145,7 +145,7 @@
   "segundos_cortados": 331.53,
   "silencio_editorial_s": 4.4,
   "silencio_s": 0.0,
-  "tempo_execucao_s": 0.64,
+  "tempo_execucao_s": 0.38,
   "tempo_fala_s": 1167.6,
   "tempo_musica_s": 2429.0,
   "tempo_outros_s": 0,

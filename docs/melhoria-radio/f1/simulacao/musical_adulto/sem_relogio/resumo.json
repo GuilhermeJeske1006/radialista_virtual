@@ -17,7 +17,7 @@
   "chamadas_tts": 0,
   "config": {
     "antecedencia": 2,
-    "commit": "aa74241",
+    "commit": "dff4259",
     "corte": "agendado",
     "fixture": "musical_adulto",
     "inicio_previsto": true,
@@ -140,10 +140,10 @@
     "musica": 3015
   },
   "repeticao_estrutura": null,
-  "segundos_cortados": 146.1,
+  "segundos_cortados": 100.1,
   "silencio_editorial_s": 2.55,
   "silencio_s": 0.0,
-  "tempo_execucao_s": 0.5,
+  "tempo_execucao_s": 0.31,
   "tempo_fala_s": 71.17,
   "tempo_musica_s": 3495.28,
   "tempo_outros_s": 32.0,

@@ -17,7 +17,7 @@
   "chamadas_tts": 0,
   "config": {
     "antecedencia": 2,
-    "commit": "aa74241",
+    "commit": "dff4259",
     "corte": "agendado",
     "fixture": "popular_sertanejo",
     "inicio_previsto": true,
@@ -156,7 +156,7 @@
   "segundos_cortados": 0.0,
   "silencio_editorial_s": 3.25,
   "silencio_s": 0.0,
-  "tempo_execucao_s": 0.66,
+  "tempo_execucao_s": 0.39,
   "tempo_fala_s": 242.07,
   "tempo_musica_s": 3286.0,
   "tempo_outros_s": 62.9,
