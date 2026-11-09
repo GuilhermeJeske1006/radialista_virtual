@@ -130,10 +130,12 @@ class Pedido(_Estrito):
 
 
 class Injecao(_Estrito):
-    """Distorção aplicada pelo dublê na n-ésima fala gerada (contando a partir de 1, sem as revisões)."""
+    """Distorção aplicada pelo dublê na n-ésima fala gerada (contando a partir de 1, sem as revisões).
+    excesso: só a primeira versão passa do limite (a reescrita obedece); excesso_persistente (F2): o dublê
+    ignora também o limite da reescrita, para exercitar o encurtamento por frases do backend."""
 
     fala: int = Field(ge=1)
-    tipo: Literal["promessa", "excesso", "cita_musica", "cita_ouvinte"]
+    tipo: Literal["promessa", "excesso", "excesso_persistente", "cita_musica", "cita_ouvinte"]
     frase: str = ""
     fator: float = 1.6
     titulo: str = ""

@@ -9,6 +9,10 @@ Desde a F1, cada pedido leva `inicio_previsto` como o painel (lib/relogioAoVivo.
 (início agendado + pausa + duração prevista de cada bloco gerado) mais o desvio medido quando o bloco
 anterior começou a tocar. `enviar_inicio_previsto=False` imita o painel antigo.
 
+Desde a F2, com `medir_tts` (dublê de TTS ou modo completo) cada fala de voz única passa pelo POST /tts
+como o painel faz e dura o que o áudio mede (cabeçalho X-Duracao-Fala-S); o orçamento do evento é o que o
+backend devolveu em `orcamento_fala_s`.
+
 Importa app.*: só carregue este módulo depois de preparar o ambiente.
 """
 
@@ -67,6 +71,7 @@ class Bloco:
     chamadas_llm: int = 0
     revisada: bool = False
     duracao_medida_s: float | None = None
+    sinteses_tts: int | None = None
     inicio_bruto_s: float | None = None
     inicio_previsto_s: float | None = None
 
@@ -74,13 +79,14 @@ class Bloco:
 class Emissao:
     def __init__(self, *, client, headers: dict, sessao, fixture, cenario, dubles, relogio, base: datetime.datetime,
                  modo: str, wpm: float, antecedencia: int, preparo_antecipado_s: float, corte: str,
-                 enviar_inicio_previsto: bool = True):
+                 enviar_inicio_previsto: bool = True, medir_tts: bool = False):
         self.client, self.headers, self.sessao = client, headers, sessao
         self.fixture, self.cenario, self.dubles = fixture, cenario, dubles
         self.relogio, self.base = relogio, base
         self.modo, self.wpm, self.antecedencia = modo, wpm, antecedencia
         self.preparo_antecipado_s, self.corte = preparo_antecipado_s, corte
         self.enviar_inicio_previsto = enviar_inicio_previsto
+        self.medir_tts = medir_tts or modo == "completo"
         # Cadeia do horário previsto (painel): início bruto do próximo bloco a gerar e desvio medido.
         self.inicio_bruto_s = 0.0
         self.desvio_s = 0.0
@@ -174,6 +180,7 @@ class Emissao:
         retrato = self._estados_pedidos()
         self.dubles.estado.nova_chamada(bloco_n=n, total_falas=self.ctx["total_falas"], retrato_pedidos=retrato)
         antes = collections.Counter(self.dubles.llm.contadores)
+        sinteses_antes = self._sinteses()
         payload = {
             "incluir_audio": False,
             "historico": [linha_historico(s) for s in self.ctx["historico"][-PLAYER["historico_max"]:]],
@@ -204,13 +211,19 @@ class Emissao:
             bloco.pedido_id = mudaram[0]
             bloco.pedido_estado = depois[mudaram[0]]
             bloco.pedido_tipo = self.sessao.get(FilaAoVivo, mudaram[0]).tipo
-        if self.modo == "completo" and bloco.segmento is not None:
+        if self.medir_tts and bloco.segmento is not None:
             self._medir_tts(bloco)
+        if self.dubles.tts is not None:
+            bloco.sinteses_tts = self._sinteses() - sinteses_antes
         self.blocos.append(bloco)
         return bloco
 
+    def _sinteses(self) -> int:
+        return self.dubles.tts.contadores["sintetizar_audio"] if self.dubles.tts is not None else 0
+
     def _medir_tts(self, bloco: Bloco) -> None:
-        """Modo completo: TTS real pelo POST /live/{rid}/tts, como o player faz, e duração medida."""
+        """TTS pelo POST /live/{rid}/tts, como o player faz, e duração medida (cabeçalho do backend; sem ele,
+        a mesma medição do backend sobre o corpo). Real no modo completo, dublê de TTS nos outros."""
         segmento = bloco.segmento
         fala = (segmento.get("fala") or "").strip()
         if not fala or segmento.get("tipo") in ("vinheta", "patrocinador") or segmento.get("falas"):
@@ -225,10 +238,14 @@ class Emissao:
         if resposta.status_code != 200:
             self.contagem["erros_http"] += 1
             return
-        from app.postprod.audio_io import mp3_bytes_para_array
+        cabecalho = resposta.headers.get("X-Duracao-Fala-S")
+        if cabecalho is not None:
+            bloco.duracao_medida_s = round(float(cabecalho), 2)
+            return
+        from app.postprod.audio_io import duracao_mp3_s
 
-        amostras, taxa, _ = mp3_bytes_para_array(resposta.content)
-        bloco.duracao_medida_s = round(amostras.shape[1] / taxa, 2)
+        medida = duracao_mp3_s(resposta.content)
+        bloco.duracao_medida_s = round(medida, 2) if medida is not None else None
 
     # --- reprodução ----------------------------------------------------------------------------------
 
@@ -324,6 +341,13 @@ class Emissao:
         })
 
     def _orcamentos(self, segmento: dict, tipo: str, categoria: str) -> tuple[dict, dict]:
+        backend = segmento.get("orcamento_fala_s")
+        if backend:
+            # F2: o orçamento que o backend aplicou (ou só observou), com a referência da fixture ao lado.
+            _, referencia = self._orcamentos({k: v for k, v in segmento.items() if k != "orcamento_fala_s"},
+                                             tipo, categoria)
+            return {"min": backend["min_s"], "max": backend["max_s"], "alvo": backend["alvo_s"],
+                    "fonte": backend["fonte"], "aplicado": backend["aplicado"]}, referencia
         alvo = segmento.get("duracao_alvo_segundos")
         if alvo and segmento.get("relogio"):
             # Com relógio, o orçamento é o do backend (backtiming) nos dois formatos.
@@ -387,6 +411,9 @@ class Emissao:
             "passos_roteiro": segmento.get("passos_roteiro", 1),
             "chamadas_llm": bloco.chamadas_llm,
             "revisada": bloco.revisada,
+            "fala_ajuste": segmento.get("fala_ajuste") if eh_fala else None,
+            "duracao_estimada_backend_s": segmento.get("duracao_fala_estimada_s") if eh_fala else None,
+            "sinteses_tts": bloco.sinteses_tts if eh_fala else None,
             "cortado": False,
             "cortado_s": 0.0,
             "video_id": musica.get("video_id") if musica else None,

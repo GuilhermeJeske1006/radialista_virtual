@@ -5,11 +5,15 @@ Uso (a partir de backend/):
     PYTHONPATH=. .venv/bin/python scripts/simular_hora.py --programa musical_adulto --saida /tmp/sim/musical_adulto \
         [--modo fake|llm|completo] [--semente 7] [--wpm 162] [--relogio A|B|C|<caminho>] [--antecedencia 2] \
         [--preparo-antecipado-s 90] [--corte agendado|manual] [--relogio-backend fixture|nenhum]
-        [--sem-inicio-previsto] [--confirmo-custo]
+        [--tts duble|nenhum] [--wpm-real 145] [--sem-inicio-previsto] [--confirmo-custo]
 
 - fake (padrão): sem rede. LLM, TTS, música, notícia e clima são dublês; a fala dura palavras/wpm.
   --wpm é o ritmo com que o dublê do LLM escreve e estima; sem ele, o mesmo do backend sem calibração
   (app.live.ritmo_voz.wpm_para: padrão do modelo de voz, senão settings.fala_wpm_padrao).
+  --tts duble (padrão do CLI desde a F2) liga o dublê de TTS: mp3 silencioso com a duração de uma voz a
+  --wpm-real palavras/min; o simulador chama o /tts como o painel, a fala dura o que o áudio mede e o
+  backend calibra o ritmo da voz. --tts nenhum reproduz as linhas de base da F0/F1 (simular() mantém
+  nenhum como padrão).
 - llm: texto real da Anthropic (consome créditos); TTS continua estimado.
 - completo: Anthropic + ElevenLabs (consome créditos); mede a duração real do áudio.
 
@@ -27,6 +31,7 @@ fakeredis) é preparado antes, em main().
 """
 
 import argparse
+import collections
 import dataclasses
 import datetime
 import json
@@ -44,6 +49,10 @@ from scripts.simulacao.fixtures import FixturePrograma, carregar_catalogo, carre
 MODOS = ("fake", "llm", "completo")
 CORTES = ("agendado", "manual")
 RELOGIOS_BACKEND = ("fixture", "nenhum")
+TTS = ("duble", "nenhum")
+# Voz do dublê de TTS no CLI: 145 palavras/min, o ritmo com que a F0/F1 mediam a fala e ~10% abaixo do
+# padrão do modelo v3 (162): a estimativa do backend começa otimista e a calibração tem o que corrigir.
+WPM_REAL_PADRAO = 145
 VERSAO_FORMATO = 1
 # Revisões por orçamento/repetição fazem o LLM real ser chamado mais vezes que o número de falas.
 FATOR_REVISOES_ESTIMADO = 1.2
@@ -52,6 +61,8 @@ OBSERVACOES = [
     "Modo fake: o comprimento das falas é sintético (o dublê fala dentro da meta por construção); "
     "só a mecânica é medida (relógio, fila, corte, pedidos, continuidade e detectores).",
     "Detectores de promessa, música anunciada e abertura repetida são provisórios da F0.",
+    "Com --tts duble (F2), a fala dura o que o /tts mede num mp3 silencioso à velocidade wpm_real; a calibração "
+    "do ritmo por voz começa vazia em cada simulação (pior caso: a primeira hora de uma voz nova).",
     "SQLite em memória e execução sequencial: with_for_update(skip_locked) não é exercitado.",
 ]
 
@@ -77,7 +88,8 @@ def _gravar(caminho: pathlib.Path, dados: dict) -> None:
 
 def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = None, saida=None, relogio=None,
             antecedencia: int = 2, preparo_antecipado_s: float = 90, corte: str = "agendado",
-            relogio_backend: str = "nenhum", inicio_previsto: bool = True) -> Resultado:
+            relogio_backend: str = "nenhum", inicio_previsto: bool = True, tts: str = "nenhum",
+            wpm_real: float | None = None) -> Resultado:
     """Roda uma hora de programa. `programa` aceita o id da fixture, o caminho ou um FixturePrograma.
 
     Pressupõe o ambiente pronto (main() ou tests/conftest.py). Guarda e restaura random global e
@@ -89,6 +101,8 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
         raise ValueError(f"corte inválido: {corte}")
     if relogio_backend not in RELOGIOS_BACKEND:
         raise ValueError(f"relogio_backend inválido: {relogio_backend}")
+    if tts not in TTS:
+        raise ValueError(f"tts inválido: {tts}")
     from contextlib import nullcontext
     from zoneinfo import ZoneInfo
 
@@ -114,12 +128,14 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
     redis_client.flushall()
     engine, sessao = ambiente.criar_banco()
     wpm = wpm if wpm is not None else ambiente.wpm_do_backend(sessao)
+    wpm_real = (wpm_real if wpm_real is not None else wpm) if tts == "duble" else None
     bloqueio = BloqueioRede() if modo == "fake" else None
     try:
         with freeze_time(base - datetime.timedelta(seconds=preparo_antecipado_s)) as relogio_virtual, \
                 ambiente.rng_isolado(semente), \
                 ambiente.cliente_http(sessao) as client, \
-                aplicar_dubles(fixture, catalogo, modo=modo, sessao=sessao, wpm=wpm, semente=semente) as dubles, \
+                aplicar_dubles(fixture, catalogo, modo=modo, sessao=sessao, wpm=wpm, semente=semente,
+                               tts_wpm_real=wpm_real) as dubles, \
                 (bloqueio or nullcontext()):
             cenario = ambiente.semear(sessao, fixture)
             relogio_aplicado = ambiente.aplicar_relogio(sessao, cenario, relogio_fixture, fixture.duracao_programa_s()) \
@@ -129,6 +145,7 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
                 client=client, headers=headers, sessao=sessao, fixture=fixture, cenario=cenario, dubles=dubles,
                 relogio=relogio_virtual, base=base, modo=modo, wpm=wpm, antecedencia=antecedencia,
                 preparo_antecipado_s=preparo_antecipado_s, corte=corte, enviar_inicio_previsto=inicio_previsto,
+                medir_tts=dubles.tts is not None,
             )
             emissao.executar()
             pedidos = emissao.pedidos_finais()
@@ -147,6 +164,8 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
         "modo": modo,
         "semente": semente,
         "wpm": wpm,
+        "tts": tts,
+        "wpm_real": wpm_real,
         "inicio": base.isoformat(),
         "fim_programa": (base + datetime.timedelta(seconds=fixture.duracao_programa_s())).isoformat(),
         "duracao_programa_s": fixture.duracao_programa_s(),
@@ -171,7 +190,8 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
     blocos_musica_llm = contadores_llm.get("blocos_musica_llm", 0)
     resumo = {
         "config": {
-            "modo": modo, "semente": semente, "wpm": wpm, "antecedencia": antecedencia,
+            "modo": modo, "semente": semente, "wpm": wpm, "tts": tts, "wpm_real": wpm_real,
+            "antecedencia": antecedencia,
             "preparo_antecipado_s": preparo_antecipado_s, "corte": corte, "fixture": fixture.id,
             "relogio": relogio_fixture.id, "relogio_backend": relogio_backend, "inicio_previsto": inicio_previsto,
             "commit": _commit_atual(), "versao_formato": VERSAO_FORMATO,
@@ -182,6 +202,7 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
             "falas": contadores_llm.get("falas", 0),
             "revisoes": revisoes,
         },
+        "orcamento_fala": _custo_orcamento(emissao.blocos, contadores_llm),
         "chamadas_tts": contagem["chamadas_tts"],
         "caracteres_tts": contagem["caracteres_tts"],
         "caracteres_tts_estimados": sum(len(f["texto"]) for f in falas),
@@ -191,6 +212,7 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
         "confirmacoes_pedido": contagem["confirmacoes_pedido"],
         "blocos_gerados": len(emissao.blocos),
         "blocos_nao_tocados": contagem["blocos_nao_tocados"],
+        "blocos_fala_nao_tocados": sum(1 for b in emissao.nao_tocados if b["texto"]),
         "segundos_cortados": round(sum(e["cortado_s"] for e in emissao.eventos) + contagem["segundos_nao_tocados"], 2),
         "dubles": {
             "faixa_reconhecida_pct": round(100 * contadores_llm.get("faixa_reconhecida", 0) / blocos_musica_llm, 1)
@@ -215,6 +237,24 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
     return Resultado(as_run=as_run, resumo=resumo)
 
 
+def _custo_orcamento(blocos, contadores_llm: dict) -> dict:
+    """Contadores da F2 por fala gerada (todos os blocos, tocados ou não): reescritas e ajustes que o backend
+    devolveu em fala_ajuste, revisões motivadas pela duração (vistas no prompt pelo dublê), chamadas de LLM
+    e sínteses (dublê de TTS: /proxima + /tts do painel) por fala."""
+    ajustes = collections.Counter((b.segmento or {}).get("fala_ajuste") for b in blocos)
+    sinteses = [b.sinteses_tts for b in blocos if b.sinteses_tts is not None]
+    return {
+        "revisoes_por_duracao": contadores_llm.get("revisoes_duracao", 0),
+        "reescritas": ajustes["reescrita"],
+        "encurtadas": ajustes["encurtada"],
+        "cortadas": ajustes["cortada"],
+        "acima_do_teto": ajustes["acima_do_teto"],
+        "max_chamadas_llm_por_fala": max((b.chamadas_llm for b in blocos), default=0),
+        "max_sinteses_por_fala": max(sinteses, default=0),
+        "ressinteses_tts": sum(max(0, n - 1) for n in sinteses),
+    }
+
+
 def _wpm_observado(falas: list[dict]) -> dict | None:
     medidas = [f for f in falas if f.get("duracao_medida_s")]
     if not medidas:
@@ -234,7 +274,10 @@ def _linha_resumo(resumo: dict) -> str:
         f"hard_times_perdidos={resumo['hard_times_perdidos']} encerramento_no_ar={resumo['encerramento_no_ar']} "
         f"estouro_fim_s={resumo['estouro_fim_programa_s']} relogio_backend={resumo['config']['relogio_backend']} "
         f"atraso_hard_time_s={resumo['atraso_hard_time_s']} fim_antecipado_s={resumo['fim_antecipado_s']} "
-        f"falas_abaixo_minimo={resumo['falas_abaixo_minimo']}"
+        f"falas_abaixo_minimo={resumo['falas_abaixo_minimo']} tts={resumo['config']['tts']} "
+        f"estouro_max_pct={resumo['estouro_max_pct']} acima_teto={resumo['acima_teto_orcamento']} "
+        f"max_llm_por_fala={resumo['orcamento_fala']['max_chamadas_llm_por_fala']} "
+        f"max_sinteses_por_fala={resumo['orcamento_fala']['max_sinteses_por_fala']}"
     )
 
 
@@ -264,6 +307,10 @@ def _argumentos(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--corte", choices=CORTES, default="agendado")
     parser.add_argument("--relogio-backend", choices=RELOGIOS_BACKEND, default="fixture",
                         help="fixture: o backend decide pelo relógio da fixture (F1); nenhum: linha de base da F0")
+    parser.add_argument("--tts", choices=TTS, default="duble",
+                        help="duble: mp3 silencioso medido pelo /tts (F2); nenhum: linha de base da F0/F1")
+    parser.add_argument("--wpm-real", type=float, default=WPM_REAL_PADRAO,
+                        help="ritmo real da voz do dublê de TTS, em palavras/min")
     parser.add_argument("--sem-inicio-previsto", action="store_true",
                         help="não envia inicio_previsto em /proxima (painel antigo)")
     parser.add_argument("--confirmo-custo", action="store_true",
@@ -290,6 +337,7 @@ def main(argv: list[str] | None = None) -> int:
             saida=None if pago_sem_confirmacao else args.saida, relogio=args.relogio,
             antecedencia=args.antecedencia, preparo_antecipado_s=args.preparo_antecipado_s, corte=args.corte,
             relogio_backend=args.relogio_backend, inicio_previsto=not args.sem_inicio_previsto,
+            tts=args.tts, wpm_real=args.wpm_real,
         )
     except Exception as erro:  # noqa: BLE001 -- o CLI devolve código 2 com a causa
         print(f"erro na simulação: {type(erro).__name__}: {erro}", file=sys.stderr)

@@ -22,6 +22,9 @@ CONFIG_METRICAS = {
     "pedido_indevido": {"padroes": ["toca agora", "pediu"]},
     "abertura_repetida": {"palavras": 3, "seguidas": 3},
     "hard_time": {"tolerancia_s": 5.0},
+    # F2: teto do orçamento (app.config.settings.fala_teto_orcamento) e quantas falas medidas contam como
+    # "antes da calibração" (fala_calibracao_min_amostras). Repetidos aqui para o módulo não importar app.*.
+    "orcamento": {"teto": 0.30, "amostras_calibracao": 5},
     "tipos_fala": ["fala"],
     "tipos_silencio": ["bloco_vazio", "erro"],
 }
@@ -102,6 +105,39 @@ def _duracao(evento: dict) -> float:
         medida = evento.get("duracao_medida_s")
         return float(medida if medida is not None else evento["duracao_prevista_s"])
     return float(evento["fim_s"]) - float(evento["inicio_s"])
+
+
+def _razao(evento: dict) -> float:
+    return _duracao(evento) / float(evento["orcamento_s"]["max"])
+
+
+def _orcamento_observado(falas: list[dict], teto: float) -> dict:
+    razoes = [_razao(f) for f in falas]
+    return {
+        "falas": len(falas),
+        "fora_pct": round(100 * sum(1 for r in razoes if r > 1) / len(razoes), 1) if razoes else 0.0,
+        "acima_teto": sum(1 for r in razoes if r > 1 + teto),
+        "estouro_max_pct": round(max(0.0, (max(razoes) - 1) * 100), 1) if razoes else 0.0,
+    }
+
+
+def _duracao_fala(falas: list[dict], amostras_calibracao: int) -> dict:
+    """Erro da estimativa do backend contra a duração medida no áudio (F2): todas as falas medidas e só as
+    depois das primeiras amostras (quando a calibração por voz já pode valer)."""
+    medidas = [f for f in falas if f.get("duracao_medida_s") and f.get("duracao_estimada_backend_s") is not None]
+
+    def erro(lista: list[dict]) -> float | None:
+        if not lista:
+            return None
+        return round(100 * sum(abs(f["duracao_estimada_backend_s"] - f["duracao_medida_s"]) / f["duracao_medida_s"]
+                               for f in lista) / len(lista), 1)
+
+    return {
+        "medidas": len(medidas),
+        "erro_estimativa_pct": erro(medidas),
+        "erro_estimativa_calibrada_pct": erro(medidas[amostras_calibracao:]),
+        "segundos_medidos": round(sum(f["duracao_medida_s"] for f in medidas), 2),
+    }
 
 
 def _pedido_indevido(evento: dict, nomes: list[str], config: dict) -> bool:
@@ -218,7 +254,10 @@ def calcular_metricas(as_run: dict, config: dict | None = None) -> dict:
     nomes_inexistentes = list((as_run.get("ouvintes") or {}).get("inexistentes") or [])
 
     com_orcamento = [f for f in falas if f.get("orcamento_s")]
-    razoes = [_duracao(f) / float(f["orcamento_s"]["max"]) for f in com_orcamento]
+    # Desde a F2 o orçamento vem do backend: as falas em observação (formato padrão sem relógio, aplicado
+    # False) são relatadas à parte. As_runs anteriores não têm a chave e contam como aplicadas.
+    aplicadas = [f for f in com_orcamento if f["orcamento_s"].get("aplicado", True)]
+    razoes = [_razao(f) for f in aplicadas]
     fora = sum(1 for r in razoes if r > 1)
 
     anuncio_sem_confirmacao = 0
@@ -248,8 +287,14 @@ def calcular_metricas(as_run: dict, config: dict | None = None) -> dict:
     encerramento_no_ar = any(not f.get("cortado") for f in encerramentos)
     blocos_relogio = {e["bloco_n"]: e["relogio"] for e in eventos if e.get("relogio")}
     return {
-        "fora_orcamento_pct": round(100 * fora / len(com_orcamento), 1) if com_orcamento else 0.0,
+        "fora_orcamento_pct": round(100 * fora / len(aplicadas), 1) if aplicadas else 0.0,
         "estouro_max_pct": round(max(0.0, (max(razoes) - 1) * 100), 1) if razoes else 0.0,
+        "falas_com_orcamento_aplicado": len(aplicadas),
+        "acima_teto_orcamento": sum(1 for r in razoes if r > 1 + config["orcamento"]["teto"]),
+        "orcamento_observacao": _orcamento_observado(
+            [f for f in com_orcamento if not f["orcamento_s"].get("aplicado", True)], config["orcamento"]["teto"]),
+        "duracao_fala": _duracao_fala(falas, config["orcamento"]["amostras_calibracao"]),
+        "ajustes_fala": dict(sorted(collections.Counter(f["fala_ajuste"] for f in falas if f.get("fala_ajuste")).items())),
         "atraso_hard_time_s": round(max(atrasos), 2) if atrasos else 0.0,
         "anuncio_sem_confirmacao": anuncio_sem_confirmacao,
         "promessa_vencida": sum(1 for p in abertas if p["id"] not in fechadas),

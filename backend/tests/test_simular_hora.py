@@ -500,7 +500,9 @@ def test_injecoes_aparecem_nas_metricas(simulacoes):
     assert musical["chamadas_llm"]["total"] > musical["chamadas_llm"]["falas"]
     assert musical["chamadas_llm"]["revisoes"] >= 1
     assert musical["anuncio_sem_confirmacao"] >= 1
-    assert variedades["fora_orcamento_pct"] > 0
+    # Desde a F2 o formato padrão sem relógio só observa o orçamento (o backend não reescreve nem encurta):
+    # o excesso injetado aparece nas falas em observação, relatadas à parte.
+    assert variedades["orcamento_observacao"]["fora_pct"] > 0
     assert variedades["ouvinte_inexistente"] >= 1
 
 

@@ -1,5 +1,9 @@
 """Dublês da simulação: LLM, música, notícia, clima e TTS (docs/melhoria-radio/f0/auditoria.md §5.3).
 
+TTS: sem dublê de voz (padrão da função simular), o TTS fica desligado e a fala dura palavras ÷ wpm. Com
+DubleTTS (F2), o sintetizador devolve um mp3 silencioso com a duração de uma voz a `wpm_real`
+palavras/min, o /tts mede esse áudio e o backend calibra o ritmo da voz, sem rede.
+
 Dois mecanismos aplicados juntos:
 - por nome, em app.live.router.<nome> (padrão dos testes atuais);
 - por identidade: todo atributo de módulo app.* que *seja* a função original é trocado. Isso continua
@@ -15,7 +19,9 @@ Importa app.*: só carregue este módulo depois de preparar o ambiente (scripts/
 
 import contextlib
 import dataclasses
+import hashlib
 import importlib
+import io
 import json
 import math
 import random
@@ -28,7 +34,7 @@ from unittest import mock
 from app.config.settings import settings
 from app.live.formato import contar_palavras, orcamento_fala
 from app.live.music import MusicaEncontrada, titulo_ja_tocado
-from app.live.orcamento import wpm_padrao
+from app.live.orcamento import contar_pausas, palavras_faladas, wpm_padrao
 from app.util.texto import sem_acento
 
 from scripts.simulacao import banco_falas
@@ -41,6 +47,8 @@ LIMITE_REVISAO_RE = re.compile(r"Reescreva com no máximo (\d+) palavras")
 # Meta de duração do bloco no prompt (formato musical e relógio da hora, F1): mínimo, máximo, palavras.
 META_BLOCO_RE = re.compile(r"(\d+) a (\d+) segundos, no máximo (\d+) palavras")
 MARCA_REVISAO_PARECIDA = "ficou muito parecida"
+# Revisão em que o motivo é a duração estimada (F2), não só o limite de palavras.
+MARCA_REVISAO_DURACAO = "ultrapassou o tempo de locução"
 
 _BASES_CATEGORIA = (
     "musica", "noticia", "escalada", "servico", "plantao", "reporter",
@@ -171,6 +179,8 @@ class DubleLLM:
         else:
             self._tentativa += 1
             self.contadores["revisoes"] += 1
+            if MARCA_REVISAO_DURACAO in (system_prompt or ""):
+                self.contadores["revisoes_duracao"] += 1
 
         categoria = categoria_do_tipo(tipo)
         primeira = self.estado.total_falas == 0
@@ -192,7 +202,13 @@ class DubleLLM:
 
         alvo, teto = self._palavras(tipo, categoria, primeira, META_BLOCO_RE.findall(system_prompt or ""))
         limite = LIMITE_REVISAO_RE.search(system_prompt or "")
-        if limite:
+        persistente = next((i for i in self.fixture.injecoes
+                            if i.fala == self._fala_n and i.tipo == "excesso_persistente"), None)
+        if persistente is not None:
+            # Ignora o limite da reescrita também: o backend precisa encurtar sem uma terceira chamada.
+            alvo = teto = round(alvo * persistente.fator)
+            self.contadores["injecao_excesso_persistente"] += 1
+        elif limite:
             teto = min(teto, int(limite.group(1)))
             alvo = min(alvo, teto)
 
@@ -329,6 +345,43 @@ class DubleLLM:
             if self.estado.retrato_pedidos.get(pedido.id) != pedido.estado:
                 return pedido
         return None
+
+
+class DubleTTS:
+    """Sintetizador falso (F2): mp3 silencioso com a duração de uma voz a `wpm_real` palavras/min (palavras
+    faladas, como a estimativa do backend) mais as pausas explícitas, via pydub e ffmpeg, sem rede. O mesmo
+    texto dá os mesmos bytes, como o cache de TTS; textos diferentes, bytes diferentes (tag com o hash)."""
+
+    def __init__(self, wpm_real: float, pausa_s: float | None = None):
+        if wpm_real <= 0:
+            raise ValueError("wpm_real deve ser maior que zero")
+        self.wpm_real = wpm_real
+        self.pausa_s = settings.fala_pausa_explicita_s if pausa_s is None else pausa_s
+        self.contadores: Counter = Counter()
+        self._audios: dict[str, bytes] = {}
+
+    def duracao_s(self, texto: str) -> float:
+        return palavras_faladas(texto) * 60 / self.wpm_real + contar_pausas(texto) * self.pausa_s
+
+    def _mp3(self, texto: str) -> bytes:
+        if texto not in self._audios:
+            from pydub import AudioSegment
+
+            buffer = io.BytesIO()
+            AudioSegment.silent(duration=round(self.duracao_s(texto) * 1000), frame_rate=16000).export(
+                buffer, format="mp3", tags={"comment": hashlib.sha1(texto.encode()).hexdigest()[:16]})
+            self._audios[texto] = buffer.getvalue()
+        return self._audios[texto]
+
+    def sintetizar_audio(self, texto: str, voice_id: str | None = None, **_opcoes) -> bytes:
+        self.contadores["sintetizar_audio"] += 1
+        self.contadores["caracteres_tts"] += len(texto)
+        return self._mp3(texto)
+
+    def sintetizar_audio_stream(self, texto: str, voice_id: str | None = None, **_opcoes) -> Iterator[bytes]:
+        self.contadores["sintetizar_audio"] += 1
+        self.contadores["caracteres_tts"] += len(texto)
+        yield self._mp3(texto)
 
 
 def _pedido_bate(pedido, faixa: Faixa) -> bool:
@@ -477,12 +530,15 @@ class Dubles:
     musicas: CatalogoSimulado
     contadores: Counter
     substituidos: list[str]
+    tts: DubleTTS | None = None
 
     def chamadas_por_funcao(self) -> dict[str, int]:
         total = Counter()
         total.update(self.llm.contadores)
         total.update(self.musicas.contadores)
         total.update(self.contadores)
+        if self.tts is not None:
+            total.update(self.tts.contadores)
         return dict(sorted(total.items()))
 
 
@@ -503,7 +559,8 @@ class _EspiaoTexto:
         return self.original(*args, **kwargs)
 
 
-def _substitutos(modo: str, llm: DubleLLM, musicas: CatalogoSimulado, contadores: Counter, sessao) -> dict[str, Any]:
+def _substitutos(modo: str, llm: DubleLLM, musicas: CatalogoSimulado, contadores: Counter, sessao,
+                 tts: DubleTTS | None = None) -> dict[str, Any]:
     from app.llm.noticias import PesquisaNoticias
 
     def contar(nome: str, valor_ou_funcao):
@@ -546,9 +603,9 @@ def _substitutos(modo: str, llm: DubleLLM, musicas: CatalogoSimulado, contadores
         "pesquisar_noticias": contar("pesquisar_noticias",
                                      lambda *a, **k: PesquisaNoticias(status="desabilitada")),
         "obter_clima_atual": contar("obter_clima_atual", lambda *a, **k: None),
-        "tts_habilitado": contar("tts_habilitado", lambda *a, **k: False),
-        "sintetizar_audio": _tts_desligado,
-        "sintetizar_audio_stream": _tts_desligado,
+        "tts_habilitado": contar("tts_habilitado", lambda *a, **k: tts is not None),
+        "sintetizar_audio": tts.sintetizar_audio if tts is not None else _tts_desligado,
+        "sintetizar_audio_stream": tts.sintetizar_audio_stream if tts is not None else _tts_desligado,
         "processar_audio": contar("processar_audio", lambda audio, *a, **k: audio),
         "obter_metadados_voz": contar("obter_metadados_voz", lambda *a, **k: None),
     }
@@ -562,13 +619,16 @@ def _modulos_app() -> Iterator[tuple[str, Any]]:
 
 @contextlib.contextmanager
 def aplicar_dubles(fixture: FixturePrograma, catalogo: Catalogo, modo: str = "fake", sessao=None,
-                   estado: EstadoChamada | None = None, wpm: float | None = None, semente: int = 7) -> Iterator[Dubles]:
+                   estado: EstadoChamada | None = None, wpm: float | None = None, semente: int = 7,
+                   tts_wpm_real: float | None = None) -> Iterator[Dubles]:
+    """`tts_wpm_real` liga o DubleTTS (modos fake e llm); None mantém o TTS desligado (linha de base)."""
     estado = estado or EstadoChamada()
     llm = DubleLLM(fixture, estado, wpm=wpm, semente=semente, sessao=sessao)
     extras = [(i.titulo, i.artista) for i in fixture.injecoes if i.tipo == "cita_musica" and i.titulo]
     musicas = CatalogoSimulado(catalogo, estado, extras=extras)
     contadores: Counter = Counter()
-    substitutos = _substitutos(modo, llm, musicas, contadores, sessao)
+    tts = DubleTTS(tts_wpm_real) if tts_wpm_real is not None and modo != "completo" else None
+    substitutos = _substitutos(modo, llm, musicas, contadores, sessao, tts)
     substituidos: list[str] = []
 
     with contextlib.ExitStack() as pilha:
@@ -599,7 +659,8 @@ def aplicar_dubles(fixture: FixturePrograma, catalogo: Catalogo, modo: str = "fa
             return SimpleNamespace(stop_reason="end_turn", content=[])
 
         pilha.enter_context(mock.patch.object(noticias._client.messages, "create", _criar_mensagem_noticia))
-        yield Dubles(estado=estado, llm=llm, musicas=musicas, contadores=contadores, substituidos=substituidos)
+        yield Dubles(estado=estado, llm=llm, musicas=musicas, contadores=contadores, substituidos=substituidos,
+                     tts=tts)
 
 
 class BloqueioRede:
