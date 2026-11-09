@@ -24,7 +24,7 @@ from app.models.tema_historico import TemaHistorico
 from app.models.trilha_vinheta import TrilhaVinheta
 from app.models.usuario import Usuario
 from app.models.voz_clonada import VozClonada
-from app.models.perfil_voz import ConfiguracaoVoz, MetadadosVoz
+from app.models.perfil_voz import ConfiguracaoVoz, MetadadosVoz, RitmoVoz
 
 __all__ = [
     "Account",
@@ -43,6 +43,7 @@ __all__ = [
     "VozClonada",
     "ConfiguracaoVoz",
     "MetadadosVoz",
+    "RitmoVoz",
     "CompraExcedente",
     "BibliotecaAudioItem",
     "CategoriaVinheta",

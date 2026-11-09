@@ -53,3 +53,14 @@ def parametros_sintese(db: Session, account_id: int, voz_id: str | None) -> dict
     if conta and conta.modelo_voz:
         parametros["modelo"] = conta.modelo_voz
     return parametros
+
+
+def modelo_e_perfil(db: Session, account_id: int, voz_id: str | None) -> tuple[str, str, str]:
+    """(voz, modelo, perfil) efetivos da sintese, so' com o banco: mesma precedencia de
+    parametros_sintese + sintetizar_audio (ConfiguracaoVoz, combinacao da conta, modelo do servidor),
+    sem consultar_metadados (que pode ir a rede). Usado pela estimativa de duracao antes do TTS (F2)."""
+    efetiva = voz_id or settings.elevenlabs_voice_id or ""
+    config = db.query(ConfiguracaoVoz).filter_by(account_id=account_id, voz_id=efetiva).first() if efetiva else None
+    from app.billing.contexto_ia import modelo_efetivo
+    modelo = modelo_efetivo("tts", (config.modelo if config else None) or settings.elevenlabs_model)
+    return efetiva, modelo, (config.perfil if config else None) or "atual"

@@ -222,10 +222,11 @@ def tts_habilitado(voice_id: str | None = None) -> bool:
     return bool(settings.elevenlabs_api_key and (voice_id or settings.elevenlabs_voice_id))
 
 
-def _categoria_tipo_bloco(tipo_bloco: str) -> str:
+def categoria_tipo_bloco(tipo_bloco: str) -> str:
     """Reconhece bloco customizado (ex.: 'Musica Vaneira') como variacao do tipo base 'musica'
     pra manter a prosodia certa, mesmo sem bater exatamente com o preset -- ver mesma logica em
-    app.live.router._categoria_bloco.
+    app.live.router._categoria_bloco. Publica desde a F2: o ritmo observado por voz
+    (app.live.ritmo_voz) e' agrupado pela mesma categoria de prosodia.
     """
     normalizado = _sem_acento(tipo_bloco.strip().lower())
     for base in _VOICE_SETTINGS_POR_TIPO:
@@ -234,11 +235,16 @@ def _categoria_tipo_bloco(tipo_bloco: str) -> str:
     return normalizado
 
 
+_categoria_tipo_bloco = categoria_tipo_bloco
+# Categorias com preset proprio de prosodia (speed muda o ritmo); as demais usam o padrao generico.
+CATEGORIAS_PROSODIA = frozenset(_VOICE_SETTINGS_POR_TIPO)
+
+
 def _construir_voice_settings(tipo_bloco: str | None, tom: str | None, modelo: str, eh_clonada: bool, voice_id: str | None = None) -> dict:
     if modelo == "eleven_flash_v2_5":
         return _aplicar_jitter(dict(_VOICE_SETTINGS_FLASH))
 
-    categoria = _categoria_tipo_bloco(tipo_bloco) if tipo_bloco else ""
+    categoria = categoria_tipo_bloco(tipo_bloco) if tipo_bloco else ""
     voice_settings = {**_VOICE_SETTINGS_PADRAO, **_VOICE_SETTINGS_POR_TIPO.get(categoria, {})}
     for chave, delta in _AJUSTE_TOM.get(tom or "", {}).items():
         voice_settings[chave] = voice_settings[chave] + delta
