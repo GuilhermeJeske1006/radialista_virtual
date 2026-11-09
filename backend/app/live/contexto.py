@@ -582,7 +582,7 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
         passos_roteiro=decisao.passos_roteiro, formato_musical=formato_musical, multi_voz=multi_voz,
         roster=resolucao.roster, roteiro=roteiro, categorias_roteiro=categorias_roteiro,
         tempo=Tempo(agora_local=agora_local, instante=instante,
-                    origem_instante="painel" if decisao.inicio_previsto_aceito else "agora",
+                    origem_instante=decisao.origem_instante,
                     plano=plano, preset_relogio=decisao.preset_relogio,
                     inicio_previsto_aceito=decisao.inicio_previsto_aceito, ajuste_energia=ajuste_energia,
                     marco_tempo=marco, hora_certa=hora_certa),

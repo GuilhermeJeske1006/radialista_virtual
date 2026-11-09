@@ -54,6 +54,8 @@ class DecisaoBloco:
     primeira_fala: bool
     passos_roteiro: int
     ultima_categoria: str | None
+    # "painel" (inicio_previsto aceito), "estimado" (painel antigo, cadeia no servidor) ou "agora".
+    origem_instante: str = "agora"
     musica_relogio: Any = None      # MusicaEncontrada da etapa de música do relógio
     buscou_musica_relogio: bool = False
     assunto: Any = None             # AssuntoConversa do banco de assuntos (comentário)
@@ -70,7 +72,7 @@ def decidir_bloco(entrada: EntradaEmissao, portas: PortasEmissao) -> DecisaoBloc
     ja_encerrou = any(linha.startswith("encerramento:") for linha in historico)
     # Relogio da hora (F1): com programa.relogio_hora, o tipo do bloco vem da etapa do relogio no horario
     # previsto de ir ao ar (dados.inicio_previsto), nao da posicao na estrutura_blocos.
-    plano, inicio_previsto_aceito, preset_relogio = portas.planejar_relogio(
+    plano, inicio_previsto_aceito, preset_relogio, origem_instante = portas.planejar_relogio(
         db, account, radialista, programa, entrada.dados, formato_musical=entrada.formato_musical,
         ultima_categoria=ultima_categoria, ja_encerrou=ja_encerrou, cfg=entrada.cfg_relogio,
     )
@@ -90,7 +92,7 @@ def decidir_bloco(entrada: EntradaEmissao, portas: PortasEmissao) -> DecisaoBloc
             tipo = portas.tipo_proximo_bloco(programa, total_falas, ultima_categoria)
     primeira_fala = plano.primeira if plano is not None else total_falas == 0
     comum = dict(plano=plano, preset_relogio=preset_relogio, inicio_previsto_aceito=inicio_previsto_aceito,
-                 primeira_fala=primeira_fala, ultima_categoria=ultima_categoria)
+                 primeira_fala=primeira_fala, ultima_categoria=ultima_categoria, origem_instante=origem_instante)
 
     # Vinheta (tratada ANTES da categoria: "vinheta:12" nunca vai pra classificacao por LLM nem pro cache do
     # Redis). Conteudo fixo -- sem LLM. Vinheta desativada/sem conteudo pula pro proximo bloco do roteiro.

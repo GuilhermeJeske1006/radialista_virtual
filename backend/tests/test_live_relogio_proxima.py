@@ -183,7 +183,12 @@ def test_i1_i11_inicio_previsto_aceito_ecoado_e_cliente_antigo(client, account, 
 
     antigo = _post(client, account, auth_headers, radialista, programa, total_falas=1)
     assert antigo["relogio"]["inicio_previsto_aceito"] is False
-    assert antigo["relogio"]["inicio_previsto"].startswith("2026-11-10T15:00:05")
+    # F3: sem o campo, o horário sai da cadeia de blocos no servidor (o bloco anterior começa no início
+    # agendado ou agora, o que vier depois), não mais de agora.
+    assert antigo["relogio"]["origem_instante"] == "estimado"
+    esperado = datetime.datetime(2026, 11, 10, 15, 0, 5, tzinfo=datetime.timezone.utc) + datetime.timedelta(
+        seconds=(dados["pausa_antes_ms"] or 0) / 1000 + dados["duracao_prevista_s"])
+    assert datetime.datetime.fromisoformat(antigo["relogio"]["inicio_previsto"].replace("Z", "+00:00")) == esperado
 
 
 @freeze_time("2026-11-10 15:10:00")

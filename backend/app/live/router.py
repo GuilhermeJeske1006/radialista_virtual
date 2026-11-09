@@ -51,6 +51,7 @@ from app.live.ritmo_voz import (
 from app.live.relogio import (
     CONFIG_PADRAO as CONFIG_RELOGIO,
     ConfigRelogio,
+    EloCadeia,
     Peca,
     PecasDisponiveis,
     Plano,
@@ -59,7 +60,10 @@ from app.live.relogio import (
     duracao_preferida_musica_s,
     duracao_prevista_bloco,
     etapas_executadas,
+    gravar_elo,
     instante_previsto,
+    instante_sem_painel,
+    ler_cadeia,
     marcar_executada,
     musica_cabe,
     ocorrencia_em,
@@ -67,6 +71,7 @@ from app.live.relogio import (
     ler_inicio_previsto,
     relogio_ao_vivo,
     relogio_do_programa,
+    zerar_cadeia,
 )
 # Textos de prompt (F3): reexportados aqui porque testes e scripts importam do router.
 from app.live.prompts import (  # noqa: F401
@@ -1726,20 +1731,44 @@ def _pecas_do_relogio(db: Session, account: Account, programa: Programa, wpm: fl
     )
 
 
+def _transmissao_recomecou(dados: LiveProgramRequest) -> bool:
+    return not dados.total_falas and not dados.historico
+
+
+def _instante_do_bloco(programa: Programa, radialista: RadioConfig, dados: LiveProgramRequest,
+                       agora: datetime.datetime, cfg: ConfigRelogio) -> tuple[datetime.datetime, bool, str]:
+    """(instante, aceito, origem). Com `inicio_previsto`, o do painel (ou agora, se inválido). Sem o campo (painel
+    antigo, F3), a estimativa pela cadeia de blocos gerados nesta ocorrência; sem ocorrência, agora."""
+    if dados.inicio_previsto is not None:
+        instante, aceito = instante_previsto(ler_inicio_previsto(dados.inicio_previsto), agora, cfg)
+        return instante, aceito, "painel" if aceito else "agora"
+    ocorrencia = ocorrencia_em(programa, radialista.timezone, agora, cfg) or ocorrencia_em(
+        programa, radialista.timezone, agora + datetime.timedelta(seconds=cfg.preparo_sem_painel_max_s), cfg)
+    if ocorrencia is None:
+        return agora, False, "agora"
+    elos = [] if _transmissao_recomecou(dados) else ler_cadeia(programa.id, ocorrencia)
+    instante = instante_sem_painel(elos, agora, ocorrencia.inicio, cfg)
+    logger.info("relogio_inicio_previsto_estimado programa_id=%s instante=%s elos=%s", programa.id,
+                instante.isoformat(timespec="seconds"), len(elos))
+    return instante, False, "estimado"
+
+
 def _planejar_relogio(
     db: Session, account: Account, radialista: RadioConfig, programa: Programa, dados: LiveProgramRequest, *,
     formato_musical: bool, ultima_categoria: str | None, ja_encerrou: bool, cfg: ConfigRelogio = CONFIG_RELOGIO,
-) -> tuple[Plano | None, bool, str | None]:
-    """(plano, inicio_previsto_aceito, preset). Plano None = caminho de sempre (estrutura_blocos). `cfg`
-    traz o ritmo calibrado da voz (F2) para as estimativas do backtiming."""
+) -> tuple[Plano | None, bool, str | None, str]:
+    """(plano, inicio_previsto_aceito, preset, origem do instante). Plano None = caminho de sempre
+    (estrutura_blocos). `cfg` traz o ritmo calibrado da voz (F2) para as estimativas do backtiming."""
     relogio = relogio_do_programa(programa)
     if relogio is None:
-        return None, False, None
+        return None, False, None, "agora"
     agora = datetime.datetime.now(datetime.timezone.utc)
-    instante, aceito = instante_previsto(ler_inicio_previsto(dados.inicio_previsto), agora, cfg)
+    instante, aceito, origem = _instante_do_bloco(programa, radialista, dados, agora, cfg)
     ocorrencia = ocorrencia_em(programa, radialista.timezone, instante, cfg)
+    if ocorrencia is not None and _transmissao_recomecou(dados):
+        zerar_cadeia(programa.id, ocorrencia)  # nova transmissão (painel, painel antigo ou prewarm)
     if ocorrencia is None or ja_encerrou:
-        return None, aceito, relogio.preset
+        return None, aceito, relogio.preset, origem
     plano = planejar(
         programa, relogio, radialista.timezone, instante, formato_musical=formato_musical,
         ultima_categoria=ultima_categoria, ja_encerrou=ja_encerrou,
@@ -1751,7 +1780,7 @@ def _planejar_relogio(
             "relogio_plano programa_id=%s etapa=%s acao=%s tipo=%s espaco_s=%s ate_hard_time_s=%s",
             programa.id, plano.etapa.chave, plano.acao, plano.tipo_bloco, plano.espaco_s, plano.segundos_ate_hard_time,
         )
-    return plano, aceito, relogio.preset
+    return plano, aceito, relogio.preset, origem
 
 
 def _ha_pedido_musica_pendente(db: Session, radialista: RadioConfig, programa: Programa, novo_atendimento: bool) -> bool:
@@ -1818,7 +1847,7 @@ def _citadas_que_cabem(plano: Plano, fala: str, musicas: list[MusicaEncontrada],
 def _com_relogio(
     resposta: LiveProgramResponse, programa_id: int, plano: Plano | None, preset: str | None, aceito: bool, *,
     duracao_peca_s: float | None = None, duracao_vinheta_fim_s: float | None = None,
-    cfg: ConfigRelogio = CONFIG_RELOGIO,
+    cfg: ConfigRelogio = CONFIG_RELOGIO, origem: str | None = None,
 ) -> LiveProgramResponse:
     """Completa a resposta com duracao_prevista_s (todos os programas) e, com relogio, o campo
     `relogio`; so' aqui, com o bloco decidido, marca a etapa/peca como executada. A fala entra pela
@@ -1828,8 +1857,14 @@ def _com_relogio(
     )
     if plano is None:
         return resposta
-    resposta.relogio = relogio_ao_vivo(plano, preset, aceito)
+    resposta.relogio = relogio_ao_vivo(plano, preset, aceito, origem)
     marcar_executada(programa_id, plano.ocorrencia, plano.chave_estado, *plano.puladas, cfg=cfg)
+    # Cadeia do painel antigo (F3): todo bloco decidido pelo relógio, inclusive o do prewarm.
+    gravar_elo(programa_id, plano.ocorrencia, EloCadeia(
+        tipo=resposta.tipo, vinheta=resposta.tipo == "vinheta",
+        duracao_s=round((resposta.pausa_antes_ms or 0) / 1000 + resposta.duracao_prevista_s, 2),
+        gerado_em=round(time.time(), 3),
+    ), cfg)
     if plano.orcamento_s and resposta.fala.strip() and resposta.tipo not in ("vinheta", "patrocinador"):
         prevista = resposta.duracao_fala_s or resposta.duracao_fala_estimada_s or estimar_duracao_s(resposta.fala, cfg.wpm)
         if prevista > plano.orcamento_s[1] + cfg.tolerancia_hard_time_s:
@@ -1910,7 +1945,7 @@ def _resposta_pronta(decisao: DecisaoBloco, programa: Programa, cfg: ConfigRelog
         duracao = float(patrocinador.duracao_segundos) \
             if patrocinador.tipo_conteudo == "audio" and patrocinador.duracao_segundos else None
     return _com_relogio(resposta, programa.id, decisao.plano, decisao.preset_relogio, decisao.inicio_previsto_aceito,
-                        cfg=cfg, duracao_peca_s=duracao)
+                        cfg=cfg, duracao_peca_s=duracao, origem=decisao.origem_instante)
 
 
 def _item_musica(m: MusicaEncontrada) -> MusicaBlocoItem:
@@ -1929,7 +1964,8 @@ def _resposta_so_musica(decisao: DecisaoBloco, musica: MusicaEncontrada, program
         duracao_segundos=musica.duracao_segundos, musicas=[_item_musica(musica)],
         pausa_antes_ms=_pausa_antes_ms(decisao.ultima_categoria, "musica"), audio_status="nao_aplicavel",
         passos_roteiro=decisao.passos_roteiro,
-    ), programa.id, decisao.plano, decisao.preset_relogio, decisao.inicio_previsto_aceito, cfg=cfg)
+    ), programa.id, decisao.plano, decisao.preset_relogio, decisao.inicio_previsto_aceito, cfg=cfg,
+        origem=decisao.origem_instante)
 
 
 def _musicas_do_bloco(db: Session, ctx: ContextoEmissao, musica: MusicaEncontrada | None, fala: str,
@@ -2293,7 +2329,7 @@ def gerar_proxima_fala(
         vinheta_encerramento_audio=bool(vinheta_fim and vinheta_fim.audio_path),
         vinheta_encerramento_texto=(vinheta_fim.texto or None) if vinheta_fim else None,
     ), programa.id, plano, decisao.preset_relogio, decisao.inicio_previsto_aceito, cfg=cfg_relogio,
-        duracao_vinheta_fim_s=float(vinheta_fim.duracao_segundos)
+        origem=decisao.origem_instante, duracao_vinheta_fim_s=float(vinheta_fim.duracao_segundos)
         if vinheta_fim and vinheta_fim.audio_path and vinheta_fim.duracao_segundos else None)
 
 

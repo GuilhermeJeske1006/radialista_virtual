@@ -100,6 +100,9 @@
   "falas_geradas:1:comentario": [
    "Seguimos com você nesta tarde."
   ],
+  "relogio_cadeia:1:20261110T150000Z": [
+   "{\"tipo\": \"comentario\", \"vinheta\": false, \"duracao_s\": 2.0, \"gerado_em\": 1794323540.0}"
+  ],
   "relogio_etapas:1:20261110T150000Z": [
    "0:0:fala:abertura",
    "0:40",
@@ -157,6 +160,7 @@
     10,
     35
    ],
+   "origem_instante": "painel",
    "preset": "A",
    "proximo_compromisso": {
     "fim": "2026-11-10T15:27:00Z",

@@ -20,7 +20,7 @@ import json
 import logging
 import math
 import pathlib
-from dataclasses import dataclass, field, replace
+from dataclasses import asdict, dataclass, field, replace
 from typing import Literal, get_args
 from zoneinfo import ZoneInfo
 
@@ -257,6 +257,13 @@ class ConfigRelogio:
     espaco_min_pedido_s: int = 330         # espaço para anúncio + música pedida antes do hard time
     max_etapas_puladas: int = 4
     ttl_estado_s: int = 6 * 60 * 60        # igual a _TTL_SESSAO_AO_VIVO; renovado a cada marcação
+    # Painel antigo sem inicio_previsto (F3): o servidor estima o horário pela cadeia de blocos gerados.
+    # Quanto antes do início a primeira geração ainda acha a ocorrência (a mesma conta do prewarm, 90 s + folga).
+    preparo_sem_painel_max_s: int = 120
+    # Blocos sem vinheta que o painel gera à frente (frontend-painel/lib/filaPreparo.ts): o bloco k é gerado
+    # quando o bloco k - antecedência começa a tocar.
+    antecedencia_painel_antigo: int = 2
+    max_elos_cadeia: int = 50
     unidades: dict[str, tuple[int, int]] = field(default_factory=lambda: dict(UNIDADES_PADRAO))
 
 
@@ -996,6 +1003,8 @@ class RelogioAoVivo(BaseModel):
     preset: str | None = None
     inicio_previsto: datetime.datetime
     inicio_previsto_aceito: bool
+    # F3: de onde veio o horário do bloco. "estimado" = painel antigo sem inicio_previsto, pela cadeia no servidor.
+    origem_instante: Literal["painel", "estimado", "agora"] | None = None
     hora: int
     etapa: EtapaAoVivo
     proximo_compromisso: EtapaAoVivo | None = None
@@ -1013,9 +1022,10 @@ def _etapa_ao_vivo(etapa: Etapa) -> EtapaAoVivo:
                        hard_time=etapa.hard_time, inicio=etapa.inicio, fim=etapa.fim)
 
 
-def relogio_ao_vivo(plano: Plano, preset: str | None, aceito: bool) -> RelogioAoVivo:
+def relogio_ao_vivo(plano: Plano, preset: str | None, aceito: bool, origem: str | None = None) -> RelogioAoVivo:
     return RelogioAoVivo(
-        preset=preset, inicio_previsto=plano.instante, inicio_previsto_aceito=aceito, hora=plano.etapa.hora,
+        preset=preset, inicio_previsto=plano.instante, inicio_previsto_aceito=aceito, origem_instante=origem,
+        hora=plano.etapa.hora,
         etapa=_etapa_ao_vivo(plano.etapa),
         proximo_compromisso=_etapa_ao_vivo(plano.proximo_compromisso) if plano.proximo_compromisso else None,
         segundos_ate_hard_time=plano.segundos_ate_hard_time, espaco_s=plano.espaco_s, acao=plano.acao,
@@ -1055,3 +1065,67 @@ def marcar_executada(programa_id: int, ocorrencia: Ocorrencia, *chaves: str,
         redis_client.expire(chave, cfg.ttl_estado_s)
     except Exception:
         logger.warning("relogio_estado_nao_gravado programa_id=%s chaves=%s", programa_id, chaves, exc_info=True)
+
+
+# ------------------------------------------------------------------------------------------------
+# Painel antigo sem inicio_previsto (F3): cadeia de blocos gerados, no servidor
+# ------------------------------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class EloCadeia:
+    tipo: str
+    vinheta: bool
+    duracao_s: float      # pausa antes do bloco + duração prevista dele
+    gerado_em: float      # epoch (s)
+
+
+def instante_sem_painel(elos: list[EloCadeia], agora: datetime.datetime, inicio_ocorrencia: datetime.datetime,
+                        cfg: ConfigRelogio = CONFIG_PADRAO) -> datetime.datetime:
+    """Horário previsto do próximo bloco para um painel que não manda `inicio_previsto`.
+
+    O painel gera o bloco k quando o bloco k - antecedência (sem contar vinhetas) começa a tocar. Sem elos, o
+    bloco abre o programa: max(agora, início). Com menos elos que a antecedência, eles tocam a partir do início.
+    Depois disso o bloco que acabou de começar é o elo k - antecedência: cada pedido se reancora em `agora` e o erro
+    não acumula. Fica entre agora e agora + inicio_previsto_max_s."""
+    agora, inicio = _utc(agora), _utc(inicio_ocorrencia)
+    sem_vinheta = [i for i, elo in enumerate(elos) if not elo.vinheta]
+    if len(sem_vinheta) < cfg.antecedencia_painel_antigo:
+        instante = max(agora, inicio) + datetime.timedelta(seconds=sum(e.duracao_s for e in elos))
+    else:
+        desde = sem_vinheta[-cfg.antecedencia_painel_antigo]
+        instante = agora + datetime.timedelta(seconds=sum(e.duracao_s for e in elos[desde:]))
+    return min(max(instante, agora), agora + datetime.timedelta(seconds=cfg.inicio_previsto_max_s))
+
+
+def _chave_cadeia(programa_id: int, ocorrencia: Ocorrencia) -> str:
+    return f"relogio_cadeia:{programa_id}:{ocorrencia.chave}"
+
+
+def ler_cadeia(programa_id: int, ocorrencia: Ocorrencia) -> list[EloCadeia]:
+    """Elos desta ocorrência. Redis fora (disjuntor) ou elo ilegível: lista vazia, e o horário volta a ser agora."""
+    from app.config.redis_client import redis_sessao
+
+    elos = []
+    for bruto in redis_sessao.lrange(_chave_cadeia(programa_id, ocorrencia), 0, -1) or []:
+        try:
+            dados = json.loads(bruto)
+            elos.append(EloCadeia(str(dados["tipo"]), bool(dados["vinheta"]), float(dados["duracao_s"]),
+                                  float(dados["gerado_em"])))
+        except (ValueError, KeyError, TypeError):
+            logger.info("relogio_cadeia_elo_invalido programa_id=%s", programa_id)
+    return elos
+
+
+def gravar_elo(programa_id: int, ocorrencia: Ocorrencia, elo: EloCadeia, cfg: ConfigRelogio = CONFIG_PADRAO) -> None:
+    from app.config.redis_client import redis_sessao
+
+    chave = _chave_cadeia(programa_id, ocorrencia)
+    redis_sessao.rpush(chave, json.dumps(asdict(elo)))
+    redis_sessao.ltrim(chave, -cfg.max_elos_cadeia, -1)
+    redis_sessao.expire(chave, cfg.ttl_estado_s)
+
+
+def zerar_cadeia(programa_id: int, ocorrencia: Ocorrencia) -> None:
+    from app.config.redis_client import redis_sessao
+
+    redis_sessao.delete(_chave_cadeia(programa_id, ocorrencia))

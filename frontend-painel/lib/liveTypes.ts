@@ -74,6 +74,9 @@ export type ProgramSegment = ConfirmacaoPedido & {
   duracao_fala_estimada_s?: number | null;
   orcamento_fala_s?: OrcamentoFala | null;
   fala_ajuste?: FalaAjuste | null;
+  // Validador pós-geração (F3): música anunciada sem confirmação ou fragmento abaixo do mínimo. Opcional e só
+  // carregado no segmento (o painel não usa); nulo quando nada foi encontrado.
+  validacao_fala?: ValidacaoFala | null;
   // Horário previsto enviado ao backend e início bruto da cadeia (ms desde a época).
   inicio_previsto_ms?: number;
   inicio_bruto_ms?: number;
@@ -103,6 +106,8 @@ export type RelogioAoVivo = {
   acao: string;
   orcamento_s: [number, number] | null;
   puladas?: string[];
+  // F3: de onde veio o horário do bloco. "estimado": painel antigo sem inicio_previsto, cadeia no servidor.
+  origem_instante?: "painel" | "estimado" | "agora";
 };
 
 // Orçamento de duração da fala devolvido pelo /proxima (F2). aplicado=false: só medido (formato padrão
@@ -113,6 +118,18 @@ export type OrcamentoFala = {
   max_s: number;
   fonte: "relogio" | "formato" | "observacao";
   aplicado: boolean;
+};
+
+// Validador pós-geração da fala (F3, app/live/validacao_fala.py).
+export type ViolacaoFala = {
+  regra: string;
+  trecho: string;
+  ref_id: string;
+};
+
+export type ValidacaoFala = {
+  violacoes: ViolacaoFala[];
+  acao: "nenhuma" | "reescrita" | "mencao_removida" | "fala_neutra" | "fala_removida";
 };
 
 // O que o backend fez para a fala caber no orçamento; nunca acelera a voz.

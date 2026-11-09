@@ -91,6 +91,9 @@
   "falas_geradas:1:encerramento": [
    "Obrigado pela companhia nesta tarde."
   ],
+  "relogio_cadeia:1:20261110T150000Z": [
+   "{\"tipo\": \"encerramento\", \"vinheta\": false, \"duracao_s\": 2.0, \"gerado_em\": 1794325920.0}"
+  ],
   "relogio_etapas:1:20261110T150000Z": [
    "0:0:fala:abertura"
   ],
@@ -145,6 +148,7 @@
     15,
     25
    ],
+   "origem_instante": "painel",
    "preset": "A",
    "puladas": []
   },

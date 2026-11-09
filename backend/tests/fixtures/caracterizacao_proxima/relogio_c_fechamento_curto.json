@@ -99,6 +99,9 @@
   "falas_geradas:1:comentario": [
    "Fica a dica: devagar se vai longe."
   ],
+  "relogio_cadeia:1:20261110T150000Z": [
+   "{\"tipo\": \"comentario\", \"vinheta\": false, \"duracao_s\": 2.94, \"gerado_em\": 1794323700.0}"
+  ],
   "relogio_etapas:1:20261110T150000Z": [
    "0:0:fala:abertura",
    "0:600:fechamento_curto"
@@ -154,6 +157,7 @@
     6,
     12
    ],
+   "origem_instante": "painel",
    "preset": "C",
    "proximo_compromisso": {
     "fim": "2026-11-10T15:19:00Z",
