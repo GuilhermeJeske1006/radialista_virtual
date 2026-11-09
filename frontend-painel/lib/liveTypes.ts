@@ -64,11 +64,16 @@ export type ProgramSegment = ConfirmacaoPedido & {
   intervalo_ms?: number | null;
   pausa_antes_ms?: number | null;
   duracao_alvo_segundos?: [number, number] | null;
-  // Estimativa do backend (fala a 145 palavras/min, músicas, vinhetas) -- encadeia o horário
-  // previsto do bloco seguinte (ver lib/relogioAoVivo.ts).
+  // Estimativa do backend (fala no ritmo calibrado da voz ou medida, músicas, vinhetas) -- encadeia o
+  // horário previsto do bloco seguinte (ver lib/relogioAoVivo.ts).
   duracao_prevista_s?: number | null;
   // Só em programa com relógio da hora: etapa, próximo compromisso e espaço (backtiming).
   relogio?: RelogioAoVivo | null;
+  // Duração real da fala (F2). Opcionais: o painel ainda não usa, só carrega no segmento.
+  duracao_fala_s?: number | null;
+  duracao_fala_estimada_s?: number | null;
+  orcamento_fala_s?: OrcamentoFala | null;
+  fala_ajuste?: FalaAjuste | null;
   // Horário previsto enviado ao backend e início bruto da cadeia (ms desde a época).
   inicio_previsto_ms?: number;
   inicio_bruto_ms?: number;
@@ -99,6 +104,19 @@ export type RelogioAoVivo = {
   orcamento_s: [number, number] | null;
   puladas?: string[];
 };
+
+// Orçamento de duração da fala devolvido pelo /proxima (F2). aplicado=false: só medido (formato padrão
+// sem relógio). O /tts com pós-produção devolve a duração medida no cabeçalho X-Duracao-Fala-S.
+export type OrcamentoFala = {
+  min_s: number;
+  alvo_s: number;
+  max_s: number;
+  fonte: "relogio" | "formato" | "observacao";
+  aplicado: boolean;
+};
+
+// O que o backend fez para a fala caber no orçamento; nunca acelera a voz.
+export type FalaAjuste = "nenhum" | "reescrita" | "encurtada" | "cortada" | "acima_do_teto";
 
 export type LiveProgramResponse = ConfirmacaoPedido & {
   pesquisa_noticias?: PesquisaNoticias | null;
@@ -142,6 +160,11 @@ export type LiveProgramResponse = ConfirmacaoPedido & {
   audios_falas_base64?: (string | null)[] | null;
   duracao_prevista_s?: number | null;
   relogio?: RelogioAoVivo | null;
+  // F2: duração medida (só com áudio sintetizado no próprio /proxima), estimada, orçamento e ajuste.
+  duracao_fala_s?: number | null;
+  duracao_fala_estimada_s?: number | null;
+  orcamento_fala_s?: OrcamentoFala | null;
+  fala_ajuste?: FalaAjuste | null;
 };
 
 export type ProgramaOpcao = Programa & { radialistaId: number; radialistaNome: string };
