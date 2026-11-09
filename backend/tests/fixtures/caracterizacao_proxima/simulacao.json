@@ -1,0 +1,1250 @@
+{
+ "musical_adulto/fixture": {
+  "eventos": [
+   [
+    "vinheta",
+    "Rádio Serra Clara. Tarde Serena.",
+    null,
+    0,
+    "peca"
+   ],
+   [
+    "abertura",
+    "Seguimos juntos em Tarde Serena. O rádio ligado e a tarde passando leve. A tarde fica melhor com música. Quem está em casa, bom descanso. Quem está no trabalho, bom trabalho. Obrigado por deixar o rádio ligado. Fica com a gente.",
+    "Farol Distante - Trio Ventania",
+    1,
+    "fala"
+   ],
+   [
+    "musica",
+    "",
+    "Farol Distante - Trio Ventania",
+    0,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Jardim Suspenso - Otávio Pedregal",
+    0,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Rua das Acácias - Duo Estrada Velha",
+    0,
+    "musica"
+   ],
+   [
+    "retomada",
+    "A tarde continua na Rádio Serra Clara. Pouca conversa e muita canção, como combinado. A tarde fica melhor com música. Boa tarde.",
+    "Estação Primavera - Clara Bromélia",
+    2,
+    "fala"
+   ],
+   [
+    "musica",
+    "",
+    "Estação Primavera - Clara Bromélia",
+    0,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Cartas de Outono - Dora Vilarejo",
+    0,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Varanda de Pedra - Trio Ventania",
+    0,
+    "musica"
+   ],
+   [
+    "chamada_ouvinte",
+    "O WhatsApp da Rádio Serra Clara está aberto para o seu recado. Áudio curto também vale. Respira fundo, ajeita a cadeira e vem com a gente. Manda o seu. Pode esperar Canção do Sereno, de Lia Candeia, nesta tarde.",
+    "Cais do Entardecer - Banda Fio de Prata",
+    1,
+    "fala"
+   ],
+   [
+    "musica",
+    "",
+    "Cais do Entardecer - Banda Fio de Prata",
+    0,
+    "musica"
+   ],
+   [
+    "musica",
+    "Joana Lis, procurei a sua pedida e ela não está disponível por aqui.",
+    "Telhados de Lisboa - Coral Alto",
+    1,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Telhados de Lisboa - Coral Alto",
+    1,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Sobrado Amarelo - Conjunto Maré Mansa",
+    0,
+    "musica"
+   ],
+   [
+    "retomada",
+    "Seguimos juntos em Tarde Serena. Mais música para acompanhar seu dia. A tarde fica melhor com música. Bom te ter por perto.",
+    "Vitrola Velha - Helena Marés",
+    1,
+    "fala"
+   ],
+   [
+    "musica",
+    "",
+    "Vitrola Velha - Helena Marés",
+    0,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Pássaro Sem Pressa - Helena Marés",
+    0,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Barquinho de Jornal - Trio Ventania",
+    0,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Lua no Telhado - Coral Alto",
+    0,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Ponte de Madeira - Helena Marés",
+    0,
+    "musica"
+   ],
+   [
+    "identificacao",
+    "Rádio Serra Clara. Música para a sua tarde.",
+    null,
+    1,
+    "reserva"
+   ],
+   [
+    "encerramento",
+    "A nossa hora juntos termina agora. A tarde ficou melhor com a sua companhia. Cuide de você e de quem está por perto. Que a próxima hora do seu dia seja leve. Até amanhã, no mesmo horário.",
+    null,
+    1,
+    "encerramento"
+   ],
+   [
+    "encerramento",
+    "Tarde Serena, na Rádio Serra Clara. Amanhã tem mais.",
+    null,
+    1,
+    "encerramento"
+   ]
+  ],
+  "sha256": "d358799473897e00b36c8e16f2240c0caf1ad6df52ad6da180a7c79356a06a56"
+ },
+ "musical_adulto/nenhum": {
+  "eventos": [
+   [
+    "abertura",
+    "Que bom ter você por aqui: Tarde Serena começa agora na Rádio Serra Clara. A programação começa leve, do jeito que a tarde merece. Nem tudo precisa ser corrido, e a música lembra a gente disso. Quem liga o rádio nesta hora costuma querer um pouco de calma, e a gente entende. Uma tarde bem acompanhada passa diferente. Fica com a gente.",
+    "Cais do Entardecer - Banda Fio de Prata",
+    1,
+    null
+   ],
+   [
+    "vinheta",
+    "Rádio Serra Clara. Tarde Serena.",
+    null,
+    0,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Cais do Entardecer - Banda Fio de Prata",
+    0,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Lua no Telhado - Coral Alto",
+    0,
+    null
+   ],
+   [
+    "identificacao",
+    "Aqui é a Rádio Serra Clara. Música para a sua tarde. Vem junto.",
+    "Rua das Acácias - Duo Estrada Velha",
+    2,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Rua das Acácias - Duo Estrada Velha",
+    0,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Canção para Helena - Nina Arrebol",
+    0,
+    null
+   ],
+   [
+    "retomada",
+    "Tarde Serena segue com você. Seguimos sem pressa nenhuma. Aproveita. Pode esperar Canção do Sereno, de Lia Candeia, nesta tarde.",
+    "Vento de Agosto - Nina Arrebol",
+    1,
+    null
+   ],
+   [
+    "vinheta",
+    "Rádio Serra Clara. Tarde Serena.",
+    null,
+    0,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Vento de Agosto - Nina Arrebol",
+    0,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Varanda de Pedra - Trio Ventania",
+    0,
+    null
+   ],
+   [
+    "identificacao",
+    "Caio Ventania na Rádio Serra Clara. Com Caio Ventania. Fica com a gente.",
+    "Cartas de Outono - Dora Vilarejo",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Cartas de Outono - Dora Vilarejo",
+    0,
+    null
+   ],
+   [
+    "musica",
+    "Quem pediu foi Joana Lis, e toca agora Farol Distante, de Trio Ventania. Obrigado pela companhia. Aproveita.",
+    "Farol Distante - Trio Ventania",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Farol Distante - Trio Ventania",
+    1,
+    null
+   ],
+   [
+    "retomada",
+    "Caio Ventania com você, em Tarde Serena. O rádio ligado e a tarde passando leve. Quem está no trabalho, bom trabalho. Aproveita.",
+    "Estação Primavera - Clara Bromélia",
+    1,
+    null
+   ],
+   [
+    "vinheta",
+    "Rádio Serra Clara. Tarde Serena.",
+    null,
+    0,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Estação Primavera - Clara Bromélia",
+    0,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Jardim Suspenso - Otávio Pedregal",
+    0,
+    null
+   ],
+   [
+    "identificacao",
+    "Aqui é a Rádio Serra Clara. A trilha da sua tarde. Boa tarde.",
+    "Barquinho de Jornal - Trio Ventania",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Barquinho de Jornal - Trio Ventania",
+    0,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Areia Fina - Rui Lamparina",
+    0,
+    null
+   ],
+   [
+    "retomada",
+    "Bom ter sua companhia na Rádio Serra Clara. Pouca conversa e muita canção, como combinado. A tarde fica melhor com música. Segue o som.",
+    "Porto das Gaivotas - Tomás Ribeira",
+    1,
+    null
+   ],
+   [
+    "vinheta",
+    "Rádio Serra Clara. Tarde Serena.",
+    null,
+    0,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Porto das Gaivotas - Tomás Ribeira",
+    0,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Sal da Maré - Tomás Ribeira",
+    0,
+    null
+   ]
+  ],
+  "sha256": "ab37f58ea5ec34695e6ef45ced8bc4e2abbfce5bc8777ec7721336e87250571d"
+ },
+ "popular_sertanejo/fixture": {
+  "eventos": [
+   [
+    "abertura",
+    "Que bom ter você por aqui: Prosa e Viola começa agora na Rádio Ipê Dourado. A programação começa leve, do jeito que a tarde merece. Nem tudo precisa ser corrido, e a música lembra a gente disso. Quem liga o rádio nesta hora costuma querer um pouco de calma, e a gente entende. Pode deixar o volume no ponto que for melhor para você. Respira fundo, ajeita a cadeira e vem com a gente. Fica com a gente.",
+    "Riacho do Engenho - Neném do Cerrado",
+    1,
+    "fala"
+   ],
+   [
+    "musica",
+    "",
+    "Riacho do Engenho - Neném do Cerrado",
+    0,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Sanfona e Lamparina - Neném do Cerrado",
+    0,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Ipê na Beira da Estrada - Mariana Arreio",
+    0,
+    "musica"
+   ],
+   [
+    "comentario",
+    "Uma pergunta para você pensar: qual cheiro lembra a casa da sua infância? Parece bobagem, mas esses detalhes contam muito sobre a gente. Talvez seja isso que deixa a casa com cara de casa. No fundo, é um jeito de cuidar de quem mora com a gente. Cada lugar tem seu jeito de fazer a mesma coisa. Coisa boa de pensar.",
+    "Café de Coador - Tonho Varjão",
+    1,
+    "fala"
+   ],
+   [
+    "musica",
+    "Lurdinha Campos pediu pelo WhatsApp, e toca agora Café de Coador, com Tonho Varjão. Escolha de quem entende. Repara no arranjo, que tem capricho em cada detalhe. Aumenta o volume.",
+    "Café de Coador - Tonho Varjão",
+    1,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Café de Coador - Tonho Varjão",
+    1,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Boiadeiro de Domingo - Ciro Mangabeira",
+    0,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Chapéu de Palha Novo - Irmãos Taquara",
+    0,
+    "musica"
+   ],
+   [
+    "identificacao",
+    "Rádio.",
+    "Estrada de Chão Batido - Irmãos Taquara",
+    2,
+    "reserva"
+   ],
+   [
+    "patrocinador",
+    "Armazém Boa Colheita: tudo para a sua roça, com atendimento de vizinho.",
+    null,
+    0,
+    "intervalo"
+   ],
+   [
+    "chamada_ouvinte",
+    "Alô, Seu Ditinho, obrigado por escrever para a rádio. Abraço enviado, com carinho. A gente gosta de pensar no rádio como uma janela aberta. Quem trabalha de casa sabe como uma trilha boa ajuda a organizar a cabeça. Cada música desta tarde foi escolhida para combinar com o seu ritmo. Tem dia que a gente só precisa de uma voz conhecida por perto. É bom saber que, de algum lugar, você está ouvindo agora. Uma tarde bem acompanhada passa diferente. Se alguém do seu lado também gosta de música, chama para ouvir junto. Com carinho.",
+    "Estrada de Chão Batido - Irmãos Taquara",
+    1,
+    "fala"
+   ],
+   [
+    "musica",
+    "Recebi o seu pedido, Rosa Bezerra, mas essa música não está no acervo. Vai Estrada de Chão Batido, de Irmãos Taquara, no lugar da pedida. Bom demais.",
+    "Estrada de Chão Batido - Irmãos Taquara",
+    1,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Estrada de Chão Batido - Irmãos Taquara",
+    1,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Poeira na Botina - Zé Ribeirão e Tião",
+    0,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Rancho da Serra Fria - Dupla Lua e Laço",
+    0,
+    "musica"
+   ],
+   [
+    "comentario",
+    "Repara como cada família tem um jeito próprio de arrumar a mesa. Parece bobagem, mas esses detalhes contam muito sobre a gente. A memória guarda essas pequenas cenas com cuidado. Uma conversa boa começa assim, por um detalhe pequeno. E quando alguém de fora repara, a gente estranha. A gente aprende muita coisa observando quem está perto. O tempo passa, mas certos costumes ficam. Nem tudo precisa de explicação, algumas coisas só são assim. Pensa na cozinha da sua casa e você vai entender o que eu digo. E ritual pequeno também é coisa séria. A conversa fica por aqui.",
+    "Laço de Fita Amarela - Neném do Cerrado",
+    1,
+    "fala"
+   ],
+   [
+    "musica",
+    "",
+    "Laço de Fita Amarela - Neném do Cerrado",
+    0,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Viola no Alpendre - Os Filhos da Serra",
+    0,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Cancela do Retiro - Duo Lajeado",
+    0,
+    "musica"
+   ],
+   [
+    "identificacao",
+    "Esta é a Rádio Ipê Dourado. Com Prosa e Viola. Tudo calmo por aqui. Música escolhida com cuidado. O som continua no ritmo da tarde. Fica à vontade. Bom te ter aqui.",
+    "Carro de Boi Cantador - Jessé Porteira",
+    1,
+    "reserva"
+   ],
+   [
+    "comentario",
+    "Vamos falar de uma coisa simples: guardar sacola dentro de sacola. Às vezes o assunto mais simples é o que mais aproxima as pessoas. Eu gosto de pensar que todo mundo tem um ritual pequeno. Às vezes um gesto simples resolve o dia de alguém. O que para um é costume, para outro é novidade. Vale a pena parar um minuto e pensar nisso. Tem hábito que a gente herda sem perceber. Tem quem ria disso, e tem quem defenda com unhas e dentes. Se você tem uma história assim, ela é sua e é especial. Coisa boa de pensar.",
+    "Carro de Boi Cantador - Jessé Porteira",
+    1,
+    "reserva"
+   ],
+   [
+    "patrocinador",
+    "Armazém Boa Colheita: tudo para a sua roça, com atendimento de vizinho.",
+    null,
+    0,
+    "adiantamento"
+   ],
+   [
+    "musica",
+    "",
+    "Carro de Boi Cantador - Jessé Porteira",
+    0,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Rodeio de Inverno - Zé Ribeirão e Tião",
+    0,
+    "musica"
+   ],
+   [
+    "identificacao",
+    "Rádio Ipê Dourado. Música para a sua tarde. Aproveita.",
+    null,
+    1,
+    "reserva"
+   ],
+   [
+    "encerramento",
+    "Está chegando ao fim Prosa e Viola de hoje. Cada minuto desta hora valeu a pena. Que a próxima hora do seu dia seja leve. Leva uma música boa na cabeça. Quem estava no trabalho, bom fim de expediente. Cuide de você e de quem está por perto. Tchau, e bom resto de dia.",
+    null,
+    1,
+    "encerramento"
+   ],
+   [
+    "encerramento",
+    "Prosa e Viola, na Rádio Ipê Dourado.",
+    null,
+    1,
+    "encerramento"
+   ]
+  ],
+  "sha256": "5c62f5a10494f138292eb4de919ff38b5558a269b7fa28ef2bda29251a26e820"
+ },
+ "popular_sertanejo/nenhum": {
+  "eventos": [
+   [
+    "abertura",
+    "Que bom ter você por aqui: Prosa e Viola começa agora na Rádio Ipê Dourado. A programação começa leve, do jeito que a tarde merece. Nem tudo precisa ser corrido, e a música lembra a gente disso. Quem liga o rádio nesta hora costuma querer um pouco de calma, e a gente entende. Pode deixar o volume no ponto que for melhor para você. Respira fundo, ajeita a cadeira e vem com a gente. Uma tarde bem acompanhada passa diferente. Música boa faz o tempo andar no passo certo. Fica com a gente.",
+    "Riacho do Engenho - Neném do Cerrado",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "Para embalar este momento, Riacho do Engenho, na voz de Neném do Cerrado. É uma daquelas que a gente canta junto sem perceber. Deixa o som tomar conta por alguns minutos. Repara no arranjo, que tem capricho em cada detalhe. É daquelas que a gente canta junto sem perceber. A letra conta uma história simples, do jeito que o povo gosta. Bom demais.",
+    "Riacho do Engenho - Neném do Cerrado",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Riacho do Engenho - Neném do Cerrado",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "Com você, Os Filhos da Serra, cantando Trem da Madrugada. Tem gente que escuta essa no volume máximo, e tem razão. Boa para ouvir de janela aberta. Música boa não precisa de muita apresentação. Deixa o som tomar conta por alguns minutos. Repara no arranjo, que tem capricho em cada detalhe. É daquelas que a gente canta junto sem perceber. Com vocês, Os Filhos da Serra.",
+    "Trem da Madrugada - Os Filhos da Serra",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Trem da Madrugada - Os Filhos da Serra",
+    1,
+    null
+   ],
+   [
+    "chamada_ouvinte",
+    "O WhatsApp da Rádio Ipê Dourado está aberto para o seu recado. O recado pode ser para a família, para o trabalho ou para a vizinhança. Cada música desta tarde foi escolhida para combinar com o seu ritmo. Se alguém do seu lado também gosta de música, chama para ouvir junto. Tem dia que a gente só precisa de uma voz conhecida por perto. Escreve para a gente. Daqui a pouco tem mais recado de ouvinte por aqui.",
+    "Poeira na Botina - Zé Ribeirão e Tião",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "Para embalar este momento, Poeira na Botina, na voz de Zé Ribeirão e Tião. O começo é curto e a voz entra logo. Boa para ouvir de janela aberta. A letra conta uma história simples, do jeito que o povo gosta. Música boa não precisa de muita apresentação. É daquelas que a gente canta junto sem perceber. Repara no arranjo, que tem capricho em cada detalhe. Curte aí.",
+    "Poeira na Botina - Zé Ribeirão e Tião",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Poeira na Botina - Zé Ribeirão e Tião",
+    1,
+    null
+   ],
+   [
+    "comentario",
+    "Tem gente que organiza a semana no domingo, e tem gente que nem tenta. Tem quem ache graça e tem quem leve muito a sério. Se você tem uma história assim, ela é sua e é especial. O tempo passa, mas certos costumes ficam. Às vezes um gesto simples resolve o dia de alguém. Pensa na cozinha da sua casa e você vai entender o que eu digo. Tem quem ria disso, e tem quem defenda com unhas e dentes. E ritual pequeno também é coisa séria. Pensa nisso com calma.",
+    "Café de Coador - Tonho Varjão",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "Lurdinha Campos pediu pelo WhatsApp, e toca agora Café de Coador, com Tonho Varjão. Boa escolha para esta hora. Boa para ouvir de janela aberta. Música boa não precisa de muita apresentação. Deixa o som tomar conta por alguns minutos. A letra conta uma história simples, do jeito que o povo gosta. É daquelas que a gente canta junto sem perceber. Aproveita.",
+    "Café de Coador - Tonho Varjão",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Café de Coador - Tonho Varjão",
+    1,
+    null
+   ],
+   [
+    "patrocinador",
+    "Armazém Boa Colheita: tudo para a sua roça, com atendimento de vizinho.",
+    null,
+    0,
+    null
+   ],
+   [
+    "comentario",
+    "Repara como cada família tem um jeito próprio de arrumar a mesa. Às vezes o assunto mais simples é o que mais aproxima as pessoas. Cada lugar tem seu jeito de fazer a mesma coisa. No fundo, é um jeito de cuidar de quem mora com a gente. Uma conversa boa começa assim, por um detalhe pequeno. A memória guarda essas pequenas cenas com cuidado. O que para um é costume, para outro é novidade. E quando alguém de fora repara, a gente estranha. Deixa essa ideia com você.",
+    "Estrada de Chão Batido - Irmãos Taquara",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "Quem chega agora é Irmãos Taquara, com Estrada de Chão Batido. O começo é curto e a voz entra logo. A letra conta uma história simples, do jeito que o povo gosta. Deixa o som tomar conta por alguns minutos. Boa para ouvir de janela aberta. Repara no arranjo, que tem capricho em cada detalhe. Música boa não precisa de muita apresentação. Bom demais.",
+    "Estrada de Chão Batido - Irmãos Taquara",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Estrada de Chão Batido - Irmãos Taquara",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "Escuta só: Rancho da Serra Fria, de Dupla Lua e Laço. Boa para cantar no carro, de janela aberta. Deixa o som tomar conta por alguns minutos. Repara no arranjo, que tem capricho em cada detalhe. Música boa não precisa de muita apresentação. É daquelas que a gente canta junto sem perceber. Boa para ouvir de janela aberta. Uma tarde bem acompanhada passa diferente. É toda sua.",
+    "Rancho da Serra Fria - Dupla Lua e Laço",
+    2,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Rancho da Serra Fria - Dupla Lua e Laço",
+    2,
+    null
+   ],
+   [
+    "chamada_ouvinte",
+    "Recado de Seu Ditinho na tela, e a gente agradece. Recado gentil faz bem para todo mundo que ouve. A gente gosta de pensar no rádio como uma janela aberta. A conversa por aqui é curta, porque a estrela é a canção. O som está no ar para quem cozinha, para quem estuda e para quem descansa. É bom saber que, de algum lugar, você está ouvindo agora. Respira fundo, ajeita a cadeira e vem com a gente. Tudo de bom.",
+    "Laço de Fita Amarela - Neném do Cerrado",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "A pedida de Rosa Bezerra não está disponível agora. Para compensar, Laço de Fita Amarela, com Neném do Cerrado. A letra conta uma história simples, do jeito que o povo gosta. Deixa o som tomar conta por alguns minutos. Repara no arranjo, que tem capricho em cada detalhe. Boa para ouvir de janela aberta. Música boa não precisa de muita apresentação. Com carinho.",
+    "Laço de Fita Amarela - Neném do Cerrado",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Laço de Fita Amarela - Neném do Cerrado",
+    1,
+    null
+   ],
+   [
+    "comentario",
+    "Uma pergunta para você pensar: qual cheiro lembra a casa da sua infância? Cada um tem a sua versão dessa história. Tem hábito que a gente herda sem perceber. Eu gosto de pensar que todo mundo tem um ritual pequeno. Talvez seja isso que deixa a casa com cara de casa. Vale a pena parar um minuto e pensar nisso. Nem tudo precisa de explicação, algumas coisas só são assim. A gente aprende muita coisa observando quem está perto. O que para um é costume, para outro é novidade. Cada casa, um jeito.",
+    "Boiadeiro de Domingo - Ciro Mangabeira",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "Vamos de Ciro Mangabeira, com Boiadeiro de Domingo. É uma daquelas que a gente canta junto sem perceber. É daquelas que a gente canta junto sem perceber. Deixa o som tomar conta por alguns minutos. Boa para ouvir de janela aberta. A letra conta uma história simples, do jeito que o povo gosta. Música boa não precisa de muita apresentação. É toda sua.",
+    "Boiadeiro de Domingo - Ciro Mangabeira",
+    2,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Boiadeiro de Domingo - Ciro Mangabeira",
+    2,
+    null
+   ],
+   [
+    "patrocinador",
+    "Armazém Boa Colheita: tudo para a sua roça, com atendimento de vizinho.",
+    null,
+    0,
+    null
+   ],
+   [
+    "comentario",
+    "Já pensou em quantas músicas a gente sabe de cor sem nunca ter decorado? Cada um tem a sua versão dessa história. E quando alguém de fora repara, a gente estranha. Eu gosto de pensar que todo mundo tem um ritual pequeno. Às vezes um gesto simples resolve o dia de alguém. A gente aprende muita coisa observando quem está perto. Tem hábito que a gente herda sem perceber. Cada lugar tem seu jeito de fazer a mesma coisa. O tempo passa, mas certos costumes ficam. Cada casa, um jeito.",
+    "Viola no Alpendre - Os Filhos da Serra",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "Quem chega agora é Os Filhos da Serra, com Viola no Alpendre. Essa combina com o ritmo da tarde. Deixa o som tomar conta por alguns minutos. Repara no arranjo, que tem capricho em cada detalhe. É daquelas que a gente canta junto sem perceber. A letra conta uma história simples, do jeito que o povo gosta. Boa para ouvir de janela aberta. Aproveita.",
+    "Viola no Alpendre - Os Filhos da Serra",
+    2,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Viola no Alpendre - Os Filhos da Serra",
+    2,
+    null
+   ],
+   [
+    "musica",
+    "Escuta só: Cancela do Retiro, de Duo Lajeado. É uma daquelas que a gente canta junto sem perceber. Música boa não precisa de muita apresentação. Repara no arranjo, que tem capricho em cada detalhe. Deixa o som tomar conta por alguns minutos. É daquelas que a gente canta junto sem perceber. Boa para ouvir de janela aberta. Música boa faz o tempo andar no passo certo. Curte aí.",
+    "Cancela do Retiro - Duo Lajeado",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Cancela do Retiro - Duo Lajeado",
+    1,
+    null
+   ],
+   [
+    "chamada_ouvinte",
+    "Valdo Cunha, obrigado pelo contato sobre o sorteio. Obrigado por participar da conversa. Quem trabalha de casa sabe como uma trilha boa ajuda a organizar a cabeça. Se estiver dirigindo, atenção na pista e deixa a música com a gente. Tem canção que parece ter sido feita para o meio da tarde. Quem liga o rádio nesta hora costuma querer um pouco de calma, e a gente entende. Uma tarde bem acompanhada passa diferente. Tudo de bom.",
+    "Ipê na Beira da Estrada - Mariana Arreio",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "Agora vem Ipê na Beira da Estrada, com Mariana Arreio. Repara no refrão, que ele fica na cabeça. Música boa não precisa de muita apresentação. A letra conta uma história simples, do jeito que o povo gosta. É daquelas que a gente canta junto sem perceber. Repara no arranjo, que tem capricho em cada detalhe. Boa para ouvir de janela aberta. Solta o som.",
+    "Ipê na Beira da Estrada - Mariana Arreio",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Ipê na Beira da Estrada - Mariana Arreio",
+    1,
+    null
+   ],
+   [
+    "comentario",
+    "Repara como cada família tem um jeito próprio de arrumar a mesa. Não existe jeito certo, existe o jeito de cada casa. Nem tudo precisa de explicação, algumas coisas só são assim. A memória guarda essas pequenas cenas com cuidado. Se você tem uma história assim, ela é sua e é especial. No fundo, é um jeito de cuidar de quem mora com a gente. Tem quem ria disso, e tem quem defenda com unhas e dentes. Vale a pena parar um minuto e pensar nisso. Cada casa, um jeito.",
+    "Carro de Boi Cantador - Jessé Porteira",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "Vamos de Jessé Porteira, com Carro de Boi Cantador. É uma daquelas que a gente canta junto sem perceber. Repara no arranjo, que tem capricho em cada detalhe. A letra conta uma história simples, do jeito que o povo gosta. Deixa o som tomar conta por alguns minutos. Música boa não precisa de muita apresentação. Boa para ouvir de janela aberta. Com vocês, Jessé Porteira.",
+    "Carro de Boi Cantador - Jessé Porteira",
+    2,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Carro de Boi Cantador - Jessé Porteira",
+    2,
+    null
+   ],
+   [
+    "patrocinador",
+    "Armazém Boa Colheita: tudo para a sua roça, com atendimento de vizinho.",
+    null,
+    0,
+    null
+   ]
+  ],
+  "sha256": "eacef74b0524722ed2ff4e7fb96d50e7c8bcc7b79c634d436641a53911a392c8"
+ },
+ "variedades_leves/fixture": {
+  "eventos": [
+   [
+    "abertura",
+    "Que bom ter você por aqui: Tarde em Casa começa agora na Rádio Vila Ventura. A programação começa leve, do jeito que a tarde merece. Nem tudo precisa ser corrido, e a música lembra a gente disso. Quem liga o rádio nesta hora costuma querer um pouco de calma, e a gente entende. Pode deixar o volume no ponto que for melhor para você. Respira fundo, ajeita a cadeira e vem com a gente. Fica com a gente.",
+    "Pipoca na Praça - Os Vizinhos do Sexto",
+    1,
+    "fala"
+   ],
+   [
+    "musica",
+    "",
+    "Pipoca na Praça - Os Vizinhos do Sexto",
+    0,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Feira de Sábado - Trio Pé na Rua",
+    0,
+    "musica"
+   ],
+   [
+    "comentario",
+    "Uma pergunta para você pensar: qual cheiro lembra a casa da sua infância? Parece bobagem, mas esses detalhes contam muito sobre a gente. Talvez seja isso que deixa a casa com cara de casa. No fundo, é um jeito de cuidar de quem mora com a gente. Cada lugar tem seu jeito de fazer a mesma coisa. E ritual pequeno também é coisa séria. Eu gosto de pensar que todo mundo tem um ritual pequeno. E quando alguém de fora repara, a gente estranha. O tempo passa, mas certos costumes ficam. A memória guarda essas pequenas cenas com cuidado. Tem quem ria disso, e tem quem defenda com unhas e dentes. O que para um é costume, para outro é novidade. Vale a pena parar um minuto e pensar nisso. Se você tem uma história assim, ela é sua e é especial. Nem tudo precisa de explicação, algumas coisas só são assim. Uma conversa boa começa assim, por um detalhe pequeno. Às vezes um gesto simples resolve o dia de alguém. Tem hábito que a gente herda sem perceber. A gente aprende muita coisa observando quem está perto. Pensa na cozinha da sua casa e você vai entender o que eu digo. É bom saber que, de algum lugar, você está ouvindo agora. A gente gosta de pensar no rádio como uma janela aberta. Se alguém do seu lado também gosta de música, chama para ouvir junto. Cada música desta tarde foi escolhida para combinar com o seu ritmo. Quem trabalha de casa sabe como uma trilha boa ajuda a organizar a cabeça. O som está no ar para quem cozinha, para quem estuda e para quem descansa. Uma tarde bem acompanhada passa diferente. Se estiver dirigindo, atenção na pista e deixa a música com a gente. Música boa faz o tempo andar no passo certo. Tem dia que a gente só precisa de uma voz conhecida por perto. A conversa por aqui é curta, porque a estrela é a canção. Tem canção que parece ter sido feita para o meio da tarde. Quem liga o rádio nesta hora costuma querer um pouco de calma, e a gente entende. Nem tudo precisa ser corrido, e a música lembra a gente disso. Pode deixar o volume no ponto que for melhor para você. Respira fundo, ajeita a cadeira e vem com a gente. Coisa boa de pensar.",
+    "Bloco da Esquina - Gui Marmelada",
+    1,
+    "fala"
+   ],
+   [
+    "comentario",
+    "Uma coisa boa da tarde é aquela pausa para o lanche. Parece bobagem, mas esses detalhes contam muito sobre a gente. Uma conversa boa começa assim, por um detalhe pequeno. Tem hábito que a gente herda sem perceber. A gente aprende muita coisa observando quem está perto. Eu gosto de pensar que todo mundo tem um ritual pequeno. Pensa na cozinha da sua casa e você vai entender o que eu digo. Vale a pena parar um minuto e pensar nisso. E quando alguém de fora repara, a gente estranha. E ritual pequeno também é coisa séria. A memória guarda essas pequenas cenas com cuidado. O que para um é costume, para outro é novidade. Talvez seja isso que deixa a casa com cara de casa. Nem tudo precisa de explicação, algumas coisas só são assim. O tempo passa, mas certos costumes ficam. Tem quem ria disso, e tem quem defenda com unhas e dentes. No fundo, é um jeito de cuidar de quem mora com a gente. Às vezes um gesto simples resolve o dia de alguém. Cada lugar tem seu jeito de fazer a mesma coisa. Se você tem uma história assim, ela é sua e é especial. É bom saber que, de algum lugar, você está ouvindo agora. Tem canção que parece ter sido feita para o meio da tarde. Cada música desta tarde foi escolhida para combinar com o seu ritmo. O som está no ar para quem cozinha, para quem estuda e para quem descansa. Quem trabalha de casa sabe como uma trilha boa ajuda a organizar a cabeça. Se estiver dirigindo, atenção na pista e deixa a música com a gente. Música boa faz o tempo andar no passo certo. Respira fundo, ajeita a cadeira e vem com a gente. Se alguém do seu lado também gosta de música, chama para ouvir junto. Uma tarde bem acompanhada passa diferente. Deixa essa ideia com você.",
+    "Bloco da Esquina - Gui Marmelada",
+    2,
+    "fala"
+   ],
+   [
+    "comentario",
+    "Tem assunto que não precisa de notícia para render, como o café passado na hora. Quando a gente presta atenção, a rotina fica mais interessante. Às vezes um gesto simples resolve o dia de alguém. Tem quem ria disso, e tem quem defenda com unhas e dentes. E quando alguém de fora repara, a gente estranha. Talvez seja isso que deixa a casa com cara de casa. Uma conversa boa começa assim, por um detalhe pequeno. Eu gosto de pensar que todo mundo tem um ritual pequeno. O que para um é costume, para outro é novidade. Vale a pena parar um minuto e pensar nisso. Tem hábito que a gente herda sem perceber. Nem tudo precisa de explicação, algumas coisas só são assim. Se você tem uma história assim, ela é sua e é especial. A gente aprende muita coisa observando quem está perto. E ritual pequeno também é coisa séria. Pensa na cozinha da sua casa e você vai entender o que eu digo. No fundo, é um jeito de cuidar de quem mora com a gente. A memória guarda essas pequenas cenas com cuidado. O tempo passa, mas certos costumes ficam. Cada lugar tem seu jeito de fazer a mesma coisa. Tem dia que a gente só precisa de uma voz conhecida por perto. A gente gosta de pensar no rádio como uma janela aberta. É bom saber que, de algum lugar, você está ouvindo agora. A conversa fica por aqui. Um abraço também para Dona Firmina.",
+    "Bloco da Esquina - Gui Marmelada",
+    2,
+    "fala_reduzida"
+   ],
+   [
+    "comentario",
+    "Já pensou em quantas músicas a gente sabe de cor sem nunca ter decorado? Cada um tem a sua versão dessa história. Coisa boa de pensar.",
+    "Bloco da Esquina - Gui Marmelada",
+    1,
+    "fechamento_curto"
+   ],
+   [
+    "musica",
+    "",
+    "Bloco da Esquina - Gui Marmelada",
+    0,
+    "musica"
+   ],
+   [
+    "musica",
+    "Quem pediu foi Paulo Brandão, e toca agora Patins Amarelos, de Tati Pirilampo. Que bom receber o seu pedido. Repara no arranjo, que tem capricho em cada detalhe. Aumenta o volume.",
+    "Patins Amarelos - Tati Pirilampo",
+    1,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Patins Amarelos - Tati Pirilampo",
+    1,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Pilha Fraca - Coletivo Laranjeira",
+    0,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Bairro em Festa - Lola Carambola",
+    0,
+    "musica"
+   ],
+   [
+    "chamada_ouvinte",
+    "Cida Morais, sua mensagem chegou, obrigado pela companhia. Abraço enviado, com carinho. Quem liga o rádio nesta hora costuma querer um pouco de calma, e a gente entende. Nem tudo precisa ser corrido, e a música lembra a gente disso. Uma tarde bem acompanhada passa diferente. Respira fundo, ajeita a cadeira e vem com a gente. Pode deixar o volume no ponto que for melhor para você. Cada música desta tarde foi escolhida para combinar com o seu ritmo. Tem dia que a gente só precisa de uma voz conhecida por perto. Se alguém do seu lado também gosta de música, chama para ouvir junto. Se estiver dirigindo, atenção na pista e deixa a música com a gente. O som está no ar para quem cozinha, para quem estuda e para quem descansa. A gente gosta de pensar no rádio como uma janela aberta. Obrigado.",
+    "Sorvete de Coco - Duda Azulejo",
+    1,
+    "fala"
+   ],
+   [
+    "musica",
+    "",
+    "Sorvete de Coco - Duda Azulejo",
+    0,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Calçada Florida - Bia Cata-Vento",
+    0,
+    "musica"
+   ],
+   [
+    "comentario_quadro",
+    "É tempo de Cantinho da Casa, com uma ideia que cabe em qualquer casa. A dica é para quem quer ganhar tempo sem gastar dinheiro. Na dúvida, começa pela gaveta que mais irrita você. Um cesto perto da porta segura chave, guarda-chuva e sacola. Depois, escolhe um lugar fixo para cada coisa, mesmo que seja simples. Uma lista na porta da geladeira ajuda a lembrar o que está acabando. Quem mora com mais gente pode dividir as tarefas por cômodo. Tem gente que relaxa arrumando, e tem gente que prefere terminar logo. Vale guardar o que é pesado embaixo e o que é leve em cima. Etiqueta escrita à mão funciona tão bem quanto qualquer outra. O segredo é fazer um pouco por vez, sem tentar arrumar tudo num dia só. Pote de vidro limpo é ótimo para guardar grãos e miudezas. Uma caixa de papelão bem aproveitada já resolve muita bagunça. Não precisa ficar perfeito, precisa funcionar para você. Primeiro, separa o que você usa todo dia do que usa de vez em quando. Pequenas mudanças, repetidas todo dia, fazem diferença grande. Arrumar junto com as crianças pode virar brincadeira. Quem testar pode contar pelo WhatsApp da rádio como foi. O importante é a casa ajudar a sua rotina, e não o contrário. Sempre que der, devolve cada coisa ao lugar logo depois de usar. Se a casa é pequena, cada cantinho conta. Um pano úmido e cinco minutos de atenção já mudam a cara da pia. Antes de comprar um organizador, olha o que já existe em casa. Gaveta organizada é aquela em que a gente acha as coisas sem procurar. Guardar as sacolas dobradas em triângulo economiza um espaço danado. Roupa que não serve mais pode ganhar uma nova casa por meio de doação. Tem canção que parece ter sido feita para o meio da tarde. Uma tarde bem acompanhada passa diferente. Fica a ideia para a sua casa.",
+    "Ciranda do Prédio - Banda Ventilador",
+    1,
+    "fala"
+   ],
+   [
+    "comentario_quadro",
+    "Começa o Cantinho da Casa, o espaço da tarde para uma ideia útil. É uma ideia testada no dia a dia, sem mágica. Tem gente que relaxa arrumando, e tem gente que prefere terminar logo. Uma lista na porta da geladeira ajuda a lembrar o que está acabando. Antes de comprar um organizador, olha o que já existe em casa. Depois, escolhe um lugar fixo para cada coisa, mesmo que seja simples. Pote de vidro limpo é ótimo para guardar grãos e miudezas. Arrumar junto com as crianças pode virar brincadeira. O segredo é fazer um pouco por vez, sem tentar arrumar tudo num dia só. Roupa que não serve mais pode ganhar uma nova casa por meio de doação. Um cesto perto da porta segura chave, guarda-chuva e sacola. Guardar as sacolas dobradas em triângulo economiza um espaço danado. Uma caixa de papelão bem aproveitada já resolve muita bagunça. Sempre que der, devolve cada coisa ao lugar logo depois de usar. Etiqueta escrita à mão funciona tão bem quanto qualquer outra. Primeiro, separa o que você usa todo dia do que usa de vez em quando. Na dúvida, começa pela gaveta que mais irrita você. Um pano úmido e cinco minutos de atenção já mudam a cara da pia. Quem testar pode contar pelo WhatsApp da rádio como foi. Não precisa ficar perfeito, precisa funcionar para você. Se a casa é pequena, cada cantinho conta. Gaveta organizada é aquela em que a gente acha as coisas sem procurar. Quem mora com mais gente pode dividir as tarefas por cômodo. Vale guardar o que é pesado embaixo e o que é leve em cima. O importante é a casa ajudar a sua rotina, e não o contrário. Pequenas mudanças, repetidas todo dia, fazem diferença grande. É bom saber que, de algum lugar, você está ouvindo agora. A gente gosta de pensar no rádio como uma janela aberta. Fica a dica do Cantinho da Casa.",
+    "Ciranda do Prédio - Banda Ventilador",
+    2,
+    "fala"
+   ],
+   [
+    "comentario_quadro",
+    "Vamos ao Cantinho da Casa, que hoje fala de pequenos ajustes no dia a dia. Cada casa adapta do seu jeito. O importante é a casa ajudar a sua rotina, e não o contrário. Antes de comprar um organizador, olha o que já existe em casa. Se a casa é pequena, cada cantinho conta. Depois, escolhe um lugar fixo para cada coisa, mesmo que seja simples. Pequenas mudanças, repetidas todo dia, fazem diferença grande. Vale guardar o que é pesado embaixo e o que é leve em cima. Primeiro, separa o que você usa todo dia do que usa de vez em quando. Guardar as sacolas dobradas em triângulo economiza um espaço danado. Pote de vidro limpo é ótimo para guardar grãos e miudezas. Um pano úmido e cinco minutos de atenção já mudam a cara da pia. Etiqueta escrita à mão funciona tão bem quanto qualquer outra. Uma caixa de papelão bem aproveitada já resolve muita bagunça. Roupa que não serve mais pode ganhar uma nova casa por meio de doação. Quem testar pode contar pelo WhatsApp da rádio como foi. Quem mora com mais gente pode dividir as tarefas por cômodo. Na dúvida, começa pela gaveta que mais irrita você. Um cesto perto da porta segura chave, guarda-chuva e sacola. Sempre que der, devolve cada coisa ao lugar logo depois de usar. Não precisa ficar perfeito, precisa funcionar para você. Tem gente que relaxa arrumando, e tem gente que prefere terminar logo. Gaveta organizada é aquela em que a gente acha as coisas sem procurar. Uma lista na porta da geladeira ajuda a lembrar o que está acabando. Arrumar junto com as crianças pode virar brincadeira. O segredo é fazer um pouco por vez, sem tentar arrumar tudo num dia só. Quem trabalha de casa sabe como uma trilha boa ajuda a organizar a cabeça. A conversa por aqui é curta, porque a estrela é a canção. Um passo de cada vez.",
+    "Ciranda do Prédio - Banda Ventilador",
+    2,
+    "fala"
+   ],
+   [
+    "comentario_quadro",
+    "Vamos ao Cantinho da Casa, que hoje fala de pequenos ajustes no dia a dia. Cada casa adapta do seu jeito. Pequenas mudanças, repetidas todo dia, fazem diferença grande. Uma lista na porta da geladeira ajuda a lembrar o que está acabando. O segredo é fazer um pouco por vez, sem tentar arrumar tudo num dia só. Primeiro, separa o que você usa todo dia do que usa de vez em quando. Roupa que não serve mais pode ganhar uma nova casa por meio de doação. Arrumar junto com as crianças pode virar brincadeira. Quem mora com mais gente pode dividir as tarefas por cômodo. Gaveta organizada é aquela em que a gente acha as coisas sem procurar. Um pano úmido e cinco minutos de atenção já mudam a cara da pia. Vale guardar o que é pesado embaixo e o que é leve em cima. O importante é a casa ajudar a sua rotina, e não o contrário. Tem gente que relaxa arrumando, e tem gente que prefere terminar logo. Depois, escolhe um lugar fixo para cada coisa, mesmo que seja simples. Etiqueta escrita à mão funciona tão bem quanto qualquer outra. Uma tarde bem acompanhada passa diferente. Fica a ideia para a sua casa.",
+    "Ciranda do Prédio - Banda Ventilador",
+    2,
+    "fala_reduzida"
+   ],
+   [
+    "comentario_quadro",
+    "No Cantinho da Casa, a conversa é sobre um jeito simples de facilitar a rotina. Pode anotar ou só guardar de cabeça, tanto faz. Casa organizada, cabeça tranquila.",
+    "Ciranda do Prédio - Banda Ventilador",
+    1,
+    "fechamento_curto"
+   ],
+   [
+    "musica",
+    "",
+    "Ciranda do Prédio - Banda Ventilador",
+    0,
+    "musica"
+   ],
+   [
+    "musica",
+    "",
+    "Bom Dia Vizinhança - Banda Ventilador",
+    0,
+    "musica"
+   ],
+   [
+    "identificacao",
+    "Na Rádio Vila Ventura, Tarde em Casa. Companhia de verdade. O som continua no ritmo da tarde. Fica à vontade. Boa tarde.",
+    null,
+    1,
+    "reserva"
+   ],
+   [
+    "comentario",
+    "Já pensou em quantas músicas a gente sabe de cor sem nunca ter decorado? Não existe jeito certo, existe o jeito de cada casa.",
+    null,
+    1,
+    "reserva"
+   ],
+   [
+    "comentario",
+    "Sempre acho curioso o quanto uma lista de compras diz sobre uma casa. E o mais bonito é que ninguém ensinou isso formalmente. O que para um é costume, para outro é novidade. Vale a pena parar um minuto e pensar nisso. O tempo passa, mas certos costumes ficam. Às vezes um gesto simples resolve o dia de alguém. Talvez seja isso que deixa a casa com cara de casa. Nem tudo precisa de explicação, algumas coisas só são assim. A memória guarda essas pequenas cenas com cuidado. Pensa na cozinha da sua casa e você vai entender o que eu digo. Tem quem ria disso, e tem quem defenda com unhas e dentes. Uma conversa boa começa assim, por um detalhe pequeno. E você, como faz aí?",
+    null,
+    1,
+    "fala_reduzida"
+   ],
+   [
+    "identificacao",
+    "Aqui é a Rádio Vila Ventura. Com Tarde em Casa. Tudo calmo por aqui. Música escolhida com cuidado. Fica à vontade. Vem junto.",
+    null,
+    1,
+    "reserva"
+   ],
+   [
+    "comentario",
+    "Tem gente que organiza a semana no domingo, e tem gente que nem tenta. Quando a gente presta atenção, a rotina fica mais interessante.",
+    null,
+    1,
+    "reserva"
+   ],
+   [
+    "encerramento",
+    "Obrigado pela companhia nesta hora, foi muito bom estar com você. Quem ouviu de casa, do carro ou do trabalho, obrigado. Quem estava em casa, bom descanso. Cuide de você e de quem está por perto. Que a próxima hora do seu dia seja leve. Quem estava no trabalho, bom fim de expediente. Cada pessoa que deixou o rádio ligado fez parte disto. Foi uma alegria fazer esta trilha com você. Leva uma música boa na cabeça. A Rádio Vila Ventura segue no ar. Que o resto do dia seja tranquilo. Obrigado a quem mandou recado e a quem só ouviu. Valeu pela companhia.",
+    null,
+    1,
+    "encerramento"
+   ]
+  ],
+  "sha256": "8e586d354778c3f63c3067b2cb9c6b99fde93fb32669f15bcf09a576828ced38"
+ },
+ "variedades_leves/nenhum": {
+  "eventos": [
+   [
+    "abertura",
+    "Que bom ter você por aqui: Tarde em Casa começa agora na Rádio Vila Ventura. A programação começa leve, do jeito que a tarde merece. Nem tudo precisa ser corrido, e a música lembra a gente disso. Quem liga o rádio nesta hora costuma querer um pouco de calma, e a gente entende. Pode deixar o volume no ponto que for melhor para você. Respira fundo, ajeita a cadeira e vem com a gente. Uma tarde bem acompanhada passa diferente. Música boa faz o tempo andar no passo certo. Fica com a gente.",
+    "Bom Dia Vizinhança - Banda Ventilador",
+    1,
+    null
+   ],
+   [
+    "comentario",
+    "Uma pergunta para você pensar: qual cheiro lembra a casa da sua infância? Parece bobagem, mas esses detalhes contam muito sobre a gente. Talvez seja isso que deixa a casa com cara de casa. No fundo, é um jeito de cuidar de quem mora com a gente. Cada lugar tem seu jeito de fazer a mesma coisa. E ritual pequeno também é coisa séria. Eu gosto de pensar que todo mundo tem um ritual pequeno. E quando alguém de fora repara, a gente estranha. O tempo passa, mas certos costumes ficam. A memória guarda essas pequenas cenas com cuidado. Tem quem ria disso, e tem quem defenda com unhas e dentes. O que para um é costume, para outro é novidade. Vale a pena parar um minuto e pensar nisso. Se você tem uma história assim, ela é sua e é especial. Nem tudo precisa de explicação, algumas coisas só são assim. Uma conversa boa começa assim, por um detalhe pequeno. Às vezes um gesto simples resolve o dia de alguém. Tem hábito que a gente herda sem perceber. A gente aprende muita coisa observando quem está perto. Coisa boa de pensar.",
+    "Bom Dia Vizinhança - Banda Ventilador",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "Vamos de Banda Ventilador, com Bom Dia Vizinhança. Repara no refrão, que ele fica na cabeça. Repara no arranjo, que tem capricho em cada detalhe. Boa para ouvir de janela aberta. A letra conta uma história simples, do jeito que o povo gosta. Música boa não precisa de muita apresentação. Deixa o som tomar conta por alguns minutos. Uma tarde bem acompanhada passa diferente. Bom demais.",
+    "Bom Dia Vizinhança - Banda Ventilador",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Bom Dia Vizinhança - Banda Ventilador",
+    1,
+    null
+   ],
+   [
+    "chamada_ouvinte",
+    "Quem quiser sugerir uma música pode mandar pelo WhatsApp. Mensagem gentil sempre faz bem para quem ouve. É bom saber que, de algum lugar, você está ouvindo agora. Quem trabalha de casa sabe como uma trilha boa ajuda a organizar a cabeça. Cada música desta tarde foi escolhida para combinar com o seu ritmo. Tem dia que a gente só precisa de uma voz conhecida por perto. A gente gosta de pensar no rádio como uma janela aberta. Uma tarde bem acompanhada passa diferente. Obrigado desde já. Um abraço também para Dona Firmina.",
+    "Bloco da Esquina - Gui Marmelada",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "Escuta só: Bloco da Esquina, de Gui Marmelada. Boa para cantar no carro, de janela aberta. Deixa o som tomar conta por alguns minutos. É daquelas que a gente canta junto sem perceber. Música boa não precisa de muita apresentação. Repara no arranjo, que tem capricho em cada detalhe. A letra conta uma história simples, do jeito que o povo gosta. Boa para ouvir de janela aberta. Aproveita.",
+    "Bloco da Esquina - Gui Marmelada",
+    2,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Bloco da Esquina - Gui Marmelada",
+    2,
+    null
+   ],
+   [
+    "comentario_quadro",
+    "Vamos ao Cantinho da Casa, que hoje fala de pequenos ajustes no dia a dia. Não precisa de ferramenta especial, só de um pouco de vontade. Vale guardar o que é pesado embaixo e o que é leve em cima. Na dúvida, começa pela gaveta que mais irrita você. Uma lista na porta da geladeira ajuda a lembrar o que está acabando. O importante é a casa ajudar a sua rotina, e não o contrário. Gaveta organizada é aquela em que a gente acha as coisas sem procurar. Não precisa ficar perfeito, precisa funcionar para você. Depois, escolhe um lugar fixo para cada coisa, mesmo que seja simples. Quem mora com mais gente pode dividir as tarefas por cômodo. Quem testar pode contar pelo WhatsApp da rádio como foi. Sempre que der, devolve cada coisa ao lugar logo depois de usar. Uma caixa de papelão bem aproveitada já resolve muita bagunça. Etiqueta escrita à mão funciona tão bem quanto qualquer outra. Um pano úmido e cinco minutos de atenção já mudam a cara da pia. Um cesto perto da porta segura chave, guarda-chuva e sacola. O segredo é fazer um pouco por vez, sem tentar arrumar tudo num dia só. Antes de comprar um organizador, olha o que já existe em casa. Pote de vidro limpo é ótimo para guardar grãos e miudezas. Se a casa é pequena, cada cantinho conta. Tem gente que relaxa arrumando, e tem gente que prefere terminar logo. Primeiro, separa o que você usa todo dia do que usa de vez em quando. Arrumar junto com as crianças pode virar brincadeira. Guardar as sacolas dobradas em triângulo economiza um espaço danado. Roupa que não serve mais pode ganhar uma nova casa por meio de doação. Pequenas mudanças, repetidas todo dia, fazem diferença grande. O som está no ar para quem cozinha, para quem estuda e para quem descansa. A conversa por aqui é curta, porque a estrela é a canção. Se alguém do seu lado também gosta de música, chama para ouvir junto. Pensa na cozinha da sua casa e você vai entender o que eu digo. Se estiver dirigindo, atenção na pista e deixa a música com a gente. Tem canção que parece ter sido feita para o meio da tarde. Cada música desta tarde foi escolhida para combinar com o seu ritmo. A gente aprende muita coisa observando quem está perto. Um passo de cada vez.",
+    "Bairro em Festa - Lola Carambola",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "Vamos de Lola Carambola, com Bairro em Festa. O começo é curto e a voz entra logo. É daquelas que a gente canta junto sem perceber. Deixa o som tomar conta por alguns minutos. Boa para ouvir de janela aberta. Repara no arranjo, que tem capricho em cada detalhe. Música boa não precisa de muita apresentação. Música boa faz o tempo andar no passo certo. Solta o som.",
+    "Bairro em Festa - Lola Carambola",
+    2,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Bairro em Festa - Lola Carambola",
+    2,
+    null
+   ],
+   [
+    "abertura",
+    "Aqui é Marta Girassol, e Tarde em Casa segue no ar. Do lado de cá, tudo certo e a música no ponto. Respira fundo, ajeita a cadeira e vem com a gente. Pode deixar o volume no ponto que for melhor para você. Quem liga o rádio nesta hora costuma querer um pouco de calma, e a gente entende. Tem dia que a gente só precisa de uma voz conhecida por perto. Se alguém do seu lado também gosta de música, chama para ouvir junto. Uma tarde bem acompanhada passa diferente. Segue o som.",
+    "Patins Amarelos - Tati Pirilampo",
+    1,
+    null
+   ],
+   [
+    "comentario",
+    "Uma coisa boa da tarde é aquela pausa para o lanche. Parece bobagem, mas esses detalhes contam muito sobre a gente. E ritual pequeno também é coisa séria. E quando alguém de fora repara, a gente estranha. A memória guarda essas pequenas cenas com cuidado. No fundo, é um jeito de cuidar de quem mora com a gente. Tem hábito que a gente herda sem perceber. O tempo passa, mas certos costumes ficam. Uma conversa boa começa assim, por um detalhe pequeno. Às vezes um gesto simples resolve o dia de alguém. Pensa na cozinha da sua casa e você vai entender o que eu digo. Eu gosto de pensar que todo mundo tem um ritual pequeno. A conversa fica por aqui.",
+    "Patins Amarelos - Tati Pirilampo",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "Paulo Brandão pediu pelo WhatsApp, e toca agora Patins Amarelos, com Tati Pirilampo. Boa escolha para esta hora. É daquelas que a gente canta junto sem perceber. A letra conta uma história simples, do jeito que o povo gosta. Boa para ouvir de janela aberta. Deixa o som tomar conta por alguns minutos. Repara no arranjo, que tem capricho em cada detalhe. Curte aí.",
+    "Patins Amarelos - Tati Pirilampo",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Patins Amarelos - Tati Pirilampo",
+    1,
+    null
+   ],
+   [
+    "chamada_ouvinte",
+    "Alô, Cida Morais, obrigado por escrever para a rádio. Obrigado por lembrar da gente. A gente gosta de pensar no rádio como uma janela aberta. Quem trabalha de casa sabe como uma trilha boa ajuda a organizar a cabeça. Se estiver dirigindo, atenção na pista e deixa a música com a gente. Tem canção que parece ter sido feita para o meio da tarde. É bom saber que, de algum lugar, você está ouvindo agora. O som está no ar para quem cozinha, para quem estuda e para quem descansa. Tudo de bom.",
+    "Pipoca na Praça - Os Vizinhos do Sexto",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "Para embalar este momento, Pipoca na Praça, na voz de Os Vizinhos do Sexto. Boa para cantar no carro, de janela aberta. Música boa não precisa de muita apresentação. É daquelas que a gente canta junto sem perceber. A letra conta uma história simples, do jeito que o povo gosta. Deixa o som tomar conta por alguns minutos. Boa para ouvir de janela aberta. Bom demais.",
+    "Pipoca na Praça - Os Vizinhos do Sexto",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Pipoca na Praça - Os Vizinhos do Sexto",
+    1,
+    null
+   ],
+   [
+    "comentario_quadro",
+    "Hora do Cantinho da Casa, e o assunto é organização sem sofrimento. A proposta é começar pequeno e manter. Um pano úmido e cinco minutos de atenção já mudam a cara da pia. Arrumar junto com as crianças pode virar brincadeira. Etiqueta escrita à mão funciona tão bem quanto qualquer outra. Gaveta organizada é aquela em que a gente acha as coisas sem procurar. Quem mora com mais gente pode dividir as tarefas por cômodo. Na dúvida, começa pela gaveta que mais irrita você. Sempre que der, devolve cada coisa ao lugar logo depois de usar. Pequenas mudanças, repetidas todo dia, fazem diferença grande. Guardar as sacolas dobradas em triângulo economiza um espaço danado. Tem gente que relaxa arrumando, e tem gente que prefere terminar logo. Vale guardar o que é pesado embaixo e o que é leve em cima. Antes de comprar um organizador, olha o que já existe em casa. Um cesto perto da porta segura chave, guarda-chuva e sacola. Se a casa é pequena, cada cantinho conta. Uma caixa de papelão bem aproveitada já resolve muita bagunça. Primeiro, separa o que você usa todo dia do que usa de vez em quando. Pote de vidro limpo é ótimo para guardar grãos e miudezas. Roupa que não serve mais pode ganhar uma nova casa por meio de doação. O segredo é fazer um pouco por vez, sem tentar arrumar tudo num dia só. Quem testar pode contar pelo WhatsApp da rádio como foi. Não precisa ficar perfeito, precisa funcionar para você. O importante é a casa ajudar a sua rotina, e não o contrário. Uma lista na porta da geladeira ajuda a lembrar o que está acabando. Depois, escolhe um lugar fixo para cada coisa, mesmo que seja simples. O tempo passa, mas certos costumes ficam. Nem tudo precisa de explicação, algumas coisas só são assim. Tem hábito que a gente herda sem perceber. O som está no ar para quem cozinha, para quem estuda e para quem descansa. Respira fundo, ajeita a cadeira e vem com a gente. É bom saber que, de algum lugar, você está ouvindo agora. O que para um é costume, para outro é novidade. Às vezes um gesto simples resolve o dia de alguém. Tem canção que parece ter sido feita para o meio da tarde. A conversa por aqui é curta, porque a estrela é a canção. Testa e conta como foi.",
+    "Varanda Colorida - Mestre Zé Pandeiro",
+    2,
+    null
+   ],
+   [
+    "musica",
+    "Quem chega agora é Mestre Zé Pandeiro, com Varanda Colorida. Tem gente que escuta essa no volume máximo, e tem razão. Música boa não precisa de muita apresentação. É daquelas que a gente canta junto sem perceber. Deixa o som tomar conta por alguns minutos. Boa para ouvir de janela aberta. A letra conta uma história simples, do jeito que o povo gosta. Bom demais.",
+    "Varanda Colorida - Mestre Zé Pandeiro",
+    2,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Varanda Colorida - Mestre Zé Pandeiro",
+    2,
+    null
+   ],
+   [
+    "abertura",
+    "Quem chegou agora pegou a tarde em bom momento: é Tarde em Casa. Se você deixou o rádio ligado, obrigado pela confiança. Pode deixar o volume no ponto que for melhor para você. Cada música desta tarde foi escolhida para combinar com o seu ritmo. Se estiver dirigindo, atenção na pista e deixa a música com a gente. Tem dia que a gente só precisa de uma voz conhecida por perto. Nem tudo precisa ser corrido, e a música lembra a gente disso. Música boa faz o tempo andar no passo certo. Bora junto.",
+    "Ciranda do Prédio - Banda Ventilador",
+    1,
+    null
+   ],
+   [
+    "comentario",
+    "Repara como cada família tem um jeito próprio de arrumar a mesa. Não existe jeito certo, existe o jeito de cada casa. A memória guarda essas pequenas cenas com cuidado. Se você tem uma história assim, ela é sua e é especial. No fundo, é um jeito de cuidar de quem mora com a gente. E quando alguém de fora repara, a gente estranha. Eu gosto de pensar que todo mundo tem um ritual pequeno. Tem quem ria disso, e tem quem defenda com unhas e dentes. Cada lugar tem seu jeito de fazer a mesma coisa. Vale a pena parar um minuto e pensar nisso. Uma conversa boa começa assim, por um detalhe pequeno. Cada casa, um jeito.",
+    "Ciranda do Prédio - Banda Ventilador",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "Escuta só: Ciranda do Prédio, de Banda Ventilador. Uma canção para quem gosta de música bem tocada. Música boa não precisa de muita apresentação. Repara no arranjo, que tem capricho em cada detalhe. É daquelas que a gente canta junto sem perceber. Boa para ouvir de janela aberta. Deixa o som tomar conta por alguns minutos. Música boa faz o tempo andar no passo certo. Vem comigo nessa.",
+    "Ciranda do Prédio - Banda Ventilador",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Ciranda do Prédio - Banda Ventilador",
+    1,
+    null
+   ],
+   [
+    "chamada_ouvinte",
+    "Quem escreveu foi Seu Afonso, e o carinho foi recebido. Mensagem assim deixa a tarde mais bonita. Quem trabalha de casa sabe como uma trilha boa ajuda a organizar a cabeça. Se alguém do seu lado também gosta de música, chama para ouvir junto. A gente gosta de pensar no rádio como uma janela aberta. Quem liga o rádio nesta hora costuma querer um pouco de calma, e a gente entende. A conversa por aqui é curta, porque a estrela é a canção. Uma tarde bem acompanhada passa diferente. Fica com a gente.",
+    "Calçada Florida - Bia Cata-Vento",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "Quem chega agora é Bia Cata-Vento, com Calçada Florida. Repara no refrão, que ele fica na cabeça. A letra conta uma história simples, do jeito que o povo gosta. Repara no arranjo, que tem capricho em cada detalhe. Música boa não precisa de muita apresentação. É daquelas que a gente canta junto sem perceber. Deixa o som tomar conta por alguns minutos. Curte aí.",
+    "Calçada Florida - Bia Cata-Vento",
+    1,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Calçada Florida - Bia Cata-Vento",
+    1,
+    null
+   ],
+   [
+    "comentario_quadro",
+    "Abrindo o Cantinho da Casa com uma dica para quem vive correndo. A dica é para quem quer ganhar tempo sem gastar dinheiro. Etiqueta escrita à mão funciona tão bem quanto qualquer outra. Uma caixa de papelão bem aproveitada já resolve muita bagunça. Pequenas mudanças, repetidas todo dia, fazem diferença grande. Primeiro, separa o que você usa todo dia do que usa de vez em quando. Um cesto perto da porta segura chave, guarda-chuva e sacola. Antes de comprar um organizador, olha o que já existe em casa. Não precisa ficar perfeito, precisa funcionar para você. Uma lista na porta da geladeira ajuda a lembrar o que está acabando. Depois, escolhe um lugar fixo para cada coisa, mesmo que seja simples. Arrumar junto com as crianças pode virar brincadeira. Vale guardar o que é pesado embaixo e o que é leve em cima. Guardar as sacolas dobradas em triângulo economiza um espaço danado. O segredo é fazer um pouco por vez, sem tentar arrumar tudo num dia só. Quem testar pode contar pelo WhatsApp da rádio como foi. Gaveta organizada é aquela em que a gente acha as coisas sem procurar. Sempre que der, devolve cada coisa ao lugar logo depois de usar. Tem gente que relaxa arrumando, e tem gente que prefere terminar logo. Na dúvida, começa pela gaveta que mais irrita você. Quem mora com mais gente pode dividir as tarefas por cômodo. O importante é a casa ajudar a sua rotina, e não o contrário. Se a casa é pequena, cada cantinho conta. Roupa que não serve mais pode ganhar uma nova casa por meio de doação. Pote de vidro limpo é ótimo para guardar grãos e miudezas. Um pano úmido e cinco minutos de atenção já mudam a cara da pia. Eu gosto de pensar que todo mundo tem um ritual pequeno. Cada lugar tem seu jeito de fazer a mesma coisa. Nem tudo precisa de explicação, algumas coisas só são assim. A memória guarda essas pequenas cenas com cuidado. Pensa na cozinha da sua casa e você vai entender o que eu digo. Talvez seja isso que deixa a casa com cara de casa. Vale a pena parar um minuto e pensar nisso. O tempo passa, mas certos costumes ficam. Se alguém do seu lado também gosta de música, chama para ouvir junto. Tem hábito que a gente herda sem perceber. O Cantinho da Casa termina por aqui.",
+    "Pilha Fraca - Coletivo Laranjeira",
+    2,
+    null
+   ],
+   [
+    "musica",
+    "É a vez de Pilha Fraca, de Coletivo Laranjeira. Repara no refrão, que ele fica na cabeça. Boa para ouvir de janela aberta. É daquelas que a gente canta junto sem perceber. Repara no arranjo, que tem capricho em cada detalhe. Música boa não precisa de muita apresentação. A letra conta uma história simples, do jeito que o povo gosta. É toda sua.",
+    "Pilha Fraca - Coletivo Laranjeira",
+    2,
+    null
+   ],
+   [
+    "musica",
+    "",
+    "Pilha Fraca - Coletivo Laranjeira",
+    2,
+    null
+   ],
+   [
+    "abertura",
+    "Quem chegou agora pegou a tarde em bom momento: é Tarde em Casa. Quem está na rua, vai com calma. O som está no ar para quem cozinha, para quem estuda e para quem descansa. A gente gosta de pensar no rádio como uma janela aberta. Cada música desta tarde foi escolhida para combinar com o seu ritmo. Nem tudo precisa ser corrido, e a música lembra a gente disso. É bom saber que, de algum lugar, você está ouvindo agora. Uma tarde bem acompanhada passa diferente. Bom te ter por perto.",
+    null,
+    1,
+    null
+   ],
+   [
+    "comentario",
+    "Uma pergunta para você pensar: qual cheiro lembra a casa da sua infância? Tem quem ache graça e tem quem leve muito a sério. Tem quem ria disso, e tem quem defenda com unhas e dentes. E quando alguém de fora repara, a gente estranha. Se você tem uma história assim, ela é sua e é especial. O que para um é costume, para outro é novidade. Uma conversa boa começa assim, por um detalhe pequeno. A gente aprende muita coisa observando quem está perto. E ritual pequeno também é coisa séria. No fundo, é um jeito de cuidar de quem mora com a gente. Às vezes um gesto simples resolve o dia de alguém. Cada casa, um jeito.",
+    null,
+    1,
+    null
+   ],
+   [
+    "encerramento",
+    "É hora de dizer tchau por hoje. Obrigado por deixar a Rádio Vila Ventura ligada. Quem estava em casa, bom descanso. Foi uma alegria fazer esta trilha com você. Cada pessoa que deixou o rádio ligado fez parte disto. Que a próxima hora do seu dia seja leve. Obrigado a quem mandou recado e a quem só ouviu. Leva uma música boa na cabeça. Que o resto do dia seja tranquilo. Cuide de você e de quem está por perto. A Rádio Vila Ventura segue no ar. Fica bem, até amanhã.",
+    null,
+    1,
+    null
+   ]
+  ],
+  "sha256": "872e0f0be854cafd187026d59409215a8199a55e519f89091a133f185b21c0a5"
+ }
+}
