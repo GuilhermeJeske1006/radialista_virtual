@@ -25,6 +25,18 @@ def mp3_bytes_para_array(mp3_bytes: bytes) -> tuple[np.ndarray, int, int]:
     return amostras, segmento.frame_rate, segmento.sample_width
 
 
+def duracao_mp3_s(mp3_bytes: bytes | None) -> float | None:
+    """Duração (segundos) do mp3 final da fala, medida depois do TTS e da pós-produção (F2). Mesmo
+    método dos medidores de patrocinador e biblioteca (pydub). Entrada vazia ou que não decodifica
+    (dublê de teste, áudio corrompido) devolve None: a medição nunca derruba o áudio."""
+    if not mp3_bytes:
+        return None
+    try:
+        return round(AudioSegment.from_file(io.BytesIO(mp3_bytes), format="mp3").duration_seconds, 3)
+    except Exception:  # noqa: BLE001 -- CouldntDecodeError, OSError do ffmpeg, IndexError de cabeçalho
+        return None
+
+
 def array_para_mp3_bytes(audio: np.ndarray, sample_rate: int, sample_width: int = 2) -> bytes:
     """Re-encoda um array float32 (canais, amostras) de volta pra mp3 (bytes)."""
     audio = np.clip(audio, -1.0, 1.0)
