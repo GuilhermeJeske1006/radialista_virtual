@@ -18,6 +18,8 @@ from app.live import relogio as r
 from app.live.orcamento import estimar_duracao_s
 
 SP = ZoneInfo("America/Sao_Paulo")
+# Ritmo padrão das estimativas: desde a F2 vem de settings.fala_wpm_padrao (mesma origem do orçamento).
+WPM = r.CONFIG_PADRAO.wpm
 DIR_FIXTURES_RELOGIOS = pathlib.Path(__file__).resolve().parent / "fixtures" / "programas" / "relogios"
 COM_PATROCINIO = r.PecasDisponiveis(patrocinadores=(r.Peca(5, 30.0), r.Peca(6, 20.0)), vinheta_encerramento_s=3.0)
 
@@ -247,7 +249,7 @@ def test_u11_orcamento_do_link():
     no_horario = _planejar(programa, _em(10, 14, 12, 0), relogio, executadas=ABERTURA_FEITA)
     assert (no_horario.tipo_bloco, no_horario.acao, no_horario.orcamento_s) == ("comentario", "fala", (10, 35))
     apertado = _planejar(programa, _em(10, 14, 12, 17), relogio, executadas=ABERTURA_FEITA)
-    assert (apertado.acao, apertado.orcamento_s, apertado.palavras_max) == ("fala_reduzida", (10, 18), 43)
+    assert (apertado.acao, apertado.orcamento_s, apertado.palavras_max) == ("fala_reduzida", (10, 18), int(18 * WPM // 60))
     sem_espaco = _planejar(programa, _em(10, 14, 12, 28), relogio, executadas=ABERTURA_FEITA)
     assert sem_espaco.tipo_bloco != "comentario" or sem_espaco.acao == "reserva"
     assert "0:720" in sem_espaco.puladas
@@ -268,9 +270,9 @@ def test_u11_nenhum_plano_com_orcamento_abaixo_do_minimo(chave, musical):
                 minimo, maximo = candidato.orcamento_s
                 assert maximo >= minimo, (segundo, candidato.acao, candidato.tipo_bloco)
                 if musical:
-                    assert candidato.palavras_max <= maximo * 145 // 60
+                    assert candidato.palavras_max <= int(maximo * WPM // 60)
                 else:
-                    assert candidato.palavras_max == maximo * 145 // 60
+                    assert candidato.palavras_max == int(maximo * WPM // 60)
 
 
 def test_u12_debate_estourou_gera_fechamento_curto():
@@ -369,13 +371,13 @@ def test_u19_duracao_prevista_bloco():
         SimpleNamespace(inicio_segundos=10, fim_segundos=200, duracao_segundos=240),
         SimpleNamespace(inicio_segundos=0, fim_segundos=None, duracao_segundos=None),
     ], vinheta_encerramento_id=None)
-    assert r.duracao_prevista_bloco(fala) == round(29 / 145 * 60 + 190 + 210, 2)
+    assert r.duracao_prevista_bloco(fala) == round(29 / WPM * 60 + 190 + 210, 2)
     vinheta = SimpleNamespace(tipo="vinheta", fala="Rádio Teste")
     assert r.duracao_prevista_bloco(vinheta, duracao_peca_s=8) == 8
-    assert r.duracao_prevista_bloco(vinheta) == round(2 / 145 * 60, 2)
+    assert r.duracao_prevista_bloco(vinheta) == round(2 / WPM * 60, 2)
     encerramento = SimpleNamespace(tipo="encerramento", fala="Até amanhã", falas=None, video_id=None, musicas=[],
                                    vinheta_encerramento_id=3, vinheta_encerramento_texto="Rádio Teste")
-    assert r.duracao_prevista_bloco(encerramento, duracao_vinheta_fim_s=9) == round(2 / 145 * 60 + 9, 2)
+    assert r.duracao_prevista_bloco(encerramento, duracao_vinheta_fim_s=9) == round(2 / WPM * 60 + 9, 2)
     assert r.duracao_prevista_fala_s("um dois", 145) == estimar_duracao_s("um dois", 145)
 
 

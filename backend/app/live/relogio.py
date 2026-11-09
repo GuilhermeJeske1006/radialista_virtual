@@ -10,8 +10,9 @@ estado (`etapas_executadas` / `marcar_executada`) usa Redis, e falha aberto. Est
 `app.live.router`.
 
 Os números (unidades de fala, ritmo, tolerâncias) são hipóteses de projeto da skill referencia-radio
-e da pesquisa (§5, §7, §9). Ficam em `ConfigRelogio`: a F2 calibra o ritmo por voz e a F6 troca as
-unidades pelo catálogo de formatos. Desenho completo em docs/melhoria-radio/f1/auditoria.md (§5).
+e da pesquisa (§5, §7, §9). Ficam em `ConfigRelogio`: o ritmo vem da calibração por voz da F2
+(`app.live.ritmo_voz.wpm_para`) e a F6 troca as unidades pelo catálogo de formatos. Desenho completo em
+docs/melhoria-radio/f1/auditoria.md (§5).
 """
 
 import datetime
@@ -28,7 +29,7 @@ from pydantic_core import PydanticCustomError
 
 from app.feriados import feriado_do_dia
 from app.live.formato import orcamento_fala
-from app.live.orcamento import estimar_duracao_s
+from app.live.orcamento import estimar_duracao_s, wpm_padrao
 
 logger = logging.getLogger("radialista.live.relogio")
 
@@ -230,7 +231,9 @@ UNIDADES_PADRAO: dict[str, tuple[int, int]] = {
 
 @dataclass(frozen=True)
 class ConfigRelogio:
-    wpm: float = 145                       # mesmo ritmo da F0; a F2 calibra por voz
+    # Ritmo (palavras/min) das estimativas. Padrão: app.config.settings.fala_wpm_padrao, a mesma origem do
+    # orçamento e do simulador; /proxima troca pelo ritmo calibrado da voz (app.live.ritmo_voz.wpm_para).
+    wpm: float = field(default_factory=wpm_padrao)
     tolerancia_hard_time_s: int = 5        # critério de aceite da F1
     adiantamento_max_s: int = 90           # quanto um compromisso pode começar mais cedo (D3)
     # No fim do programa, começar cedo vira buraco no ar: a sobra antes do encerramento é menor.
@@ -929,14 +932,16 @@ def duracao_musica_s(musica, cfg: ConfigRelogio = CONFIG_PADRAO) -> float:
 
 def duracao_prevista_bloco(resposta, cfg: ConfigRelogio = CONFIG_PADRAO, *, duracao_peca_s: float | None = None,
                            duracao_vinheta_fim_s: float | None = None) -> float:
-    """Duração estimada de um bloco de /proxima: fala (palavras ÷ wpm), músicas, vinheta ou
-    patrocinador (duração conhecida ou palavras ÷ wpm) e vinheta de encerramento."""
+    """Duração estimada de um bloco de /proxima: fala (medida no áudio quando sintetizada, senão
+    palavras ÷ wpm), músicas, vinheta ou patrocinador (duração conhecida ou palavras ÷ wpm) e vinheta de
+    encerramento."""
     if resposta.tipo in ("vinheta", "patrocinador"):
         total = duracao_peca_s if duracao_peca_s is not None else estimar_duracao_s(resposta.fala, cfg.wpm)
         return round(float(total), 2)
     falas = getattr(resposta, "falas", None)
     texto = " ".join(f.texto for f in falas) if falas else resposta.fala
-    total = estimar_duracao_s(texto, cfg.wpm)
+    medida = getattr(resposta, "duracao_fala_s", None)
+    total = float(medida) if medida is not None else estimar_duracao_s(texto, cfg.wpm)
     musicas = list(getattr(resposta, "musicas", None) or [])
     if not musicas and getattr(resposta, "video_id", None):
         musicas = [resposta]

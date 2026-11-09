@@ -83,6 +83,25 @@ class Settings(BaseSettings):
         # Preço cheio da API = v3 e Flash (o desconto de lançamento acaba em 2026-10-12).
         "eleven_v4": 0.10, "eleven_v4_turbo": 0.05,
     }
+    # Duração real da fala (F2, app.live.orcamento e app.live.ritmo_voz). Hipóteses de projeto:
+    # o ritmo padrão (palavras/min) é o centro da faixa 130-160 da pesquisa (§5, skill
+    # referencia-radio); por modelo, a média medida em docs/benchmarks/2026-10-08-eleven-v4. A
+    # calibração por voz (tabela ritmos_voz) substitui os dois depois de algumas falas medidas.
+    fala_wpm_padrao: float = 150
+    fala_wpm_padrao_por_modelo: dict[str, float] = {
+        "eleven_v3": 162, "eleven_v4": 158, "eleven_v4_turbo": 158, "eleven_flash_v2_5": 171,
+    }
+    # Acima de (1 + tolerância) x máximo: uma reescrita mais curta antes do TTS; acima de
+    # (1 + teto) x máximo, medido depois do TTS: encurta por frases (nunca acelera a voz).
+    fala_tolerancia_orcamento: float = 0.15
+    fala_teto_orcamento: float = 0.30
+    fala_pausa_explicita_s: float = 1.2      # "......" vira [pause], ~1,2-1,5 s medidos no v3/v4
+    fala_pausa_entre_linhas_s: float = 0.28  # espelho de frontend-painel/lib/continuidadeAudio.ts
+    fala_calibracao_min_amostras: int = 5
+    fala_calibracao_max_amostras: int = 200  # acima disso as somas caem pela metade
+    fala_calibracao_min_palavras: int = 8
+    fala_calibracao_min_segundos: float = 2.0
+    fala_calibracao_wpm_faixa: tuple[float, float] = (80, 320)
     ia_stt_usd_hora: float = 0.40  # Hipótese scribe_v1: substituir pela tarifa contratada.
     ia_music_usd_minuto: float = 0.15
 
