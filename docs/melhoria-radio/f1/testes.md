@@ -22,3 +22,20 @@ Branch melhoria/f1-relogio. Verificação sem alterar código.
 - Pendência: falha do teste novo na suíte completa, não reproduzida isolado.
 
 VERMELHO
+
+## Rodada 2 (HEAD 87859df, após a correção do RNG)
+
+- `ruff check app tests scripts/simular_hora.py scripts/simulacao`: limpo.
+- `pytest -q --cov=app`: 1211 passed, 0 failed, cobertura 86% (298,8 s). A falha da rodada 1
+  (`test_sem_relogio_inicio_previsto_nao_muda_as_run`) não reapareceu.
+- Simulação fake com relógio, 3 perfis: hard_times_perdidos 0, atraso 0,0 s, falas_abaixo_minimo 0.
+  Fim antecipado: musical_adulto 7,23 s; popular_sertanejo 5,78 s; variedades_leves 13,78 s.
+- `--relogio-backend nenhum`: 3 hard times perdidos por perfil, como na F0. `as_run` idêntico a
+  `f1/simulacao/<perfil>/sem_relogio/` (referência corrigida), ignorando commit/tempo.
+- Contra a F0: popular_sertanejo e variedades_leves idênticos. O `musical_adulto` da F0 foi gravado
+  com o `random` global contaminado pela thread do Sentry (segundos cortados 146,1 na F0 x 100,1
+  corrigido; eventos divergem a partir do 7). Referência válida: `f1/simulacao/musical_adulto/sem_relogio/`.
+- Painel sem mudança desde a rodada 1: vitest 318 passed, `tsc --noEmit` ok; `npm run lint` quebrado
+  desde a linha de base.
+
+VERDE

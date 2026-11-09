@@ -42,3 +42,38 @@ Next 16); não conta como regressão.
   `horario_fim`; o encerramento é gerado ~1–3 min antes do fim e não vai ao ar. Alvo da F1.
 - Pendências: [`f0/pendencias.md`](f0/pendencias.md). Modos `llm`/`completo` não rodados
   (exigem aprovação de custo).
+- Correção posterior (feita na F1): o `musical_adulto` da linha de base foi gravado com o `random`
+  global contaminado pela thread do Sentry. Referência corrigida:
+  `f1/simulacao/musical_adulto/sem_relogio/` (segundos cortados 100,1, não 146,1).
+
+### F1 — Relógio, espelho e hard time — CONCLUÍDA
+
+- Branch: `melhoria/f1-relogio` (a partir de `melhoria/f0-bancada`).
+- Commits: `f89571d`, `137f57c`, `b61c5c2`, `870e6cb`, `91b02df`, `60711c1`, `74e4948`,
+  `4b0061c`, `aa74241`, `6f90d9e`, `dff4259`, `87859df` (+ registro do portão).
+- Entregas: coluna `programas.relogio_hora` (migração aditiva `relogio_20261107.py`); presets A/B/C
+  em `app/live/relogios/` (fonte de verdade, paridade com as fixtures); `app/live/relogio.py`
+  (etapa, próximo compromisso, `segundos_ate_hard_time`, backtiming, feriado, meia-noite);
+  `app/live/orcamento.py` com `estimar_duracao_s` (fórmula única, wpm 145 em `ConfigRelogio`);
+  `/proxima` consulta o relógio no horário previsto de ir ao ar (`inicio_previsto`, opcional);
+  rotas próprias `PUT/DELETE /config/programas/{id}/relogio` e `GET /config/relogios/presets`;
+  painel envia o horário previsto, inicia o programa agendado na hora exata e tem editor do relógio.
+- Portão: 1 rodada de correção (teste dependente de ordem: a thread do Sentry sorteava no `random`
+  global durante a simulação; simulador ganhou RNG isolado). Rodada 2: ruff limpo; pytest
+  1211/1211, cobertura 86%; vitest 318/318; `tsc` ok.
+- Simulação fake (relógio A para musical/popular, C para variedades):
+
+| | musical | popular | variedades |
+|---|---|---|---|
+| Encerramento no ar | não → sim | não → sim | não → sim |
+| Hard times perdidos (de 4) | 3 → 0 | 3 → 0 | 3 → 0 |
+| Atraso máximo em hard time | — → 0 s | — → 0 s | — → 0 s |
+| Falas abaixo do mínimo | 0 | 0 | 0 |
+| Segundos cortados no fim | 100 → 0 | 30 → 0 | 332 → 0 |
+
+- Programa sem relógio: comportamento idêntico ao anterior (caracterização dos cinco caminhos).
+- Decisões adotadas por padrão, a confirmar: intervalo sem patrocinador vira música (deixa de ser
+  hard time); fechamento de 2 min (B e C) dividido em resumo + despedida de até 45 s; estender
+  `inicio_previsto` a programas sem relógio fica para decisão do usuário (D4).
+- Pendências: [`f1/pendencias.md`](f1/pendencias.md) — painel antigo sem `inicio_previsto` atrasa
+  hard time até 412 s (F3).

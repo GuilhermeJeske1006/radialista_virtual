@@ -109,6 +109,7 @@ O motor do "ao vivo" (`app/live`, `frontend-painel/hooks/useLiveEngine.ts`) roda
 - Métricas de interações (backend pronto, painel ainda não expõe — ver próximos passos).
 - Suite de testes (backend + frontend) e CI via GitHub Actions.
 - Simulação de uma hora de programa sem custo (`backend/scripts/simular_hora.py --modo fake`): chama o `/proxima` real com dublês de LLM/TTS, reproduz a fila de preparo e o corte do player e grava `as_run.json`/`resumo.json` com métricas de tempo, continuidade, promessas e pedidos. Fixtures de três perfis e relógios A/B/C em `backend/tests/fixtures/programas/` ([plano de melhoria de rádio](plano-melhoria-radio.md), F0).
+- Relógio da hora por programa (presets A musical, B jornal/revista, C morning/variedades, ou ajustado no editor do programa): o ao vivo consulta o relógio no horário previsto de ir ao ar, calcula o tempo até o próximo hard time e só gera fala que cabe; encerramento e horários fixos são cumpridos. Programa sem relógio mantém o comportamento anterior (F1).
 
 ## 8. Próximos passos
 
