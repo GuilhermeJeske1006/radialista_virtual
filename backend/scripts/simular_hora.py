@@ -3,11 +3,13 @@
 Uso (a partir de backend/):
 
     PYTHONPATH=. .venv/bin/python scripts/simular_hora.py --programa musical_adulto --saida /tmp/sim/musical_adulto \
-        [--modo fake|llm|completo] [--semente 7] [--wpm 145] [--relogio A|B|C|<caminho>] [--antecedencia 2] \
+        [--modo fake|llm|completo] [--semente 7] [--wpm 162] [--relogio A|B|C|<caminho>] [--antecedencia 2] \
         [--preparo-antecipado-s 90] [--corte agendado|manual] [--relogio-backend fixture|nenhum]
         [--sem-inicio-previsto] [--confirmo-custo]
 
 - fake (padrão): sem rede. LLM, TTS, música, notícia e clima são dublês; a fala dura palavras/wpm.
+  --wpm é o ritmo com que o dublê do LLM escreve e estima; sem ele, o mesmo do backend sem calibração
+  (app.live.ritmo_voz.wpm_para: padrão do modelo de voz, senão settings.fala_wpm_padrao).
 - llm: texto real da Anthropic (consome créditos); TTS continua estimado.
 - completo: Anthropic + ElevenLabs (consome créditos); mede a duração real do áudio.
 
@@ -73,7 +75,7 @@ def _gravar(caminho: pathlib.Path, dados: dict) -> None:
     caminho.write_text(json.dumps(dados, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def simular(programa, modo: str = "fake", semente: int = 7, wpm: float = 145, saida=None, relogio=None,
+def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = None, saida=None, relogio=None,
             antecedencia: int = 2, preparo_antecipado_s: float = 90, corte: str = "agendado",
             relogio_backend: str = "nenhum", inicio_previsto: bool = True) -> Resultado:
     """Roda uma hora de programa. `programa` aceita o id da fixture, o caminho ou um FixturePrograma.
@@ -111,6 +113,7 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float = 145, sa
     random.seed(semente)
     redis_client.flushall()
     engine, sessao = ambiente.criar_banco()
+    wpm = wpm if wpm is not None else ambiente.wpm_do_backend(sessao)
     bloqueio = BloqueioRede() if modo == "fake" else None
     try:
         with freeze_time(base - datetime.timedelta(seconds=preparo_antecipado_s)) as relogio_virtual, \
@@ -253,7 +256,8 @@ def _argumentos(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--saida", required=True, help="pasta onde gravar as_run.json e resumo.json")
     parser.add_argument("--modo", choices=MODOS, default="fake")
     parser.add_argument("--semente", type=int, default=7)
-    parser.add_argument("--wpm", type=float, default=145)
+    parser.add_argument("--wpm", type=float, default=None,
+                        help="ritmo do dublê do LLM (padrão: o do backend sem calibração, wpm_para)")
     parser.add_argument("--relogio", default=None, help="A, B, C ou caminho de um relógio (padrão: o da fixture)")
     parser.add_argument("--antecedencia", type=int, default=2)
     parser.add_argument("--preparo-antecipado-s", type=float, default=90)

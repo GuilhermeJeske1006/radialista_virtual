@@ -113,6 +113,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Duracao medida da fala no /tts com pos-producao (F2), legivel pelo painel.
+    expose_headers=["X-Duracao-Fala-S"],
 )
 
 
@@ -153,6 +155,8 @@ app.include_router(admin_sistema_auth_router)
 async def criar_tabelas():
     from app.db.migrations.consumo_20260925 import aplicar
     aplicar(engine)
+    from app.db.migrations.ritmo_voz_20261109 import aplicar as aplicar_ritmo_voz
+    aplicar_ritmo_voz(engine)
     Base.metadata.create_all(bind=engine)
     garantir_colunas_radio_config()
     garantir_colunas_account()

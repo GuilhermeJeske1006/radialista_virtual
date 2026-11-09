@@ -36,6 +36,14 @@ def radialista_e_programa(db_session, account):
     return radio_config, programa
 
 
+def _wpm_da_voz() -> float:
+    """Ritmo sem calibração da voz do teste: o padrão do modelo do servidor (F2, app.live.ritmo_voz.wpm_para)."""
+    from app.config.settings import settings
+    from app.live.orcamento import wpm_padrao
+
+    return wpm_padrao(settings.elevenlabs_model)
+
+
 def _sem_campos_novos(dados: dict) -> dict:
     return {k: v for k, v in dados.items() if k not in ("criado_em", "duracao_prevista_s", "relogio")}
 
@@ -220,7 +228,7 @@ def test_i3_pouco_espaco_reduz_o_orcamento(client, account, auth_headers, com_re
     dados = _post(client, account, auth_headers, radialista, programa, inicio_previsto="2026-11-10T12:12:17-03:00")
     assert (dados["tipo"], dados["duracao_alvo_segundos"]) == ("comentario", [10, 18])
     assert dados["relogio"]["acao"] == "fala_reduzida"
-    assert "Meta: 10 a 18 segundos, no máximo 43 palavras" in prompts[0]
+    assert f"Meta: 10 a 18 segundos, no máximo {int(18 * _wpm_da_voz() // 60)} palavras" in prompts[0]
 
 
 @freeze_time("2026-11-10 15:52:00")  # 12:52: sem relógio, ainda faltariam 8 min
@@ -258,7 +266,7 @@ def test_i6_i15_revisao_por_orcamento_no_formato_padrao(client, account, auth_he
     dados = _post(client, account, auth_headers, radialista, programa, inicio_previsto="2026-11-10T12:12:00-03:00")
     assert (dados["tipo"], dados["fala"], dados["duracao_alvo_segundos"]) == ("comentario", curta, [10, 35])
     assert len(prompts) == 2
-    assert "Reescreva com no máximo 84 palavras" in prompts[1]
+    assert f"Reescreva com no máximo {int(35 * _wpm_da_voz() // 60)} palavras" in prompts[1]
     assert "4 a 6 frases" not in prompts[0] and "em loop" not in prompts[0]
     assert "Não cite nem prometa música específica" in prompts[0]
 
@@ -364,7 +372,7 @@ def test_i13_i14_duracao_prevista_em_todos_e_relogio_invalido_cai_no_caminho_atu
     _prompts(monkeypatch, "Uma duas três quatro cinco seis sete oito nove dez onze doze treze catorze quinze.")
     dados = _post(client, account, auth_headers, radialista, programa, inicio_previsto="2026-08-10T12:05:00-03:00")
     assert dados["tipo"] == "comentario" and dados["relogio"] is None
-    assert dados["duracao_prevista_s"] == round(15 / 145 * 60, 2)
+    assert dados["duracao_prevista_s"] == round(15 / _wpm_da_voz() * 60, 2)
 
 
 def test_i16_prompt_mostra_a_hora_prevista(account, radialista_e_programa, monkeypatch):

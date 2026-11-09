@@ -62,6 +62,14 @@ def criar_banco():
     return engine, sessao
 
 
+def wpm_do_backend(sessao) -> float:
+    """Ritmo que o backend usa antes de qualquer calibração (mesma origem: app.live.ritmo_voz.wpm_para, que
+    cai no padrão do modelo de voz e depois em settings.fala_wpm_padrao). O dublê do LLM escreve com ele."""
+    from app.live.ritmo_voz import voz_efetiva, wpm_para
+
+    return wpm_para(sessao, voz_efetiva(sessao, 0, None))
+
+
 @contextlib.contextmanager
 def cliente_http(sessao) -> Iterator:
     """TestClient sem `with` (não dispara o startup de app.main), como em tests/conftest.py."""

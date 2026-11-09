@@ -25,8 +25,10 @@ from collections import Counter
 from typing import Any, Callable, Iterator
 from unittest import mock
 
+from app.config.settings import settings
 from app.live.formato import contar_palavras, orcamento_fala
 from app.live.music import MusicaEncontrada, titulo_ja_tocado
+from app.live.orcamento import wpm_padrao
 from app.util.texto import sem_acento
 
 from scripts.simulacao import banco_falas
@@ -96,11 +98,12 @@ def _preencher(modelo: str, espacos: dict[str, str]) -> str:
 class DubleLLM:
     """Substitui gerar_resposta/gerar_dialogo_multivoz e as classificações auxiliares."""
 
-    def __init__(self, fixture: FixturePrograma, estado: EstadoChamada, wpm: float = 145, semente: int = 7,
+    def __init__(self, fixture: FixturePrograma, estado: EstadoChamada, wpm: float | None = None, semente: int = 7,
                  sessao=None):
         self.fixture = fixture
         self.estado = estado
-        self.wpm = wpm
+        # Sem ritmo explícito, o padrão do backend (mesma origem de app.live.orcamento).
+        self.wpm = wpm if wpm is not None else wpm_padrao(settings.elevenlabs_model)
         self.sessao = sessao
         self.rng = random.Random(f"duble-llm:{semente}")
         self.contadores: Counter = Counter()
@@ -559,7 +562,7 @@ def _modulos_app() -> Iterator[tuple[str, Any]]:
 
 @contextlib.contextmanager
 def aplicar_dubles(fixture: FixturePrograma, catalogo: Catalogo, modo: str = "fake", sessao=None,
-                   estado: EstadoChamada | None = None, wpm: float = 145, semente: int = 7) -> Iterator[Dubles]:
+                   estado: EstadoChamada | None = None, wpm: float | None = None, semente: int = 7) -> Iterator[Dubles]:
     estado = estado or EstadoChamada()
     llm = DubleLLM(fixture, estado, wpm=wpm, semente=semente, sessao=sessao)
     extras = [(i.titulo, i.artista) for i in fixture.injecoes if i.tipo == "cita_musica" and i.titulo]
