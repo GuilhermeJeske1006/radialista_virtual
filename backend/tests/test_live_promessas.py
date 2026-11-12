@@ -270,6 +270,24 @@ def test_u4_fora_volta_pela_grade_e_conteudo_de_amanha():
     assert not p.programa_volta_em(especifica, terca + datetime.timedelta(days=1))
 
 
+@pytest.mark.parametrize("fala", [
+    "Segundo a federação, o próximo jogo será amanhã, às dezesseis horas.",
+    "Conforme a prefeitura, a obra começa amanhã.",
+    "De acordo com a organização, o festival ocorre semana que vem.",
+])
+def test_data_futura_em_relato_atribuido_nao_e_promessa_da_emissora(fala):
+    assert p.detectar(fala) == []
+
+
+@pytest.mark.parametrize("fala", [
+    "Segundo a agenda, amanhã teremos uma surpresa aqui no programa.",
+    "Segundo a produção, amanhã vamos mostrar uma surpresa.",
+    "Conforme a programação, amanhã tem mais recado de ouvinte.",
+])
+def test_atribuicao_nao_libera_promessa_de_conteudo_da_emissora(fala):
+    assert _casar(fala).situacao == "violacao"
+
+
 def test_u4_teto_de_promessas_abertas():
     retorno = _evento("etapa:0:1620", "participacao", minutos=14)
     assert _casar("Daqui a pouco tem recado.", retorno, abertas=2).situacao == "evento"

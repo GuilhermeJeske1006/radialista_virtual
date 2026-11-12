@@ -70,6 +70,13 @@ class ConfigPromessas:
     # Despedidas: "até amanhã" é volta do programa, conferida pela grade (D9).
     despedidas: tuple[str, ...] = ("ate amanha", "ate a semana que vem", "ate semana que vem",
                                    "ate a proxima semana", "ate a proxima edicao", "ate o proximo programa")
+    # Uma data futura em relato atribuído não é, sozinha, compromisso da emissora.
+    # O recorte é conservador: tipos explícitos de chamada continuam sendo julgados.
+    relatos_atribuidos: tuple[str, ...] = ("segundo", "conforme", "de acordo com")
+    referencias_emissao: tuple[str, ...] = (
+        "aqui", "radio", "programa", "a gente", "vamos", "teremos", "traremos",
+        "mostraremos", "veremos", "falaremos", "contaremos", "voce vai", "voces vao",
+    )
     # Quantos dias à frente cada marcador "fora" aponta: (de, até).
     dias_fora: dict[str, tuple[int, int]] = dataclasses.field(default_factory=lambda: {
         "amanha": (1, 1), "na proxima edicao": (1, 7), "semana que vem": (1, 7), "proxima semana": (1, 7),
@@ -227,7 +234,13 @@ def detectar(texto: str, config: ConfigPromessas | None = None) -> list[Promessa
             marcador = next((m for m in marcadores if _tem(n, m)), None)
             if marcador is None:
                 continue
-            achadas.append(PromessaDetectada(frase=frase, marcador=marcador, classe=classe, tipo=_tipo(n, cfg),
+            tipo = _tipo(n, cfg)
+            relato = any(n.startswith(prefixo + " ") for prefixo in cfg.relatos_atribuidos)
+            if classe == "fora" and tipo == "conteudo" and relato and not any(
+                _tem(n, referencia) for referencia in cfg.referencias_emissao
+            ):
+                break  # Veracidade/validade do dado cabe à apuração, não ao detector de tease.
+            achadas.append(PromessaDetectada(frase=frase, marcador=marcador, classe=classe, tipo=tipo,
                                              despedida=any(_tem(n, d) for d in cfg.despedidas)))
             break
     return achadas

@@ -88,7 +88,7 @@ def test_programa_esportivo_apura_e_gera_fala_sem_edicao_manual_mesmo_com_pauta_
         json={"historico": [], "total_falas": 1, "incluir_audio": False}, headers=auth_headers(account.id),
     )
     assert resposta.status_code == 200
-    assert resposta.json()["fala"] == fala
+    assert resposta.json()["fala"] == fala, resposta.json()
     pesquisar.assert_called_once()
     assert pesquisar.call_args.args[0].id == programa.id
     assert pesquisar.call_args.args[1].id == account.id
