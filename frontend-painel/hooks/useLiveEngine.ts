@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { sondarAutoplayComSom as sondarAutoplay } from "../lib/autoplay";
 import { apiFetch, apiFetchBlob, apiFetchBlobComTimeout, apiFetchComTimeout, ApiError } from "../lib/api";
 import { setRadialistaAtualId } from "../lib/radialistas";
+import { falaReservaNeutra } from "../lib/reservaNeutra";
 import { Radialista, Programa, RadioConta } from "../lib/types";
 import {
   AudioFala,
@@ -1362,9 +1363,10 @@ export function useLiveEngine() {
         segmento = { ...local, criado_em: new Date().toISOString(), origem: "local" };
         if (ativa()) setErro(err instanceof ApiError ? `${err.message}. Usando fala local.` : "IA indisponivel. Usando fala local.");
       } else {
+        // F5 (D16): reorientação neutra, sem prometer conteúdo que não está agendado.
         segmento = {
           tipo: "comentario",
-          fala: "Seguimos no ar, ja volto com mais uma novidade.",
+          fala: falaReservaNeutra(programaAtual?.nome, radioConta?.nome_radio),
           criado_em: new Date().toISOString(),
           origem: "local",
         };
