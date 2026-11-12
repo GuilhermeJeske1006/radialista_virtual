@@ -20,11 +20,12 @@ import itertools
 
 from sqlalchemy.orm import Session
 
-from app.dados.verificavel import janela_noticia
+from app.dados.verificavel import valido_ate_da_noticia
 from app.models.account import Account
 from app.models.noticia import Noticia
 from app.models.noticia_historico import NoticiaHistorico
 from app.models.programa import Programa
+from app.models.radio_config import RadioConfig
 from app.util.texto import sem_acento as _sem_acento
 
 # Ângulo padrão de toda notícia comum (única aparição, ver docstring do módulo).
@@ -115,6 +116,8 @@ def _candidatos(
     ver docstring do módulo). Base comum de `proxima_noticia` (notícia comum), `proximas_noticias`
     (escalada) e `proxima_para_plantao` (score mínimo)."""
     agora = datetime.datetime.now(datetime.timezone.utc)
+    radialista = db.get(RadioConfig, programa.radio_config_id)
+    tz = getattr(radialista, "timezone", None) or "America/Sao_Paulo"
     tipos_noticias = programa.tipos_noticias or []
     topicos_proibidos = programa.topicos_proibidos or []
     dose = getattr(programa, "dose_noticia", "jornalistica") or "jornalistica"
@@ -130,7 +133,8 @@ def _candidatos(
         publicado_em = noticia.publicado_em
         if publicado_em.tzinfo is None:
             publicado_em = publicado_em.replace(tzinfo=datetime.timezone.utc)
-        if publicado_em < agora - janela_noticia(noticia.categoria):
+        # Regra única de validade (app.dados.verificavel): janela da categoria, ou o fim do evento na agenda com data.
+        if agora > valido_ate_da_noticia(noticia.categoria, publicado_em, noticia.detalhes, tz):
             continue
         if not _categoria_permitida(noticia.categoria, tipos_noticias):
             continue

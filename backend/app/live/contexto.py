@@ -566,7 +566,7 @@ def _dados(entrada: EntradaEmissao, decisao: DecisaoBloco, jornalismo: Jornalism
         pautas=jornalismo.pautas, correcao=jornalismo.correcao,
         pesquisa=jornalismo.pesquisa if jornalismo.pesquisou else None,
         fontes_programa=programa.fontes_noticias or programa.fontes_pesquisa or [],
-        assunto=decisao.assunto if quadro is None else None, leitura_clima=leitura)
+        assunto=decisao.assunto if quadro is None else None, leitura_clima=leitura, tz=entrada.radialista.timezone)
 
 
 def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: ResolucaoBloco,

@@ -130,6 +130,47 @@ def janela_noticia(categoria: str | None, config: ConfigDados | None = None) -> 
     return datetime.timedelta(hours=cfg.janela_noticia_h.get(categoria or "", cfg.janela_noticia_padrao_h))
 
 
+# Categoria da curadoria cuja validade vem da data do evento (D12), quando a curadoria a extraiu.
+CATEGORIAS_COM_DATA_DE_EVENTO = ("agenda_cultura",)
+
+
+def data_do_evento(texto: str | None, tz: str) -> tuple[datetime.datetime, bool] | None:
+    """(início do evento no fuso da rádio, tem hora) a partir do ISO da curadoria ("2026-11-14" ou
+    "2026-11-14T19:30"); None se vazio ou inválido."""
+    texto = (texto or "").strip()
+    if not texto:
+        return None
+    try:
+        if "T" in texto or " " in texto:
+            inicio = datetime.datetime.fromisoformat(texto)
+            tem_hora = True
+        else:
+            inicio = datetime.datetime.combine(datetime.date.fromisoformat(texto), datetime.time())
+            tem_hora = False
+    except ValueError:
+        return None
+    if inicio.tzinfo is None:
+        inicio = inicio.replace(tzinfo=ZoneInfo(tz))
+    return inicio, tem_hora
+
+
+def valido_ate_da_noticia(categoria: str | None, publicado_em: datetime.datetime, detalhes, tz: str,
+                          config: ConfigDados | None = None) -> datetime.datetime:
+    """Até quando a notícia RSS vale (a mesma regra na seleção da pauta e no dado): agenda com data do evento vale
+    até o fim dele (a duração padrão depois da hora de início, ou o fim do dia sem hora, D12); o resto, a janela da
+    categoria contada da publicação."""
+    cfg = config or CONFIG_DADOS
+    if categoria in CATEGORIAS_COM_DATA_DE_EVENTO:
+        evento = data_do_evento((detalhes or {}).get("data_evento"), tz)
+        if evento is not None:
+            inicio, tem_hora = evento
+            if tem_hora:
+                return inicio + datetime.timedelta(seconds=cfg.duracao_evento_padrao_s)
+            return datetime.datetime.combine(inicio.date() + datetime.timedelta(days=1), datetime.time(),
+                                             tzinfo=inicio.tzinfo)
+    return em_utc(publicado_em) + janela_noticia(categoria, cfg)
+
+
 def idade_maxima(categoria_afirmacao: str, config: ConfigDados | None = None) -> datetime.timedelta | None:
     segundos = (config or CONFIG_DADOS).idade_max_afirmacao_s.get(categoria_afirmacao)
     return datetime.timedelta(seconds=segundos) if segundos is not None else None

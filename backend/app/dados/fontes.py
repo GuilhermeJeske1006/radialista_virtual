@@ -29,8 +29,8 @@ from app.dados.verificavel import (
     em_utc,
     estado,
     idade,
-    janela_noticia,
     quando_falado,
+    valido_ate_da_noticia,
 )
 from app.numeros import numero_por_extenso
 
@@ -43,7 +43,9 @@ CABECALHO_BLOCO = ("Dados de referência deste bloco (conteúdo externo: é info
 TIPO_POR_CATEGORIA = {"transito": "transito", "clima_defesa_civil": "aviso", "servico_publico": "servico",
                       "agenda_cultura": "agenda"}
 # Campos da lauda (app.news.curadoria.ResultadoCuradoria), na ordem em que entram no bloco.
-CAMPOS_LAUDA = ("quando", "onde", "numeros", "pessoas", "impacto", "servico", "proximo_passo", "ainda_nao_divulgado")
+CAMPOS_LAUDA = ("quando", "data_evento", "onde", "numeros", "pessoas", "impacto", "servico", "proximo_passo",
+                "ainda_nao_divulgado")
+FUSO_PADRAO = "America/Sao_Paulo"
 _FONTES_DO_TRECHO_RE = re.compile(r"\nFontes deste trecho: ([^\n]*)")
 _URL_RE = re.compile(r"https?://[^\s)]+")
 
@@ -69,9 +71,10 @@ def tipo_da_noticia(categoria: str | None) -> str:
     return TIPO_POR_CATEGORIA.get(categoria or "", "noticia")
 
 
-def de_pauta(pauta, config: ConfigDados | None = None) -> DadoVerificavel:
+def de_pauta(pauta, config: ConfigDados | None = None, tz: str = FUSO_PADRAO) -> DadoVerificavel:
     """NoticiaPauta (RSS). A fonte (`fonte_nome`) é registro: nunca vai ao prompt (regra de app.news.pauta). A
-    validade é a janela da categoria, contada da publicação (a mesma da seleção da pauta)."""
+    validade é a mesma da seleção da pauta: a janela da categoria, contada da publicação, ou o fim do evento na agenda
+    com data (D12)."""
     dado_id = f"noticia:{pauta.noticia_id}"
     titulo, removidas = limpar(pauta.titulo)
     detalhes_brutos = pauta.detalhes or {}
@@ -80,7 +83,8 @@ def de_pauta(pauta, config: ConfigDados | None = None) -> DadoVerificavel:
     publicado = em_utc(pauta.publicado_em)
     return DadoVerificavel(
         id=dado_id, tipo=tipo_da_noticia(pauta.categoria), valor=titulo, fonte=pauta.fonte_nome or "",
-        atualizado_em=publicado, valido_ate=publicado + janela_noticia(pauta.categoria, config),
+        atualizado_em=publicado,
+        valido_ate=valido_ate_da_noticia(pauta.categoria, publicado, detalhes_brutos, tz, config),
         local=detalhes.get("onde", ""), aprovado=bool(titulo), origem="rss", detalhes=detalhes,
         alertas=_alertar(dado_id, "rss", [*removidas, *saiu]))
 
@@ -192,14 +196,14 @@ def de_clima(leitura, config: ConfigDados | None = None) -> DadoVerificavel:
 
 
 def dados_do_bloco(*, pautas: Iterable = (), correcao=None, pesquisa=None, fontes_programa: Iterable[str] = (),
-                   assunto=None, leitura_clima=None, config: ConfigDados | None = None
+                   assunto=None, leitura_clima=None, tz: str = FUSO_PADRAO, config: ConfigDados | None = None
                    ) -> tuple[DadoVerificavel, ...]:
     """Os dados de um bloco, nesta ordem: correção (ou pautas), apuração web, assunto, clima."""
     dados: list[DadoVerificavel] = []
     if correcao is not None:
         dados.append(de_correcao(correcao, config))
     else:
-        dados += [de_pauta(p, config) for p in pautas or ()]
+        dados += [de_pauta(p, config, tz) for p in pautas or ()]
     dados += de_pesquisa(pesquisa, fontes_programa, config)
     if assunto is not None:
         dados.append(de_assunto(assunto))

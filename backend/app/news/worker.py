@@ -155,6 +155,7 @@ def coletar_fonte(db: Session, account: Account, fonte: FonteNoticia) -> int:
                     "servico": resultado.servico,
                     "proximo_passo": resultado.proximo_passo,
                     "ainda_nao_divulgado": resultado.ainda_nao_divulgado,
+                    "data_evento": resultado.data_evento,
                 },
             )
         )
