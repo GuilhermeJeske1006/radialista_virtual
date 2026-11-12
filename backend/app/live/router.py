@@ -193,6 +193,7 @@ from app.postprod.client import processar_audio
 from app.vinhetas.servico import vinheta_encerramento
 from pydub.exceptions import PydubException
 from app.tts.client import sintetizar_audio, sintetizar_audio_stream, tts_habilitado
+from app.weather.client import obter_leitura_clima  # noqa: F401 -- porta (F5): testes e simulador a trocam aqui
 from app.tts.voices import validar_voz_ou_400
 from app.tts.profiles import parametros_sintese
 from app.util.texto import sem_acento as _sem_acento

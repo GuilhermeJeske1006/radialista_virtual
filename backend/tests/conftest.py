@@ -70,6 +70,23 @@ def _pesquisa_noticias_sem_rede(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _clima_sem_rede(monkeypatch):
+    """F5: o ao vivo lê o clima da cidade da conta (app.weather.client.obter_leitura_clima). Sem isto, qualquer
+    teste com `cidade` preenchida iria ao Open-Meteo. Só as URLs do Open-Meteo falham; o resto de httpx.get segue
+    igual. Teste que precisa da resposta (tests/test_weather_client.py) troca httpx.get com o próprio monkeypatch."""
+    import httpx
+
+    original = httpx.get
+
+    def _get(url, *args, **kwargs):
+        if "open-meteo.com" in str(url):
+            raise httpx.ConnectError("clima sem rede nos testes")
+        return original(url, *args, **kwargs)
+
+    monkeypatch.setattr(httpx, "get", _get)
+
+
+@pytest.fixture(autouse=True)
 def _classificar_tema_fala_mockado(monkeypatch):
     """Bloco comentario/noticia em /live/.../proxima dispara _registrar_tema_em_background (ver
     app.live.router) -- uma thread solta, fora do ciclo de vida do request, que chama

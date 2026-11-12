@@ -52,6 +52,7 @@ class ConfigDados:
     clima_ultima_leitura_ttl_s: int = 10800    # última leitura guardada para quando a API cair (D5)
     tolerancia_futuro_s: int = 300             # relógio da fonte adiantado até isso ainda é "agora"
     limite_texto: int = 600                    # caracteres de texto externo por campo no bloco
+    limite_texto_pesquisa: int = 1500          # trecho da apuração web (parágrafo com fato, local, datas e veículo)
     limite_nome: int = 40                      # caracteres do nome do ouvinte (D15)
     nome_substituto: str = "um ouvinte"        # nome com ordem embutida
     # Quem pode ser citado no ar como fonte do dado, por tipo (D8: o prompt pede, o validador não exige).
@@ -91,7 +92,7 @@ class DadoVerificavel:
 # Validade
 # ---------------------------------------------------------------------------------------------------------
 
-def _utc(instante: datetime.datetime) -> datetime.datetime:
+def em_utc(instante: datetime.datetime) -> datetime.datetime:
     return instante.replace(tzinfo=datetime.timezone.utc) if instante.tzinfo is None else instante
 
 
@@ -99,23 +100,23 @@ def valido_ate_efetivo(dado: DadoVerificavel, config: ConfigDados | None = None)
     """O `valido_ate` do dado; sem ele, `atualizado_em` + a validade do tipo (`validade_s`); sem regra, atemporal."""
     cfg = config or CONFIG_DADOS
     if dado.valido_ate is not None:
-        return _utc(dado.valido_ate)
+        return em_utc(dado.valido_ate)
     segundos = cfg.validade_s.get(dado.tipo)
     if segundos is None or dado.atualizado_em is None:
         return None
-    return _utc(dado.atualizado_em) + datetime.timedelta(seconds=segundos)
+    return em_utc(dado.atualizado_em) + datetime.timedelta(seconds=segundos)
 
 
 def estado(dado: DadoVerificavel, instante: datetime.datetime, config: ConfigDados | None = None) -> EstadoDado:
     """"sem_fonte", "nao_aprovado", "futuro" (atualizado depois de agora), "vencido" ou "valido", nessa ordem."""
     cfg = config or CONFIG_DADOS
-    instante = _utc(instante)
+    instante = em_utc(instante)
     if not (dado.fonte or "").strip():
         return "sem_fonte"
     if not dado.aprovado:
         return "nao_aprovado"
     if dado.atualizado_em is not None and \
-            _utc(dado.atualizado_em) > instante + datetime.timedelta(seconds=cfg.tolerancia_futuro_s):
+            em_utc(dado.atualizado_em) > instante + datetime.timedelta(seconds=cfg.tolerancia_futuro_s):
         return "futuro"
     ate = valido_ate_efetivo(dado, cfg)
     if ate is not None and instante > ate:
@@ -140,11 +141,11 @@ def velho_para_afirmar(dado: DadoVerificavel, categoria_afirmacao: str, instante
     limite = idade_maxima(categoria_afirmacao, config)
     if limite is None or dado.atualizado_em is None:
         return False
-    return _utc(instante) - _utc(dado.atualizado_em) > limite
+    return em_utc(instante) - em_utc(dado.atualizado_em) > limite
 
 
 def idade(dado: DadoVerificavel, instante: datetime.datetime) -> datetime.timedelta | None:
-    return _utc(instante) - _utc(dado.atualizado_em) if dado.atualizado_em is not None else None
+    return em_utc(instante) - em_utc(dado.atualizado_em) if dado.atualizado_em is not None else None
 
 
 # ---------------------------------------------------------------------------------------------------------
@@ -153,7 +154,7 @@ def idade(dado: DadoVerificavel, instante: datetime.datetime) -> datetime.timede
 
 def horario_falado(instante: datetime.datetime, tz: str) -> str:
     """"às catorze e dez", "ao meio-dia", "à meia-noite e trinta", "à uma hora", no fuso da rádio."""
-    local = _utc(instante).astimezone(ZoneInfo(tz))
+    local = em_utc(instante).astimezone(ZoneInfo(tz))
     hora, minuto = local.hour, local.minute
     if hora == 12:
         base = "ao meio-dia"
@@ -176,7 +177,7 @@ def quando_falado(instante: datetime.datetime | None, agora: datetime.datetime, 
     if instante is None:
         return ""
     fuso = ZoneInfo(tz)
-    dia, hoje = _utc(instante).astimezone(fuso).date(), _utc(agora).astimezone(fuso).date()
+    dia, hoje = em_utc(instante).astimezone(fuso).date(), em_utc(agora).astimezone(fuso).date()
     if dia == hoje:
         prefixo = "hoje"
     elif dia == hoje - datetime.timedelta(days=1):

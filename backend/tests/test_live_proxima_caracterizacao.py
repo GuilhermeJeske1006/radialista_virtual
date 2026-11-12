@@ -531,6 +531,8 @@ def _rodar(cenario: Cenario, client, account, auth_headers, db_session, monkeypa
     monkeypatch.setattr("app.live.router.sugerir_musica_do_genero", lambda genero: "")
     monkeypatch.setattr("app.live.router.buscar_faixas_por_categoria", lambda genero, excluir_titulos=None: [])
     monkeypatch.setattr("app.llm.prompt_builder.obter_clima_atual", lambda cidade: None)
+    # F5: a porta nova do clima (app.live.portas); a conta tem cidade e iria à rede sem isto.
+    monkeypatch.setattr("app.live.router.obter_leitura_clima", lambda cidade: None)
 
     espiao = _RandomGravado(cenario.semente, cenario.random_forcado)
     with freeze_time(cenario.agora):

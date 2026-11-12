@@ -27,6 +27,8 @@ class PortasEmissao:
     proxima_para_plantao: Funcao
     correcao_pendente: Funcao
     montar_system_prompt: Funcao
+    # Dados verificáveis (F5): leitura do clima com horário e fonte (app.weather.client)
+    obter_leitura_clima: Funcao
     # Música e pedidos
     buscar_musica: Funcao
     buscar_musica_para_bloco: Funcao
