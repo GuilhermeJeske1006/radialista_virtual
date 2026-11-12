@@ -171,6 +171,24 @@ def test_encaminhamento_confirma_uma_vez_e_pausa_respostas_seguintes(db_session,
     assert db_session.query(InteractionLog).order_by(InteractionLog.id.desc()).first().status == "aguardando_humano"
 
 
+def test_confirmacao_legada_f4_notifica_programa_validado_sem_duplicar(client, db_session, canal, auth_headers):
+    from app.models.fila_ao_vivo import FilaAoVivo
+    from app.models.canal_whatsapp import PreferenciasCanal
+    a, r, p = canal
+    pedido = FilaAoVivo(radio_config_id=r.id, programa_id=None, telefone="55119999", nome="Carla",
+        tipo="musica", mensagem_usuario="Meu pedido legado", estado="selecionado", selecao_token="legado-f4")
+    db_session.add(pedido)
+    db_session.add(PreferenciasCanal(account_id=a.id, notificar_resultado=True))
+    db_session.commit()
+    corpo = {"token": pedido.selecao_token, "programa_id": p.id, "resultado": "executado"}
+    url = f"/ouvintes/pedidos/{pedido.id}/reproducao"
+    for _ in range(2):
+        resposta = client.post(url, headers=auth_headers(a.id), json=corpo)
+        assert resposta.status_code == 200 and resposta.json()["estado"] == "executado"
+    assert db_session.query(EnvioWhatsapp).count() == 1
+    assert p.nome in db_session.query(EnvioWhatsapp).one().texto
+
+
 def test_eco_por_id_nao_pausa_agente_e_texto_manual_igual_pausa(db_session, canal):
     i = entrada(db_session, canal)
     processar_entrada(db_session, i.id)

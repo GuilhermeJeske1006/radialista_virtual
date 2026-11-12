@@ -238,7 +238,8 @@ def confirmar(
         from app.models.interaction_log import InteractionLog
         preferencias = db.get(PreferenciasCanal, account.id)
         if preferencias and preferencias.notificar_resultado:
-            programa = db.get(Programa, pedido.programa_id)
+            # F4 confirma também pedidos legados, que não têm programa persistido.
+            programa = db.get(Programa, pedido.programa_id or dados.programa_id)
             texto = f"Sua participação foi reproduzida no programa {programa.nome}. Obrigado por participar!"
             log = InteractionLog(radio_config_id=pedido.radio_config_id, telefone=pedido.telefone,
                 nome=pedido.nome, mensagem_usuario=texto, resposta_pendente=texto, origem="radio", status="pendente_envio")
