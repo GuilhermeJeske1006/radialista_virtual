@@ -3,6 +3,7 @@
 import { confirmarParticipacao } from "../lib/participacoes";
 import { esperarTransicao, pausaAntesDoBloco, reproduzirGrupoDeFalas } from "../lib/continuidadeAudio";
 import { FilaPreparo } from "../lib/filaPreparo";
+import { RecuperacaoAoVivo } from "../lib/recuperacaoAoVivo";
 import { inicioAEnviar, medirDesvio, proximoInicioBruto } from "../lib/relogioAoVivo";
 
 import { useEffect, useRef, useState } from "react";
@@ -195,6 +196,9 @@ function gerarFalaLocal(
 }
 
 export function useLiveEngine() {
+  const recuperacaoTextoRef = useRef(new RecuperacaoAoVivo());
+  const recuperacaoVozRef = useRef(new RecuperacaoAoVivo());
+  const reservaRef = useRef<{ programaId: number; expira: number; dados: Promise<{ disponivel: boolean; audio_base64?: string; texto?: string }> } | null>(null);
   const [radialistas, setRadialistas] = useState<Radialista[]>([]);
   const [radialistaId, setRadialistaId] = useState<number | null>(null);
   const [radioConta, setRadioConta] = useState<RadioConta | null>(null);
@@ -1280,6 +1284,8 @@ export function useLiveEngine() {
   }
 
   async function prepararTextoSemHorario(contexto: ContextoPreparo, ativa: () => boolean): Promise<TextoPreparado> {
+    await recuperacaoTextoRef.current.aguardar(ativa);
+    if (!ativa()) throw new Error("Preparo cancelado");
     const { historicoBase, totalFalas: totalFalasAtual, ultimaFala: ultimaFalaAtual } = contexto;
     let segmento: Omit<ProgramSegment, "id">;
     // audio ja sintetizado dentro de /proxima (ver Plano B.3) -- so' preenchido quando o backend
@@ -1344,8 +1350,10 @@ export function useLiveEngine() {
       audioErro = audio_erro;
       audiosFalasBase64 = audios_falas_base64 ?? null;
       segmento = { ...resposta, origem: "ia", inicio_previsto_ms: inicioPrevistoMs };
+      recuperacaoTextoRef.current.sucesso();
       if (ativa()) setErro("");
     } catch (err) {
+      recuperacaoTextoRef.current.falhou();
       const radialistaAtual = radialistas.find((r) => r.id === contexto.radialistaId);
       const programaAtual = programasTodos.find((p) => p.id === contexto.programaId);
       if (radialistaAtual && programaAtual) {
@@ -1369,6 +1377,31 @@ export function useLiveEngine() {
   async function prepararAudio(texto: TextoPreparado, contexto: ContextoPreparo, ativa: () => boolean): Promise<SegmentoPreparado> {
     const { segmento, audioBase64, audioStatus, audioErro, audiosFalasBase64 } = texto;
     const ultimaFalaAtual = contexto.ultimaFala;
+
+    // Falha de texto: identificação pronta do próprio programa cobre a pausa.
+    // Nunca apresentar notícia antiga, anunciar música ou confirmar pedido por ela.
+    if (segmento.origem === "local") {
+      try {
+        if (reservaRef.current?.programaId !== contexto.programaId || reservaRef.current.expira <= Date.now()) {
+          reservaRef.current = { programaId: contexto.programaId, expira: Date.now() + 60_000, dados: apiFetchComTimeout(
+            `/live/${contexto.radialistaId}/programas/${contexto.programaId}/reserva`, {}, 5_000) };
+        }
+        const reserva = await reservaRef.current.dados;
+        if (reserva.disponivel && reserva.audio_base64) {
+          const bytes = Uint8Array.from(atob(reserva.audio_base64), (c) => c.charCodeAt(0));
+          const blob = new Blob([bytes], { type: "audio/mpeg" });
+          return { segmento: { ...segmento, tipo: "vinheta", fala: reserva.texto ?? "" },
+            audioUrl: URL.createObjectURL(blob), audioBlob: blob, audiosFalas: null };
+        }
+      } catch {
+        // Storage também pode estar indisponível. A cama musical permanece tocando.
+      }
+    }
+
+    const arquivoPronto = segmento.vinheta_id || segmento.patrocinador_audio || audioBase64 || audiosFalasBase64;
+    if (!arquivoPronto && !recuperacaoVozRef.current.disponivel()) {
+      return { segmento, audioUrl: null, audioBlob: null, audiosFalas: null };
+    }
 
     // dialogo multi-voz (mais de um radialista no programa): busca um audio por linha,
     // cada uma com a voz do radialista que falou -- em vez de um audio unico pro bloco.
@@ -1404,8 +1437,10 @@ export function useLiveEngine() {
                 programa_id: contexto.programaId,
               }),
             }, 60_000);
+            recuperacaoVozRef.current.sucesso();
             return { url: URL.createObjectURL(blob), blob };
           } catch (err) {
+            recuperacaoVozRef.current.falhou();
             console.error("Falha ao gerar audio TTS (dialogo multi-voz), mantendo cama musical", err);
             if (ativa()) setErro(err instanceof ApiError ? `${err.message}. Linha pulada; cama musical mantida.` : "Voz IA indisponivel. Linha pulada; cama musical mantida.");
             return { url: null, blob: null };
@@ -1467,8 +1502,10 @@ export function useLiveEngine() {
               }, 60_000);
       }
       audioUrl = URL.createObjectURL(audioBlob);
+      recuperacaoVozRef.current.sucesso();
       if (ativa()) setFalhasAudioConsecutivas(0);
     } catch (err) {
+      recuperacaoVozRef.current.falhou();
       // engolir aqui sem log/aviso fazia a fala cair calada pra voz robotica do navegador (ver
       // falarComVozNavegador) sem nenhum indicio de que o TTS/audio do backend falhou.
       console.error("Falha ao gerar audio (TTS/patrocinador/vinheta), mantendo cama musical", err);

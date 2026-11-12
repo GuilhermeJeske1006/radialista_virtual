@@ -249,10 +249,13 @@ def executar_amostra(dados: ExecutarAmostraRequest, account=Depends(get_current_
             chave=claims['jti'], operacao=atual.get().operacao, funcionalidade='amostra_personalizada',
             tarifa_autorizada=claims['tarifa'])
     try:
+        from app.guardrails.provedores import executar
         if pedido['tipo'] == 'llm':
             from app.llm.client import _client
-            r = _client.messages.create(model=pedido['modelo'], max_tokens=512,
-                messages=[{'role':'user', 'content':pedido['texto']}])
+            r = executar('llm', pedido['modelo'], lambda restante: _client.messages.create(
+                model=pedido['modelo'], max_tokens=512, timeout=restante,
+                messages=[{'role':'user', 'content':pedido['texto']}]),
+                timeout_s=settings.ia_llm_timeout_s, entrada=len(pedido['texto'].encode()) + 128, saida=512)
             unidades = {'entrada':r.usage.input_tokens, 'saida':r.usage.output_tokens,
                 'cache_write':getattr(r.usage,'cache_creation_input_tokens',0) or 0,
                 'cache_read':getattr(r.usage,'cache_read_input_tokens',0) or 0, 'buscas':0}
@@ -263,7 +266,9 @@ def executar_amostra(dados: ExecutarAmostraRequest, account=Depends(get_current_
         from app.tts.client import _preparar_sintese, _ELEVENLABS_URL, unidades_sintese
         headers, payload = _preparar_sintese(pedido['texto'], None, None, False, None, pedido['modelo'], 'atual', None, pedido['voz_id'])
         with httpx.Client(timeout=30) as c:
-            r = c.post(_ELEVENLABS_URL.format(voice_id=pedido['voz_id']), headers=headers, json=payload)
+            r = executar('tts', pedido['modelo'], lambda restante: c.post(
+                _ELEVENLABS_URL.format(voice_id=pedido['voz_id']), headers=headers, json=payload, timeout=restante),
+                timeout_s=30)
             r.raise_for_status()
         if not r.content:
             raise HTTPException(502, 'Provedor retornou áudio vazio')

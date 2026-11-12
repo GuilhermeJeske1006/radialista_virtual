@@ -134,9 +134,10 @@ def compor_trilha_ia(prompt: str, duracao_ms: int = DURACAO_TRILHA_IA_MS) -> byt
     """POST /v1/music (ElevenLabs Music API): devolve o MP3 da trilha. Levanta em falha."""
     custo_usd = duracao_ms / 60_000 * settings.ia_music_usd_minuto
     reserva = reservar("music", settings.elevenlabs_music_model, custo_usd, unidades_max={"milissegundos": duracao_ms})
+    from app.guardrails.provedores import executar
     try:
         with httpx.Client(timeout=_MUSIC_TIMEOUT_SEGUNDOS) as client:
-            resposta = client.post(
+            resposta = executar("music", settings.elevenlabs_music_model, lambda restante: client.post(
                 _MUSIC_URL,
                 params={"output_format": "mp3_44100_192"},
                 headers={"xi-api-key": settings.elevenlabs_api_key, "Content-Type": "application/json"},
@@ -146,7 +147,8 @@ def compor_trilha_ia(prompt: str, duracao_ms: int = DURACAO_TRILHA_IA_MS) -> byt
                     "model_id": settings.elevenlabs_music_model,
                     "force_instrumental": True,
                 },
-            )
+                timeout=restante,
+            ), timeout_s=_MUSIC_TIMEOUT_SEGUNDOS)
             if resposta.status_code >= 400:
                 logger.warning("Falha na ElevenLabs Music API (%s): %s", resposta.status_code, resposta.text[:1000])
                 detalhe = _detalhe_erro(resposta)

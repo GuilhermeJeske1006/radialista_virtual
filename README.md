@@ -16,6 +16,9 @@
 | Painel | Next.js 16 + React 19 + Tailwind |
 | Deploy | Docker Compose |
 
+Controle global das APIs, recuperação de falhas, monitoramento e simulação de várias rádios:
+[Capacidade e continuidade do ao vivo](docs/capacidade-ao-vivo.md).
+
 ## Estrutura
 
 ```

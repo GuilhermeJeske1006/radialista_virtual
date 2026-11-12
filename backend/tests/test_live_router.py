@@ -53,6 +53,41 @@ def _url_proxima(radialista_id, programa_id):
     return f"/live/{radialista_id}/programas/{programa_id}/proxima"
 
 
+def test_reserva_so_serve_identificacao_pronta_do_programa(client, account, auth_headers, db_session,
+                                                        radialista_e_programa, monkeypatch, tmp_path):
+    import base64
+    from app.config.settings import settings
+    from app.storage import get_storage
+    radio, programa = radialista_e_programa
+    monkeypatch.setattr(settings, "upload_dir", str(tmp_path))
+    get_storage().save("reserva.mp3", b"identificacao-gravada")
+    db_session.add_all([
+        BibliotecaAudioItem(account_id=account.id, programa_id=programa.id, nome="Passagem", papel="passagem",
+                            origem="auto", status="pronta", texto="Você está ouvindo nossa rádio.", audio_path="reserva.mp3"),
+        BibliotecaAudioItem(account_id=account.id, programa_id=programa.id, nome="Notícia", papel="noticia",
+                            origem="auto", status="pronta", texto="Notícia antiga", audio_path="noticia.mp3"),
+    ])
+    db_session.commit()
+    resposta = client.get(f"/live/{radio.id}/programas/{programa.id}/reserva", headers=auth_headers(account.id))
+    assert resposta.status_code == 200
+    assert base64.b64decode(resposta.json()["audio_base64"]) == b"identificacao-gravada"
+    assert resposta.json()["texto"] == "Você está ouvindo nossa rádio."
+
+
+def test_reserva_ausente_nao_gera_audio_novo(client, account, auth_headers, radialista_e_programa, monkeypatch):
+    radio, programa = radialista_e_programa
+    monkeypatch.setattr("app.live.router.sintetizar_audio", lambda *a, **k: pytest.fail("não deve sintetizar"))
+    resposta = client.get(f"/live/{radio.id}/programas/{programa.id}/reserva", headers=auth_headers(account.id))
+    assert resposta.json() == {"disponivel": False}
+
+
+def test_reserva_isola_contas(client, account_factory, auth_headers, radialista_e_programa):
+    outro = account_factory(email="outra-radio@teste.com")
+    radio, programa = radialista_e_programa
+    resposta = client.get(f"/live/{radio.id}/programas/{programa.id}/reserva", headers=auth_headers(outro.id))
+    assert resposta.status_code == 404
+
+
 @pytest.mark.parametrize("bloco", [
     "noticia_local", "noticia_brasil", "Notícia regional", "agenda cultural", "boletim regional",
 ])

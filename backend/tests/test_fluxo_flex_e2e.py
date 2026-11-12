@@ -196,11 +196,11 @@ class VozFalsa:
             def __exit__(self, *a):
                 return False
 
-            def stream(self, metodo, url, headers, json):
+            def stream(self, metodo, url, headers, json, timeout=None):
                 voz.payloads.append(json)
                 return Resposta()
 
-            def post(self, url, headers, json):
+            def post(self, url, headers, json, timeout=None):
                 voz.payloads.append(json)
                 r = Resposta()
                 r.content = b'ID3audio'

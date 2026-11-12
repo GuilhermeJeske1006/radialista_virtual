@@ -83,6 +83,20 @@ async function iniciar() {
   return hook;
 }
 
+it("usa identificação gravada quando o texto falha, sem chamar TTS", async () => {
+  mocks.proxima.mockImplementation((path: string) => path.endsWith("/reserva")
+    ? Promise.resolve({ disponivel: true, texto: "Você está ouvindo nossa rádio.", audio_base64: btoa("vinheta") })
+    : Promise.reject(new Error("Provedor fora")));
+  const { result } = await iniciar();
+  await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+  expect(mocks.tts).not.toHaveBeenCalled();
+  expect(players).toHaveLength(1);
+  expect(result.current.falasPrograma[0]).toMatchObject({ tipo: "vinheta", fala: "Você está ouvindo nossa rádio." });
+  expect(mocks.proxima.mock.calls.filter(([path]) => path.endsWith("/proxima"))).toHaveLength(1);
+  await act(async () => { await vi.advanceTimersByTimeAsync(4_000); });
+  expect(mocks.proxima.mock.calls.filter(([path]) => path.endsWith("/proxima"))).toHaveLength(1);
+});
+
 it("prepara texto e voz seguintes antes de acabar o primeiro TTS e reaproveita o áudio pronto", async () => {
   const primeiroAudio = pendente<Blob>();
   mocks.proxima.mockResolvedValueOnce(segmento("Primeira")).mockResolvedValueOnce(segmento("Segunda"));

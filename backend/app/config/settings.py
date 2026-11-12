@@ -61,6 +61,22 @@ class Settings(BaseSettings):
     llm_prompt_cache: bool = False
     ia_cache_habilitado: bool = True
     ia_cache_ttl_segundos: int = 86400
+    # Tetos operacionais compartilhados por credencial, não cotas prometidas pelo provedor.
+    # Ajustar pelos limites reais do Console; 0 desativa somente a métrica RPM/tokens.
+    ia_limites_provedores: dict[str, dict[str, int]] = {
+        "tts": {"concorrencia": 2}, "stt": {"concorrencia": 4}, "music": {"concorrencia": 1},
+        "llm": {"concorrencia": 4, "rpm": 30, "entrada": 40000, "saida": 8000},
+    }
+    # Overrides por pool: ex. {"llm:claude-opus-5": {"rpm": 100, "entrada": 200000}}.
+    ia_limites_por_pool: dict[str, dict[str, int]] = {}
+    ia_fila_max: int = 128
+    ia_fila_espera_s: float = 8.0
+    ia_llm_timeout_s: float = 25.0
+    ia_retentativas: int = 3
+    ia_busca_reserva_tokens: int = 16000
+    ia_imagem_reserva_tokens: int = 8192
+    live_prewarm_workers: int = 2
+    live_prewarm_pendentes: int = 4
     # Desligado por padrão: ligado, toda geração exige tarifa publicada (senão 503) e
     # plano ativo (trial recebe 402). Ligar por env só com GET
     # /billing/admin/tarifas/pendentes vazio no ambiente.

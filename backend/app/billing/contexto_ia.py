@@ -98,7 +98,10 @@ class ContextoIAMiddleware:
                 return
             await send(message)
         try:
-            await self.app(scope, receive, enviar)
+            from app.guardrails.provedores import contexto_capacidade
+            ao_vivo = scope.get("path", "").startswith("/live/")
+            with contexto_capacidade(prioridade=0 if ao_vivo else 1, timeout_s=65 if ao_vivo else None):
+                await self.app(scope, receive, enviar)
             sucesso = status < 400
         finally:
             try:
@@ -183,7 +186,8 @@ def por_conta(funcionalidade):
         @wraps(func)
         def executar(*args, **kwargs):
             account = signature.bind(*args, **kwargs).arguments["account"]
-            with contexto_conta(account):
+            from app.guardrails.provedores import contexto_capacidade
+            with contexto_conta(account), contexto_capacidade(prioridade=0 if funcionalidade == "programa_ao_vivo" else 2):
                 atual.get().canal = "worker"
                 atual.get().funcionalidade = funcionalidade
                 return func(*args, **kwargs)

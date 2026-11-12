@@ -15,6 +15,11 @@ TZ = "America/Sao_Paulo"
 AGORA_UTC = "2026-08-10 15:00:00"
 
 
+@pytest.fixture(autouse=True)
+def executar_background_no_teste(monkeypatch):
+    monkeypatch.setattr(prewarm, "_executar_em_background", lambda tarefa: tarefa() or True)
+
+
 @pytest.fixture()
 def radialista_e_programa(db_session, account):
     radio_config = RadioConfig(account_id=account.id, timezone=TZ)
@@ -125,3 +130,31 @@ def test_preparar_programa_informa_o_horario_de_inicio(monkeypatch, db_session, 
     prewarm.preparar_programa(db_session, account, radio_config, programa)
     assert datetime.datetime.fromisoformat(pedidos[0].inicio_previsto) == datetime.datetime(
         2026, 8, 10, 12, 1, 30, tzinfo=datetime.timezone(datetime.timedelta(hours=-3)))
+
+
+@freeze_time(AGORA_UTC)
+def test_falha_no_preparo_permite_nova_rodada(monkeypatch, db_session, radialista_e_programa):
+    _, programa = radialista_e_programa
+    monkeypatch.setattr(prewarm, "SessionLocal", lambda: db_session)
+    monkeypatch.setattr(db_session, "close", lambda: None)
+    resultados = iter([False, True])
+    chamadas = []
+    def preparar(*args):
+        chamadas.append(1)
+        return next(resultados)
+    monkeypatch.setattr(prewarm, "preparar_programa", preparar)
+    prewarm.executar_tick()
+    prewarm.executar_tick()
+    prewarm.executar_tick()
+    assert len(chamadas) == 2
+    assert prewarm.redis_client.get(prewarm._chave_dedupe(programa.id, "2026-08-10")) == "pronto"
+
+
+@freeze_time(AGORA_UTC)
+def test_pool_cheio_nao_marca_programa_como_preparado(monkeypatch, db_session, radialista_e_programa):
+    _, programa = radialista_e_programa
+    monkeypatch.setattr(prewarm, "SessionLocal", lambda: db_session)
+    monkeypatch.setattr(db_session, "close", lambda: None)
+    monkeypatch.setattr(prewarm, "_executar_em_background", lambda _: False)
+    prewarm.executar_tick()
+    assert prewarm.redis_client.get(prewarm._chave_dedupe(programa.id, "2026-08-10")) is None

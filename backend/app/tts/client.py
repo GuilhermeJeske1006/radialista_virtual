@@ -15,6 +15,7 @@ from app.billing.consumo_ia import reservar, concluir, falhar
 from fastapi import HTTPException
 from app.numeros import normalizar_texto_fala
 from app.util.texto import sem_acento as _sem_acento
+from app.guardrails.provedores import executar, vaga, prazo_operacao, espera_retentativa
 
 logger = logging.getLogger("radialista.tts")
 
@@ -22,9 +23,7 @@ logger = logging.getLogger("radialista.tts")
 # sequencia rapida no ao vivo) e' quase sempre transitorio -- vale tentar de novo
 # antes de desistir e o front cair pra voz generica do navegador.
 _TTS_MAX_TENTATIVAS = 3
-_TTS_BACKOFF_BASE_SEGUNDOS = 1.5
 _TTS_TIMEOUT_SEGUNDOS = 25.0
-_TTS_MAX_ESPERA_RETRY_SEGUNDOS = 3.0
 
 _ELEVENLABS_URL = "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
 _ELEVENLABS_STREAM_URL = "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/stream"
@@ -403,23 +402,18 @@ def sintetizar_audio(
     reserva = reservar("tts", payload["model_id"], custo_usd, unidades_max={"caracteres": len(payload["text"])})
     try:
         with httpx.Client(timeout=timeout_segundos) as client:
-            for tentativa in range(1, max_tentativas + 1):
-                response = client.post(url, headers=headers, json=payload)
-                if response.status_code != 429 or tentativa == max_tentativas:
-                    if response.status_code >= 400:
-                        logger.warning("Falha ao sintetizar audio na ElevenLabs (%s)", response.status_code)
-                    response.raise_for_status()
-                    if not response.content:
-                        raise HTTPException(502, "Provedor retornou áudio vazio")
-                    concluir(reserva, unidades=unidades_sintese(response, payload), entregue=None,
-                             request_id=response.headers.get("request-id"))
-                    logger.info("tts_consumo modelo=%s caracteres=%s usd=%.6f", payload["model_id"], len(payload["text"]), custo_usd)
-                    return response.content
-
-                logger.warning("Rate limit da ElevenLabs (429) na tentativa %s/%s", tentativa, max_tentativas)
-                espera = float(response.headers.get("retry-after", 0)) or _TTS_BACKOFF_BASE_SEGUNDOS * tentativa
-                espera = min(espera, _TTS_MAX_ESPERA_RETRY_SEGUNDOS)
-                time.sleep(espera)
+            response = executar("tts", payload["model_id"],
+                lambda restante: client.post(url, headers=headers, json=payload, timeout=restante),
+                timeout_s=timeout_segundos, max_tentativas=min(max_tentativas, max(1, settings.ia_retentativas)))
+            if response.status_code >= 400:
+                logger.warning("Falha ao sintetizar audio na ElevenLabs (%s)", response.status_code)
+            response.raise_for_status()
+            if not response.content:
+                raise HTTPException(502, "Provedor retornou áudio vazio")
+            concluir(reserva, unidades=unidades_sintese(response, payload), entregue=None,
+                     request_id=response.headers.get("request-id"))
+            logger.info("tts_consumo modelo=%s caracteres=%s usd=%.6f", payload["model_id"], len(payload["text"]), custo_usd)
+            return response.content
 
 
     except BaseException:
@@ -458,35 +452,34 @@ def sintetizar_audio_stream(
 
     custo_usd = _custo_sintese(payload)
     reserva = reservar("tts", payload["model_id"], custo_usd, unidades_max={"caracteres": len(payload["text"])})
+    prazo = prazo_operacao(_TTS_TIMEOUT_SEGUNDOS)
+    max_tentativas = max(1, settings.ia_retentativas)
     try:
         with httpx.Client(timeout=_TTS_TIMEOUT_SEGUNDOS) as client:
-            for tentativa in range(1, _TTS_MAX_TENTATIVAS + 1):
-                with client.stream("POST", url, headers=headers, json=payload) as response:
-                    if response.status_code == 429 and tentativa < _TTS_MAX_TENTATIVAS:
-                        response.read()  # drena o corpo pra liberar a conexao antes do backoff
-                        logger.warning(
-                            "Rate limit da ElevenLabs (429) na tentativa %s/%s (streaming)",
-                            tentativa,
-                            _TTS_MAX_TENTATIVAS,
-                        )
-                        espera = float(response.headers.get("retry-after", 0)) or _TTS_BACKOFF_BASE_SEGUNDOS * tentativa
-                        espera = min(espera, _TTS_MAX_ESPERA_RETRY_SEGUNDOS)
-                        time.sleep(espera)
-                        continue
-                    if response.status_code >= 400:
-                        response.read()
-                        logger.warning("Falha ao sintetizar audio (streaming) na ElevenLabs (%s)", response.status_code)
-                        response.raise_for_status()
-                    recebido = False
-                    for parte in response.iter_bytes():
-                        recebido = recebido or bool(parte)
-                        yield parte
-                    if not recebido:
-                        raise HTTPException(502, "Provedor retornou áudio vazio")
-                    concluir(reserva, unidades=unidades_sintese(response, payload), entregue=None,
-                             request_id=response.headers.get("request-id"))
-                    logger.info("tts_consumo modelo=%s caracteres=%s usd=%.6f", payload["model_id"], len(payload["text"]), custo_usd)
-                    return
+            for tentativa in range(1, max_tentativas + 1):
+                # Mantém a vaga até o último byte ou o fechamento do gerador.
+                with vaga("tts", payload["model_id"], prazo=prazo) as ingresso:
+                    with client.stream("POST", url, headers=headers, json=payload,
+                                       timeout=max(.001, prazo - time.monotonic())) as response:
+                        ingresso.observar(response)
+                        if response.status_code >= 400:
+                            response.read()
+                        else:
+                            recebido = False
+                            for parte in response.iter_bytes():
+                                if time.monotonic() >= prazo:
+                                    raise httpx.ReadTimeout("Prazo da síntese excedido")
+                                recebido = recebido or bool(parte)
+                                yield parte
+                            if not recebido:
+                                raise HTTPException(502, "Provedor retornou áudio vazio")
+                            concluir(reserva, unidades=unidades_sintese(response, payload), entregue=None,
+                                     request_id=response.headers.get("request-id"))
+                            return
+                # Fecha conexão e libera a vaga antes de aguardar. Não repete
+                # após entregar bytes: poderia duplicar áudio e cobrança.
+                if not espera_retentativa("tts", payload["model_id"], response, tentativa, prazo, max_tentativas):
+                    response.raise_for_status()
 
 
     except BaseException:

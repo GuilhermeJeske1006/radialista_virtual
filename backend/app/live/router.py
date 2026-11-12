@@ -2509,6 +2509,23 @@ def buscar_preparo_antecipado(
     return {"disponivel": True, **preparo}
 
 
+@router.get("/{radialista_id}/programas/{programa_id}/reserva")
+def buscar_audio_reserva(radialista_id: int, programa_id: int,
+                        account: Account = Depends(get_current_account), db: Session = Depends(get_db)):
+    """Somente identificação já gravada deste programa; nunca gera TTS nem reutiliza notícias."""
+    from app.storage import get_storage
+    radialista = _buscar_radialista(db, account, radialista_id)
+    _buscar_programa(db, radialista, programa_id)
+    itens = (db.query(BibliotecaAudioItem).filter_by(account_id=account.id, programa_id=programa_id,
+             papel="passagem", origem="auto", ativo=True, status="pronta")
+             .filter(BibliotecaAudioItem.audio_path.isnot(None)).order_by(BibliotecaAudioItem.id.desc()).limit(3).all())
+    for item in itens:
+        audio = get_storage().read(item.audio_path)
+        if audio:
+            return {"disponivel": True, "audio_base64": base64.b64encode(audio).decode(), "texto": item.texto or ""}
+    return {"disponivel": False}
+
+
 @router.get("/{radialista_id}/programas/{programa_id}/musica-fundo", response_model=MusicaFundoResponse)
 def buscar_musica_de_fundo(
     radialista_id: int,
