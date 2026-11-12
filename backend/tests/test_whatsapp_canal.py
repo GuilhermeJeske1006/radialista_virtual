@@ -396,8 +396,9 @@ def test_worker_limita_tentativas_e_preserva_falha_para_operador(db_session, can
     i = entrada(db_session, canal)
     monkeypatch.setattr(settings, "whatsapp_tentativas_max", 2)
     monkeypatch.setattr("app.whatsapp.atendimento._atender", lambda *args: (_ for _ in ()).throw(RuntimeError("falha")))
-    def factory():
-        return nullcontext(db_session)
+    # O worker real abre uma sessão por tarefa. Reusar a sessão da fixture após
+    # rollback permite ao SQLite reciclar IDs dentro do mesmo identity map.
+    factory = sessionmaker(bind=db_session.get_bind(), autoflush=False)
     executar_rodada(factory)
     db_session.refresh(i)
     assert i.estado == "pendente" and i.tentativas == 1
@@ -413,7 +414,7 @@ def test_redis_indisponivel_adia_sem_esgotar_tentativas(db_session, canal, monke
     from app.whatsapp.worker import executar_rodada
     i = entrada(db_session, canal)
     monkeypatch.setattr("app.guardrails.rate_limiter.dentro_do_limite", lambda *args: (_ for _ in ()).throw(ConnectionError("offline")))
-    executar_rodada(lambda: nullcontext(db_session))
+    executar_rodada(sessionmaker(bind=db_session.get_bind(), autoflush=False))
     db_session.refresh(i)
     assert i.estado == "pendente" and i.tentativas == 0
 
