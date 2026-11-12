@@ -106,7 +106,7 @@ Next 16); não conta como regressão.
 - Pendências: [`f2/pendencias.md`](f2/pendencias.md). Peça de reserva não implementada (sem
   catálogo de reservas ainda — F11).
 
-### F3 — Estado confiável da emissão — IMPLEMENTADA (aguarda portão e juiz)
+### F3 — Estado confiável da emissão — CONCLUÍDA
 
 - Branch: `melhoria/f3-contexto-emissao` (a partir de `melhoria/f2-duracao-fala`).
 - Commits: `3edddaf` (caracterização), `2ac1497` (portas e textos de prompt), `bdda108` (RNG próprio dos
@@ -139,6 +139,21 @@ Next 16); não conta como regressão.
 | Fora do orçamento (com relógio) | 0% | 0% | 0% |
 
 - Demais métricas iguais às da F2 (incluindo o estresse `voz_120`: popular 12,1 s e variedades 14,3% fora,
-  limites conhecidos da F2). No máximo 2 chamadas de LLM e 2 sínteses por fala.
+  limites conhecidos da F2). No máximo 2 chamadas de LLM e 1 síntese por fala.
 - Pendências: [`f3/pendencias.md`](f3/pendencias.md). Falsos positivos do validador com texto real só no
   `--modo llm` (não rodado, exige aprovação de custo); travas do WhatsApp ainda no cliente Redis cru.
+- Portão independente (testador, 12/11/2026, worktree `locufy-radio`): VERDE. ruff limpo; pytest 1379/1379,
+  cobertura 87% (F2: 86%); vitest 318/318; `tsc` ok; 12 simulações (3 perfis × 4 variantes) com `as_run.json`
+  idêntico byte a byte aos gravados. Detalhe em [`f3/testes.md`](f3/testes.md).
+- Juiz: APROVADO (só métricas automáticas, régua própria que não importa o detector do backend; rubrica exige
+  `--modo llm`, pendente de aprovação de custo, como na F2). 31 citações confirmadas preservadas, nenhuma emenda
+  solta, nenhuma dimensão abaixo da F2. Detalhe em [`f3/avaliacao.md`](f3/avaliacao.md).
+- Ressalvas aceitas: fala neutra no popular atrasa o hard time em 0,36 s (escolhida pelo orçamento da geração,
+  não pelo espaço real no ar); o validador só agiu sobre uma frase injetada nos as-runs, então a evidência de
+  "100%" vem do benchmark `casos.json`.
+- Achados do juiz levados à F4: ouvinte inventado ("Dona Firmina") no variedades; "toca agora" e nome de ouvinte
+  com pedido fora de `selecionado`; promessa "daqui a pouco tem mais recado" vencida no popular (com relógio só
+  some porque o encurtamento corta a frase); o detector provisório de promessa da F0 fecha promessa que não é de
+  música quando a mesma fala anuncia música.
+- Os registros do portão e do juiz da F3 foram commitados na branch `melhoria/f4-promessas` (a branch da F3
+  estava em uso na árvore principal por outra sessão).

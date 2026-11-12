@@ -54,3 +54,33 @@
 | Critérios da F1/F2 mantidos | hard time ≤ 5 s (máx. 0,36 s com relógio), encerramento no ar, 0% fora do orçamento com relógio, ≤ 2 LLM e ≤ 2 sínteses por fala |
 | Painel antigo (S2) | atraso ≤ 5 s, encerramento no ar, 0 s cortados nos três perfis |
 | `gerar_proxima_fala` < 250 linhas | 1245 → 115 |
+
+## Portão independente (testador, 2026-11-12)
+
+Worktree `locufy-radio`, HEAD `c382859` (ponta da F3). Python do `.venv` do projeto, ffmpeg 8.0.1. Nenhuma chamada externa; modos `llm` e `completo` não usados.
+
+### Comandos e resultados
+- `ruff check app tests scripts/simular_hora.py scripts/simulacao`: All checks passed (0 avisos).
+- `pytest -q --cov=app --cov-report=term`: **1379 passed**, 0 falhas, 379 s. Cobertura total **87%** (13377 instruções, 1717 não cobertas); baseline 85%, F2 86%.
+- Cobertura de `app/live`: contexto 99%, formato 100%, geracao 92%, music 77%, orcamento 97%, portas 100%, prewarm 85%, prompt_emissao 100%, relogio 95%, ritmo_voz 95%, roteiro 98%, router 95%, song_service 95%, spotify 80%, validacao_fala 96%.
+- Painel: `npm test` **318 passed** (56 arquivos); `npx tsc --noEmit` sem erros.
+- `npm run lint`: falha preexistente da linha de base (`next lint` interpreta "lint" como diretório: "Invalid project directory ... /frontend-painel/lint"). Não é regressão.
+- Simulação: `PYTHONPATH=. PYTHONHASHSEED=0 .venv/bin/python scripts/simular_hora.py --modo fake --programa <perfil> [--relogio-backend nenhum | --wpm-real 120 | --sem-inicio-previsto] --saida <scratchpad>/f3-portao/<variante>/<perfil>`; 12 rodadas, rc=0, 0 tentativas de rede.
+
+### Reprodução dos resumos gravados
+`as_run.json` byte a byte idêntico nas 12 rodadas. `resumo.json` difere só em `commit`, `tempo_execucao_s` e no contador de dublê `dubles.chamadas.obter_metadados_voz` (gravado 1 ou 2, ausente nesta máquina). Esse contador conta chamadas ao stub de metadados de voz, não altera o as-run e depende do estado local do processo/ambiente; divergência cosmética.
+
+### Métricas × critérios
+| Variante (musical / popular / variedades) | anúncio sem confirmação | atraso hard time (s) | fora do orçamento % | encerramento no ar | s cortados | promessa vencida |
+|---|---|---|---|---|---|---|
+| Com relógio | 0 / 0 / 0 | 0 / 0,36 / 0,18 | 0 / 0 / 0 | sim / sim / sim | 0 / 0 / 0 | 0 / 0 / 0 |
+| Sem relógio (base F0) | 0 / 0 / 0 | 0 / 0 / 0 | 0 / 0 / 0 | não / não / sim | 103,8 / 101,0 / 0 | 0 / 1 / 0 |
+| Voz 120 wpm (estresse) | 0 / 0 / 0 | 0 / 12,1 / 0 | 0 / 0 / 14,3 | sim / sim / sim | 0 / 0 / 0 | 0 / 1 / 0 |
+| Painel antigo (sem inicio_previsto) | 0 / 0 / 0 | 0 / 0 / 0,18 | 0 / 0 / 0 | sim / sim / sim | 0 / 0 / 0 | 0 / 1 / 0 |
+
+LLM por fala: máx. 2 (falas+revisões); sínteses = falas (1 por fala). Critérios F3 e herdados F1/F2 (hard time ≤ 5 s, encerramento no ar, 0% fora do orçamento, ≤ 2 LLM e 1 síntese por fala, `anuncio_sem_confirmacao == 0`, painel antigo ≤ 5 s e 0 s cortados) atendidos nas variantes que os exigem (com relógio e painel antigo). Sem relógio e voz 120 são casos de estresse/base já registrados como limitações conhecidas (RELATORIO.md e f2/avaliacao.md: voz_120 popular 12,1 s e variedades 14,3%); reproduzem os valores gravados.
+
+### Falhas
+Nenhuma nova. Preexistente: `npm run lint` (acima).
+
+VERDE
