@@ -32,12 +32,13 @@ export default function WhatsAppConexao({ compacta = false }: { compacta?: boole
   async function verificarConexao() {
     try {
       const status = await apiFetch<StatusResponse>("/onboarding/status");
-      const ok = status?.data?.loggedIn ?? false;
+      const ok = !!status?.data?.loggedIn && status.data.connected !== false;
       if (ok) {
         setConectado(true);
         setQrCode(null);
+        if (!conectado) invalidarConfiguracaoInicial();
         pararPoll();
-        invalidarConfiguracaoInicial();
+        pollRef.current = setInterval(verificarConexao, 30000);
       } else {
         setConectado(false);
       }
@@ -50,6 +51,7 @@ export default function WhatsAppConexao({ compacta = false }: { compacta?: boole
 
   useEffect(() => {
     verificarConexao();
+    pollRef.current = setInterval(verificarConexao, 30000);
     return pararPoll;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

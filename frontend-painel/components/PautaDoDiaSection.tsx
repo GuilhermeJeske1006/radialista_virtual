@@ -1,5 +1,6 @@
 "use client";
 
+import { useEventosOuvintes } from "../hooks/useEventosOuvintes";
 import { useEffect, useState } from "react";
 import { apiFetch, ApiError } from "../lib/api";
 import { AssuntoPauta } from "../lib/types";
@@ -42,6 +43,9 @@ export default function PautaDoDiaSection({ programaId }: PautaDoDiaSectionProps
   }
 
   useEffect(carregar, [programaId]);
+  useEventosOuvintes(() => {
+    apiFetch<AssuntoPauta[]>(`/topics/programas/${programaId}/pauta`).then(d => setPauta(Array.isArray(d) ? d : [])).catch(e => setErro(e.message));
+  });
 
   async function fixar(id: number) {
     setProcessandoId(id);

@@ -1,5 +1,6 @@
 "use client";
 
+import { informarBloco } from "../lib/blocosReproduzidos";
 import { confirmarParticipacao } from "../lib/participacoes";
 import { esperarTransicao, pausaAntesDoBloco, reproduzirGrupoDeFalas } from "../lib/continuidadeAudio";
 import { FilaPreparo } from "../lib/filaPreparo";
@@ -1644,6 +1645,20 @@ export function useLiveEngine() {
       return;
     }
 
+    try {
+      await informarBloco(novaFala, "reproduzindo");
+    } catch {
+      setErro("Não foi possível assumir a reprodução deste bloco. Confira se há outro player transmitindo.");
+      programaAtivoRef.current = false;
+      setProgramaAtivo(false);
+      if (preparado.audioUrl) URL.revokeObjectURL(preparado.audioUrl);
+      preparado.audiosFalas?.forEach(a => a.url && URL.revokeObjectURL(a.url));
+      return;
+    }
+    const heartbeatBloco = novaFala.bloco_id ? setInterval(() => {
+      informarBloco(novaFala, "heartbeat").catch(() => {});
+    }, 20000) : null;
+
     if (preparado.audioBlob) gravacaoBlobsRef.current.push(preparado.audioBlob);
     preparado.audiosFalas?.forEach((a) => a.blob && gravacaoBlobsRef.current.push(a.blob));
 
@@ -1652,6 +1667,7 @@ export function useLiveEngine() {
     // em vez de uma estimativa -- grava no historico ao final (ver atualizarDuracaoFala).
     let duracaoBlocoSegundos = 0;
     let participacaoConcluida = false;
+    let falaDoBlocoConcluida = !novaFala.fala.trim();
     let linhasConcluidas = 0;
 
     if (novaFala.video_id) {
@@ -1662,11 +1678,11 @@ export function useLiveEngine() {
           duracaoBlocoSegundos += await reproduzirGrupoDeFalas(
             preparado.audiosFalas,
             () => programaAtivoRef.current && execucaoAtualRef.current === minhaExecucao,
-            (audio, i) => reproduzirAudioPreparado(audio.url, novaFala.falas?.[i]?.texto ?? novaFala.fala, undefined, false),
+            (audio, i) => reproduzirAudioPreparado(audio.url, novaFala.falas?.[i]?.texto ?? novaFala.fala, () => { linhasConcluidas++; }, false),
             duckMusicaFundo,
           );
         } else {
-          duracaoBlocoSegundos += await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala);
+          duracaoBlocoSegundos += await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala, () => { falaDoBlocoConcluida = true; });
         }
         // bloco pode ter mais de uma musica (o agente decidiu emendar) --
         // toca todas seguidas, sem nova fala entre elas, pra manter o embalo
@@ -1705,11 +1721,12 @@ export function useLiveEngine() {
         duckMusicaFundo,
       );
     } else {
-      duracaoBlocoSegundos += await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala, () => { participacaoConcluida = true; });
+      duracaoBlocoSegundos += await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala, () => { participacaoConcluida = true; falaDoBlocoConcluida = true; });
     }
     if (preparado.audiosFalas?.length && !novaFala.video_id) {
       participacaoConcluida = linhasConcluidas === preparado.audiosFalas.length;
     }
+    if (preparado.audiosFalas?.length) falaDoBlocoConcluida = linhasConcluidas === preparado.audiosFalas.length;
     if (novaFala.pedido_id && novaFala.pedido_token && novaFala.pedido_programa_id) {
       const interrompido = execucaoAtualRef.current !== minhaExecucao || !programaAtivoRef.current;
       try {
@@ -1719,6 +1736,13 @@ export function useLiveEngine() {
       }
     }
 
+    if (heartbeatBloco) clearInterval(heartbeatBloco);
+    try {
+      await informarBloco(novaFala, participacaoConcluida && falaDoBlocoConcluida ? "concluido" :
+        execucaoAtualRef.current !== minhaExecucao || !programaAtivoRef.current ? "interrompido" : "falhou");
+    } catch {
+      setErro("O resultado deste bloco não foi confirmado. O contexto do atendimento não foi atualizado.");
+    }
     atualizarDuracaoFala(novaFala.id, duracaoBlocoSegundos);
 
     // execucao foi "pulada" (pularFala disparou uma nova) enquanto essa tocava --

@@ -23,6 +23,9 @@ export type PesquisaNoticias = {
 };
 
 export type ConfirmacaoPedido = {
+  bloco_id?: number | null;
+  bloco_token?: string | null;
+  bloco_programa_id?: number | null;
   pedido_id?: number | null;
   pedido_token?: string | null;
   pedido_programa_id?: number | null;

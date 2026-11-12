@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfiguracaoInicial } from "../../lib/useConfiguracaoInicial";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import AppShell from "../../components/AppShell";
@@ -53,6 +55,7 @@ type ConsumoCiclo = { consumo_brl: number; orcamento_brl: number; previsao_brl: 
 export default function DashboardPage() {
   const [conta, setConta] = useState<Conta | null>(null);
   const [radialistas, setRadialistas] = useState<Radialista[]>([]);
+  const { whatsappConectado } = useConfiguracaoInicial();
   const [radioConta, setRadioConta] = useState<RadioConta | null>(null);
   const [programas, setProgramas] = useState<Programa[]>([]);
   const [patrocinadores, setPatrocinadores] = useState<Patrocinador[]>([]);
@@ -137,7 +140,6 @@ export default function DashboardPage() {
       .catch(() => {});
   }, []);
 
-  const whatsappConectado = Boolean(radioConta?.wuzapi_token);
   const perfilPreenchido = Boolean(radioConta?.nome_radio && radioConta?.frequencia);
   const radialistasProntos = radialistas.filter((r) => r.ativo && r.voz_id).length;
   const temRadialistaPronto = radialistasProntos > 0;
