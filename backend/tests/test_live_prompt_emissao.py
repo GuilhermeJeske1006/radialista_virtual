@@ -15,7 +15,8 @@ from app.models.radio_config import RadioConfig
 APP_LIVE = pathlib.Path(__file__).resolve().parents[1] / "app" / "live"
 
 
-@pytest.mark.parametrize("modulo", ["contexto", "prompt_emissao", "roteiro", "geracao", "portas", "prompts"])
+@pytest.mark.parametrize("modulo", ["contexto", "prompt_emissao", "roteiro", "geracao", "portas", "prompts",
+                                    "promessas"])
 def test_modulos_extraidos_nao_importam_o_router(modulo):
     arvore = ast.parse((APP_LIVE / f"{modulo}.py").read_text(encoding="utf-8"))
     importados = set()

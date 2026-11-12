@@ -64,6 +64,26 @@ class DecisaoBloco:
     patrocinador: Any = None
 
 
+def tipo_na_posicao(programa, posicao: int, categoria_de) -> str:
+    """Tipo do bloco na posição `posicao` do roteiro, como app.live.router._tipo_proximo_bloco, mas puro: sem o
+    comentário extra sorteado de `ia_pode_adicionar_blocos` (que consome o `random`) e sem a troca de abertura
+    fora de lugar (que depende do bloco anterior). Usado pela agenda de promessas sem relógio (F4)."""
+    from app.live.formato import ROTEIRO_MUSICAL, ROTEIRO_PADRAO, musical_companhia
+    from app.util.texto import sem_acento
+
+    estrutura = [t.strip() for t in (programa.estrutura_blocos or []) if t.strip()]
+    if musical_companhia(programa):
+        if posicao == 0:
+            return "abertura"
+        roteiro = [t for t in estrutura if sem_acento(t.lower()) != "abertura" and categoria_de(t) != "encerramento"] \
+            or list(ROTEIRO_MUSICAL)
+        return roteiro[(posicao - 1) % len(roteiro)]
+    customizado = [t for t in estrutura if categoria_de(t) != "encerramento"]
+    if not customizado:
+        return "abertura" if posicao == 0 else ROTEIRO_PADRAO[(posicao - 1) % len(ROTEIRO_PADRAO)]
+    return customizado[posicao % len(customizado)]
+
+
 def decidir_bloco(entrada: EntradaEmissao, portas: PortasEmissao) -> DecisaoBloco:
     db, account, radialista, programa = entrada.db, entrada.account, entrada.radialista, entrada.programa
     historico = entrada.dados.historico
