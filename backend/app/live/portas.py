@@ -41,6 +41,9 @@ class PortasEmissao:
     pedido_recente_nao_atendido: Funcao
     ouvinte_recorrente_anterior: Funcao
     ouvinte_recorrente_dias_anteriores: Funcao
+    # Promessas e participação (F4): leituras do banco
+    promessas_abertas: Funcao
+    nomes_da_transmissao: Funcao
     # Roteiro e memória da sessão (Redis e banco)
     categoria_bloco: Funcao
     proxima_variacao: Funcao
@@ -80,6 +83,8 @@ class PortasEmissao:
         "pedido_recente_nao_atendido": "_pedido_recente_nao_atendido",
         "ouvinte_recorrente_anterior": "_ouvinte_recorrente_anterior",
         "ouvinte_recorrente_dias_anteriores": "_ouvinte_recorrente_dias_anteriores",
+        "promessas_abertas": "_promessas_abertas",
+        "nomes_da_transmissao": "_nomes_da_transmissao",
         "categoria_bloco": "_categoria_bloco",
         "proxima_variacao": "_proxima_variacao",
         "instrucao_transicao": "_instrucao_transicao",

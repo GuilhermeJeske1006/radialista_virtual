@@ -38,9 +38,18 @@ from app.live.prompts import (
     _VARIACOES_FORMATO_COMENTARIO,
     _VARIACOES_VERBO_IDENTIFICACAO,
 )
-from app.live.relogio import CONFIG_PADRAO as CONFIG_RELOGIO, Plano, duracao_musica_s
+from app.live.promessas import (
+    CONFIG_PROMESSAS,
+    Contingencia,
+    EventoAgendado,
+    PromessaRef,
+    agenda_do_plano,
+    agenda_do_roteiro,
+    tem_musica_no_plano,
+)
+from app.live.relogio import CONFIG_PADRAO as CONFIG_RELOGIO, Plano, duracao_musica_s, ocorrencia_em
 from app.live.ritmo_voz import categoria_ritmo
-from app.live.roteiro import _PATROCINADOR_RE, _VINHETA_RE, DecisaoBloco, EntradaEmissao
+from app.live.roteiro import _PATROCINADOR_RE, _VINHETA_RE, DecisaoBloco, EntradaEmissao, tipo_na_posicao
 from app.live.formato import ROTEIRO_MUSICAL, ROTEIRO_PADRAO
 from app.numeros import cardinal_feminino, numero_por_extenso
 from app.tts.modelos import MODELOS_COM_TAGS
@@ -123,11 +132,18 @@ class Participacao:
 
 @dataclasses.dataclass(frozen=True)
 class Chamadas:
-    """Chamadas pendentes (pesquisa §12.4). A F4 liga as promessas ao relógio."""
+    """Chamadas pendentes (pesquisa §12.4). F4: promessas abertas e a agenda do que pode ser chamado adiante
+    (app.live.promessas). Os campos novos têm padrão: sem promessa, nada muda."""
 
     fio_condutor: str | None
     pedidos_em_fila: int = 0
-    promessas: tuple = ()
+    promessas: tuple[PromessaRef, ...] = ()        # abertas nesta ocorrência
+    agenda: tuple[EventoAgendado, ...] = ()        # o que pode ser chamado adiante
+    a_cumprir: tuple[PromessaRef, ...] = ()        # alvo = este bloco, com conteúdo
+    contingencias: tuple[Contingencia, ...] = ()   # alvo = este bloco sem conteúdo, ou vencidas
+    ocorrencia: str | None = None                  # chave da ocorrência (registro em promessas_no_ar)
+    posicao: int | None = None                     # sem relógio: posição do próximo bloco no roteiro
+    tem_musica: bool = True
 
 
 @dataclasses.dataclass(frozen=True)
@@ -246,6 +262,45 @@ def tocadas_no_historico(historico) -> list[MusicaRef]:
                 titulo, _, artista = rotulo.strip().rpartition(" - ")
                 tocadas.append(MusicaRef(titulo or artista, artista if titulo else "", origem="historico"))
     return tocadas
+
+
+def chave_ocorrencia(programa, timezone: str, instante: datetime.datetime) -> str:
+    """Ocorrência do programa em `instante` (com ou sem relógio). O primeiro bloco é gerado um pouco antes do
+    início (prewarm, painel): vale a ocorrência que começa logo depois. Fora da grade, o dia local."""
+    for adiante in (0, CONFIG_RELOGIO.preparo_sem_painel_max_s):
+        ocorrencia = ocorrencia_em(programa, timezone, instante + datetime.timedelta(seconds=adiante))
+        if ocorrencia is not None:
+            return ocorrencia.chave
+    return f"manual:{instante.astimezone(ZoneInfo(timezone)).date().isoformat()}"
+
+
+def _quadros_da_estrutura(programa) -> list[str]:
+    return [t for t in programa.estrutura_blocos or [] if (programa.quadros_fixos or {}).get(t)]
+
+
+def _tem_fonte_noticia(programa):
+    """Mesma regra de app.live.roteiro.decidir_bloco: sem fonte, o bloco noticioso vira música."""
+    if getattr(programa, "dose_noticia", "jornalistica") == "nenhuma":
+        return lambda _tipo: False
+    configurada = bool(programa.pode_pesquisar or programa.tipos_noticias or programa.fontes_noticias)
+    return lambda tipo: configurada or tipo in (programa.estrutura_blocos or [])
+
+
+def _agenda(entrada: EntradaEmissao, decisao: DecisaoBloco, roteiro: tuple[str, ...],
+            categorias: tuple[str | None, ...]) -> tuple[tuple[EventoAgendado, ...], int | None, bool]:
+    """(agenda, posição do próximo bloco sem relógio, programa tem música adiante). Pura: sem sorteio."""
+    programa, plano = entrada.programa, decisao.plano
+    if plano is not None:
+        return agenda_do_plano(plano.seguintes, quadros=_quadros_da_estrutura(programa)), None, \
+            tem_musica_no_plano(plano.seguintes) or plano.tipo_bloco == "musica"
+    por_tipo = dict(zip(roteiro, categorias))
+    posicao = entrada.total_falas + decisao.passos_roteiro
+    agenda = agenda_do_roteiro(
+        lambda p: tipo_na_posicao(programa, p, lambda t: por_tipo.get(t.strip())),
+        lambda t: por_tipo.get(t.strip()), posicao=posicao,
+        posicoes=max(CONFIG_PROMESSAS.posicoes_curto, len(roteiro)),
+        quadros=(programa.quadros_fixos or {}).keys(), tem_fonte_noticia=_tem_fonte_noticia(programa))
+    return agenda, posicao, entrada.formato_musical or "musica" in categorias
 
 
 def _estado_da_fila(entrada: EntradaEmissao, portas: PortasEmissao) -> tuple[list[MusicaRef], list[str]]:
@@ -581,6 +636,13 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
     pedido_ouvinte = PedidoRef.de(resolucao.pedido_ouvinte, novo) if resolucao.pedido_ouvinte is not None else None
     pedido_recente = PedidoRef.de(resolucao.pedido_recente, novo) if resolucao.pedido_recente is not None else None
     instante = plano.instante if plano is not None else agora_local.astimezone(datetime.timezone.utc)
+    # Promessas e participação (F4): só leituras do banco, depois de todos os sorteios; nenhuma chave no Redis.
+    ocorrencia = plano.ocorrencia.chave if plano is not None else chave_ocorrencia(programa, radialista.timezone,
+                                                                                   instante)
+    agenda, posicao, tem_musica = _agenda(entrada, decisao, roteiro, categorias_roteiro)
+    abertas = tuple(portas.promessas_abertas(entrada.db, programa, ocorrencia))
+    ja_atendidos, da_transmissao = portas.nomes_da_transmissao(entrada.db, radialista, programa)
+    selecionados = tuple(p.nome for p in (pedido_musica, pedido_ouvinte) if p is not None and p.nome)
     return ContextoEmissao(
         request_id=entrada.request_id, account=account, radialista=radialista, programa=programa,
         tipo=tipo, categoria=categoria, primeira_fala=decisao.primeira_fala, total_falas=entrada.total_falas,
@@ -607,8 +669,13 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
             nomes_autorizados=tuple(dict.fromkeys(
                 [p.nome for p in (pedido_musica, pedido_ouvinte, pedido_recente) if p is not None and p.nome]
                 + nomes_fila)),
+            nomes_selecionados=selecionados,
+            nomes_ja_atendidos=tuple(n for n in dict.fromkeys(ja_atendidos) if n),
+            nomes_conhecidos=tuple(n for n in dict.fromkeys([*nomes_fila, *da_transmissao]) if n),
+            nome_recente=pedido_recente.nome if pedido_recente is not None and pedido_recente.nome else None,
         ),
-        chamadas=Chamadas(fio_condutor=fio),
+        chamadas=Chamadas(fio_condutor=fio, pedidos_em_fila=len(nomes_fila), promessas=abertas, agenda=agenda,
+                          ocorrencia=ocorrencia, posicao=posicao, tem_musica=tem_musica),
         memoria=Memoria(historico=tuple(entrada.dados.historico), historico_prompt=resolucao.historico_prompt,
                         ultima_categoria=ultima_categoria, falas_categoria=tuple(falas_categoria),
                         aberturas=tuple(aberturas), fechamentos=tuple(fechamentos), tom_anterior=tom_anterior,

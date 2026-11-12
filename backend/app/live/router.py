@@ -132,8 +132,12 @@ from app.live.validacao_fala import (
     corrigir as corrigir_fala,
     fala_reserva_neutra,
     fragmento,
+    para_reescrita,
     validar,
 )
+from app.live import promessas_repo
+from app.live.participacao import pedido_sem_mencao
+from app.live.promessas import PromessaRef, a_registrar_no_texto
 from app.live.roteiro import (  # noqa: F401 -- reexportados
     _LIMIAR_ENCERRAMENTO_MIN,
     _PATROCINADOR_RE,
@@ -280,6 +284,27 @@ class ValidacaoFalaResponse(BaseModel):
     acao: Literal["nenhuma", "reescrita", "mencao_removida", "fala_neutra", "fala_removida"]
 
 
+class PromessaResponse(BaseModel):
+    """Promessa registrada neste bloco (F4, app.live.promessas)."""
+    id: int
+    tipo: str
+    trecho: str
+    evento_alvo: str
+    prazo: datetime.datetime | None = None
+    prazo_posicao: int | None = None
+
+
+class PromessaResolvidaResponse(BaseModel):
+    id: int
+    estado: Literal["cumprida", "cancelada", "vencida"]
+    contingencia: str | None = None
+
+
+class PromessasBloco(BaseModel):
+    registradas: list[PromessaResponse] = Field(default_factory=list)
+    resolvidas: list[PromessaResolvidaResponse] = Field(default_factory=list)
+
+
 class LiveProgramResponse(BaseModel):
     tipo: str
     fala: str
@@ -354,6 +379,8 @@ class LiveProgramResponse(BaseModel):
     fala_ajuste: Literal["nenhum", "reescrita", "encurtada", "cortada", "acima_do_teto"] | None = None
     # Validador pós-geração (F3): musica anunciada sem confirmacao ou fragmento abaixo do minimo. Nulo = nada achado.
     validacao_fala: ValidacaoFalaResponse | None = None
+    # Promessas registradas e resolvidas neste bloco (F4). Nulo = nenhuma.
+    promessas: PromessasBloco | None = None
 
 
 class MusicaFundoResponse(BaseModel):
@@ -1609,6 +1636,32 @@ def _pedido_recente_nao_atendido(db: Session, radialista: RadioConfig, tipo: str
     )
 
 
+# Janela da "transmissão" para os nomes de ouvintes que a fala pode citar (F4, app.live.participacao): a mesma
+# da sessão ao vivo.
+_JANELA_NOMES_TRANSMISSAO_HORAS = _JANELA_OUVINTE_RECORRENTE_HORAS
+_ESTADOS_JA_ATENDIDOS = ("executado", "selecionado", "historico_legado")
+
+
+def _promessas_abertas(db: Session, programa: Programa, ocorrencia: str) -> list[PromessaRef]:
+    """Promessas abertas desta ocorrência (F4). Só banco: com o Redis fora continuam valendo."""
+    return [promessas_repo.para_ref(linha) for linha in promessas_repo.abertas(db, programa.id, ocorrencia)]
+
+
+def _nomes_da_transmissao(db: Session, radialista: RadioConfig, programa: Programa) -> tuple[list[str], list[str]]:
+    """(já atendidos, todos) os ouvintes com pedido nesta transmissão (janela da sessão), em qualquer estado.
+    Citar quem está na fila ou não foi atendido é violação; lembrar quem já foi atendido, não (D8)."""
+    limiar = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=_JANELA_NOMES_TRANSMISSAO_HORAS)
+    linhas = (
+        db.query(FilaAoVivo.nome, FilaAoVivo.estado, FilaAoVivo.atendido)
+        .filter(FilaAoVivo.radio_config_id == radialista.id, FilaAoVivo.criado_em >= limiar)
+        .order_by(FilaAoVivo.criado_em.asc())
+        .limit(_MAX_PEDIDOS_FILA_VALIDACAO)
+        .all()
+    )
+    ja_atendidos = [nome for nome, estado, atendido in linhas if nome and (atendido or estado in _ESTADOS_JA_ATENDIDOS)]
+    return ja_atendidos, [nome for nome, _, _ in linhas if nome]
+
+
 # Teto de threads simultaneas pra sintese multi-voz embutida -- dialogo tem no maximo 4 linhas
 # (ver instrucao "entre 2 e 4 linhas" em montar_system_prompt), entao isso so' limita o caso raro
 # de o LLM devolver mais que isso.
@@ -2017,13 +2070,13 @@ class _Sintese:
     # Validador pós-geração (F3): violações achadas e o que foi feito com a fala.
     violacoes: list[Violacao] = dataclasses.field(default_factory=list)
     acao_validacao: str = "nenhuma"
+    violacoes_finais: list[Violacao] = dataclasses.field(default_factory=list)   # só as da V2
 
 
 def _checagem_pre(ctx: ContextoEmissao):
-    """V1 do validador: as violações da fala recém-gerada entram na MESMA reescrita única (no modo corrigir)."""
-    if settings.validacao_musica_modo != "corrigir":
-        return None
-    return lambda fala: validar(fala, ctx, "pre")
+    """V1 do validador: as violações da fala recém-gerada entram na MESMA reescrita única, só as das regras no
+    modo corrigir (modo por regra, D12 da F4)."""
+    return lambda fala: para_reescrita(validar(fala, ctx, "pre"))
 
 
 def _validar_fala_final(ctx: ContextoEmissao, gerada: FalaGerada, preservar: list[str], so_musica: bool) -> _Sintese:
@@ -2036,7 +2089,8 @@ def _validar_fala_final(ctx: ContextoEmissao, gerada: FalaGerada, preservar: lis
         fracao_minimo=settings.validacao_fala_minimo_fracao, violacoes_pre=gerada.violacoes_pre,
     )
     return _Sintese(fala=resultado.fala, falas_bloco=resultado.falas_bloco, ajuste=gerada.ajuste,
-                    violacoes=list(resultado.violacoes), acao_validacao=resultado.acao)
+                    violacoes=list(resultado.violacoes), acao_validacao=resultado.acao,
+                    violacoes_finais=list(resultado.finais))
 
 
 def _validacao_resposta(sintese: _Sintese) -> ValidacaoFalaResponse | None:
@@ -2206,6 +2260,46 @@ def _registrar_fala_no_ar(db: Session, ctx: ContextoEmissao, fala: str) -> None:
             _registrar_fio_condutor(programa.id, fio_condutor_novo)
 
 
+def _devolver_pedido_sem_mencao(db: Session, ctx: ContextoEmissao, resolucao: ResolucaoBloco,
+                                sintese: _Sintese) -> bool:
+    """D10 da F4: chamada de ouvinte com pedido selecionado cujo nome não ficou na fala que vai ao ar (nem depois
+    da reescrita). O pedido volta para a fila e a resposta sai sem pedido_id: o painel não confirma o que não foi
+    dito."""
+    violacao = pedido_sem_mencao(sintese.fala, ctx)
+    pedido = resolucao.pedido_ouvinte
+    if violacao is None or pedido is None:
+        return False
+    if not any(v.regra == "pedido_sem_mencao" for v in sintese.violacoes_finais):
+        sintese.violacoes.append(violacao)  # o nome saiu depois da V2 (encurtamento pelo áudio)
+    if settings.validacao_participacao_modo != "corrigir":
+        return False
+    from app.whatsapp.atendimento import registrar_evento
+
+    if pedido.programa_id is None:
+        pedido.atendido, pedido.atendido_em = False, None  # legado: a seleção tinha marcado atendido
+    pedido.estado, pedido.selecao_token = "em_fila", None
+    pedido.motivo = "Nome do ouvinte não foi ao ar; volta para a fila"
+    registrar_evento(pedido, "devolver_sem_mencao")
+    db.commit()
+    logger.info("live_pedido_devolvido_sem_mencao request_id=%s programa_id=%s pedido_id=%s", ctx.request_id,
+                ctx.programa.id, pedido.id)
+    return True
+
+
+def _registrar_promessas(db: Session, ctx: ContextoEmissao, fala: str) -> PromessasBloco | None:
+    """Promessas do texto que vai ao ar (depois do TTS: o momento C pode ter tirado a frase), casadas com um
+    evento da agenda, viram linha aberta em promessas_no_ar. Sem promessa, nenhuma escrita."""
+    if not fala.strip() or ctx.chamadas.ocorrencia is None:
+        return None
+    novas = promessas_repo.registrar(db, programa=ctx.programa, ocorrencia=ctx.chamadas.ocorrencia,
+                                     request_id=ctx.request_id, itens=a_registrar_no_texto(fala, ctx))
+    if not novas:
+        return None
+    return PromessasBloco(registradas=[
+        PromessaResponse(id=linha.id, tipo=linha.tipo, trecho=linha.trecho, evento_alvo=linha.evento_alvo,
+                         prazo=linha.prazo, prazo_posicao=linha.prazo_posicao) for linha in novas])
+
+
 def _pedido_confirmavel(db: Session, resolucao: ResolucaoBloco, musica: MusicaEncontrada | None):
     """Pedido do fluxo novo que o painel confirma depois de tocar; música indisponível reprova na hora."""
     pedido = (resolucao.pedido_musica or resolucao.pedido_ouvinte) if resolucao.novo_atendimento else None
@@ -2277,6 +2371,8 @@ def gerar_proxima_fala(
     _sintetizar_multivoz(db, entrada, ctx, sintese, preservar)
     fala, falas_bloco = sintese.fala, sintese.falas_bloco
     _registrar_fala_no_ar(db, ctx, fala)
+    devolvido = _devolver_pedido_sem_mencao(db, ctx, resolucao, sintese)
+    promessas = _registrar_promessas(db, ctx, fala)
 
     duracao_fala_estimada_s = _estimar_fala_do_bloco(fala, falas_bloco, ctx.wpm_fala)
     _registrar_duracao_fala(request_id, programa.id, tipo, fala, falas_bloco, ctx.orcamento, ctx.wpm_fala,
@@ -2288,7 +2384,7 @@ def gerar_proxima_fala(
     logger.info("live_proxima_pronta request_id=%s programa_id=%s tipo=%s audio_status=%s total_ms=%s", request_id,
                 programa.id, tipo, sintese.audio_status, round((time.perf_counter() - inicio_request) * 1000))
 
-    pedido = _pedido_confirmavel(db, resolucao, musica)
+    pedido = None if devolvido else _pedido_confirmavel(db, resolucao, musica)
     vinheta_fim = vinheta_encerramento(db, account.id, programa.id) if categoria == "encerramento" else None
     orcamento, plano = ctx.orcamento, ctx.tempo.plano
     return _com_relogio(LiveProgramResponse(
@@ -2325,6 +2421,7 @@ def gerar_proxima_fala(
                                                fonte=orcamento.fonte, aplicado=orcamento.aplicar),
         fala_ajuste=sintese.ajuste,
         validacao_fala=_validacao_resposta(sintese),
+        promessas=promessas,
         vinheta_encerramento_id=vinheta_fim.id if vinheta_fim else None,
         vinheta_encerramento_audio=bool(vinheta_fim and vinheta_fim.audio_path),
         vinheta_encerramento_texto=(vinheta_fim.texto or None) if vinheta_fim else None,

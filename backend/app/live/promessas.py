@@ -19,9 +19,13 @@ import dataclasses
 import datetime
 import re
 import unicodedata
-from typing import Callable, Iterable, Literal
+from typing import TYPE_CHECKING, Callable, Iterable, Literal
 
 from app.live.orcamento import frases
+
+if TYPE_CHECKING:
+    from app.live.contexto import ContextoEmissao
+    from app.live.validacao_fala import Violacao
 
 ClassePrazo = Literal["intervalo", "imediato", "curto", "fim", "fora"]
 Situacao = Literal["evento", "livre", "violacao"]
@@ -277,10 +281,12 @@ def tem_musica_no_plano(etapas: Iterable) -> bool:
 
 def agenda_do_roteiro(tipo_na_posicao: Callable[[int], str], categoria_de: Callable[[str], str | None], *,
                       posicao: int, posicoes: int, quadros: Iterable[str] = (),
-                      tem_fonte_noticia: bool = False) -> tuple[EventoAgendado, ...]:
+                      tem_fonte_noticia: bool | Callable[[str], bool] = False) -> tuple[EventoAgendado, ...]:
     """Agenda pelas próximas `posicoes` posições do roteiro, a partir de `posicao` (a do próximo bloco).
-    `tipo_na_posicao` é a versão pura da escolha do roteiro (sem o sorteio de `ia_pode_adicionar_blocos`)."""
+    `tipo_na_posicao` é a versão pura da escolha do roteiro (sem o sorteio de `ia_pode_adicionar_blocos`).
+    `tem_fonte_noticia` (ou a função por tipo de bloco) diz se o bloco noticioso fica notícia."""
     quadros = set(q for q in quadros if q)
+    fonte = tem_fonte_noticia if callable(tem_fonte_noticia) else (lambda _tipo: bool(tem_fonte_noticia))
     agenda: list[EventoAgendado] = []
     for p in range(posicao, posicao + max(0, posicoes)):
         tipo_bloco = tipo_na_posicao(p)
@@ -293,7 +299,7 @@ def agenda_do_roteiro(tipo_na_posicao: Callable[[int], str], categoria_de: Calla
             agenda.append(EventoAgendado(chave=f"roteiro:{p}", tipo="quadro", rotulo=tipo_bloco, posicao=p))
             continue
         tipo = TIPOS_AGENDA_ROTEIRO.get(categoria_de(tipo_bloco) or "")
-        if tipo == "informacao" and not tem_fonte_noticia:
+        if tipo == "informacao" and not fonte(tipo_bloco):
             continue  # sem fonte, o bloco noticioso vira música (app.live.roteiro)
         if tipo is not None:
             agenda.append(EventoAgendado(chave=f"roteiro:{p}", tipo=tipo, rotulo=tipo_bloco, posicao=p))
@@ -470,3 +476,58 @@ def texto_contingencia(tipo: str, rotulo: str, radio: str, config: ConfigPromess
     if "{rotulo}" in modelo.lower() and not rotulo:
         rotulo = "esse momento"
     return modelo.format(radio=radio, rotulo=rotulo, Rotulo=rotulo[:1].upper() + rotulo[1:])
+
+
+# ---------------------------------------------------------------------------------------------------------
+# Sobre o ContextoEmissao (checagem pós-geração, registro)
+# ---------------------------------------------------------------------------------------------------------
+
+def situacao_do_contexto(ctx: "ContextoEmissao") -> SituacaoAgenda:
+    chamadas, plano, programa = ctx.chamadas, ctx.tempo.plano, ctx.programa
+    nomes = (programa.nome, getattr(ctx.account, "nome_radio", ""), getattr(ctx.radialista, "nome_locutor", ""))
+    return SituacaoAgenda(
+        agenda=tuple(chamadas.agenda), instante=plano.instante if plano is not None else None,
+        posicao=None if plano is not None else chamadas.posicao,
+        nomes_programa=tuple(n for n in nomes if n), tem_musica=chamadas.tem_musica,
+        data=ctx.tempo.agora_local.date(), volta_em=lambda data: programa_volta_em(programa, data),
+        abertas=len(chamadas.promessas),
+    )
+
+
+def musica_do_contexto(ctx: "ContextoEmissao") -> Callable[[str], bool | None]:
+    """Julga a música citada numa frase de promessa com as mesmas regras de app.live.validacao_fala: antes da
+    resolução das citadas (fase "pre", formato padrão sem relógio) ainda não dá para julgar."""
+    from app.live.validacao_fala import (
+        artistas_permitidos, confirmada, mencoes_musica, nomes_nao_musica, titulos_permitidos,
+    )
+
+    def julgar(frase: str) -> bool | None:
+        mencoes = mencoes_musica(frase, ctx.musica.citaveis, nomes_nao_musica(ctx))
+        if not mencoes:
+            return None
+        if not ctx.musica.resolvido and ctx.musica.resolve_citadas:
+            return True
+        permitidas, artistas = titulos_permitidos(ctx), artistas_permitidos(ctx)
+        return all(confirmada(m, permitidas, artistas) for m in mencoes)
+
+    return julgar
+
+
+def checar_promessas(fala: str, ctx: "ContextoEmissao", config: ConfigPromessas | None = None) -> list["Violacao"]:
+    """Promessa sem evento na agenda (fases "pre" e "final"): V1 pede a reescrita com o que está agendado; V2
+    tira a frase (ou só a oração do marcador, quando ela tem um termo preservado)."""
+    from app.live.validacao_fala import Violacao
+
+    situacao = situacao_do_contexto(ctx)
+    return [Violacao("promessa_sem_evento", promessa.frase, promessa.marcador,
+                     instrucao_violacao(promessa.frase, situacao, config))
+            for promessa, casamento in avaliar(fala, situacao, musica_do_contexto(ctx), config)
+            if casamento.situacao == "violacao"]
+
+
+def a_registrar_no_texto(fala: str, ctx: "ContextoEmissao",
+                         config: ConfigPromessas | None = None) -> list[tuple[PromessaDetectada, EventoAgendado]]:
+    """Promessas do texto que vai ao ar casadas com um evento da agenda (as que viram linha aberta)."""
+    return [(promessa, casamento.evento)
+            for promessa, casamento in avaliar(fala, situacao_do_contexto(ctx), musica_do_contexto(ctx), config)
+            if casamento.situacao == "evento" and casamento.evento is not None]

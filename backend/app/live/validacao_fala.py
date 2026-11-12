@@ -318,7 +318,62 @@ def checar_musicas(fala: str, ctx: "ContextoEmissao") -> list[Violacao]:
     return violacoes
 
 
-CHECAGENS_POS_GERACAO: list[Checagem] = [checar_musicas]   # F5 acrescenta checar_fala; F4, as promessas
+def checar_promessas(fala: str, ctx: "ContextoEmissao") -> list[Violacao]:
+    """F4: promessa sem evento agendado (app.live.promessas; importado na chamada, que importa este módulo)."""
+    from app.live.promessas import checar_promessas as checar
+
+    return checar(fala, ctx)
+
+
+def checar_participacao(fala: str, ctx: "ContextoEmissao") -> list[Violacao]:
+    """F4: pedido não selecionado, ouvinte inexistente e mensagem simulada (app.live.participacao)."""
+    from app.live.participacao import checar_participacao as checar
+
+    return checar(fala, ctx)
+
+
+def checar_pedido_sem_mencao(fala: str, ctx: "ContextoEmissao") -> list[Violacao]:
+    """F4 (D10): pedido de ouvinte selecionado que some da fala."""
+    from app.live.participacao import pedido_sem_mencao
+
+    violacao = pedido_sem_mencao(fala, ctx)
+    return [violacao] if violacao is not None else []
+
+
+CHECAGENS_POS_GERACAO: list[Checagem] = [checar_musicas, checar_promessas, checar_participacao,
+                                         checar_pedido_sem_mencao]   # F5 acrescenta checar_fala
+
+# Modo de cada regra (decisão D12 da F4): o nome do campo em settings. Regra fora daqui segue o da música.
+MODO_POR_REGRA = {
+    "musica_nao_confirmada": "validacao_musica_modo",
+    "promessa_sem_evento": "validacao_promessa_modo",
+    "pedido_nao_selecionado": "validacao_participacao_modo",
+    "ouvinte_nao_autorizado": "validacao_participacao_modo",
+    "participacao_simulada": "validacao_participacao_modo",
+    "pedido_sem_mencao": "validacao_participacao_modo",
+}
+
+
+def modo_da_regra(regra: str) -> str:
+    from app.config.settings import settings
+
+    return getattr(settings, MODO_POR_REGRA.get(regra, "validacao_musica_modo"))
+
+
+def com_modo(violacao: Violacao, modo_musica: str | None = None) -> Violacao:
+    """No modo "avisar" a violação só é registrada: nada sai da fala. `modo_musica` substitui o de settings para
+    as regras da F3 (o `modo` de `corrigir`)."""
+    campo = MODO_POR_REGRA.get(violacao.regra, "validacao_musica_modo")
+    modo = modo_musica if modo_musica is not None and campo == "validacao_musica_modo" else modo_da_regra(
+        violacao.regra)
+    if violacao.remediacao == "remover_frase" and modo != "corrigir":
+        return dataclasses.replace(violacao, remediacao="avisar")
+    return violacao
+
+
+def para_reescrita(violacoes: Iterable[Violacao]) -> list[Violacao]:
+    """V1: só as violações de regras no modo "corrigir" entram na reescrita única."""
+    return [v for v in violacoes if modo_da_regra(v.regra) == "corrigir"]
 
 
 def validar(fala: str, ctx: "ContextoEmissao", fase: Literal["pre", "final"],
@@ -431,6 +486,7 @@ class ResultadoValidacao:
     falas_bloco: list
     violacoes: list[Violacao]
     acao: Acao = "nenhuma"
+    finais: list[Violacao] = dataclasses.field(default_factory=list)   # só as da fala final (V2)
 
 
 def corrigir(fala: str, falas_bloco: list, ctx: "ContextoEmissao", *, preservar: Iterable[str], modo: str,
@@ -440,10 +496,11 @@ def corrigir(fala: str, falas_bloco: list, ctx: "ContextoEmissao", *, preservar:
     liga a regra do fragmento abaixo do mínimo. `so_musica_se_vazia`: depois da fala vem música e não há pedido
     a reconhecer, então fala vazia vira só música."""
     preservar = list(preservar)
-    violacoes = validar(fala, ctx, "final")
+    # Modo por regra (F4, D12): a regra em "avisar" só registra. O fragmento abaixo do mínimo segue `modo`.
+    violacoes = [com_modo(v, modo) for v in validar(fala, ctx, "final")]
     pre = list(violacoes_pre)
     acao: Acao = "reescrita" if pre and not violacoes else "nenhuma"
-    if violacoes and modo == "corrigir":
+    if any(v.remediacao == "remover_frase" for v in violacoes):
         if falas_bloco:
             linhas = []
             for linha in falas_bloco:
@@ -465,4 +522,5 @@ def corrigir(fala: str, falas_bloco: list, ctx: "ContextoEmissao", *, preservar:
         if modo == "corrigir":
             fala = "" if so_musica_se_vazia else fala_reserva_neutra(ctx, wpm)
             acao = "fala_removida" if so_musica_se_vazia else "fala_neutra"
-    return ResultadoValidacao(fala=fala, falas_bloco=falas_bloco, violacoes=pre + violacoes, acao=acao)
+    return ResultadoValidacao(fala=fala, falas_bloco=falas_bloco, violacoes=pre + violacoes, acao=acao,
+                              finais=list(violacoes))

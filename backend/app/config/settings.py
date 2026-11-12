@@ -113,6 +113,11 @@ class Settings(BaseSettings):
     # Validador pós-geração (F3, app.live.validacao_fala): "corrigir" reescreve (dentro da reescrita única) e tira a
     # frase com música anunciada sem confirmação; "avisar" só registra no log e na resposta (decisão D2).
     validacao_musica_modo: Literal["corrigir", "avisar"] = "corrigir"
+    # F4 (decisão D12): modo por regra, para ligar "avisar" só no detector que der falso positivo com LLM real.
+    # Promessa sem evento (app.live.promessas) e participação (app.live.participacao: pedido não selecionado,
+    # ouvinte inexistente, mensagem simulada, pedido que some da fala).
+    validacao_promessa_modo: Literal["corrigir", "avisar"] = "corrigir"
+    validacao_participacao_modo: Literal["corrigir", "avisar"] = "corrigir"
     # Fala que o encurtamento ou o validador deixaram abaixo de (fração x mínimo do orçamento) não vai ao ar: vira só
     # música ou a reorientação neutra. 0 desliga.
     validacao_fala_minimo_fracao: float = 1.0

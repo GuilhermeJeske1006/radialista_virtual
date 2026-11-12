@@ -496,7 +496,10 @@ def test_injecoes_aparecem_nas_metricas(simulacoes):
     musical = simulacoes["musical_adulto"]["resultado"].resumo
     variedades = simulacoes["variedades_leves"]["resultado"].resumo
 
-    assert popular["promessa_vencida"] >= 1
+    # F4: a promessa injetada ("daqui a pouco tem mais recado") acontece e o validador do backend a tira (sem
+    # chamada de ouvinte a até 4 posições) ou a registra para cumprir: nenhuma vence.
+    assert popular["dubles"]["contadores"]["injecao_promessa"] >= 1
+    assert popular["promessa_vencida"] == 0
     assert musical["chamadas_llm"]["total"] > musical["chamadas_llm"]["falas"]
     assert musical["chamadas_llm"]["revisoes"] >= 1
     # F3: a injeção de música não confirmada acontece e o validador do backend a tira da fala antes de ir ao ar.
@@ -506,7 +509,9 @@ def test_injecoes_aparecem_nas_metricas(simulacoes):
     # Desde a F2 o formato padrão sem relógio só observa o orçamento (o backend não reescreve nem encurta):
     # o excesso injetado aparece nas falas em observação, relatadas à parte.
     assert variedades["orcamento_observacao"]["fora_pct"] > 0
-    assert variedades["ouvinte_inexistente"] >= 1
+    # F4: o ouvinte inventado ("Dona Firmina") é injetado e sai da fala antes de ir ao ar.
+    assert variedades["dubles"]["contadores"]["injecao_cita_ouvinte"] >= 1
+    assert variedades["ouvinte_inexistente"] == 0
 
 
 def test_dubles_cobrem_alvos_existentes(simulacoes, db_session):
