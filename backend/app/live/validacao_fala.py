@@ -340,18 +340,29 @@ def validar(fala: str, ctx: "ContextoEmissao", fase: Literal["pre", "final"],
 
 _LIGACOES_ARTISTA_RE = re.compile(r"^(?:com|de|do|da|na voz de)\s", re.IGNORECASE)
 
+# Como cada regra divide a frase em orações para tirar só a da violação. A música (F3) corta só por vírgula; a
+# participação (F4) também corta em "e (também) para" e leva junto a oração relativa do nome tirado ("que
+# escreveu agora"): "Um abraço para Cida e também para a Dona Firmina, que escreveu" mantém a Cida.
+_CORTE_ORACAO = {
+    "padrao": (re.compile(r",\s+"), _LIGACOES_ARTISTA_RE),
+    "participacao": (re.compile(r",\s+|\s+(?=e\s+(?:também\s+)?(?:para|pra)\s)", re.IGNORECASE),
+                     re.compile(r"^(?:com|de|do|da|na voz de|que|quem)\s", re.IGNORECASE)),
+}
+_REGRAS_CORTE_PARTICIPACAO = ("pedido_nao_selecionado", "ouvinte_nao_autorizado", "participacao_simulada")
 
-def _sem_clausula(frase: str, trecho: str, preservar: list[str]) -> str | None:
+
+def _sem_clausula(frase: str, trecho: str, preservar: list[str], regra: str = "") -> str | None:
     """Tira só a oração com o trecho (e o artista ligado a ela) quando a frase também tem um termo preservado
     (título confirmado, nome do ouvinte) fora dela. None quando não dá."""
+    divisor, continuacao = _CORTE_ORACAO["participacao" if regra in _REGRAS_CORTE_PARTICIPACAO else "padrao"]
     final = frase[-1] if frase and frase[-1] in ".!?…" else "."
-    clausulas = re.split(r",\s+", frase.rstrip(".!?… "))
+    clausulas = divisor.split(frase.rstrip(".!?… "))
     alvo = _norm(trecho)
     indice = next((i for i, c in enumerate(clausulas) if alvo and f" {alvo} " in f" {_norm(c)} "), None)
     if indice is None or indice == 0:
         return None
     fim = indice + 1
-    while fim < len(clausulas) and _LIGACOES_ARTISTA_RE.match(clausulas[fim]):
+    while fim < len(clausulas) and continuacao.match(clausulas[fim]):
         fim += 1
     resto = clausulas[:indice] + clausulas[fim:]
     texto = re.sub(r"\s+e(?: depois)?$", "", ", ".join(resto)).strip()
@@ -378,7 +389,7 @@ def remover_frases(fala: str, violacoes: Iterable[Violacao], preservar: Iterable
         for violacao in das_violacoes:
             if reduzida is None:
                 break
-            reduzida = _sem_clausula(reduzida, violacao.ref_id or violacao.trecho, preservar)
+            reduzida = _sem_clausula(reduzida, violacao.ref_id or violacao.trecho, preservar, violacao.regra)
         if reduzida:
             ficam.append(reduzida)
     return " ".join(ficam)

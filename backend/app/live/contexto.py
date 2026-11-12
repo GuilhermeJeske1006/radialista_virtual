@@ -114,6 +114,11 @@ class Participacao:
     ouvinte_recorrente_dias: str | None  # idem, numa transmissão de outro dia
     pedido_recente: PedidoRef | None     # espiado, não consumido (legado)
     nomes_autorizados: tuple[str, ...] = ()
+    # F4 (app.live.participacao): quem pode ser citado e como.
+    nomes_selecionados: tuple[str, ...] = ()   # pedido de música e de ouvinte deste bloco
+    nomes_ja_atendidos: tuple[str, ...] = ()   # executados ou selecionados antes, nesta transmissão (D8)
+    nomes_conhecidos: tuple[str, ...] = ()     # pedidos da transmissão e da fila
+    nome_recente: str | None = None            # espiado do legado (D7)
 
 
 @dataclasses.dataclass(frozen=True)
