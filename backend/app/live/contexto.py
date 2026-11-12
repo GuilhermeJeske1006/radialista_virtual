@@ -515,7 +515,9 @@ def _jornalismo(entrada: EntradaEmissao, categoria: str, tipo: str, agora_local,
     pauta = None
     pautas: list = []
     correcao = None
-    if categoria in _CATEGORIAS_NOTICIA_LIKE:
+    # O programa esportivo usa apuração web própria; a pauta geral de RSS da rádio
+    # pode conter notícias de outras editorias e não substitui a pesquisa esportiva.
+    if categoria in _CATEGORIAS_NOTICIA_LIKE and programa.perfil != "esportivo":
         # Correção tem prioridade sobre qualquer outra pauta, inclusive sobre a escalada.
         correcao = portas.correcao_pendente(db, programa)
         if correcao is not None:

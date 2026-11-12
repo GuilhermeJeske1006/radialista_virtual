@@ -593,7 +593,17 @@ export default function EditarProgramaForm({
             id="perfil"
             className={inputClass}
             value={programa.perfil ?? "musical"}
-            onChange={(e) => setPrograma({ ...programa, perfil: e.target.value as Programa["perfil"] })}
+            onChange={(e) => {
+              const perfil = e.target.value as Programa["perfil"];
+              setPrograma({ ...programa, perfil, ...(perfil === "esportivo" ? {
+                pode_pesquisar: true,
+                tipos_noticias: [...new Set([...programa.tipos_noticias, "esportes"])],
+                dose_noticia: programa.dose_noticia === "nenhuma" ? "jornalistica" as const : programa.dose_noticia,
+                perfil_programacao: "padrao" as const,
+                estrutura_blocos: programa.estrutura_blocos.length ? programa.estrutura_blocos
+                  : ["abertura", "noticia", "comentario", "giro", "encerramento"],
+              } : {}) });
+            }}
           >
             <option value="musical">Musical</option>
             <option value="jornalismo">Jornalismo</option>
@@ -603,8 +613,9 @@ export default function EditarProgramaForm({
             <option value="comunitario">Comunitário</option>
           </select>
           <p className="mt-1 text-xs text-fg/65">
-            Orienta o preenchimento inicial (roteiro sugerido, dosagem de notícia) — você continua
-            livre pra editar tudo manualmente depois.
+            {programa.perfil === "esportivo"
+              ? "A IA pesquisa notícias, resultados e classificação nas fontes do programa e prepara as falas durante o ao vivo."
+              : "Orienta o preenchimento inicial (roteiro sugerido, dosagem de notícia) — você continua livre pra editar tudo manualmente depois."}
           </p>
           {programa.perfil === "jornalismo" && (
             <button

@@ -27,6 +27,7 @@ from app.config.settings import settings
 from app.billing.contexto_ia import ContextoIAMiddleware
 from app.db.database import Base, SessionLocal, engine
 from app.equipe.router import router as equipe_router
+from app.esportes.router import router as esportes_router
 from app.live.prewarm import executar_tick as preparar_falas_antecipadas
 from app.live.router import router as live_router
 from app.metrics.router import router as metrics_router
@@ -133,6 +134,7 @@ app.include_router(ouvintes_router)
 app.include_router(auth_router)
 app.include_router(funnel_router)
 app.include_router(equipe_router)
+app.include_router(esportes_router)
 app.include_router(config_router)
 app.include_router(onboarding_router)
 app.include_router(metrics_router)
@@ -160,6 +162,8 @@ async def criar_tabelas():
     from app.db.migrations.promessas_20261112 import aplicar as aplicar_promessas
     aplicar_promessas(engine)
     Base.metadata.create_all(bind=engine)
+    from app.db.migrations.fontes_esportivas_20261111 import aplicar as aplicar_fontes_esportivas
+    aplicar_fontes_esportivas(engine)
     garantir_colunas_radio_config()
     garantir_colunas_account()
     garantir_colunas_programa()

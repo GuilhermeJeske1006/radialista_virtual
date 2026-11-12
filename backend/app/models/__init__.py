@@ -1,4 +1,5 @@
 from app.models.account import Account
+from app.models.esportes import EdicaoEsportiva, FonteEsportiva, PerfilEsportivo
 from app.models.assunto import Assunto
 from app.models.assunto_programa import AssuntoPrograma
 from app.models.biblioteca_audio import BibliotecaAudioItem
@@ -29,6 +30,9 @@ from app.models.perfil_voz import ConfiguracaoVoz, MetadadosVoz, RitmoVoz
 
 __all__ = [
     "Account",
+    "EdicaoEsportiva",
+    "FonteEsportiva",
+    "PerfilEsportivo",
     "Usuario",
     "ConviteUsuario",
     "RadioConfig",

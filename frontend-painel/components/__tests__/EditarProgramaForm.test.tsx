@@ -141,3 +141,37 @@ describe("EditarProgramaForm (relógio da hora)", () => {
     expect(chamadas()).toEqual(["PUT /config/programas/5"]);
   });
 });
+
+describe("esportes no fluxo de Programas", () => {
+  it("escolher Esportivo habilita pesquisa e roteiro sem exigir produção manual", async () => {
+    await renderCriacao();
+    await userEvent.selectOptions(screen.getByLabelText('Perfil do programa'), 'esportivo');
+    expect(screen.getByText(/A IA pesquisa notícias, resultados e classificação/)).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Pode pesquisar' })).toBeChecked();
+    expect(screen.queryByText(/Sequência vazia/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Criar programa' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Preparar edições esportivas' })).not.toBeInTheDocument();
+    expect(apiFetchMock.mock.calls.filter(([path]) => path.startsWith('/esportes/'))).toHaveLength(0);
+  });
+
+  it("edita e salva o programa esportivo pelo fluxo normal, sem carregar o editor de edições", async () => {
+    const { PROGRAMA_VAZIO } = await import('../../lib/types');
+    const programa = { ...PROGRAMA_VAZIO, id: 5, radio_config_id: 1, nome: 'Esporte da cidade', perfil: 'esportivo', horario_inicio: '16:00:00', horario_fim: '16:30:00' };
+    apiFetchMock.mockReset();
+    apiFetchMock.mockImplementation((path: string, opcoes?: { method?: string; body?: string }) => {
+      if (path === '/config/programas/5') return Promise.resolve(opcoes?.body ? { ...programa, ...JSON.parse(opcoes.body) } : programa);
+      if (path === '/config/radio') return Promise.resolve({ tipo_radio: 'esportiva' });
+      return Promise.resolve([]);
+    });
+    render(<EditarProgramaForm programaId={5} />);
+    await screen.findByText('Editar programa');
+    expect(screen.queryByRole('region', { name: 'Produção esportiva' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Produção esportiva' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Preparar edições esportivas' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Perfil do programa')).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar programa' }));
+    expect((await screen.findAllByText('Programa salvo.')).length).toBeGreaterThan(0);
+    expect(apiFetchMock.mock.calls.some(([path, opcoes]) => path === '/config/programas/5' && opcoes?.method === 'PUT')).toBe(true);
+    expect(apiFetchMock.mock.calls.filter(([path]) => path.startsWith('/esportes/'))).toHaveLength(0);
+  });
+});

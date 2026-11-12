@@ -60,6 +60,43 @@ def _criar_noticia(db_session, account, **kwargs):
 
 
 @freeze_time(AGORA_UTC)
+def test_programa_esportivo_apura_e_gera_fala_sem_edicao_manual_mesmo_com_pauta_geral(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch,
+):
+    from unittest.mock import Mock
+
+    from app.llm.noticias import FonteNoticia, PesquisaNoticias
+
+    radialista, programa = radialista_e_programa
+    programa.perfil = "esportivo"
+    programa.pode_pesquisar = True
+    programa.fontes_noticias = ["https://esporte.example.com/noticias"]
+    db_session.commit()
+    _criar_noticia(db_session, account, categoria="geral")
+    apuracao = PesquisaNoticias(
+        status="ok", esportiva=True,
+        texto="A federação confirmou o próximo jogo para amanhã, às dezesseis horas.",
+        fontes=[FonteNoticia(titulo="Federação", url="https://esporte.example.com/agenda")],
+    )
+    pesquisar = Mock(return_value=apuracao)
+    monkeypatch.setattr("app.live.router.pesquisar_noticias", pesquisar)
+    prompts = []
+    fala = "Segundo a federação, o próximo jogo será amanhã, às dezesseis horas."
+    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or fala)
+    resposta = client.post(
+        _url_proxima(radialista.id, programa.id),
+        json={"historico": [], "total_falas": 1, "incluir_audio": False}, headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["fala"] == fala
+    pesquisar.assert_called_once()
+    assert pesquisar.call_args.args[0].id == programa.id
+    assert pesquisar.call_args.args[1].id == account.id
+    assert "APURAÇÃO JORNALÍSTICA" in prompts[0]
+    assert "Rua São Paulo" not in prompts[0]
+
+
+@freeze_time(AGORA_UTC)
 def test_bloco_noticia_usa_pauta_do_banco_em_vez_de_pesquisar_noticias(
     client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
 ):

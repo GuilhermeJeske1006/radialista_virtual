@@ -156,7 +156,7 @@ def _consultar(pauta: dict, dominios: list[str], agora: datetime.datetime) -> Pe
 
 
 def pesquisar_noticias(programa, account, *, agora: datetime.datetime, assunto: str | None = None) -> PesquisaNoticias:
-    esportiva = assunto_esportivo(assunto) or (assunto in (None, "noticia", "giro", "escalada", "reporter", "plantao") and assunto_esportivo(
+    esportiva = getattr(programa, "perfil", "") == "esportivo" or assunto_esportivo(assunto) or (assunto in (None, "noticia", "giro", "escalada", "reporter", "plantao") and assunto_esportivo(
         " ".join(programa.tipos_noticias or []) + " " + " ".join(programa.topicos_permitidos or [])
     ))
     if not programa.pode_pesquisar:
