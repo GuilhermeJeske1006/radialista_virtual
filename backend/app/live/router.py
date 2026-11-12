@@ -1624,6 +1624,11 @@ def _reprovar_pedido(db: Session, pedido: FilaAoVivo, motivo: str) -> None:
     logger.info("live_pedido_musica_indisponivel pedido_id=%s", pedido.id)
 
 
+# Estados de um pedido legado ainda na fila: "em_fila" (padrão do webhook) e "aguardando_revisao" (linhas de antes
+# da coluna estado, migradas por app.main.garantir_colunas_fila_ao_vivo).
+_ESTADOS_LEGADO_ABERTOS = ("em_fila", "aguardando_revisao")
+
+
 def _pedido_recente_nao_atendido(db: Session, radialista: RadioConfig, tipo: str) -> FilaAoVivo | None:
     """Espia (sem consumir) o pedido nao atendido mais recente, pra saber se algo "acabou de
     chegar" no WhatsApp enquanto o locutor esta gerando outro tipo de bloco -- ao contrario de
@@ -1641,6 +1646,10 @@ def _pedido_recente_nao_atendido(db: Session, radialista: RadioConfig, tipo: str
             FilaAoVivo.tipo == tipo,
             FilaAoVivo.atendido.is_(False),
             FilaAoVivo.criado_em >= limiar,
+            # F4 (D7): só o legado aberto. Pedido do fluxo novo (com programa) passa pela revisão da equipe e
+            # não pode chegar ao ar pela espiada; cancelado ou não atendido também não.
+            FilaAoVivo.programa_id.is_(None),
+            FilaAoVivo.estado.in_(_ESTADOS_LEGADO_ABERTOS),
         )
         .order_by(FilaAoVivo.criado_em.desc())
         .first()
