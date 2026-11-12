@@ -21,6 +21,7 @@ import re
 import unicodedata
 from typing import TYPE_CHECKING, Callable, Iterable, Literal
 
+from app.dados.verificavel import estado as estado_do_dado
 from app.live.orcamento import frases
 
 if TYPE_CHECKING:
@@ -178,7 +179,7 @@ class PromessaRef:
 class Contingencia:
     promessa_id: int
     texto: str
-    motivo: Literal["conteudo_caiu", "prazo_vencido", "fim_do_programa"]
+    motivo: Literal["conteudo_caiu", "prazo_vencido", "fim_do_programa", "fonte_desatualizada"]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -591,16 +592,37 @@ def _alvo(promessa: PromessaRef, ctx: "ContextoEmissao") -> tuple[bool, bool]:
     return False, True
 
 
+# Tipos de dado (app.dados) que não cumprem promessa de informação: o clima e a pauta de conversa não são notícia.
+_DADOS_FORA_DA_INFORMACAO = ("clima", "assunto")
+
+
+def _dados_da_informacao(ctx: "ContextoEmissao") -> list:
+    return [d for d in getattr(ctx, "dados", ()) or () if d.tipo not in _DADOS_FORA_DA_INFORMACAO]
+
+
 def _tem_conteudo(promessa: PromessaRef, ctx: "ContextoEmissao") -> bool:
     if promessa.tipo == "participacao":
         return ctx.participacao.pedido_ouvinte is not None or ctx.participacao.pedido_musica is not None
     if promessa.tipo == "quadro":
         return ctx.variacoes.quadro_fixo is not None
     if promessa.tipo == "informacao":
+        # F5: só dado válido cumpre (pauta e apuração viram DadoVerificavel em ctx.dados); sem dados no contexto,
+        # a regra de antes.
+        noticiosos = _dados_da_informacao(ctx)
+        if noticiosos:
+            return any(estado_do_dado(d, ctx.tempo.instante) == "valido" for d in noticiosos)
         pesquisa = ctx.jornalismo.pesquisa
         return bool(ctx.jornalismo.pautas or ctx.jornalismo.pauta is not None
                     or (pesquisa is not None and getattr(pesquisa, "status", "") == "ok"))
     return True
+
+
+def motivo_sem_conteudo(promessa: PromessaRef, ctx: "ContextoEmissao") -> str:
+    """Por que o bloco-alvo não cumpre: a fonte não atualizou (só dado vencido, pesquisa §10) ou o conteúdo caiu."""
+    if promessa.tipo == "informacao" and \
+            any(estado_do_dado(d, ctx.tempo.instante) == "vencido" for d in _dados_da_informacao(ctx)):
+        return "fonte_desatualizada"
+    return "conteudo_caiu"
 
 
 def conteudo_do_bloco(promessa: PromessaRef, ctx: "ContextoEmissao", config: ConfigPromessas | None = None) -> str:
@@ -637,7 +659,7 @@ def a_cumprir_e_contingencias(ctx: "ContextoEmissao", config: ConfigPromessas | 
         if alvo and _tem_conteudo(promessa, ctx):
             a_cumprir.append(promessa)
         elif alvo:
-            contingencias.append(_contingencia(promessa, ctx, "conteudo_caiu", cfg))
+            contingencias.append(_contingencia(promessa, ctx, motivo_sem_conteudo(promessa, ctx), cfg))
         elif encerramento:
             contingencias.append(_contingencia(promessa, ctx, "fim_do_programa", cfg))
         elif passou:

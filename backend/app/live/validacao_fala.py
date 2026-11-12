@@ -20,8 +20,9 @@ nenhum (fase "pre"); V2, na fala final, remove a frase (`remover_frases`), e a f
 música sem pedido) ou a reorientação neutra (`fala_reserva_neutra`), nunca uma promessa de conteúdo. Modo
 `settings.validacao_musica_modo`: "corrigir" (padrão) ou "avisar" (só registra).
 
-Ganchos: a F5 registra `checar_fala` e a F4 a checagem de promessas em `CHECAGENS_POS_GERACAO`, reaproveitando
-`Violacao`, `remover_frases` e `fala_reserva_neutra`.
+Ganchos: a F4 registra a checagem de promessas e participação e a F5 a de dados (`checar_dados`, que chama
+app.dados.checagem.checar_fala) em `CHECAGENS_POS_GERACAO`, reaproveitando `Violacao`, `remover_frases` e
+`fala_reserva_neutra`.
 """
 
 import dataclasses
@@ -340,8 +341,39 @@ def checar_pedido_sem_mencao(fala: str, ctx: "ContextoEmissao") -> list[Violacao
     return [violacao] if violacao is not None else []
 
 
+def cobertura_extra(ctx: "ContextoEmissao") -> list[str]:
+    """F5 (D17): textos configurados pela rádio que já entram no prompt e contam como fonte, só pela palavra-gatilho
+    (descrição do programa, quadro do bloco, assunto sugerido, conhecimento local, bíblia, slogan), mais o contexto
+    da faixa que vai tocar."""
+    account, programa, v = ctx.account, ctx.programa, ctx.variacoes
+
+    def textos(valor) -> list[str]:
+        if isinstance(valor, dict):
+            return [t for item in valor.values() for t in textos(item)]
+        if isinstance(valor, (list, tuple)):
+            return [t for item in valor for t in textos(item)]
+        return [str(valor)] if valor else []
+
+    return [*textos(getattr(programa, "descricao", "")), *textos(v.quadro_fixo), *textos(v.assunto_sugerido),
+            *textos(getattr(account, "conhecimento_local", None)), *textos(getattr(account, "biblia_radio", None)),
+            *textos(getattr(account, "slogan", "")), *textos(ctx.musica.contexto_faixa)]
+
+
+def checar_dados(fala: str, ctx: "ContextoEmissao") -> list[Violacao]:
+    """F5: afirmação de dado sem fonte ou vencido (app.dados.checagem; importado na chamada, que importa este
+    módulo). A contingência do bloco e a reorientação neutra são isentas."""
+    from app.dados.checagem import checar_fala
+
+    nomes = {"radio": (getattr(ctx.account, "nome_radio", "") or "").strip(),
+             "programa": (ctx.programa.nome or "").strip()}
+    neutras = [m.format(**nomes) for m in CONFIG_VALIDACAO["reserva_neutra"]]
+    return checar_fala(fala, ctx.dados, ctx.tempo.instante, ctx.radialista.timezone,
+                       cobertura_extra=cobertura_extra(ctx),
+                       isentas=[*(c.texto for c in ctx.chamadas.contingencias), *neutras])
+
+
 CHECAGENS_POS_GERACAO: list[Checagem] = [checar_musicas, checar_promessas, checar_participacao,
-                                         checar_pedido_sem_mencao]   # F5 acrescenta checar_fala
+                                         checar_pedido_sem_mencao, checar_dados]
 
 # Modo de cada regra (decisão D12 da F4): o nome do campo em settings. Regra fora daqui segue o da música.
 MODO_POR_REGRA = {
@@ -351,6 +383,8 @@ MODO_POR_REGRA = {
     "ouvinte_nao_autorizado": "validacao_participacao_modo",
     "participacao_simulada": "validacao_participacao_modo",
     "pedido_sem_mencao": "validacao_participacao_modo",
+    "dado_sem_fonte": "validacao_dados_modo",
+    "dado_vencido": "validacao_dados_modo",
 }
 
 

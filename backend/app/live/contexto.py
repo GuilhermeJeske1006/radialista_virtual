@@ -25,6 +25,9 @@ from zoneinfo import ZoneInfo
 
 from app.billing.contexto_ia import modelo_efetivo
 from app.config.settings import settings
+from app.dados.fontes import dados_do_bloco
+from app.dados.texto_externo import nome_seguro
+from app.dados.verificavel import DadoVerificavel
 from app.live.orcamento import OrcamentoFala, formato_do_programa, orcamento_para, palavras_max
 from app.live.portas import PortasEmissao
 from app.live.prompts import (
@@ -96,7 +99,8 @@ class PedidoRef:
 
     @classmethod
     def de(cls, pedido, novo_atendimento: bool) -> "PedidoRef":
-        return cls(id=pedido.id, tipo=pedido.tipo, nome=pedido.nome or "", natureza=pedido.natureza,
+        # F5 (D15): o nome do WhatsApp entra saneado; o prompt e os detectores da F4 veem o mesmo nome.
+        return cls(id=pedido.id, tipo=pedido.tipo, nome=nome_seguro(pedido.nome), natureza=pedido.natureza,
                    texto=pedido.texto_autorizado if novo_atendimento else pedido.mensagem_usuario,
                    texto_autorizado=pedido.texto_autorizado or "", musica_query=pedido.musica_query,
                    estado=pedido.estado, token=pedido.selecao_token)
@@ -227,7 +231,7 @@ class ContextoEmissao:
     limite_palavras: int | None
     prompt_base: str                     # montar_system_prompt(...), chamado no montador (efeitos no Redis)
     modelo_com_tags: bool
-    dados: tuple = ()                    # F5: DadoVerificavel (a F3 não importa app.dados)
+    dados: tuple[DadoVerificavel, ...] = ()   # F5: dados verificáveis do bloco (app.dados.fontes.dados_do_bloco)
     extensoes: Mapping[str, Any] = dataclasses.field(default_factory=dict)  # F4/F7/F8
 
 
@@ -314,7 +318,7 @@ def _estado_da_fila(entrada: EntradaEmissao, portas: PortasEmissao) -> tuple[lis
         partes = dividir_artista_titulo(item)
         citaveis.append(MusicaRef(partes[1], partes[0], origem="conhecida") if partes is not None
                         else MusicaRef(item, origem="conhecida"))
-    return citaveis, [p.nome for p in pedidos if p.nome]
+    return citaveis, [nome for nome in (nome_seguro(p.nome) for p in pedidos) if nome]
 
 
 def teto_musica(plano: Plano) -> Plano:
@@ -551,6 +555,19 @@ def _jornalismo(entrada: EntradaEmissao, categoria: str, tipo: str, agora_local,
     return Jornalismo(pautas=tuple(pautas), pauta=pauta, correcao=correcao, pesquisa=pesquisa, pesquisou=pesquisou)
 
 
+def _dados(entrada: EntradaEmissao, decisao: DecisaoBloco, jornalismo: Jornalismo, quadro, portas: PortasEmissao
+           ) -> tuple[DadoVerificavel, ...]:
+    """Pauta (ou correção), apuração web, pauta de assunto e clima deste bloco como DadoVerificavel (F5)."""
+    account, programa = entrada.account, entrada.programa
+    cidade = (getattr(account, "cidade", "") or "").strip()
+    leitura = portas.obter_leitura_clima(cidade) if cidade else None
+    return dados_do_bloco(
+        pautas=jornalismo.pautas, correcao=jornalismo.correcao,
+        pesquisa=jornalismo.pesquisa if jornalismo.pesquisou else None,
+        fontes_programa=programa.fontes_noticias or programa.fontes_pesquisa or [],
+        assunto=decisao.assunto if quadro is None else None, leitura_clima=leitura)
+
+
 def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: ResolucaoBloco,
                     portas: PortasEmissao) -> ContextoEmissao:
     """Fase 3. A ordem das chamadas abaixo é a do router antigo (sorteios, rotações e leituras)."""
@@ -647,6 +664,9 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
     agenda, posicao, tem_musica = _agenda(entrada, decisao, roteiro, categorias_roteiro)
     abertas = tuple(portas.promessas_abertas(entrada.db, programa, ocorrencia))
     ja_atendidos, da_transmissao = portas.nomes_da_transmissao(entrada.db, radialista, programa)
+    ja_atendidos, da_transmissao = [nome_seguro(n) for n in ja_atendidos], [nome_seguro(n) for n in da_transmissao]
+    # Dados verificáveis (F5): só leituras, depois de todos os sorteios; o clima só com cidade configurada.
+    dados = _dados(entrada, decisao, jornalismo, quadro, portas)
     selecionados = tuple(p.nome for p in (pedido_musica, pedido_ouvinte) if p is not None and p.nome)
     ctx = ContextoEmissao(
         request_id=entrada.request_id, account=account, radialista=radialista, programa=programa,
@@ -691,7 +711,7 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
                             imperfeicao=imperfeicao),
         jornalismo=jornalismo,
         orcamento=orcamento, wpm_fala=wpm_fala, categoria_voz=categoria_voz, limite_palavras=limite_palavras,
-        prompt_base=prompt_base, modelo_com_tags=modelo_com_tags,
+        prompt_base=prompt_base, modelo_com_tags=modelo_com_tags, dados=dados,
     )
     # O que este bloco cumpre e as contingências que ele diz (F4), com o contexto completo.
     a_cumprir, contingencias = a_cumprir_e_contingencias(ctx)
