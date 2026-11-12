@@ -89,6 +89,8 @@ Detalhes do servidor, do deploy e do rollback em `deploy/ovh/README.md`.
 
 Plano técnico completo em [docs/plano.md](docs/plano.md).
 
+Árvore local e integração com as frentes do Claude Code: [docs/arvore-commits.md](docs/arvore-commits.md).
+
 WhatsApp, central de conversas, worker e contexto do Ao Vivo: [operação e validação](docs/whatsapp-operacao.md).
 
 Piloto editorial do Locufy Esportes, operação e limites: [docs/locufy-esportes.md](docs/locufy-esportes.md).
