@@ -482,13 +482,16 @@ def test_pedido_fluxo_novo_selecionado_vira_executado(simulacoes):
     assert pedidos["recebidos"] == 4
 
 
-def test_pedido_fluxo_legado_atendido_antes_de_tocar(simulacoes):
+def test_pedido_fluxo_legado_confirma_depois_de_tocar(simulacoes):
+    """F4 (D1): o legado é selecionado com token e o player confirma a reprodução, como no fluxo novo. Antes ele
+    era marcado atendido na seleção ("historico_legado") e contava como pedido indevido de propósito."""
     resultado = simulacoes["variedades_leves"]["resultado"]
-    legados = [e for e in resultado.as_run["eventos"] if e["pedido_estado"] == "historico_legado"]
-    assert legados
-    assert resultado.resumo["pedidos"]["atendidos_antes_de_tocar"] >= 1
-    # O fluxo legado marca o pedido como atendido antes de tocar: conta como pedido indevido de propósito.
-    assert resultado.resumo["pedido_indevido"] >= 1
+    eventos = resultado.as_run["eventos"]
+    legados = [e for e in eventos if e["pedido_estado"] == "selecionado"]
+    assert legados and not any(e["pedido_estado"] == "historico_legado" for e in eventos)
+    assert any(e["pedido_estado_final"] == "executado" for e in legados)
+    assert resultado.resumo["pedidos"]["atendidos_antes_de_tocar"] == 0
+    assert resultado.resumo["pedidos"]["executados"] >= 1
 
 
 def test_injecoes_aparecem_nas_metricas(simulacoes):

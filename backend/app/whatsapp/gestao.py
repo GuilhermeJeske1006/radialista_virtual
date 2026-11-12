@@ -170,7 +170,8 @@ def alterar_pedido(
             raise HTTPException(
                 409, "Apenas seleções sem confirmação podem ser reenfileiradas"
             )
-        pedido.estado = "aguardando_revisao"
+        # O legado (sem programa) não tem revisão da equipe: volta direto para a fila (F4, D1).
+        pedido.estado = "em_fila" if pedido.programa_id is None else "aguardando_revisao"
         pedido.selecao_token = None
         pedido.motivo = dados.motivo or "Revisão solicitada após interrupção do player"
     else:
@@ -195,7 +196,13 @@ def confirmar(
     db: Session = Depends(get_db),
 ):
     pedido = buscar_pedido(db, account, pedido_id)
-    if pedido.selecao_token != dados.token or pedido.programa_id != dados.programa_id:
+    if pedido.programa_id is None:
+        # Legado (F4, D1): o pedido não tem programa; vale o programa do mesmo rádio que o tocou.
+        programa = db.get(Programa, dados.programa_id)
+        mesmo_radio = programa is not None and programa.radio_config_id == pedido.radio_config_id
+    else:
+        mesmo_radio = pedido.programa_id == dados.programa_id
+    if pedido.selecao_token != dados.token or not mesmo_radio:
         raise HTTPException(409, "Confirmação não pertence à seleção atual")
     if pedido.estado in ("executado", "nao_atendido"):
         return {"estado": pedido.estado}

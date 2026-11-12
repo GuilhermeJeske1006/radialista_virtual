@@ -1325,7 +1325,8 @@ def _pedidos_em_fila(db: Session, radialista: RadioConfig, programa: Programa) -
         .filter(
             FilaAoVivo.radio_config_id == radialista.id,
             ((FilaAoVivo.programa_id == programa.id) & (FilaAoVivo.estado == "em_fila"))
-            | (FilaAoVivo.programa_id.is_(None) & FilaAoVivo.atendido.is_(False)),
+            | (FilaAoVivo.programa_id.is_(None) & FilaAoVivo.atendido.is_(False)
+               & FilaAoVivo.estado.in_(_ESTADOS_LEGADO_ABERTOS)),
         )
         .order_by(FilaAoVivo.criado_em.asc())
         .limit(_MAX_PEDIDOS_FILA_VALIDACAO)
@@ -1584,7 +1585,7 @@ def _ouvinte_recorrente_dias_anteriores(db: Session, radio_config_id: int, pedid
 
 
 def _proximo_pedido_fila(db: Session, radialista: RadioConfig, tipo: str) -> FilaAoVivo | None:
-    """Pega (e marca como atendido) o pedido mais antigo da fila vindo do WhatsApp."""
+    """Seleciona (com token, sem marcar atendido) o pedido legado mais antigo da fila vindo do WhatsApp."""
     return _proximo_pedido_fila_dentre(db, radialista, (tipo,))
 
 
@@ -1600,15 +1601,21 @@ def _proximo_pedido_fila_dentre(db: Session, radialista: RadioConfig, tipos: tup
             FilaAoVivo.tipo.in_(tipos),
             FilaAoVivo.programa_id.is_(None),
             FilaAoVivo.atendido.is_(False),
+            FilaAoVivo.estado.in_(_ESTADOS_LEGADO_ABERTOS),
         )
         .order_by(FilaAoVivo.criado_em.asc())
         .with_for_update(skip_locked=True)
         .first()
     )
     if pedido is not None:
-        pedido.atendido = True
-        pedido.estado = "historico_legado"
-        pedido.atendido_em = datetime.datetime.now(datetime.timezone.utc)
+        # F4 (D1): selecionado com token, como no fluxo novo; "atendido" só quando o player confirma a reprodução
+        # (POST /ouvintes/pedidos/{id}/reproducao). Sem moderação: o legado continua sem revisão da equipe.
+        from app.whatsapp.atendimento import registrar_evento
+
+        pedido.estado = "selecionado"
+        pedido.selecao_token = uuid.uuid4().hex
+        pedido.selecionado_em = datetime.datetime.now(datetime.timezone.utc)
+        registrar_evento(pedido, "selecionar_legado")
         db.commit()
     return pedido
 
@@ -1874,7 +1881,8 @@ def _ha_pedido_musica_pendente(db: Session, radialista: RadioConfig, programa: P
             FilaAoVivo.transmissao == ocorrencia_atendimento(programa, radialista.timezone),
         )
     else:
-        consulta = consulta.filter(FilaAoVivo.programa_id.is_(None), FilaAoVivo.atendido.is_(False))
+        consulta = consulta.filter(FilaAoVivo.programa_id.is_(None), FilaAoVivo.atendido.is_(False),
+                                   FilaAoVivo.estado.in_(_ESTADOS_LEGADO_ABERTOS))
     return consulta.first() is not None
 
 
@@ -2342,8 +2350,9 @@ def _registrar_promessas(db: Session, ctx: ContextoEmissao, fala: str, devolvido
 
 
 def _pedido_confirmavel(db: Session, resolucao: ResolucaoBloco, musica: MusicaEncontrada | None):
-    """Pedido do fluxo novo que o painel confirma depois de tocar; música indisponível reprova na hora."""
-    pedido = (resolucao.pedido_musica or resolucao.pedido_ouvinte) if resolucao.novo_atendimento else None
+    """Pedido (fluxo novo ou legado, desde a D1 da F4) que o painel confirma depois de tocar; música indisponível
+    reprova na hora."""
+    pedido = resolucao.pedido_musica or resolucao.pedido_ouvinte
     if pedido and (resolucao.pedido_sem_resultado or (resolucao.pedido_musica and musica is None)):
         pedido.estado = "nao_atendido"
         pedido.motivo = "Música indisponível"

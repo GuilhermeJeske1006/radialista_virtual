@@ -1161,7 +1161,7 @@ def test_pedido_musica_sem_resultado_cai_para_escolha_automatica(
     # pedido sai da fila (nao entra em loop tentando pra sempre uma busca que nunca vai achar nada) como
     # "nao_atendido" (F4, D2: o nome nao vai ao ar), e nao fica registrado como pedido_ouvinte bem-sucedido.
     db_session.refresh(pedido)
-    assert pedido.atendido is True
+    assert pedido.atendido is False  # F4 (D1): a seleção do legado não marca mais atendido
     assert (pedido.estado, pedido.motivo) == ("nao_atendido", "Música indisponível")
     assert db_session.query(MusicaHistorico).filter_by(programa_id=programa.id, origem="pedido_ouvinte").count() == 0
 
@@ -2471,7 +2471,9 @@ def test_pedido_de_sorteio_nao_confirma_inscricao_sem_registro(
     assert "Não confirme inscrição" in prompts[0]
 
     pedido_atualizado = db_session.query(FilaAoVivo).filter_by(id=pedido.id).first()
-    assert pedido_atualizado.atendido is True
+    # F4 (D1): o legado é selecionado com token e só fica atendido quando o player confirma a reprodução.
+    assert (pedido_atualizado.estado, pedido_atualizado.atendido) == ("selecionado", False)
+    assert resposta.json()["pedido_id"] == pedido.id and resposta.json()["pedido_token"]
 
 
 @freeze_time(AGORA_UTC)

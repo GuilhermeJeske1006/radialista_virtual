@@ -4,8 +4,8 @@
    [
     1,
     "abraco",
-    "historico_legado",
-    true,
+    "selecionado",
+    false,
     ""
    ]
   ],
@@ -130,6 +130,10 @@
   "passos_roteiro": 1,
   "patrocinador_audio": false,
   "pausa_antes_ms": 150,
+  "pedido_id": 1,
+  "pedido_programa_id": 1,
+  "pedido_radialista_id": 1,
+  "pedido_token": "<token>",
   "programa_atual": "Tarde Viva",
   "tipo": "chamada_ouvinte",
   "tom": "energico",
