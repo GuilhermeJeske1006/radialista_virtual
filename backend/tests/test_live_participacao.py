@@ -48,6 +48,19 @@ def test_u7_nome_desconhecido_em_frase_de_participacao():
     assert _regras("Hoje a dica vem da Dona Firmina, avó de todo mundo.") == []
 
 
+def test_u7_primeira_palavra_da_frase_nao_vira_nome():
+    """Achado na simulação da F4 (popular sem relógio): "Contato de Valdo Cunha" no começo da frase não é um
+    ouvinte chamado "Contato"."""
+    nomes = dict(selecionados=("Valdo Cunha",), conhecidos=("Valdo Cunha",))
+    assert _regras("Contato de Valdo Cunha sobre o sorteio recebido.", **nomes) == []
+    assert _regras("Recado de Cida Morais na tela, e a gente agradece.", selecionados=("Cida Morais",),
+                   conhecidos=("Cida Morais",)) == []
+    # Título de música com conectivo, no começo da frase, coberto pela menção ("Vai X, de Y").
+    assert _regras("Vai Estrada de Chão Batido, de Irmãos Taquara, no lugar da pedida.") == []
+    mencoes = pa.mencoes_participacao("Dona Firmina mandou um abraço para todos.", _nomes())
+    assert [(m.regra, m.nome) for m in mencoes] == [("ouvinte_nao_autorizado", "Firmina")]
+
+
 def test_u7_mensagem_simulada_sem_pedido():
     for texto in ("Chegou agora uma mensagem linda de uma ouvinte.", "Acabou de chegar um recado aqui.",
                   "Recebi um pedido especial agora.", "Uma ouvinte pediu para mandar um beijo.",

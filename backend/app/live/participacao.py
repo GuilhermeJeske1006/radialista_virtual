@@ -130,7 +130,7 @@ def _nome_desconhecido(trecho: str, cobertos: list[str], cfg: dict) -> str | Non
     uteis = [t for t in tokens if t not in cfg["palavras_comuns"]]
     if not uteis:
         return None
-    if any(f" {' '.join(uteis)} " in f" {c} " for c in cobertos):
+    if any(f" {alvo} " in f" {c} " or f" {' '.join(uteis)} " in f" {c} " for c in cobertos):
         return None
     restante = f" {alvo} "
     for coberto in sorted(cobertos, key=len, reverse=True):
@@ -175,9 +175,15 @@ def mencoes_participacao(texto: str, nomes: NomesParticipacao, config: dict | No
                         if normalizar(x)]
             for achado in padrao.finditer(frase):
                 trecho = achado.group(0)
-                inicio_da_frase = not frase[:achado.start()].strip(" \"'“”‘’-—")
-                if inicio_da_frase and len(trecho.split()) == 1:
-                    continue  # "Alô", "Quer", "Mensagem": a primeira palavra da frase sozinha
+                if not frase[:achado.start()].strip(" \"'“”‘’-—"):
+                    # A primeira palavra da frase sempre tem maiúscula ("Alô", "Quer", "Contato de Fulano"): o
+                    # nome, se houver, está no resto do trecho.
+                    resto = trecho.split()[1:]
+                    while resto and normalizar(resto[0]) in cfg["conectivos_nome"]:
+                        resto = resto[1:]
+                    if not resto:
+                        continue
+                    trecho = " ".join(resto)
                 desconhecido = _nome_desconhecido(trecho, cobertos, cfg)
                 if desconhecido:
                     achadas.append(MencaoOuvinte("ouvinte_nao_autorizado", desconhecido, frase))
