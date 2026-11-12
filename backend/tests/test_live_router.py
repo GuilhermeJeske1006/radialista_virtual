@@ -173,12 +173,13 @@ def test_noticia_pesquisada_chega_a_locucao_e_retorna_fontes(
         consultas.append((p.id, a.id, kwargs))
         return apuracao
     monkeypatch.setattr("app.live.router.pesquisar_noticias", pesquisar)
-    prompts = []
+    prompts, mensagens = [], []
     fala = "Segundo o Jornal da Cidade, a prefeitura anunciou uma nova escola."
-    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or fala)
+    monkeypatch.setattr("app.live.router.gerar_resposta",
+                        lambda system, msg: prompts.append(system) or mensagens.append(msg) or fala)
     monkeypatch.setattr(
         "app.live.router.gerar_dialogo_multivoz",
-        lambda system, msg: prompts.append(system) or json.dumps({"linhas": [
+        lambda system, msg: prompts.append(system) or mensagens.append(msg) or json.dumps({"linhas": [
             {"locutor": radialista.nome_locutor, "texto": fala},
             {"locutor": "Maria", "texto": "A medida amplia o acesso à educação."},
         ]}),
@@ -192,7 +193,8 @@ def test_noticia_pesquisada_chega_a_locucao_e_retorna_fontes(
     assert len(consultas) == 1
     assert consultas[0][:2] == (programa.id, account.id)
     assert "APURAÇÃO JORNALÍSTICA" in prompts[0]
-    assert apuracao.texto in prompts[0]
+    # F5: a apuração vai no bloco de dados da mensagem; o system só tem as instruções.
+    assert apuracao.texto in mensagens[0] and apuracao.texto not in prompts[0]
     assert "em vez de forçar a notícia pesada" not in prompts[0]
     assert resposta.json()["pesquisa_noticias"]["fontes"][0]["url"] == apuracao.fontes[0].url
     assert bool(resposta.json()["falas"]) == dupla
@@ -1792,10 +1794,11 @@ def test_bloco_musica_injeta_contexto_real_no_prompt(
         lambda titulo, canal, descricao, tags, ano: "Fala sobre a vida no interior, de 1998.",
     )
 
-    prompts = []
+    prompts, mensagens = [], []
 
     def _fake_gerar_resposta(system, msg):
         prompts.append(system)
+        mensagens.append(msg)
         return "Vamos ouvir essa!"
 
     monkeypatch.setattr("app.live.router.gerar_resposta", _fake_gerar_resposta)
@@ -1807,7 +1810,9 @@ def test_bloco_musica_injeta_contexto_real_no_prompt(
     )
     assert resposta.status_code == 200
     assert resposta.json()["tipo"] == "musica"
-    assert "Fala sobre a vida no interior, de 1998." in prompts[0]
+    # F5: o contexto da faixa vai no bloco de dados da mensagem (dado "faixa"); o system aponta para ele.
+    assert "Fala sobre a vida no interior, de 1998." in mensagens[0]
+    assert "dado faixa" in prompts[0]
 
 
 @freeze_time(AGORA_UTC)

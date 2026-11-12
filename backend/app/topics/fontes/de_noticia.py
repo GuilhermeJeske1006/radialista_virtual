@@ -8,10 +8,10 @@ import logging
 
 from sqlalchemy.orm import Session
 
+from app.dados.verificavel import janela_noticia
 from app.models.account import Account
 from app.models.assunto import Assunto
 from app.models.noticia import Noticia
-from app.news.pauta import _JANELA_VALIDADE_HORAS
 from app.topics.derivador import derivar_ganchos
 
 logger = logging.getLogger("radialista.topics.fontes.de_noticia")
@@ -32,8 +32,7 @@ def derivar_de_noticia(db: Session, noticia: Noticia, account: Account) -> list[
     if not ganchos:
         return []
 
-    janela_horas = _JANELA_VALIDADE_HORAS.get(noticia.categoria, 48)
-    validade_ate = noticia.publicado_em + datetime.timedelta(hours=janela_horas)
+    validade_ate = noticia.publicado_em + janela_noticia(noticia.categoria)
     if validade_ate.tzinfo is None:
         validade_ate = validade_ate.replace(tzinfo=datetime.timezone.utc)
 

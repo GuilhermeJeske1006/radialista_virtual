@@ -90,7 +90,7 @@ def _perfil_editorial(hora: int) -> str:
     if 5 <= hora < 9:
         return "leve e energético, típico de início de manhã -- evite notícia pesada logo na abertura"
     if 9 <= hora < 11:
-        return "leve, bom momento pra trânsito e utilidade"
+        return "leve, bom momento pra serviço e utilidade pública com informação confirmada"
     if 11 <= hora < 14:
         return "entretenimento leve, horário de almoço"
     if 14 <= hora < 18:
@@ -149,14 +149,27 @@ def rotulo_bloco_prompt(bloco: str) -> str:
     return match.group(1) if match else bloco
 
 
+def clima_ja_mencionado(programa_id: int) -> bool:
+    """Trava de 45 min do clima (_TTL_CLIMA_MENCIONADO): True se o clima já entrou num prompt há pouco; senão marca
+    agora e devolve False. Usada pelo WhatsApp (_contexto_atual) e, desde a F5, pelo contexto do ao vivo, só quando
+    há leitura de clima (sem leitura, nenhuma chave)."""
+    redis_key = f"clima_mencionado:{programa_id}"
+    if redis_client.get(redis_key):
+        return True
+    redis_client.set(redis_key, "1", nx=True, ex=_TTL_CLIMA_MENCIONADO)
+    return False
+
+
 def _contexto_atual(
-    radialista: RadioConfig, account: Account, programa: Programa, agora: datetime.datetime | None = None
+    radialista: RadioConfig, account: Account, programa: Programa, agora: datetime.datetime | None = None,
+    incluir_clima: bool = True,
 ) -> str:
     """Data, hora e clima reais no fuso do radialista -- sem isso o modelo chuta
     (ou herda a data de treino) e erra dia da semana, hora do dia e clima quando
     o ouvinte pergunta ou quando o locutor comenta o tempo espontaneamente.
 
-    `agora` (opcional) e' o horario previsto de ir ao ar do bloco (relogio da hora, F1); padrao now()."""
+    `agora` (opcional) e' o horario previsto de ir ao ar do bloco (relogio da hora, F1); padrao now().
+    `incluir_clima=False` (o ao vivo, F5): o clima vai como dado verificável na mensagem, com horário e fonte."""
     agora = agora.astimezone(ZoneInfo(radialista.timezone)) if agora else datetime.datetime.now(ZoneInfo(radialista.timezone))
     dia_semana = _DIAS_SEMANA[agora.weekday()]
     texto = (
@@ -167,9 +180,11 @@ def _contexto_atual(
     texto += f" Perfil editorial deste horário: {_perfil_editorial(agora.hour)}."
 
     if agora.weekday() == 4:
-        texto += " Hoje é sexta-feira: se fizer sentido, puxe comentário sobre fim de semana ou agenda de eventos."
+        texto += (" Hoje é sexta-feira: se fizer sentido, puxe comentário sobre o fim de semana ou sobre agenda de "
+                  "eventos autorizada pela rádio.")
     elif agora.weekday() == 0:
-        texto += " Hoje é segunda-feira: se fizer sentido, puxe um resumo do fim de semana (jogo, evento, novidade)."
+        texto += (" Hoje é segunda-feira: se fizer sentido, puxe um assunto leve do fim de semana, só com o que foi "
+                  "informado a você.")
 
     feriado_nacional = feriado_nacional_do_dia(agora.date())
     if feriado_nacional:
@@ -179,10 +194,9 @@ def _contexto_atual(
     if feriado_municipal:
         texto += f" Hoje também é feriado municipal aqui: {feriado_municipal}."
 
-    clima = obter_clima_atual(account.cidade)
+    clima = obter_clima_atual(account.cidade) if incluir_clima else None
     if clima:
-        redis_key = f"clima_mencionado:{programa.id}"
-        if redis_client.get(redis_key):
+        if clima_ja_mencionado(programa.id):
             texto += (
                 f" Clima atual em {account.cidade}: {_clima_por_extenso(clima)} (uso interno, pra você se situar). "
                 "Você já comentou o tempo/clima há pouco nesta transmissão -- NÃO repita esse assunto de novo "
@@ -195,7 +209,6 @@ def _contexto_atual(
                 "da serra, etc.) em vez de só citar o número -- só se tiver algo real configurado sobre o lugar "
                 "pra apoiar isso, senão comente de forma genérica mesmo."
             )
-            redis_client.set(redis_key, "1", nx=True, ex=_TTL_CLIMA_MENCIONADO)
 
     if account.cidade:
         texto += (
@@ -214,6 +227,7 @@ def montar_system_prompt(
     programa: Programa,
     roster: list[ParticipantePrograma] | None = None,
     agora: datetime.datetime | None = None,
+    incluir_clima: bool = True,
 ) -> str:
     topicos = lista_ou(programa.topicos_permitidos, "assuntos gerais da rádio")
     generos = lista_ou(programa.generos_musicais, "perfil musical geral da rádio")
@@ -289,7 +303,7 @@ def montar_system_prompt(
     partes += [
         f"Agora {'vocês apresentam' if multi_voz else 'você apresenta'} o programa '{programa.nome}'.",
     ]
-    partes.append(_contexto_atual(radialista, account, programa, agora))
+    partes.append(_contexto_atual(radialista, account, programa, agora, incluir_clima=incluir_clima))
     partes.append(
         "Divulgação de eventos: só mencione espontaneamente um evento específico quando houver "
         "autorização explícita da rádio nas instruções configuradas para divulgar aquele evento. "

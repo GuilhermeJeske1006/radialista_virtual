@@ -163,7 +163,11 @@ from app.llm.client import (
     sugerir_musica_do_genero,
 )
 from app.llm.noticias import PesquisaNoticias, pesquisar_noticias  # noqa: F401 -- porta
-from app.llm.prompt_builder import ParticipantePrograma, montar_system_prompt  # noqa: F401 -- porta
+from app.llm.prompt_builder import (  # noqa: F401 -- portas
+    ParticipantePrograma,
+    clima_ja_mencionado,
+    montar_system_prompt,
+)
 from app.models.account import Account
 from app.models.biblioteca_audio import BibliotecaAudioItem
 from app.models.fila_ao_vivo import FilaAoVivo
@@ -193,6 +197,7 @@ from app.postprod.client import processar_audio
 from app.vinhetas.servico import vinheta_encerramento
 from pydub.exceptions import PydubException
 from app.tts.client import sintetizar_audio, sintetizar_audio_stream, tts_habilitado
+from app.weather.client import obter_leitura_clima  # noqa: F401 -- porta (F5): testes e simulador a trocam aqui
 from app.tts.voices import validar_voz_ou_400
 from app.tts.profiles import parametros_sintese
 from app.util.texto import sem_acento as _sem_acento
@@ -284,6 +289,16 @@ class ValidacaoFalaResponse(BaseModel):
     """Validador pós-geração (F3, app.live.validacao_fala). So' vem quando ele achou algo."""
     violacoes: list[ViolacaoFalaResponse]
     acao: Literal["nenhuma", "reescrita", "mencao_removida", "fala_neutra", "fala_removida"]
+
+
+class DadoFalaResponse(BaseModel):
+    """Dado verificável do bloco (F5, app.dados): sem o texto, só o que o painel e o relatório precisam."""
+    id: str
+    tipo: str
+    estado: Literal["valido", "vencido", "sem_fonte", "nao_aprovado", "futuro"]
+    atualizado_em: datetime.datetime | None = None
+    valido_ate: datetime.datetime | None = None
+    alertas: list[str] = Field(default_factory=list)
 
 
 class PromessaResponse(BaseModel):
@@ -388,6 +403,8 @@ class LiveProgramResponse(BaseModel):
     validacao_fala: ValidacaoFalaResponse | None = None
     # Promessas registradas e resolvidas neste bloco (F4). Nulo = nenhuma.
     promessas: PromessasBloco | None = None
+    # Dados verificáveis do bloco e o estado de cada um no instante do bloco (F5). Nulo = nenhum.
+    dados: list[DadoFalaResponse] | None = None
 
 
 class MusicaFundoResponse(BaseModel):
@@ -2356,6 +2373,16 @@ def _registrar_promessas(db: Session, ctx: ContextoEmissao, fala: str, devolvido
                     for linha in resolvidas])
 
 
+def _dados_resposta(ctx: ContextoEmissao) -> list[DadoFalaResponse] | None:
+    from app.dados.verificavel import estado as estado_do_dado, valido_ate_efetivo
+
+    if not ctx.dados:
+        return None
+    return [DadoFalaResponse(id=d.id, tipo=d.tipo, estado=estado_do_dado(d, ctx.tempo.instante),
+                             atualizado_em=d.atualizado_em, valido_ate=valido_ate_efetivo(d), alertas=list(d.alertas))
+            for d in ctx.dados]
+
+
 def _pedido_confirmavel(db: Session, resolucao: ResolucaoBloco, musica: MusicaEncontrada | None):
     """Pedido (fluxo novo ou legado, desde a D1 da F4) que o painel confirma depois de tocar; música indisponível
     reprova na hora."""
@@ -2486,6 +2513,7 @@ def gerar_proxima_fala(
         fala_ajuste=sintese.ajuste,
         validacao_fala=_validacao_resposta(sintese),
         promessas=promessas,
+        dados=_dados_resposta(ctx),
         vinheta_encerramento_id=vinheta_fim.id if vinheta_fim else None,
         vinheta_encerramento_audio=bool(vinheta_fim and vinheta_fim.audio_path),
         vinheta_encerramento_texto=(vinheta_fim.texto or None) if vinheta_fim else None,

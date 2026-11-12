@@ -57,8 +57,10 @@ def test_comentario_recebe_assunto_casado_com_o_programa(client, account, auth_h
     radio_config, programa = radialista_e_programa
     assunto, _ap = _casar_assunto(db_session, account, programa)
 
-    prompts = []
-    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Comentario com o assunto casado.")
+    prompts, mensagens = [], []
+    monkeypatch.setattr("app.live.router.gerar_resposta",
+                        lambda system, msg: prompts.append(system) or mensagens.append(msg)
+                        or "Comentario com o assunto casado.")
     monkeypatch.setattr("app.live.router.classificar_tema_fala", lambda texto: "")
 
     resposta = client.post(
@@ -70,8 +72,9 @@ def test_comentario_recebe_assunto_casado_com_o_programa(client, account, auth_h
     assert resposta.status_code == 200
     assert resposta.json()["tipo"] == "comentario"
     assert "PAUTA DESTE ASSUNTO" in prompts[0]
-    assert assunto.gancho in prompts[0]
-    assert "publico deste programa trabalha na rua" in prompts[0]
+    # F5: o gancho e o briefing vão como dado no bloco da mensagem; o system só aponta para eles.
+    assert assunto.gancho in mensagens[0] and assunto.gancho not in prompts[0]
+    assert "publico deste programa trabalha na rua" in mensagens[0]
 
     from app.config.redis_client import redis_client
     historico = redis_client.lrange(f"assuntos_usados:{programa.id}", 0, -1)
@@ -147,8 +150,9 @@ def test_musica_puxa_assunto_do_comentario_seguinte(client, account, auth_header
     )
     monkeypatch.setattr("app.live.router.classificar_tema_fala", lambda texto: "")
 
-    prompts = []
-    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Vamos ouvir essa!")
+    prompts, mensagens = [], []
+    monkeypatch.setattr("app.live.router.gerar_resposta",
+                        lambda system, msg: prompts.append(system) or mensagens.append(msg) or "Vamos ouvir essa!")
 
     # total_falas=1 -> bloco "musica" no roteiro padrao.
     resposta_musica = client.post(
@@ -167,6 +171,6 @@ def test_musica_puxa_assunto_do_comentario_seguinte(client, account, auth_header
     )
     assert resposta_comentario.status_code == 200
     assert resposta_comentario.json()["tipo"] == "comentario"
-    assert "Fala sobre a vida no interior, de 1998." in prompts[1]
+    assert "Fala sobre a vida no interior, de 1998." in mensagens[1]   # F5: no bloco de dados da mensagem
     assert "PAUTA DESTE ASSUNTO" in prompts[1]
     assert "EIXO DESTE BLOCO: MEMORIA" in prompts[1]

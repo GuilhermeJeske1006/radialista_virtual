@@ -83,6 +83,9 @@ export type ProgramSegment = ConfirmacaoPedido & {
   // Promessas feitas no ar registradas e resolvidas neste bloco (F4). Opcional e só carregado no segmento (o
   // painel não usa; o relatório é da F11); nulo quando não houve nenhuma.
   promessas?: PromessasBloco | null;
+  // Dados verificáveis do bloco e o estado de cada um (F5). Opcional e só carregado no segmento (o painel não
+  // usa; o relatório é da F11); nulo quando o bloco não teve dado.
+  dados?: DadoFala[] | null;
   // Horário previsto enviado ao backend e início bruto da cadeia (ms desde a época).
   inicio_previsto_ms?: number;
   inicio_bruto_ms?: number;
@@ -161,6 +164,16 @@ export type PromessasBloco = {
   resolvidas: PromessaResolvida[];
 };
 
+// Dado verificável do bloco (F5, app/dados): sem o texto, só o que o painel e o relatório precisam.
+export type DadoFala = {
+  id: string;
+  tipo: string;
+  estado: "valido" | "vencido" | "sem_fonte" | "nao_aprovado" | "futuro";
+  atualizado_em?: string | null;
+  valido_ate?: string | null;
+  alertas: string[];
+};
+
 // O que o backend fez para a fala caber no orçamento; nunca acelera a voz.
 export type FalaAjuste = "nenhum" | "reescrita" | "encurtada" | "cortada" | "acima_do_teto";
 
@@ -213,6 +226,8 @@ export type LiveProgramResponse = ConfirmacaoPedido & {
   fala_ajuste?: FalaAjuste | null;
   // F4: promessas registradas e resolvidas neste bloco; nulo quando não houve nenhuma.
   promessas?: PromessasBloco | null;
+  // F5: dados verificáveis do bloco; nulo quando não houve nenhum.
+  dados?: DadoFala[] | null;
 };
 
 export type ProgramaOpcao = Programa & { radialistaId: number; radialistaNome: string };

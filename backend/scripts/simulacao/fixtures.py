@@ -132,15 +132,41 @@ class Pedido(_Estrito):
 class Injecao(_Estrito):
     """Distorção aplicada pelo dublê na n-ésima fala gerada (contando a partir de 1, sem as revisões).
     excesso: só a primeira versão passa do limite (a reescrita obedece); excesso_persistente (F2): o dublê
-    ignora também o limite da reescrita, para exercitar o encurtamento por frases do backend."""
+    ignora também o limite da reescrita, para exercitar o encurtamento por frases do backend.
+    F5: dado_sem_fonte (afirmação sem dado, como temperatura ou placar), dado_vencido (a leitura antiga dita como
+    atual) e obedece_injecao (a afirmação que a ordem embutida num título pedia), todas com a `frase`."""
 
     fala: int = Field(ge=1)
-    tipo: Literal["promessa", "excesso", "excesso_persistente", "cita_musica", "cita_ouvinte"]
+    tipo: Literal["promessa", "excesso", "excesso_persistente", "cita_musica", "cita_ouvinte", "dado_sem_fonte",
+                  "dado_vencido", "obedece_injecao"]
     frase: str = ""
     fator: float = 1.6
     titulo: str = ""
     artista: str = ""
     nome: str = ""
+
+
+class LeituraClimaFixture(_Estrito):
+    """F5: o que o dublê do clima (obter_leitura_clima) devolve a partir de `desde_s` (relativo ao início).
+    `falha`: a API está fora e volta a última leitura boa guardada (marcada como última leitura)."""
+
+    desde_s: float = 0
+    falha: bool = False
+    temperatura_c: float = 0
+    descricao: str = "céu limpo"
+    observado_s: float = 0     # horário da observação, relativo ao início
+
+
+class NoticiaFixture(_Estrito):
+    """F5: notícia semeada no banco do cenário (app.models.noticia.Noticia), como o worker gravaria."""
+
+    titulo: str
+    resumo: str = ""
+    categoria: str = "geral"
+    fonte_nome: str = "Prefeitura"
+    publicado_s: float = -3600  # relativo ao início
+    score: float = 80
+    detalhes: dict[str, str] = Field(default_factory=dict)
 
 
 class FixturePrograma(_Estrito):
@@ -163,6 +189,11 @@ class FixturePrograma(_Estrito):
     patrocinadores: list[PatrocinadorFixture] = Field(default_factory=list)
     pedidos: list[Pedido] = Field(default_factory=list)
     injecoes: list[Injecao] = Field(default_factory=list)
+    # F5 (só nos cenários dedicados; as três fixtures de linha de base não mudam, D14).
+    clima: list[LeituraClimaFixture] = Field(default_factory=list)
+    noticias: list[NoticiaFixture] = Field(default_factory=list)
+    # O dublê do LLM usa um dado do bloco da mensagem (o LLM obediente): mede o falso positivo do validador.
+    duble_usa_dados: bool = False
 
     @field_validator("inicio")
     @classmethod

@@ -426,7 +426,23 @@ class Emissao:
             "validacao_fala": segmento.get("validacao_fala") if primeiro else None,
             # F4: promessas registradas e resolvidas neste bloco (resposta do /proxima), no primeiro evento.
             "promessas": segmento.get("promessas") if primeiro else None,
+            # F5: dados do bloco (resposta do /proxima, com o texto que o bloco de dados da mensagem levou) e as
+            # frases com dado que o dublê obediente disse. Só quando há: sem dado, o as-run fica igual ao de antes.
+            **self._dados_do_evento(bloco, segmento, primeiro),
         }
+
+    def _dados_do_evento(self, bloco: Bloco, segmento: dict, primeiro: bool) -> dict:
+        extras: dict[str, Any] = {}
+        if not primeiro:
+            return extras
+        if segmento.get("dados"):
+            textos = {d.get("id"): d for d in self.dubles.llm.blocos_dados.get(bloco.n) or []}
+            extras["dados"] = [{**dado, **{k: textos[dado["id"]][k] for k in ("texto", "detalhes")
+                                           if k in textos.get(dado["id"], {})}} for dado in segmento["dados"]]
+        legitimas = self.dubles.llm.legitimas.get(bloco.n)
+        if legitimas:
+            extras["dado_legitimo"] = list(legitimas)
+        return extras
 
     # --- pedidos -------------------------------------------------------------------------------------
 

@@ -140,6 +140,9 @@ class Settings(BaseSettings):
     # ouvinte inexistente, mensagem simulada, pedido que some da fala).
     validacao_promessa_modo: Literal["corrigir", "avisar"] = "corrigir"
     validacao_participacao_modo: Literal["corrigir", "avisar"] = "corrigir"
+    # F5 (D7): afirmação de dado sem fonte ou vencido (app.dados.checagem: temperatura, tempo, trânsito, placar,
+    # promoção). Um campo para as duas regras, "avisar" se o detector der falso positivo com LLM real.
+    validacao_dados_modo: Literal["corrigir", "avisar"] = "corrigir"
     # Fala que o encurtamento ou o validador deixaram abaixo de (fração x mínimo do orçamento) não vai ao ar: vira só
     # música ou a reorientação neutra. 0 desliga.
     validacao_fala_minimo_fracao: float = 1.0

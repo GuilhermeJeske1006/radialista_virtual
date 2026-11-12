@@ -210,3 +210,42 @@ Next 16); não conta como regressão.
   estado marcado na geração, não na reprodução (F11); pedido legado selecionado sem confirmação fica preso até a
   equipe reenfileirar; fallback do painel em `useLiveEngine.ts` ainda diz "já volto com mais uma novidade".
 
+### F5 — Fontes, validade e dados verificáveis — IMPLEMENTADA (portão local verde; portão independente e juiz pendentes)
+
+- Branch: `melhoria/f5-fontes` (a partir de `integracao/whatsapp-pos-f4`, `6ca7049`), worktree `locufy-radio`.
+- Integração solicitada pelo usuário: o merge com `f1efbba` incorpora também o fechamento documental da integração pós-F4; todo o código de WhatsApp, conversas, contexto e demais frentes já está nesta F5. Histórico e validação em [árvore de commits](../arvore-commits.md).
+- Commits: `afe0dbb` (auditoria), `69ecc9a` (linha de base), `fd5d2e2`, `844f16a`, `97ce304`, `7c56c3c`, `2de9754`,
+  `e3efda1`, `62570b1` (D11), `3fcb872`, `f7dc1b2` (D12), `b96022c`, `6bcc0b3` (+ registro do portão).
+- Linha de base refeita na ponta da integração ([`f5/testes.md`](f5/testes.md)): pytest 1633 passed e 3 skipped,
+  cobertura 87%; vitest 350; as 12 simulações e o cenário da F4 iguais byte a byte aos da F4.
+- Entregas:
+  - `backend/app/dados/` (puros): `DadoVerificavel` e `ConfigDados` com a regra única de validade (janela da notícia por
+    categoria, validade do clima e da apuração, idade máxima da afirmação, fim do evento na agenda); `limpar` e
+    `nome_seguro` para texto externo; detector `afirmacoes` e `checar_fala` (temperatura, tempo, previsão, trânsito,
+    placar, comercial); conversores e o bloco de dados.
+  - Ao vivo: `ctx.dados` preenchido depois dos sorteios; `checar_dados` na reescrita única e na remoção de frase da
+    F3 (`dado_sem_fonte`, `dado_vencido`, `settings.validacao_dados_modo`); promessa de informação com só dado vencido
+    vira a contingência da F4 (`fonte_desatualizada`); nome do ouvinte saneado.
+  - Item 3 de `docs/auditoria.md` fechado: pauta, escalada, correção, apuração, assunto, clima, mensagem do ouvinte e
+    contexto da faixa vão limpos num bloco JSON da mensagem; o system só tem regras e a referência ao dado. Clima fora
+    do prompt base do ao vivo, com horário da observação e última leitura quando a API cai (o WhatsApp segue igual).
+    Textos que convidavam dado sem integração editados; apuração atribui a quem informou, não ao veículo.
+  - Curadoria trata o item do feed como dado e descarta ordem embutida; retificação limpa; agenda com data do evento.
+  - Contrato e painel: `dados` opcional na resposta; reserva do painel sem promessa (pendência da F4, D16).
+- Goldens: idênticos nos commits 1 a 5 e na checagem no ar; regravados uma vez, no commit do bloco de dados, com o diff
+  revisado (os 31: regra geral e gancho; 26: texto da segunda; e os de notícia, ouvinte e faixa); 3 novos.
+- Portão local: ruff limpo; pytest **1901 passed**, 3 skipped (+268), cobertura **88%**; vitest **354**; `tsc` ok.
+- Simulação fake ([`f5/simulacao/`](f5/simulacao/)): as 12 rodadas sem dado iguais à linha de base fora o registro novo
+  dos dados (três eventos ganham o assunto puxado pela música), critérios herdados número por número iguais. Guardrail
+  por perfil: afirmação de temperatura, placar e trânsito inventadas saem, 0 no ar. Cenários dedicados (variedades com
+  relógio C e popular com relógio B, notícias semeadas, clima que vence com a API fora, título com ordem embutida):
+  `dado_sem_fonte` 0, `dado_vencido` 0, vencido só com o horário (20 e 6 falas), nenhum dado legítimo removido (30 e
+  79 falas com dado no ar), texto externo nunca no system nem fora do bloco, a ordem do título não foi ao ar.
+- Benchmark `casos.json`: `dado_sem_fonte` 6/6, `dado_vencido` 1/1, nenhum falso positivo nas outras 63 falas.
+- D18: `validacao_fala.regras` do simulador contava o dobro em toda remoção; os números da F3 e da F4 relatados por essa
+  chave eram o dobro (ex.: `promessa_sem_evento: 2` → 1).
+- Decisões D1 a D18 adotadas pelo padrão da auditoria, a confirmar; uma escolha minha fora do texto: o contexto da faixa
+  conta como cobertura extra (D17), a mensagem do ouvinte não.
+- Pendências: [`f5/pendencias.md`](f5/pendencias.md) — falsos positivos com texto real não medidos (`--modo llm`);
+  cobertura por tipo larga (clima válido cobre qualquer condição); o WhatsApp reaproveita a fala confirmada sem a
+  validade dos dados; `gerarFalaLocal` do painel ainda promete conteúdo.

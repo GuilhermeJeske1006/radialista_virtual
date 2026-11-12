@@ -1,0 +1,3919 @@
+{
+  "blocos_nao_tocados": [],
+  "duracao_programa_s": 3600,
+  "eventos": [
+    {
+      "audio_status": "pendente",
+      "bloco": "abertura",
+      "bloco_n": 1,
+      "categoria": "abertura",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Segundo o serviço de meteorologia, agora faz vinte e seis graus, céu limpo."
+      ],
+      "dados": [
+        {
+          "alertas": [],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "valido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 30.0,
+      "duracao_medida_s": 33.52,
+      "duracao_prevista_backend_s": 30.0,
+      "duracao_prevista_s": 30.0,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:00:33-03:00",
+      "fim_s": 33.52,
+      "formato": "variedades_leves",
+      "gerado_em_s": -90,
+      "inicio": "2026-11-10T14:00:00-03:00",
+      "inicio_previsto_s": 0.0,
+      "inicio_s": 0.0,
+      "musica_anunciada": [],
+      "musica_tocada": "Pipoca na Praça - Os Vizinhos do Sexto",
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 1,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 30.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 40.0,
+        "min": 20.0
+      },
+      "palavras": 81,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.0,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "fala",
+        "espaco_s": 3480.0,
+        "etapa": {
+          "fim": "2026-11-10T17:02:00Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:00:00Z",
+          "inicio_s": 0,
+          "natureza": "obrigatorio",
+          "rotulo": "Abertura e pergunta do dia",
+          "tipo": "abertura",
+          "tipo_efetivo": "abertura"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:00:00Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          20,
+          40
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 3480.0
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "Que bom ter você por aqui: Tarde em Casa começa agora na Rádio Vila Ventura. A programação começa leve, do jeito que a tarde merece. Nem tudo precisa ser corrido, e a música lembra a gente disso. Quem liga o rádio nesta hora costuma querer um pouco de calma, e a gente entende. Pode deixar o volume no ponto que for melhor para você. Fica com a gente. Segundo o serviço de meteorologia, agora faz vinte e seis graus, céu limpo.",
+      "tipo": "fala",
+      "tom": "energico",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": null,
+      "bloco": "musica",
+      "bloco_n": 2,
+      "categoria": "musica",
+      "chamadas_llm": 0,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "duracao_estimada_backend_s": null,
+      "duracao_medida_s": null,
+      "duracao_prevista_backend_s": 262.0,
+      "duracao_prevista_s": 262,
+      "fala_ajuste": null,
+      "fim": "2026-11-10T14:04:55-03:00",
+      "fim_s": 295.67,
+      "formato": "variedades_leves",
+      "gerado_em_s": -90,
+      "inicio": "2026-11-10T14:00:33-03:00",
+      "inicio_previsto_s": 30.0,
+      "inicio_s": 33.67,
+      "musica_anunciada": [],
+      "musica_tocada": "Pipoca na Praça - Os Vizinhos do Sexto",
+      "musicas_bloco": [
+        "Pipoca na Praça - Os Vizinhos do Sexto"
+      ],
+      "musicas_citadas": [],
+      "n": 2,
+      "orcamento_ref_s": null,
+      "orcamento_s": null,
+      "palavras": 0,
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.15,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "musica",
+        "espaco_s": 3450.0,
+        "etapa": {
+          "fim": "2026-11-10T17:10:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:02:00Z",
+          "inicio_s": 120,
+          "natureza": "ajustavel",
+          "rotulo": "Música",
+          "tipo": "musica",
+          "tipo_efetivo": "musica"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:00:30Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          4,
+          20
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 3450.0
+      },
+      "revisada": false,
+      "sinteses_tts": null,
+      "texto": "",
+      "tipo": "musica",
+      "tom": null,
+      "validacao_fala": null,
+      "video_id": "sim-vle-04"
+    },
+    {
+      "audio_status": null,
+      "bloco": "musica",
+      "bloco_n": 3,
+      "categoria": "musica",
+      "chamadas_llm": 0,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "duracao_estimada_backend_s": null,
+      "duracao_medida_s": null,
+      "duracao_prevista_backend_s": 271.0,
+      "duracao_prevista_s": 271,
+      "fala_ajuste": null,
+      "fim": "2026-11-10T14:09:26-03:00",
+      "fim_s": 566.67,
+      "formato": "variedades_leves",
+      "gerado_em_s": 0.0,
+      "inicio": "2026-11-10T14:04:55-03:00",
+      "inicio_previsto_s": 292.15,
+      "inicio_s": 295.67,
+      "musica_anunciada": [],
+      "musica_tocada": "Feira de Sábado - Trio Pé na Rua",
+      "musicas_bloco": [
+        "Feira de Sábado - Trio Pé na Rua"
+      ],
+      "musicas_citadas": [],
+      "n": 3,
+      "orcamento_ref_s": null,
+      "orcamento_s": null,
+      "palavras": 0,
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.0,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "musica",
+        "espaco_s": 3187.85,
+        "etapa": {
+          "fim": "2026-11-10T17:10:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:02:00Z",
+          "inicio_s": 120,
+          "natureza": "ajustavel",
+          "rotulo": "Música",
+          "tipo": "musica",
+          "tipo_efetivo": "musica"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:04:52.150000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          4,
+          20
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 3187.85
+      },
+      "revisada": false,
+      "sinteses_tts": null,
+      "texto": "",
+      "tipo": "musica",
+      "tom": null,
+      "validacao_fala": null,
+      "video_id": "sim-vle-03"
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "comentario",
+      "bloco_n": 4,
+      "categoria": "comentario",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Segundo o serviço de meteorologia, agora faz vinte e seis graus, céu limpo."
+      ],
+      "dados": [
+        {
+          "alertas": [],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "valido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 151.48,
+      "duracao_medida_s": 169.24,
+      "duracao_prevista_backend_s": 151.48,
+      "duracao_prevista_s": 151.48,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:12:16-03:00",
+      "fim_s": 736.06,
+      "formato": "variedades_leves",
+      "gerado_em_s": 33.52,
+      "inicio": "2026-11-10T14:09:26-03:00",
+      "inicio_previsto_s": 563.15,
+      "inicio_s": 566.82,
+      "musica_anunciada": [],
+      "musica_tocada": "Bloco da Esquina - Gui Marmelada",
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 4,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 120.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 180.0,
+        "min": 60.0
+      },
+      "palavras": 409,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.15,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "fala",
+        "espaco_s": 2916.85,
+        "etapa": {
+          "fim": "2026-11-10T17:16:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:10:00Z",
+          "inicio_s": 600,
+          "natureza": "ajustavel",
+          "rotulo": "Conversa de bancada",
+          "tipo": "conversa",
+          "tipo_efetivo": "conversa"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:09:23.150000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          60,
+          180
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 2916.85
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "Uma pergunta para você pensar: qual cheiro lembra a casa da sua infância? Parece bobagem, mas esses detalhes contam muito sobre a gente. Talvez seja isso que deixa a casa com cara de casa. No fundo, é um jeito de cuidar de quem mora com a gente. Cada lugar tem seu jeito de fazer a mesma coisa. E ritual pequeno também é coisa séria. Eu gosto de pensar que todo mundo tem um ritual pequeno. E quando alguém de fora repara, a gente estranha. O tempo passa, mas certos costumes ficam. A memória guarda essas pequenas cenas com cuidado. Tem quem ria disso, e tem quem defenda com unhas e dentes. O que para um é costume, para outro é novidade. Vale a pena parar um minuto e pensar nisso. Se você tem uma história assim, ela é sua e é especial. Nem tudo precisa de explicação, algumas coisas só são assim. Uma conversa boa começa assim, por um detalhe pequeno. Às vezes um gesto simples resolve o dia de alguém. Tem hábito que a gente herda sem perceber. A gente aprende muita coisa observando quem está perto. Pensa na cozinha da sua casa e você vai entender o que eu digo. É bom saber que, de algum lugar, você está ouvindo agora. A gente gosta de pensar no rádio como uma janela aberta. Se alguém do seu lado também gosta de música, chama para ouvir junto. Cada música desta tarde foi escolhida para combinar com o seu ritmo. Quem trabalha de casa sabe como uma trilha boa ajuda a organizar a cabeça. O som está no ar para quem cozinha, para quem estuda e para quem descansa. Uma tarde bem acompanhada passa diferente. Se estiver dirigindo, atenção na pista e deixa a música com a gente. Música boa faz o tempo andar no passo certo. Tem dia que a gente só precisa de uma voz conhecida por perto. Respira fundo, ajeita a cadeira e vem com a gente. A conversa por aqui é curta, porque a estrela é a canção. Tem canção que parece ter sido feita para o meio da tarde. Quem liga o rádio nesta hora costuma querer um pouco de calma, e a gente entende. Nem tudo precisa ser corrido, e a música lembra a gente disso. Pode deixar o volume no ponto que for melhor para você. Coisa boa de pensar. Segundo o serviço de meteorologia, agora faz vinte e seis graus, céu limpo.",
+      "tipo": "fala",
+      "tom": "calmo",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "comentario",
+      "bloco_n": 5,
+      "categoria": "comentario",
+      "chamadas_llm": 2,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Segundo o serviço de meteorologia, agora faz vinte e seis graus, céu limpo."
+      ],
+      "dados": [
+        {
+          "alertas": [],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "valido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 115.93,
+      "duracao_medida_s": 129.52,
+      "duracao_prevista_backend_s": 115.93,
+      "duracao_prevista_s": 115.93,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:14:25-03:00",
+      "fim_s": 865.93,
+      "formato": "variedades_leves",
+      "gerado_em_s": 295.67,
+      "inicio": "2026-11-10T14:12:16-03:00",
+      "inicio_previsto_s": 718.3,
+      "inicio_s": 736.41,
+      "musica_anunciada": [],
+      "musica_tocada": "Bloco da Esquina - Gui Marmelada",
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 5,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 120.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 180.0,
+        "min": 60.0
+      },
+      "palavras": 313,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.35,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "fala",
+        "espaco_s": 2761.7,
+        "etapa": {
+          "fim": "2026-11-10T17:16:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:10:00Z",
+          "inicio_s": 600,
+          "natureza": "ajustavel",
+          "rotulo": "Conversa de bancada",
+          "tipo": "conversa",
+          "tipo_efetivo": "conversa"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:11:58.300000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          60,
+          180
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 2761.7
+      },
+      "revisada": true,
+      "sinteses_tts": 1,
+      "texto": "Uma coisa boa da tarde é aquela pausa para o lanche. Parece bobagem, mas esses detalhes contam muito sobre a gente. Uma conversa boa começa assim, por um detalhe pequeno. Tem hábito que a gente herda sem perceber. A gente aprende muita coisa observando quem está perto. Eu gosto de pensar que todo mundo tem um ritual pequeno. Pensa na cozinha da sua casa e você vai entender o que eu digo. Vale a pena parar um minuto e pensar nisso. E quando alguém de fora repara, a gente estranha. E ritual pequeno também é coisa séria. A memória guarda essas pequenas cenas com cuidado. O que para um é costume, para outro é novidade. Talvez seja isso que deixa a casa com cara de casa. Nem tudo precisa de explicação, algumas coisas só são assim. O tempo passa, mas certos costumes ficam. Tem quem ria disso, e tem quem defenda com unhas e dentes. No fundo, é um jeito de cuidar de quem mora com a gente. Às vezes um gesto simples resolve o dia de alguém. Cada lugar tem seu jeito de fazer a mesma coisa. Se você tem uma história assim, ela é sua e é especial. É bom saber que, de algum lugar, você está ouvindo agora. Quem trabalha de casa sabe como uma trilha boa ajuda a organizar a cabeça. Tem canção que parece ter sido feita para o meio da tarde. Uma tarde bem acompanhada passa diferente. A conversa por aqui é curta, porque a estrela é a canção. Cada música desta tarde foi escolhida para combinar com o seu ritmo. O som está no ar para quem cozinha, para quem estuda e para quem descansa. Se estiver dirigindo, atenção na pista e deixa a música com a gente. Deixa essa ideia com você. Segundo o serviço de meteorologia, agora faz vinte e seis graus, céu limpo.",
+      "tipo": "fala",
+      "tom": "calmo",
+      "validacao_fala": {
+        "acao": "mencao_removida",
+        "violacoes": [
+          {
+            "ref_id": "transito",
+            "regra": "dado_sem_fonte",
+            "trecho": "O trânsito está parado na saída da cidade."
+          },
+          {
+            "ref_id": "transito",
+            "regra": "dado_sem_fonte",
+            "trecho": "O trânsito está parado na saída da cidade."
+          }
+        ]
+      },
+      "video_id": null
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "comentario",
+      "bloco_n": 6,
+      "categoria": "comentario",
+      "chamadas_llm": 2,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Segundo o serviço de meteorologia, agora faz vinte e seis graus, céu limpo."
+      ],
+      "dados": [
+        {
+          "alertas": [],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "valido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 90.0,
+      "duracao_medida_s": 100.55,
+      "duracao_prevista_backend_s": 90.0,
+      "duracao_prevista_s": 90.0,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:16:06-03:00",
+      "fim_s": 966.83,
+      "formato": "variedades_leves",
+      "gerado_em_s": 566.67,
+      "inicio": "2026-11-10T14:14:26-03:00",
+      "inicio_previsto_s": 834.58,
+      "inicio_s": 866.28,
+      "musica_anunciada": [],
+      "musica_tocada": "Bloco da Esquina - Gui Marmelada",
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 6,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 92.5,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 125.0,
+        "min": 60.0
+      },
+      "palavras": 243,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.35,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "fala_reduzida",
+        "espaco_s": 2645.42,
+        "etapa": {
+          "fim": "2026-11-10T17:16:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:10:00Z",
+          "inicio_s": 600,
+          "natureza": "ajustavel",
+          "rotulo": "Conversa de bancada",
+          "tipo": "conversa",
+          "tipo_efetivo": "conversa"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:13:54.580000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          60,
+          125
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 2645.42
+      },
+      "revisada": true,
+      "sinteses_tts": 1,
+      "texto": "Tem assunto que não precisa de notícia para render, como o café passado na hora. Quando a gente presta atenção, a rotina fica mais interessante. Às vezes um gesto simples resolve o dia de alguém. Tem quem ria disso, e tem quem defenda com unhas e dentes. E quando alguém de fora repara, a gente estranha. Talvez seja isso que deixa a casa com cara de casa. Uma conversa boa começa assim, por um detalhe pequeno. Eu gosto de pensar que todo mundo tem um ritual pequeno. O que para um é costume, para outro é novidade. Vale a pena parar um minuto e pensar nisso. Tem hábito que a gente herda sem perceber. Nem tudo precisa de explicação, algumas coisas só são assim. Se você tem uma história assim, ela é sua e é especial. A gente aprende muita coisa observando quem está perto. E ritual pequeno também é coisa séria. Pensa na cozinha da sua casa e você vai entender o que eu digo. No fundo, é um jeito de cuidar de quem mora com a gente. A memória guarda essas pequenas cenas com cuidado. O tempo passa, mas certos costumes ficam. Cada lugar tem seu jeito de fazer a mesma coisa. Respira fundo, ajeita a cadeira e vem com a gente. A gente gosta de pensar no rádio como uma janela aberta. A conversa fica por aqui. Segundo o serviço de meteorologia, agora faz vinte e seis graus, céu limpo.",
+      "tipo": "fala",
+      "tom": "calmo",
+      "validacao_fala": {
+        "acao": "mencao_removida",
+        "violacoes": [
+          {
+            "ref_id": "Dona Firmina",
+            "regra": "ouvinte_nao_autorizado",
+            "trecho": "Um abraço também para Dona Firmina."
+          },
+          {
+            "ref_id": "Dona Firmina",
+            "regra": "ouvinte_nao_autorizado",
+            "trecho": "Um abraço também para Dona Firmina."
+          }
+        ]
+      },
+      "video_id": null
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "comentario",
+      "bloco_n": 7,
+      "categoria": "comentario",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Segundo o serviço de meteorologia, agora faz vinte e seis graus, céu limpo."
+      ],
+      "dados": [
+        {
+          "alertas": [],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "valido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 14.44,
+      "duracao_medida_s": 16.14,
+      "duracao_prevista_backend_s": 14.44,
+      "duracao_prevista_s": 14.44,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:16:23-03:00",
+      "fim_s": 983.32,
+      "formato": "variedades_leves",
+      "gerado_em_s": 736.06,
+      "inicio": "2026-11-10T14:16:07-03:00",
+      "inicio_previsto_s": 924.93,
+      "inicio_s": 967.18,
+      "musica_anunciada": [],
+      "musica_tocada": "Bloco da Esquina - Gui Marmelada",
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 7,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 10.5,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 15.0,
+        "min": 6.0
+      },
+      "palavras": 39,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.35,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "fechamento_curto",
+        "espaco_s": 2555.07,
+        "etapa": {
+          "fim": "2026-11-10T17:16:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:10:00Z",
+          "inicio_s": 600,
+          "natureza": "ajustavel",
+          "rotulo": "Conversa de bancada",
+          "tipo": "conversa",
+          "tipo_efetivo": "conversa"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:15:24.930000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          6,
+          15
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 2555.07
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "Já pensou em quantas músicas a gente sabe de cor sem nunca ter decorado? Cada um tem a sua versão dessa história. Coisa boa de pensar. Segundo o serviço de meteorologia, agora faz vinte e seis graus, céu limpo.",
+      "tipo": "fala",
+      "tom": "calmo",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": null,
+      "bloco": "musica",
+      "bloco_n": 8,
+      "categoria": "musica",
+      "chamadas_llm": 0,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "duracao_estimada_backend_s": null,
+      "duracao_medida_s": null,
+      "duracao_prevista_backend_s": 225.0,
+      "duracao_prevista_s": 225,
+      "fala_ajuste": null,
+      "fim": "2026-11-10T14:20:08-03:00",
+      "fim_s": 1208.47,
+      "formato": "variedades_leves",
+      "gerado_em_s": 865.93,
+      "inicio": "2026-11-10T14:16:23-03:00",
+      "inicio_previsto_s": 957.48,
+      "inicio_s": 983.47,
+      "musica_anunciada": [],
+      "musica_tocada": "Bloco da Esquina - Gui Marmelada",
+      "musicas_bloco": [
+        "Bloco da Esquina - Gui Marmelada"
+      ],
+      "musicas_citadas": [],
+      "n": 8,
+      "orcamento_ref_s": null,
+      "orcamento_s": null,
+      "palavras": 0,
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.15,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "musica",
+        "espaco_s": 2522.52,
+        "etapa": {
+          "fim": "2026-11-10T17:19:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:16:00Z",
+          "inicio_s": 960,
+          "natureza": "ajustavel",
+          "rotulo": "Intervalo",
+          "tipo": "intervalo",
+          "tipo_efetivo": "musica"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:15:57.480000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          4,
+          20
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 2522.52
+      },
+      "revisada": false,
+      "sinteses_tts": null,
+      "texto": "",
+      "tipo": "musica",
+      "tom": null,
+      "validacao_fala": null,
+      "video_id": "sim-vle-06"
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "servico",
+      "bloco_n": 9,
+      "categoria": "servico",
+      "chamadas_llm": 2,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Segundo a prefeitura, feira de artesanato abre neste sábado."
+      ],
+      "dados": [
+        {
+          "alertas": [
+            "instrucao_removida"
+          ],
+          "atualizado_em": "2026-11-10T14:00:00Z",
+          "detalhes": {
+            "detalhe": "A feira reúne artesãos da região na praça central, das nove às dezoito horas.",
+            "onde": "Praça central"
+          },
+          "estado": "valido",
+          "id": "noticia:1",
+          "texto": "Feira de artesanato abre neste sábado.",
+          "tipo": "agenda",
+          "valido_ate": "2026-11-17T14:00:00Z"
+        },
+        {
+          "alertas": [],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "valido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 38.48,
+      "duracao_medida_s": 38.48,
+      "duracao_prevista_backend_s": 38.48,
+      "duracao_prevista_s": 34.44,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:20:47-03:00",
+      "fim_s": 1247.75,
+      "formato": "variedades_leves",
+      "gerado_em_s": 966.83,
+      "inicio": "2026-11-10T14:20:09-03:00",
+      "inicio_previsto_s": 1196.22,
+      "inicio_s": 1209.27,
+      "musica_anunciada": [],
+      "musica_tocada": "Patins Amarelos - Tati Pirilampo",
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 9,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 40.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "palavras": 93,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.8,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "fala",
+        "espaco_s": 2283.78,
+        "etapa": {
+          "fim": "2026-11-10T17:25:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:19:00Z",
+          "inicio_s": 1140,
+          "natureza": "ajustavel",
+          "rotulo": "Serviço e pauta do dia",
+          "tipo": "servico",
+          "tipo_efetivo": "servico"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:19:56.220000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          20,
+          60
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 2283.78
+      },
+      "revisada": true,
+      "sinteses_tts": 1,
+      "texto": "Aqui é Marta Girassol, e Tarde em Casa segue no ar. Se você deixou o rádio ligado, obrigado pela confiança. A conversa por aqui é curta, porque a estrela é a canção. Música boa faz o tempo andar no passo certo. É bom saber que, de algum lugar, você está ouvindo agora. Quem liga o rádio nesta hora costuma querer um pouco de calma, e a gente entende. Quem trabalha de casa sabe como uma trilha boa ajuda a organizar a cabeça. Bora junto. Segundo a prefeitura, feira de artesanato abre neste sábado.",
+      "tipo": "fala",
+      "tom": "neutro",
+      "validacao_fala": {
+        "acao": "mencao_removida",
+        "violacoes": [
+          {
+            "ref_id": "comercial",
+            "regra": "dado_sem_fonte",
+            "trecho": "Todas as lojas estão com desconto de metade do preço."
+          },
+          {
+            "ref_id": "comercial",
+            "regra": "dado_sem_fonte",
+            "trecho": "Todas as lojas estão com desconto de metade do preço."
+          }
+        ]
+      },
+      "video_id": null
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "servico",
+      "bloco_n": 10,
+      "categoria": "servico",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Segundo a prefeitura, posto de saúde do centro amplia horário de vacinação até as vinte horas."
+      ],
+      "dados": [
+        {
+          "alertas": [],
+          "atualizado_em": "2026-11-10T15:00:00Z",
+          "detalhes": {
+            "detalhe": "A ampliação vale durante toda a semana.",
+            "servico": "Levar a carteira de vacinação e um documento com foto."
+          },
+          "estado": "valido",
+          "id": "noticia:2",
+          "texto": "Posto de saúde do centro amplia horário de vacinação até as vinte horas",
+          "tipo": "servico",
+          "valido_ate": "2026-11-12T15:00:00Z"
+        },
+        {
+          "alertas": [],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "valido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 44.69,
+      "duracao_medida_s": 44.69,
+      "duracao_prevista_backend_s": 44.69,
+      "duracao_prevista_s": 40.0,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:21:33-03:00",
+      "fim_s": 1293.24,
+      "formato": "variedades_leves",
+      "gerado_em_s": 983.32,
+      "inicio": "2026-11-10T14:20:48-03:00",
+      "inicio_previsto_s": 1246.05,
+      "inicio_s": 1248.55,
+      "musica_anunciada": [],
+      "musica_tocada": "Patins Amarelos - Tati Pirilampo",
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 10,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 40.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "palavras": 108,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.8,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "fala",
+        "espaco_s": 2233.95,
+        "etapa": {
+          "fim": "2026-11-10T17:25:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:19:00Z",
+          "inicio_s": 1140,
+          "natureza": "ajustavel",
+          "rotulo": "Serviço e pauta do dia",
+          "tipo": "servico",
+          "tipo_efetivo": "servico"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:20:46.050000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          20,
+          60
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 2233.95
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "Bem-vindo de volta a Tarde em Casa, ou bem-vindo pela primeira vez. A gente segue cuidando da trilha da sua tarde. A gente gosta de pensar no rádio como uma janela aberta. Pode deixar o volume no ponto que for melhor para você. Cada música desta tarde foi escolhida para combinar com o seu ritmo. O som está no ar para quem cozinha, para quem estuda e para quem descansa. Se alguém do seu lado também gosta de música, chama para ouvir junto. Uma tarde bem acompanhada passa diferente. Segue o som. Segundo a prefeitura, posto de saúde do centro amplia horário de vacinação até as vinte horas.",
+      "tipo": "fala",
+      "tom": "neutro",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "servico",
+      "bloco_n": 11,
+      "categoria": "servico",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Segundo a prefeitura, avenida das Palmeiras tem desvio por obra até sexta-feira."
+      ],
+      "dados": [
+        {
+          "alertas": [],
+          "atualizado_em": "2026-11-10T16:00:00Z",
+          "detalhes": {
+            "detalhe": "O desvio é pela Rua dos Ipês.",
+            "servico": "Desvio pela Rua dos Ipês."
+          },
+          "estado": "valido",
+          "id": "noticia:3",
+          "texto": "Avenida das Palmeiras tem desvio por obra até sexta-feira",
+          "tipo": "transito",
+          "valido_ate": "2026-11-11T16:00:00Z"
+        },
+        {
+          "alertas": [
+            "ultima_leitura"
+          ],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "valido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 43.03,
+      "duracao_medida_s": 43.03,
+      "duracao_prevista_backend_s": 43.03,
+      "duracao_prevista_s": 38.52,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:22:17-03:00",
+      "fim_s": 1337.07,
+      "formato": "variedades_leves",
+      "gerado_em_s": 1208.47,
+      "inicio": "2026-11-10T14:21:34-03:00",
+      "inicio_previsto_s": 1293.24,
+      "inicio_s": 1294.04,
+      "musica_anunciada": [],
+      "musica_tocada": "Patins Amarelos - Tati Pirilampo",
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 11,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 40.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "palavras": 104,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.8,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "fala",
+        "espaco_s": 2186.76,
+        "etapa": {
+          "fim": "2026-11-10T17:25:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:19:00Z",
+          "inicio_s": 1140,
+          "natureza": "ajustavel",
+          "rotulo": "Serviço e pauta do dia",
+          "tipo": "servico",
+          "tipo_efetivo": "servico"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:21:33.240000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          20,
+          60
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 2186.76
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "Tarde em Casa continua, com Marta Girassol na companhia. A música não parou e a conversa segue curta. Se estiver dirigindo, atenção na pista e deixa a música com a gente. A conversa por aqui é curta, porque a estrela é a canção. Tem canção que parece ter sido feita para o meio da tarde. Nem tudo precisa ser corrido, e a música lembra a gente disso. Respira fundo, ajeita a cadeira e vem com a gente. É bom saber que, de algum lugar, você está ouvindo agora. Tarde boa para você. Segundo a prefeitura, avenida das Palmeiras tem desvio por obra até sexta-feira.",
+      "tipo": "fala",
+      "tom": "neutro",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "servico",
+      "bloco_n": 12,
+      "categoria": "servico",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Segundo o serviço de meteorologia, agora faz vinte e seis graus, céu limpo."
+      ],
+      "dados": [
+        {
+          "alertas": [
+            "ultima_leitura"
+          ],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "valido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 44.28,
+      "duracao_medida_s": 44.28,
+      "duracao_prevista_backend_s": 44.28,
+      "duracao_prevista_s": 39.63,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:23:02-03:00",
+      "fim_s": 1382.15,
+      "formato": "variedades_leves",
+      "gerado_em_s": 1247.75,
+      "inicio": "2026-11-10T14:22:17-03:00",
+      "inicio_previsto_s": 1337.07,
+      "inicio_s": 1337.87,
+      "musica_anunciada": [],
+      "musica_tocada": "Patins Amarelos - Tati Pirilampo",
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 12,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 40.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "palavras": 107,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.8,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "fala",
+        "espaco_s": 2142.93,
+        "etapa": {
+          "fim": "2026-11-10T17:25:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:19:00Z",
+          "inicio_s": 1140,
+          "natureza": "ajustavel",
+          "rotulo": "Serviço e pauta do dia",
+          "tipo": "servico",
+          "tipo_efetivo": "servico"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:22:17.070000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          20,
+          60
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 2142.93
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "Seguimos com Tarde em Casa na Rádio Vila Ventura. Se você deixou o rádio ligado, obrigado pela confiança. Tem dia que a gente só precisa de uma voz conhecida por perto. Música boa faz o tempo andar no passo certo. Quem liga o rádio nesta hora costuma querer um pouco de calma, e a gente entende. Tem canção que parece ter sido feita para o meio da tarde. Respira fundo, ajeita a cadeira e vem com a gente. Se alguém do seu lado também gosta de música, chama para ouvir junto. Segue o som. Segundo o serviço de meteorologia, agora faz vinte e seis graus, céu limpo.",
+      "tipo": "fala",
+      "tom": "neutro",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "servico",
+      "bloco_n": 13,
+      "categoria": "servico",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Segundo o serviço de meteorologia, agora faz vinte e seis graus, céu limpo."
+      ],
+      "dados": [
+        {
+          "alertas": [
+            "ultima_leitura"
+          ],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "valido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 44.28,
+      "duracao_medida_s": 44.28,
+      "duracao_prevista_backend_s": 44.28,
+      "duracao_prevista_s": 39.63,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:23:47-03:00",
+      "fim_s": 1427.23,
+      "formato": "variedades_leves",
+      "gerado_em_s": 1293.24,
+      "inicio": "2026-11-10T14:23:02-03:00",
+      "inicio_previsto_s": 1382.15,
+      "inicio_s": 1382.95,
+      "musica_anunciada": [],
+      "musica_tocada": "Patins Amarelos - Tati Pirilampo",
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 13,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 40.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "palavras": 107,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.8,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "fala",
+        "espaco_s": 2097.85,
+        "etapa": {
+          "fim": "2026-11-10T17:25:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:19:00Z",
+          "inicio_s": 1140,
+          "natureza": "ajustavel",
+          "rotulo": "Serviço e pauta do dia",
+          "tipo": "servico",
+          "tipo_efetivo": "servico"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:23:02.150000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          20,
+          60
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 2097.85
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "Você está na Rádio Vila Ventura, e este é Tarde em Casa. Se você deixou o rádio ligado, obrigado pela confiança. A gente gosta de pensar no rádio como uma janela aberta. Quem trabalha de casa sabe como uma trilha boa ajuda a organizar a cabeça. Tem dia que a gente só precisa de uma voz conhecida por perto. Pode deixar o volume no ponto que for melhor para você. O som está no ar para quem cozinha, para quem estuda e para quem descansa. Uma tarde bem acompanhada passa diferente. Segue o som. Segundo o serviço de meteorologia, agora faz vinte e seis graus, céu limpo.",
+      "tipo": "fala",
+      "tom": "neutro",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "servico",
+      "bloco_n": 14,
+      "categoria": "servico",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Segundo o serviço de meteorologia, agora faz vinte e seis graus, céu limpo."
+      ],
+      "dados": [
+        {
+          "alertas": [
+            "ultima_leitura"
+          ],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "valido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 43.86,
+      "duracao_medida_s": 43.86,
+      "duracao_prevista_backend_s": 43.86,
+      "duracao_prevista_s": 39.26,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:24:31-03:00",
+      "fim_s": 1471.89,
+      "formato": "variedades_leves",
+      "gerado_em_s": 1337.07,
+      "inicio": "2026-11-10T14:23:48-03:00",
+      "inicio_previsto_s": 1427.23,
+      "inicio_s": 1428.03,
+      "musica_anunciada": [],
+      "musica_tocada": "Patins Amarelos - Tati Pirilampo",
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 14,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 40.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "palavras": 106,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.8,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "fala",
+        "espaco_s": 2052.77,
+        "etapa": {
+          "fim": "2026-11-10T17:25:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:19:00Z",
+          "inicio_s": 1140,
+          "natureza": "ajustavel",
+          "rotulo": "Serviço e pauta do dia",
+          "tipo": "servico",
+          "tipo_efetivo": "servico"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:23:47.230000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          20,
+          60
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 2052.77
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "Seguimos com Tarde em Casa na Rádio Vila Ventura. Tem gente ouvindo no trabalho, tem gente ouvindo em casa, e todo mundo é bem-vindo. Nem tudo precisa ser corrido, e a música lembra a gente disso. Cada música desta tarde foi escolhida para combinar com o seu ritmo. Se estiver dirigindo, atenção na pista e deixa a música com a gente. Quem liga o rádio nesta hora costuma querer um pouco de calma, e a gente entende. A conversa por aqui é curta, porque a estrela é a canção. Fica com a gente. Segundo o serviço de meteorologia, agora faz vinte e seis graus, céu limpo.",
+      "tipo": "fala",
+      "tom": "neutro",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "servico",
+      "bloco_n": 15,
+      "categoria": "servico",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Segundo o serviço de meteorologia, agora faz vinte e seis graus, céu limpo."
+      ],
+      "dados": [
+        {
+          "alertas": [
+            "ultima_leitura"
+          ],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "valido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 26.9,
+      "duracao_medida_s": 26.9,
+      "duracao_prevista_backend_s": 26.9,
+      "duracao_prevista_s": 24.07,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:24:59-03:00",
+      "fim_s": 1499.59,
+      "formato": "variedades_leves",
+      "gerado_em_s": 1382.15,
+      "inicio": "2026-11-10T14:24:32-03:00",
+      "inicio_previsto_s": 1471.89,
+      "inicio_s": 1472.69,
+      "musica_anunciada": [],
+      "musica_tocada": "Patins Amarelos - Tati Pirilampo",
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 15,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 24.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 28.0,
+        "min": 20.0
+      },
+      "palavras": 65,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.8,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "fala_reduzida",
+        "espaco_s": 2008.11,
+        "etapa": {
+          "fim": "2026-11-10T17:25:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:19:00Z",
+          "inicio_s": 1140,
+          "natureza": "ajustavel",
+          "rotulo": "Serviço e pauta do dia",
+          "tipo": "servico",
+          "tipo_efetivo": "servico"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:24:31.890000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          20,
+          28
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 2008.11
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "Tarde em Casa continua, com Marta Girassol na companhia. Se você deixou o rádio ligado, obrigado pela confiança. É bom saber que, de algum lugar, você está ouvindo agora. Música boa faz o tempo andar no passo certo. Cada música desta tarde foi escolhida para combinar com o seu ritmo. Bora junto. Segundo o serviço de meteorologia, agora faz vinte e seis graus, céu limpo.",
+      "tipo": "fala",
+      "tom": "neutro",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "servico",
+      "bloco_n": 16,
+      "categoria": "servico",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Segundo o serviço de meteorologia, agora faz vinte e seis graus, céu limpo."
+      ],
+      "dados": [
+        {
+          "alertas": [
+            "ultima_leitura"
+          ],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "valido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 14.9,
+      "duracao_medida_s": 14.9,
+      "duracao_prevista_backend_s": 14.9,
+      "duracao_prevista_s": 13.33,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:25:15-03:00",
+      "fim_s": 1515.29,
+      "formato": "variedades_leves",
+      "gerado_em_s": 1427.23,
+      "inicio": "2026-11-10T14:25:00-03:00",
+      "inicio_previsto_s": 1499.59,
+      "inicio_s": 1500.39,
+      "musica_anunciada": [],
+      "musica_tocada": "Patins Amarelos - Tati Pirilampo",
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 16,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 10.5,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 15.0,
+        "min": 6.0
+      },
+      "palavras": 36,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.8,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "fechamento_curto",
+        "espaco_s": 1980.41,
+        "etapa": {
+          "fim": "2026-11-10T17:25:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:19:00Z",
+          "inicio_s": 1140,
+          "natureza": "ajustavel",
+          "rotulo": "Serviço e pauta do dia",
+          "tipo": "servico",
+          "tipo_efetivo": "servico"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:24:59.590000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          6,
+          15
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 1980.41
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "Seguimos com Tarde em Casa na Rádio Vila Ventura. A gente segue cuidando da trilha da sua tarde. Bom te ter por perto. Segundo o serviço de meteorologia, agora faz vinte e seis graus, céu limpo.",
+      "tipo": "fala",
+      "tom": "neutro",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "musica",
+      "bloco_n": 17,
+      "categoria": "musica",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dados": [
+        {
+          "alertas": [
+            "ultima_leitura"
+          ],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "valido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 12.0,
+      "duracao_medida_s": 12.0,
+      "duracao_prevista_backend_s": 275.0,
+      "duracao_prevista_s": 10.74,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:25:28-03:00",
+      "fim_s": 1528.09,
+      "formato": "variedades_leves",
+      "gerado_em_s": 1471.89,
+      "inicio": "2026-11-10T14:25:16-03:00",
+      "inicio_previsto_s": 1515.29,
+      "inicio_s": 1516.09,
+      "musica_anunciada": [
+        "Patins Amarelos - Tati Pirilampo"
+      ],
+      "musica_tocada": "Patins Amarelos - Tati Pirilampo",
+      "musicas_bloco": [
+        "Patins Amarelos - Tati Pirilampo"
+      ],
+      "musicas_citadas": [
+        "Patins Amarelos - Tati Pirilampo"
+      ],
+      "n": 17,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 12.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 20.0,
+        "min": 4.0
+      },
+      "palavras": 29,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.8,
+      "pedido_estado": "selecionado",
+      "pedido_estado_final": "executado",
+      "pedido_id": 2,
+      "pedido_tipo": "musica",
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "musica",
+        "espaco_s": 1964.71,
+        "etapa": {
+          "fim": "2026-11-10T17:34:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:25:00Z",
+          "inicio_s": 1500,
+          "natureza": "ajustavel",
+          "rotulo": "Música",
+          "tipo": "musica",
+          "tipo_efetivo": "musica"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:25:15.290000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          4,
+          20
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 1964.71
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "Quem pediu foi Paulo Brandão, e toca agora Patins Amarelos, de Tati Pirilampo. É bom tocar o que você quer ouvir. Música boa não precisa de muita apresentação. Aproveita.",
+      "tipo": "fala",
+      "tom": "energico",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": null,
+      "bloco": "musica",
+      "bloco_n": 17,
+      "categoria": "musica",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "duracao_estimada_backend_s": null,
+      "duracao_medida_s": null,
+      "duracao_prevista_backend_s": 275.0,
+      "duracao_prevista_s": 263,
+      "fala_ajuste": null,
+      "fim": "2026-11-10T14:29:51-03:00",
+      "fim_s": 1791.09,
+      "formato": "variedades_leves",
+      "gerado_em_s": 1471.89,
+      "inicio": "2026-11-10T14:25:28-03:00",
+      "inicio_previsto_s": 1515.29,
+      "inicio_s": 1528.09,
+      "musica_anunciada": [],
+      "musica_tocada": "Patins Amarelos - Tati Pirilampo",
+      "musicas_bloco": [
+        "Patins Amarelos - Tati Pirilampo"
+      ],
+      "musicas_citadas": [],
+      "n": 18,
+      "orcamento_ref_s": null,
+      "orcamento_s": null,
+      "palavras": 0,
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.0,
+      "pedido_estado": "selecionado",
+      "pedido_estado_final": "executado",
+      "pedido_id": 2,
+      "pedido_tipo": "musica",
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "musica",
+        "espaco_s": 1964.71,
+        "etapa": {
+          "fim": "2026-11-10T17:34:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:25:00Z",
+          "inicio_s": 1500,
+          "natureza": "ajustavel",
+          "rotulo": "Música",
+          "tipo": "musica",
+          "tipo_efetivo": "musica"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:25:15.290000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          4,
+          20
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 1964.71
+      },
+      "revisada": false,
+      "sinteses_tts": null,
+      "texto": "",
+      "tipo": "musica",
+      "tom": null,
+      "validacao_fala": null,
+      "video_id": "sim-vle-05"
+    },
+    {
+      "audio_status": null,
+      "bloco": "musica",
+      "bloco_n": 18,
+      "categoria": "musica",
+      "chamadas_llm": 0,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "duracao_estimada_backend_s": null,
+      "duracao_medida_s": null,
+      "duracao_prevista_backend_s": 274.0,
+      "duracao_prevista_s": 274,
+      "fala_ajuste": null,
+      "fim": "2026-11-10T14:34:25-03:00",
+      "fim_s": 2065.09,
+      "formato": "variedades_leves",
+      "gerado_em_s": 1499.59,
+      "inicio": "2026-11-10T14:29:51-03:00",
+      "inicio_previsto_s": 1791.09,
+      "inicio_s": 1791.09,
+      "musica_anunciada": [],
+      "musica_tocada": "Bairro em Festa - Lola Carambola",
+      "musicas_bloco": [
+        "Bairro em Festa - Lola Carambola"
+      ],
+      "musicas_citadas": [],
+      "n": 19,
+      "orcamento_ref_s": null,
+      "orcamento_s": null,
+      "palavras": 0,
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.0,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "musica",
+        "espaco_s": 1688.91,
+        "etapa": {
+          "fim": "2026-11-10T17:34:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:25:00Z",
+          "inicio_s": 1500,
+          "natureza": "ajustavel",
+          "rotulo": "Música",
+          "tipo": "musica",
+          "tipo_efetivo": "musica"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:29:51.090000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          4,
+          20
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 1688.91
+      },
+      "revisada": false,
+      "sinteses_tts": null,
+      "texto": "",
+      "tipo": "musica",
+      "tom": null,
+      "validacao_fala": null,
+      "video_id": "sim-vle-02"
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "chamada_ouvinte",
+      "bloco_n": 19,
+      "categoria": "chamada_ouvinte",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Na última atualização, hoje, às treze e trinta, o serviço de meteorologia marcava vinte e seis graus, céu limpo."
+      ],
+      "dados": [
+        {
+          "alertas": [
+            "ultima_leitura"
+          ],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "vencido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 60.83,
+      "duracao_medida_s": 60.83,
+      "duracao_prevista_backend_s": 60.83,
+      "duracao_prevista_s": 54.44,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:35:26-03:00",
+      "fim_s": 2126.07,
+      "formato": "variedades_leves",
+      "gerado_em_s": 1515.29,
+      "inicio": "2026-11-10T14:34:25-03:00",
+      "inicio_previsto_s": 2065.09,
+      "inicio_s": 2065.24,
+      "musica_anunciada": [],
+      "musica_tocada": "Sorvete de Coco - Duda Azulejo",
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 20,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 55.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 90.0,
+        "min": 20.0
+      },
+      "palavras": 147,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.15,
+      "pedido_estado": "selecionado",
+      "pedido_estado_final": "executado",
+      "pedido_id": 1,
+      "pedido_tipo": "abraco",
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "fala",
+        "espaco_s": 1414.91,
+        "etapa": {
+          "fim": "2026-11-10T17:41:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:34:00Z",
+          "inicio_s": 2040,
+          "natureza": "ajustavel",
+          "rotulo": "Participação ou jogo",
+          "tipo": "participacao",
+          "tipo_efetivo": "participacao"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:34:25.090000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          20,
+          90
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 1414.91
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "Um abraço para Cida Morais, que mandou mensagem para a Rádio Vila Ventura. Fica registrado o abraço, com o nosso obrigado. Se alguém do seu lado também gosta de música, chama para ouvir junto. É bom saber que, de algum lugar, você está ouvindo agora. Respira fundo, ajeita a cadeira e vem com a gente. Quem trabalha de casa sabe como uma trilha boa ajuda a organizar a cabeça. O som está no ar para quem cozinha, para quem estuda e para quem descansa. Nem tudo precisa ser corrido, e a música lembra a gente disso. A gente gosta de pensar no rádio como uma janela aberta. Se estiver dirigindo, atenção na pista e deixa a música com a gente. Uma tarde bem acompanhada passa diferente. Volta sempre. Na última atualização, hoje, às treze e trinta, o serviço de meteorologia marcava vinte e seis graus, céu limpo.",
+      "tipo": "fala",
+      "tom": "energico",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": null,
+      "bloco": "musica",
+      "bloco_n": 20,
+      "categoria": "musica",
+      "chamadas_llm": 0,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "duracao_estimada_backend_s": null,
+      "duracao_medida_s": null,
+      "duracao_prevista_backend_s": 225.0,
+      "duracao_prevista_s": 225,
+      "fala_ajuste": null,
+      "fim": "2026-11-10T14:39:11-03:00",
+      "fim_s": 2351.22,
+      "formato": "variedades_leves",
+      "gerado_em_s": 1791.09,
+      "inicio": "2026-11-10T14:35:26-03:00",
+      "inicio_previsto_s": 2126.07,
+      "inicio_s": 2126.22,
+      "musica_anunciada": [],
+      "musica_tocada": "Sorvete de Coco - Duda Azulejo",
+      "musicas_bloco": [
+        "Sorvete de Coco - Duda Azulejo"
+      ],
+      "musicas_citadas": [],
+      "n": 21,
+      "orcamento_ref_s": null,
+      "orcamento_s": null,
+      "palavras": 0,
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.15,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "musica",
+        "espaco_s": 1353.93,
+        "etapa": {
+          "fim": "2026-11-10T17:44:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:41:00Z",
+          "inicio_s": 2460,
+          "natureza": "ajustavel",
+          "rotulo": "Intervalo",
+          "tipo": "intervalo",
+          "tipo_efetivo": "musica"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:35:26.070000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          4,
+          20
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 1353.93
+      },
+      "revisada": false,
+      "sinteses_tts": null,
+      "texto": "",
+      "tipo": "musica",
+      "tom": null,
+      "validacao_fala": null,
+      "video_id": "sim-vle-08"
+    },
+    {
+      "audio_status": null,
+      "bloco": "musica",
+      "bloco_n": 21,
+      "categoria": "musica",
+      "chamadas_llm": 0,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "duracao_estimada_backend_s": null,
+      "duracao_medida_s": null,
+      "duracao_prevista_backend_s": 257.0,
+      "duracao_prevista_s": 257,
+      "fala_ajuste": null,
+      "fim": "2026-11-10T14:43:28-03:00",
+      "fim_s": 2608.22,
+      "formato": "variedades_leves",
+      "gerado_em_s": 2065.09,
+      "inicio": "2026-11-10T14:39:11-03:00",
+      "inicio_previsto_s": 2351.22,
+      "inicio_s": 2351.22,
+      "musica_anunciada": [],
+      "musica_tocada": "Varanda Colorida - Mestre Zé Pandeiro",
+      "musicas_bloco": [
+        "Varanda Colorida - Mestre Zé Pandeiro"
+      ],
+      "musicas_citadas": [],
+      "n": 22,
+      "orcamento_ref_s": null,
+      "orcamento_s": null,
+      "palavras": 0,
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.0,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "musica",
+        "espaco_s": 1128.78,
+        "etapa": {
+          "fim": "2026-11-10T17:44:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:41:00Z",
+          "inicio_s": 2460,
+          "natureza": "ajustavel",
+          "rotulo": "Intervalo",
+          "tipo": "intervalo",
+          "tipo_efetivo": "musica"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:39:11.220000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          4,
+          20
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 1128.78
+      },
+      "revisada": false,
+      "sinteses_tts": null,
+      "texto": "",
+      "tipo": "musica",
+      "tom": null,
+      "validacao_fala": null,
+      "video_id": "sim-vle-09"
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "comentario_quadro",
+      "bloco_n": 22,
+      "categoria": "comentario",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Na última atualização, hoje, às treze e trinta, o serviço de meteorologia marcava vinte e seis graus, céu limpo."
+      ],
+      "dados": [
+        {
+          "alertas": [
+            "ultima_leitura"
+          ],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "vencido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 132.41,
+      "duracao_medida_s": 132.41,
+      "duracao_prevista_backend_s": 132.41,
+      "duracao_prevista_s": 118.52,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:45:40-03:00",
+      "fim_s": 2740.78,
+      "formato": "variedades_leves",
+      "gerado_em_s": 2126.07,
+      "inicio": "2026-11-10T14:43:28-03:00",
+      "inicio_previsto_s": 2608.22,
+      "inicio_s": 2608.37,
+      "musica_anunciada": [],
+      "musica_tocada": "Bom Dia Vizinhança - Banda Ventilador",
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 23,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 480.0,
+        "min": 120.0
+      },
+      "orcamento_s": {
+        "alvo": 120.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 180.0,
+        "min": 60.0
+      },
+      "palavras": 320,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.15,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "fala",
+        "espaco_s": 871.78,
+        "etapa": {
+          "fim": "2026-11-10T17:50:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:44:00Z",
+          "inicio_s": 2640,
+          "natureza": "ajustavel",
+          "rotulo": "Quadro recorrente",
+          "tipo": "quadro",
+          "tipo_efetivo": "quadro"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:43:28.220000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          60,
+          180
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 871.78
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "No Cantinho da Casa, a conversa é sobre um jeito simples de facilitar a rotina. A proposta é começar pequeno e manter. Se a casa é pequena, cada cantinho conta. Etiqueta escrita à mão funciona tão bem quanto qualquer outra. O segredo é fazer um pouco por vez, sem tentar arrumar tudo num dia só. Na dúvida, começa pela gaveta que mais irrita você. Guardar as sacolas dobradas em triângulo economiza um espaço danado. Uma caixa de papelão bem aproveitada já resolve muita bagunça. Vale guardar o que é pesado embaixo e o que é leve em cima. Uma lista na porta da geladeira ajuda a lembrar o que está acabando. Gaveta organizada é aquela em que a gente acha as coisas sem procurar. Antes de comprar um organizador, olha o que já existe em casa. Quem mora com mais gente pode dividir as tarefas por cômodo. Pote de vidro limpo é ótimo para guardar grãos e miudezas. Arrumar junto com as crianças pode virar brincadeira. O importante é a casa ajudar a sua rotina, e não o contrário. Depois, escolhe um lugar fixo para cada coisa, mesmo que seja simples. Um pano úmido e cinco minutos de atenção já mudam a cara da pia. Não precisa ficar perfeito, precisa funcionar para você. Primeiro, separa o que você usa todo dia do que usa de vez em quando. Sempre que der, devolve cada coisa ao lugar logo depois de usar. Quem testar pode contar pelo WhatsApp da rádio como foi. Um cesto perto da porta segura chave, guarda-chuva e sacola. Pequenas mudanças, repetidas todo dia, fazem diferença grande. Roupa que não serve mais pode ganhar uma nova casa por meio de doação. Tem gente que relaxa arrumando, e tem gente que prefere terminar logo. Fica a ideia para a sua casa. Na última atualização, hoje, às treze e trinta, o serviço de meteorologia marcava vinte e seis graus, céu limpo.",
+      "tipo": "fala",
+      "tom": "calmo",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "comentario_quadro",
+      "bloco_n": 23,
+      "categoria": "comentario",
+      "chamadas_llm": 2,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Na última atualização, hoje, às treze e trinta, o serviço de meteorologia marcava vinte e seis graus, céu limpo."
+      ],
+      "dados": [
+        {
+          "alertas": [
+            "ultima_leitura"
+          ],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "vencido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 129.93,
+      "duracao_medida_s": 129.93,
+      "duracao_prevista_backend_s": 129.93,
+      "duracao_prevista_s": 116.3,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:47:51-03:00",
+      "fim_s": 2871.06,
+      "formato": "variedades_leves",
+      "gerado_em_s": 2351.22,
+      "inicio": "2026-11-10T14:45:41-03:00",
+      "inicio_previsto_s": 2740.78,
+      "inicio_s": 2741.13,
+      "musica_anunciada": [],
+      "musica_tocada": "Bom Dia Vizinhança - Banda Ventilador",
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 24,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 480.0,
+        "min": 120.0
+      },
+      "orcamento_s": {
+        "alvo": 120.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 180.0,
+        "min": 60.0
+      },
+      "palavras": 314,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.35,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "fala",
+        "espaco_s": 739.22,
+        "etapa": {
+          "fim": "2026-11-10T17:50:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:44:00Z",
+          "inicio_s": 2640,
+          "natureza": "ajustavel",
+          "rotulo": "Quadro recorrente",
+          "tipo": "quadro",
+          "tipo_efetivo": "quadro"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:45:40.780000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          60,
+          180
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 739.22
+      },
+      "revisada": true,
+      "sinteses_tts": 1,
+      "texto": "Começa o Cantinho da Casa, o espaço da tarde para uma ideia útil. A proposta é começar pequeno e manter. Arrumar junto com as crianças pode virar brincadeira. Na dúvida, começa pela gaveta que mais irrita você. Se a casa é pequena, cada cantinho conta. Antes de comprar um organizador, olha o que já existe em casa. Vale guardar o que é pesado embaixo e o que é leve em cima. Não precisa ficar perfeito, precisa funcionar para você. Primeiro, separa o que você usa todo dia do que usa de vez em quando. Um pano úmido e cinco minutos de atenção já mudam a cara da pia. Uma caixa de papelão bem aproveitada já resolve muita bagunça. Guardar as sacolas dobradas em triângulo economiza um espaço danado. Quem mora com mais gente pode dividir as tarefas por cômodo. Quem testar pode contar pelo WhatsApp da rádio como foi. Gaveta organizada é aquela em que a gente acha as coisas sem procurar. O segredo é fazer um pouco por vez, sem tentar arrumar tudo num dia só. Um cesto perto da porta segura chave, guarda-chuva e sacola. Pequenas mudanças, repetidas todo dia, fazem diferença grande. Pote de vidro limpo é ótimo para guardar grãos e miudezas. Uma lista na porta da geladeira ajuda a lembrar o que está acabando. Sempre que der, devolve cada coisa ao lugar logo depois de usar. Depois, escolhe um lugar fixo para cada coisa, mesmo que seja simples. Etiqueta escrita à mão funciona tão bem quanto qualquer outra. Tem gente que relaxa arrumando, e tem gente que prefere terminar logo. O importante é a casa ajudar a sua rotina, e não o contrário. Nem tudo precisa de explicação, algumas coisas só são assim. O Cantinho da Casa termina por aqui. Na última atualização, hoje, às treze e trinta, o serviço de meteorologia marcava vinte e seis graus, céu limpo.",
+      "tipo": "fala",
+      "tom": "calmo",
+      "validacao_fala": {
+        "acao": "mencao_removida",
+        "violacoes": [
+          {
+            "ref_id": "clima:vila-ventura",
+            "regra": "dado_vencido",
+            "trecho": "Faz vinte e seis graus agora em Vila Ventura."
+          },
+          {
+            "ref_id": "clima:vila-ventura",
+            "regra": "dado_vencido",
+            "trecho": "Faz vinte e seis graus agora em Vila Ventura."
+          }
+        ]
+      },
+      "video_id": null
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "comentario_quadro",
+      "bloco_n": 24,
+      "categoria": "comentario",
+      "chamadas_llm": 2,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Na última atualização, hoje, às treze e trinta, o serviço de meteorologia marcava vinte e seis graus, céu limpo."
+      ],
+      "dados": [
+        {
+          "alertas": [
+            "ultima_leitura"
+          ],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "vencido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 104.28,
+      "duracao_medida_s": 104.28,
+      "duracao_prevista_backend_s": 104.28,
+      "duracao_prevista_s": 93.33,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:49:35-03:00",
+      "fim_s": 2975.69,
+      "formato": "variedades_leves",
+      "gerado_em_s": 2608.22,
+      "inicio": "2026-11-10T14:47:51-03:00",
+      "inicio_previsto_s": 2871.06,
+      "inicio_s": 2871.41,
+      "musica_anunciada": [],
+      "musica_tocada": "Bom Dia Vizinhança - Banda Ventilador",
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 25,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 480.0,
+        "min": 120.0
+      },
+      "orcamento_s": {
+        "alvo": 94.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 128.0,
+        "min": 60.0
+      },
+      "palavras": 252,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.35,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "fala_reduzida",
+        "espaco_s": 608.94,
+        "etapa": {
+          "fim": "2026-11-10T17:50:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:44:00Z",
+          "inicio_s": 2640,
+          "natureza": "ajustavel",
+          "rotulo": "Quadro recorrente",
+          "tipo": "quadro",
+          "tipo_efetivo": "quadro"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:47:51.060000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          60,
+          128
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 608.94
+      },
+      "revisada": true,
+      "sinteses_tts": 1,
+      "texto": "É tempo de Cantinho da Casa, com uma ideia que cabe em qualquer casa. Vale para casa grande, para apartamento e para quarto dividido. Primeiro, separa o que você usa todo dia do que usa de vez em quando. Roupa que não serve mais pode ganhar uma nova casa por meio de doação. Arrumar junto com as crianças pode virar brincadeira. Uma lista na porta da geladeira ajuda a lembrar o que está acabando. O importante é a casa ajudar a sua rotina, e não o contrário. Depois, escolhe um lugar fixo para cada coisa, mesmo que seja simples. Antes de comprar um organizador, olha o que já existe em casa. Um cesto perto da porta segura chave, guarda-chuva e sacola. Etiqueta escrita à mão funciona tão bem quanto qualquer outra. Uma caixa de papelão bem aproveitada já resolve muita bagunça. Gaveta organizada é aquela em que a gente acha as coisas sem procurar. O segredo é fazer um pouco por vez, sem tentar arrumar tudo num dia só. Se a casa é pequena, cada cantinho conta. Pote de vidro limpo é ótimo para guardar grãos e miudezas. Quem mora com mais gente pode dividir as tarefas por cômodo. Guardar as sacolas dobradas em triângulo economiza um espaço danado. Pequenas mudanças, repetidas todo dia, fazem diferença grande. Tem gente que relaxa arrumando, e tem gente que prefere terminar logo. Casa organizada, cabeça tranquila. Na última atualização, hoje, às treze e trinta, o serviço de meteorologia marcava vinte e seis graus, céu limpo.",
+      "tipo": "fala",
+      "tom": "calmo",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "comentario_quadro",
+      "bloco_n": 25,
+      "categoria": "comentario",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Na última atualização, hoje, às treze e trinta, o serviço de meteorologia marcava vinte e seis graus, céu limpo."
+      ],
+      "dados": [
+        {
+          "alertas": [
+            "ultima_leitura"
+          ],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "vencido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 13.66,
+      "duracao_medida_s": 13.65,
+      "duracao_prevista_backend_s": 13.66,
+      "duracao_prevista_s": 12.22,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:49:49-03:00",
+      "fim_s": 2989.69,
+      "formato": "variedades_leves",
+      "gerado_em_s": 2740.78,
+      "inicio": "2026-11-10T14:49:36-03:00",
+      "inicio_previsto_s": 2975.69,
+      "inicio_s": 2976.04,
+      "musica_anunciada": [],
+      "musica_tocada": "Bom Dia Vizinhança - Banda Ventilador",
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 26,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 480.0,
+        "min": 120.0
+      },
+      "orcamento_s": {
+        "alvo": 10.5,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 15.0,
+        "min": 6.0
+      },
+      "palavras": 33,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.35,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "fechamento_curto",
+        "espaco_s": 504.31,
+        "etapa": {
+          "fim": "2026-11-10T17:50:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:44:00Z",
+          "inicio_s": 2640,
+          "natureza": "ajustavel",
+          "rotulo": "Quadro recorrente",
+          "tipo": "quadro",
+          "tipo_efetivo": "quadro"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:49:35.690000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          6,
+          15
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 504.31
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "É tempo de Cantinho da Casa, com uma ideia que cabe em qualquer casa. Na última atualização, hoje, às treze e trinta, o serviço de meteorologia marcava vinte e seis graus, céu limpo.",
+      "tipo": "fala",
+      "tom": "calmo",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": null,
+      "bloco": "musica",
+      "bloco_n": 26,
+      "categoria": "musica",
+      "chamadas_llm": 0,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "duracao_estimada_backend_s": null,
+      "duracao_medida_s": null,
+      "duracao_prevista_backend_s": 217.0,
+      "duracao_prevista_s": 217,
+      "fala_ajuste": null,
+      "fim": "2026-11-10T14:53:26-03:00",
+      "fim_s": 3206.84,
+      "formato": "variedades_leves",
+      "gerado_em_s": 2871.06,
+      "inicio": "2026-11-10T14:49:49-03:00",
+      "inicio_previsto_s": 2989.7,
+      "inicio_s": 2989.84,
+      "musica_anunciada": [],
+      "musica_tocada": "Bom Dia Vizinhança - Banda Ventilador",
+      "musicas_bloco": [
+        "Bom Dia Vizinhança - Banda Ventilador"
+      ],
+      "musicas_citadas": [],
+      "n": 27,
+      "orcamento_ref_s": null,
+      "orcamento_s": null,
+      "palavras": 0,
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.15,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "musica",
+        "espaco_s": 490.3,
+        "etapa": {
+          "fim": "2026-11-10T17:58:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:50:00Z",
+          "inicio_s": 3000,
+          "natureza": "ajustavel",
+          "rotulo": "Música",
+          "tipo": "musica",
+          "tipo_efetivo": "musica"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:49:49.700000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          4,
+          20
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 490.3
+      },
+      "revisada": false,
+      "sinteses_tts": null,
+      "texto": "",
+      "tipo": "musica",
+      "tom": null,
+      "validacao_fala": null,
+      "video_id": "sim-vle-01"
+    },
+    {
+      "audio_status": null,
+      "bloco": "musica",
+      "bloco_n": 27,
+      "categoria": "musica",
+      "chamadas_llm": 0,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "duracao_estimada_backend_s": null,
+      "duracao_medida_s": null,
+      "duracao_prevista_backend_s": 246.0,
+      "duracao_prevista_s": 246,
+      "fala_ajuste": null,
+      "fim": "2026-11-10T14:57:32-03:00",
+      "fim_s": 3452.84,
+      "formato": "variedades_leves",
+      "gerado_em_s": 2975.69,
+      "inicio": "2026-11-10T14:53:26-03:00",
+      "inicio_previsto_s": 3206.85,
+      "inicio_s": 3206.84,
+      "musica_anunciada": [],
+      "musica_tocada": "Samba da Lavanderia - Lola Carambola",
+      "musicas_bloco": [
+        "Samba da Lavanderia - Lola Carambola"
+      ],
+      "musicas_citadas": [],
+      "n": 28,
+      "orcamento_ref_s": null,
+      "orcamento_s": null,
+      "palavras": 0,
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.0,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "musica",
+        "espaco_s": 273.15,
+        "etapa": {
+          "fim": "2026-11-10T17:58:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:50:00Z",
+          "inicio_s": 3000,
+          "natureza": "ajustavel",
+          "rotulo": "Música",
+          "tipo": "musica",
+          "tipo_efetivo": "musica"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:53:26.850000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          4,
+          20
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 273.15
+      },
+      "revisada": false,
+      "sinteses_tts": null,
+      "texto": "",
+      "tipo": "musica",
+      "tom": null,
+      "validacao_fala": null,
+      "video_id": "sim-vle-12"
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "identificacao",
+      "bloco_n": 28,
+      "categoria": "abertura",
+      "chamadas_llm": 2,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Na última atualização, hoje, às treze e trinta, o serviço de meteorologia marcava vinte e seis graus, céu limpo."
+      ],
+      "dados": [
+        {
+          "alertas": [
+            "ultima_leitura"
+          ],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "vencido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 10.34,
+      "duracao_medida_s": 10.35,
+      "duracao_prevista_backend_s": 10.34,
+      "duracao_prevista_s": 9.26,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:57:43-03:00",
+      "fim_s": 3463.34,
+      "formato": "variedades_leves",
+      "gerado_em_s": 2989.69,
+      "inicio": "2026-11-10T14:57:32-03:00",
+      "inicio_previsto_s": 3452.85,
+      "inicio_s": 3452.99,
+      "musica_anunciada": [],
+      "musica_tocada": null,
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 29,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 9.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 15.0,
+        "min": 3.0
+      },
+      "palavras": 25,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.15,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "reserva",
+        "espaco_s": 27.15,
+        "etapa": {
+          "fim": "2026-11-10T17:58:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:50:00Z",
+          "inicio_s": 3000,
+          "natureza": "ajustavel",
+          "rotulo": "Música",
+          "tipo": "musica",
+          "tipo_efetivo": "musica"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:57:32.850000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          3,
+          15
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 27.15
+      },
+      "revisada": true,
+      "sinteses_tts": 1,
+      "texto": "Tarde em Casa, com Marta Girassol. Na última atualização, hoje, às treze e trinta, o serviço de meteorologia marcava vinte e seis graus, céu limpo.",
+      "tipo": "fala",
+      "tom": "energico",
+      "validacao_fala": {
+        "acao": "mencao_removida",
+        "violacoes": [
+          {
+            "ref_id": "clima:vila-ventura",
+            "regra": "dado_vencido",
+            "trecho": "Faz vinte e seis graus agora em Vila Ventura."
+          },
+          {
+            "ref_id": "clima:vila-ventura",
+            "regra": "dado_vencido",
+            "trecho": "Faz vinte e seis graus agora em Vila Ventura."
+          }
+        ]
+      },
+      "video_id": null
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "comentario",
+      "bloco_n": 29,
+      "categoria": "comentario",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Na última atualização, hoje, às treze e trinta, o serviço de meteorologia marcava vinte e seis graus, céu limpo."
+      ],
+      "dados": [
+        {
+          "alertas": [
+            "ultima_leitura"
+          ],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "vencido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 15.72,
+      "duracao_medida_s": 15.72,
+      "duracao_prevista_backend_s": 15.72,
+      "duracao_prevista_s": 14.07,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:57:59-03:00",
+      "fim_s": 3479.41,
+      "formato": "variedades_leves",
+      "gerado_em_s": 3206.84,
+      "inicio": "2026-11-10T14:57:43-03:00",
+      "inicio_previsto_s": 3463.33,
+      "inicio_s": 3463.69,
+      "musica_anunciada": [],
+      "musica_tocada": null,
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 30,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 13.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 16.0,
+        "min": 10.0
+      },
+      "palavras": 38,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.35,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "reserva",
+        "espaco_s": 16.67,
+        "etapa": {
+          "fim": "2026-11-10T17:58:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:50:00Z",
+          "inicio_s": 3000,
+          "natureza": "ajustavel",
+          "rotulo": "Música",
+          "tipo": "musica",
+          "tipo_efetivo": "musica"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:57:43.330000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          10,
+          16
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 16.67
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "Uma coisa boa da tarde é aquela pausa para o lanche. Cada um tem a sua versão dessa história. Na última atualização, hoje, às treze e trinta, o serviço de meteorologia marcava vinte e seis graus, céu limpo.",
+      "tipo": "fala",
+      "tom": "calmo",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "comentario",
+      "bloco_n": 30,
+      "categoria": "comentario",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Na última atualização, hoje, às treze e trinta, o serviço de meteorologia marcava vinte e seis graus, céu limpo."
+      ],
+      "dados": [
+        {
+          "alertas": [
+            "ultima_leitura"
+          ],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "vencido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 52.55,
+      "duracao_medida_s": 52.55,
+      "duracao_prevista_backend_s": 52.55,
+      "duracao_prevista_s": 47.04,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:58:52-03:00",
+      "fim_s": 3532.31,
+      "formato": "variedades_leves",
+      "gerado_em_s": 3452.84,
+      "inicio": "2026-11-10T14:57:59-03:00",
+      "inicio_previsto_s": 3479.4,
+      "inicio_s": 3479.76,
+      "musica_anunciada": [],
+      "musica_tocada": null,
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 31,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 47.5,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 75.0,
+        "min": 20.0
+      },
+      "palavras": 127,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.35,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "fala_reduzida",
+        "espaco_s": 75.6,
+        "etapa": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:57:59.400000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          20,
+          75
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T18:00:00Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:59:15Z",
+          "inicio_s": 3555,
+          "natureza": "obrigatorio",
+          "rotulo": "Encerramento",
+          "tipo": "fechamento",
+          "tipo_efetivo": "encerramento"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 75.6
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "Tem gente que organiza a semana no domingo, e tem gente que nem tenta. Tem quem ache graça e tem quem leve muito a sério. Eu gosto de pensar que todo mundo tem um ritual pequeno. O que para um é costume, para outro é novidade. E quando alguém de fora repara, a gente estranha. E ritual pequeno também é coisa séria. Tem quem ria disso, e tem quem defenda com unhas e dentes. Pensa na cozinha da sua casa e você vai entender o que eu digo. Tem hábito que a gente herda sem perceber. A memória guarda essas pequenas cenas com cuidado. Cada casa, um jeito. Na última atualização, hoje, às treze e trinta, o serviço de meteorologia marcava vinte e seis graus, céu limpo.",
+      "tipo": "fala",
+      "tom": "calmo",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "identificacao",
+      "bloco_n": 31,
+      "categoria": "abertura",
+      "chamadas_llm": 2,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Na última atualização, hoje, às treze e trinta, o serviço de meteorologia marcava vinte e seis graus, céu limpo."
+      ],
+      "dados": [
+        {
+          "alertas": [
+            "ultima_leitura"
+          ],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "vencido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 12.0,
+      "duracao_medida_s": 12.0,
+      "duracao_prevista_backend_s": 12.0,
+      "duracao_prevista_s": 10.74,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:59:04-03:00",
+      "fim_s": 3544.66,
+      "formato": "variedades_leves",
+      "gerado_em_s": 3463.34,
+      "inicio": "2026-11-10T14:58:52-03:00",
+      "inicio_previsto_s": 3532.3,
+      "inicio_s": 3532.66,
+      "musica_anunciada": [],
+      "musica_tocada": null,
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 32,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 9.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 15.0,
+        "min": 3.0
+      },
+      "palavras": 29,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.35,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "reserva",
+        "espaco_s": 22.7,
+        "etapa": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:58:52.300000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          3,
+          15
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T18:00:00Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:59:15Z",
+          "inicio_s": 3555,
+          "natureza": "obrigatorio",
+          "rotulo": "Encerramento",
+          "tipo": "fechamento",
+          "tipo_efetivo": "encerramento"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 22.7
+      },
+      "revisada": true,
+      "sinteses_tts": 1,
+      "texto": "Marta Girassol na Rádio Vila Ventura. Com Marta Girassol. Aproveita. Na última atualização, hoje, às treze e trinta, o serviço de meteorologia marcava vinte e seis graus, céu limpo.",
+      "tipo": "fala",
+      "tom": "energico",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "comentario",
+      "bloco_n": 32,
+      "categoria": "comentario",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dado_legitimo": [
+        "Na última atualização, hoje, às treze e trinta, o serviço de meteorologia marcava vinte e seis graus, céu limpo."
+      ],
+      "dados": [
+        {
+          "alertas": [
+            "ultima_leitura"
+          ],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "vencido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 9.93,
+      "duracao_medida_s": 9.93,
+      "duracao_prevista_backend_s": 9.93,
+      "duracao_prevista_s": 8.89,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:59:14-03:00",
+      "fim_s": 3554.94,
+      "formato": "variedades_leves",
+      "gerado_em_s": 3479.41,
+      "inicio": "2026-11-10T14:59:05-03:00",
+      "inicio_previsto_s": 3544.66,
+      "inicio_s": 3545.01,
+      "musica_anunciada": [],
+      "musica_tocada": null,
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 33,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 10.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 10.0,
+        "min": 10.0
+      },
+      "palavras": 24,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.35,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "reserva",
+        "espaco_s": 10.34,
+        "etapa": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:59:04.660000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          10,
+          10
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T18:00:00Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:59:15Z",
+          "inicio_s": 3555,
+          "natureza": "obrigatorio",
+          "rotulo": "Encerramento",
+          "tipo": "fechamento",
+          "tipo_efetivo": "encerramento"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 10.34
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "Vamos falar de uma coisa. Na última atualização, hoje, às treze e trinta, o serviço de meteorologia marcava vinte e seis graus, céu limpo.",
+      "tipo": "fala",
+      "tom": "calmo",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "encerramento",
+      "bloco_n": 33,
+      "categoria": "encerramento",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "dados": [
+        {
+          "alertas": [
+            "ultima_leitura"
+          ],
+          "atualizado_em": "2026-11-10T16:30:00Z",
+          "estado": "vencido",
+          "id": "clima:vila-ventura",
+          "texto": "vinte e seis graus, céu limpo",
+          "tipo": "clima",
+          "valido_ate": "2026-11-10T17:30:00Z"
+        }
+      ],
+      "duracao_estimada_backend_s": 43.03,
+      "duracao_medida_s": 43.03,
+      "duracao_prevista_backend_s": 43.03,
+      "duracao_prevista_s": 38.52,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:59:58-03:00",
+      "fim_s": 3598.32,
+      "formato": "variedades_leves",
+      "gerado_em_s": 3532.31,
+      "inicio": "2026-11-10T14:59:15-03:00",
+      "inicio_previsto_s": 3554.94,
+      "inicio_s": 3555.29,
+      "musica_anunciada": [],
+      "musica_tocada": null,
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 34,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 40.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 45.0,
+        "min": 35.0
+      },
+      "palavras": 104,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.35,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "encerramento",
+        "espaco_s": 45.06,
+        "etapa": {
+          "fim": "2026-11-10T18:00:00Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:59:15Z",
+          "inicio_s": 3555,
+          "natureza": "obrigatorio",
+          "rotulo": "Encerramento",
+          "tipo": "fechamento",
+          "tipo_efetivo": "encerramento"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:59:14.940000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          35,
+          45
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": null,
+        "puladas": [],
+        "segundos_ate_hard_time": null
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "Hora de fechar Tarde em Casa na Rádio Vila Ventura. Obrigado por deixar a Rádio Vila Ventura ligada. Leva uma música boa na cabeça. Foi uma alegria fazer esta trilha com você. Quem estava em casa, bom descanso. Que o resto do dia seja tranquilo. Obrigado a quem mandou recado e a quem só ouviu. Cuide de você e de quem está por perto. Quem estava no trabalho, bom fim de expediente. Cada pessoa que deixou o rádio ligado fez parte disto. Que a próxima hora do seu dia seja leve. A Rádio Vila Ventura segue no ar. Um abraço e até a próxima.",
+      "tipo": "fala",
+      "tom": "calmo",
+      "validacao_fala": null,
+      "video_id": null
+    }
+  ],
+  "fim_programa": "2026-11-10T15:00:00-03:00",
+  "formato": "variedades_leves",
+  "inicio": "2026-11-10T14:00:00-03:00",
+  "modo": "fake",
+  "nomes_nao_musica": [
+    "Rádio Vila Ventura",
+    "Tarde em Casa",
+    "Marta Girassol",
+    "Vila Ventura",
+    "comentario_quadro",
+    "Cantinho da Casa",
+    "Cida Morais",
+    "Paulo Brandão",
+    "Seu Afonso",
+    "Dona Firmina"
+  ],
+  "observacoes": [
+    "O GET /preparo (preparo prévio no servidor) fica de fora: a primeira fala sai do /proxima normal.",
+    "Modo fake: o comprimento das falas é sintético (o dublê fala dentro da meta por construção); só a mecânica é medida (relógio, fila, corte, pedidos, continuidade e detectores).",
+    "Música anunciada sem confirmação: o mesmo detector do backend (app/live/validacao_fala.py, F3). Promessa e participação também (app/live/promessas.py e app/live/participacao.py, F4): promessa vencida e com contingência vêm da tabela promessas_no_ar e das falas que foram ao ar. Abertura repetida continua o detector provisório da F0.",
+    "Com --tts duble (F2), a fala dura o que o /tts mede num mp3 silencioso à velocidade wpm_real; a calibração do ritmo por voz começa vazia em cada simulação (pior caso: a primeira hora de uma voz nova).",
+    "SQLite em memória e execução sequencial: with_for_update(skip_locked) não é exercitado."
+  ],
+  "ouvintes": {
+    "fixture": [
+      "Cida Morais",
+      "Paulo Brandão",
+      "Seu Afonso"
+    ],
+    "inexistentes": [
+      "Dona Firmina"
+    ]
+  },
+  "pedidos": [
+    {
+      "atendido": true,
+      "atendido_em_s": 2126.07,
+      "bloco_n": 19,
+      "chega_em_s": 200.0,
+      "estado_final": "executado",
+      "estado_selecao": "selecionado",
+      "gerado_em_s": 1515.29,
+      "id": 1,
+      "musica_query": null,
+      "nome": "Cida Morais",
+      "tipo": "abraco",
+      "tocou_em_s": 2065.24
+    },
+    {
+      "atendido": true,
+      "atendido_em_s": 1791.09,
+      "bloco_n": 17,
+      "chega_em_s": 900.0,
+      "estado_final": "executado",
+      "estado_selecao": "selecionado",
+      "gerado_em_s": 1471.89,
+      "id": 2,
+      "musica_query": "Patins Amarelos",
+      "nome": "Paulo Brandão",
+      "tipo": "musica",
+      "tocou_em_s": 1516.09
+    },
+    {
+      "atendido": false,
+      "atendido_em_s": null,
+      "bloco_n": null,
+      "chega_em_s": 1700.0,
+      "estado_final": "em_fila",
+      "estado_selecao": null,
+      "gerado_em_s": null,
+      "id": 3,
+      "musica_query": null,
+      "nome": "Seu Afonso",
+      "tipo": "abraco",
+      "tocou_em_s": null
+    }
+  ],
+  "programa": "f5_variedades_c",
+  "promessas": [],
+  "relogio": {
+    "eventos": [
+      {
+        "corresponde_a": [
+          "abertura"
+        ],
+        "duracao_s": 120,
+        "grupo": "fala",
+        "hard_time": true,
+        "inicio_s": 0,
+        "natureza": "obrigatorio",
+        "rotulo": "Abertura e pergunta do dia",
+        "tipo": "abertura"
+      },
+      {
+        "corresponde_a": [
+          "musica"
+        ],
+        "duracao_s": 480,
+        "grupo": "musica",
+        "hard_time": false,
+        "inicio_s": 120,
+        "natureza": "ajustavel",
+        "rotulo": "Música",
+        "tipo": "musica"
+      },
+      {
+        "corresponde_a": [
+          "comentario"
+        ],
+        "duracao_s": 360,
+        "grupo": "fala",
+        "hard_time": false,
+        "inicio_s": 600,
+        "natureza": "ajustavel",
+        "rotulo": "Conversa de bancada",
+        "tipo": "conversa"
+      },
+      {
+        "corresponde_a": [
+          "intervalo"
+        ],
+        "duracao_s": 180,
+        "grupo": "intervalo",
+        "hard_time": true,
+        "inicio_s": 960,
+        "natureza": "obrigatorio",
+        "rotulo": "Intervalo",
+        "tipo": "intervalo"
+      },
+      {
+        "corresponde_a": [
+          "servico",
+          "comentario"
+        ],
+        "duracao_s": 360,
+        "grupo": "fala",
+        "hard_time": false,
+        "inicio_s": 1140,
+        "natureza": "ajustavel",
+        "rotulo": "Serviço e pauta do dia",
+        "tipo": "servico"
+      },
+      {
+        "corresponde_a": [
+          "musica"
+        ],
+        "duracao_s": 540,
+        "grupo": "musica",
+        "hard_time": false,
+        "inicio_s": 1500,
+        "natureza": "ajustavel",
+        "rotulo": "Música",
+        "tipo": "musica"
+      },
+      {
+        "corresponde_a": [
+          "chamada_ouvinte"
+        ],
+        "duracao_s": 420,
+        "grupo": "fala",
+        "hard_time": false,
+        "inicio_s": 2040,
+        "natureza": "ajustavel",
+        "rotulo": "Participação ou jogo",
+        "tipo": "participacao"
+      },
+      {
+        "corresponde_a": [
+          "intervalo"
+        ],
+        "duracao_s": 180,
+        "grupo": "intervalo",
+        "hard_time": true,
+        "inicio_s": 2460,
+        "natureza": "obrigatorio",
+        "rotulo": "Intervalo",
+        "tipo": "intervalo"
+      },
+      {
+        "corresponde_a": [
+          "comentario"
+        ],
+        "duracao_s": 360,
+        "grupo": "fala",
+        "hard_time": false,
+        "inicio_s": 2640,
+        "natureza": "ajustavel",
+        "rotulo": "Quadro recorrente",
+        "tipo": "quadro"
+      },
+      {
+        "corresponde_a": [
+          "musica"
+        ],
+        "duracao_s": 480,
+        "grupo": "musica",
+        "hard_time": false,
+        "inicio_s": 3000,
+        "natureza": "ajustavel",
+        "rotulo": "Música",
+        "tipo": "musica"
+      },
+      {
+        "corresponde_a": [
+          "encerramento"
+        ],
+        "duracao_s": 120,
+        "grupo": "fala",
+        "hard_time": true,
+        "inicio_s": 3480,
+        "natureza": "obrigatorio",
+        "rotulo": "Fechamento e próxima edição",
+        "tipo": "fechamento"
+      }
+    ],
+    "fonte": "docs/pesquisa-radio-locufy.md §9.C",
+    "hipotese": true,
+    "id": "C",
+    "nome": "Morning show/variedades",
+    "nota": "Hipótese de projeto: os intervalos da §9 são reservas ilustrativas, não recomendação comercial. hard_time marca o que não pode atrasar (tolerância de 5 s, critério da F1). A fonte de verdade é backend/app/live/relogios/ (teste de paridade em tests/test_live_relogio.py); este arquivo só mede."
+  },
+  "relogio_backend": {
+    "hard_times_efetivos": [
+      0,
+      3480,
+      3555
+    ],
+    "patrocinadores": 0,
+    "preset": "C",
+    "tem_fonte_noticia": true
+  },
+  "semente": 7,
+  "tts": "duble",
+  "versao": 1,
+  "wpm": 162.0,
+  "wpm_real": 145
+}

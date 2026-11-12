@@ -9,25 +9,19 @@ No início da organização, o worktree `locufy-radio` estava limpo na branch `m
 A referência `melhoria/f3-contexto-emissao` foi avançada **somente por fast-forward**, de `c382859` para `24cdd13`. O histórico e a branch da F4 foram preservados, assim como o worktree do Claude. As avaliações e os estados das frentes continuam sendo os registrados em [melhoria-radio/RELATORIO.md](melhoria-radio/RELATORIO.md).
 
 ```text
-melhoria/f0-bancada             ce44667
-  └─ melhoria/f1-relogio        0f8831a
+melhoria/f0-bancada              ce44667
+  └─ melhoria/f1-relogio         0f8831a
       └─ melhoria/f2-duracao-fala 930c796
           └─ melhoria/f3-contexto-emissao 24cdd13
               └─ melhoria/f4-promessas   04bff64
-                  └─ integracao/whatsapp-pos-f4
-                      ff58d48  capacidade dos provedores e recuperação
-                      8cc7573  descoberta de fontes e paginação editorial
-                      a62849f  piloto editorial esportivo
-                      b013a9b  backend do atendimento e contexto confirmado
-                      ae98042  central de conversas e player
-                      9f0aea2  operação e evidências do WhatsApp
-                      575fca3  registro dos próximos passos de marketing
-                      1666752  compatibilidade dos avisos com pedidos legados da F4
-                      7aeac02  relato factual não vira promessa da emissora
-                      6ca7049  teste do worker com uma sessão por tarefa
-                      ├─ HEAD  registro desta árvore e validação da integração
-                      └─ melhoria/f5-fontes  356575d [worktree do Claude Code]
-                         14 commits da F5 a partir de 6ca7049
+                  └─ integração do WhatsApp e frentes adicionais
+                      ff58d48 → 8cc7573 → a62849f → b013a9b → ae98042
+                      → 9f0aea2 → 575fca3 → 1666752 → 7aeac02 → 6ca7049
+                          ├─ f1efbba  documentação da integração pós-F4
+                          └─ F5: 14 commits → 356575d
+                              └─ HEAD: união dos dois históricos
+                                 melhoria/f5-fontes [worktree do Claude Code]
+                                 integracao/whatsapp-pos-f4 [worktree principal]
 ```
 
 Os commits novos foram criados por assunto e reaplicados sobre a F4. Somente esses commits locais novos foram reescritos durante o rebase; nenhum commit do Claude foi reescrito. `master` e as referências remotas não foram alteradas. Os commits permanecem locais.
@@ -74,12 +68,16 @@ Essas simulações validam a mecânica com dublês; não substituem avaliação 
 
 O código em `6ca7049`, já integrado à F4, passou na suíte completa do backend: **1.633 testes aprovados e 3 ignorados**, em 446,50 segundos. Ruff, TypeScript, os **350 testes do frontend em 63 arquivos**, os **3 testes de concorrência com PostgreSQL** e o build de produção em Docker com Next 16.3.0 e Node 20.20.2 também passaram. O banco temporário foi removido após a validação.
 
-As três simulações acima foram executadas sobre esse mesmo commit. O commit seguinte registra somente documentação e evidências dessa validação.
+As três simulações acima foram executadas sobre esse mesmo commit. O commit `f1efbba` registra somente documentação e evidências dessa validação.
 
-## Continuação do trabalho
+## Integração na fase mais recente
 
-A branch `integracao/whatsapp-pos-f4` contém a F4 e as frentes adicionais. O Claude já continuou a F5 em `melhoria/f5-fontes`, descendente de `6ca7049`, incorporando os dez commits de código e documentação anteriores a este fechamento. O commit final desta branch acrescenta somente o registro da árvore e da validação.
+A pedido do usuário, todo o histórico foi reunido na versão mais recente do plano: **F5, branch `melhoria/f5-fontes`**. A F5 em `356575d` já descendia de `6ca7049` e continha todo o código do WhatsApp, da central de conversas, do contexto confirmado, da capacidade dos provedores e do piloto esportivo. Faltava somente `f1efbba`, com a árvore e as evidências da integração pós-F4.
 
-Em `356575d`, o relatório do Claude registra a F5 como implementada, com portão local verde e portão independente/juiz pendentes. Os números relatados para a F5 (1.901 testes de backend e 354 de frontend) pertencem à execução dele; nossa validação acima corresponde a `6ca7049`. O worktree do Claude foi apenas consultado e preservado. A F5 não foi incorporada de volta nesta branch de integração.
+Os dois históricos foram unidos por merge, sem conflitos e sem reescrever commits. O backend e o frontend resultantes são idênticos aos da F5 em `356575d`; as diferenças adicionais são a documentação da integração. A branch `melhoria/f5-fontes` é avançada por fast-forward para esse merge, mantendo o worktree do Claude na mesma branch. A branch `integracao/whatsapp-pos-f4` também passa a conter a F5, apesar do nome histórico.
+
+O relatório do Claude registra a F5 como implementada, com portão local verde e portão independente/juiz pendentes. Os 1.901 testes de backend e 354 de frontend do portão local estão em [melhoria-radio/f5/testes.md](melhoria-radio/f5/testes.md). O estado dessas revisões pendentes permanece o registrado no relatório.
+
+Conferência após a união: **359 testes de backend aprovados e 3 ignorados** (WhatsApp, atendimento, dados verificáveis, promessas e notícias), em 45,11 segundos; **354 testes do frontend aprovados em 65 arquivos**, em 14,66 segundos; Ruff e TypeScript aprovados. A comparação com `356575d` confirmou ausência de diferenças no código de backend e frontend. A suíte completa de backend não foi repetida nesta união documental; os 1.901 testes acima são o resultado já registrado pelo Claude para esse mesmo código.
 
 Operação e limites do canal: [whatsapp-operacao.md](whatsapp-operacao.md). O registro anterior de testes do WhatsApp continua preservado; a validação pós-F4 é registrada separadamente em [integracao-f4/validacao.json](integracao-f4/validacao.json).
