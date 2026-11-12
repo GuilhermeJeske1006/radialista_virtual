@@ -18,6 +18,7 @@ from app.models.password_reset_token import PasswordResetToken
 from app.models.patrocinador import Patrocinador
 from app.models.programa import Programa
 from app.models.programa_radialista import ProgramaRadialista
+from app.models.promessa_no_ar import PromessaNoAr
 from app.models.radio_config import RadioConfig
 from app.models.super_admin import SuperAdmin
 from app.models.tema_historico import TemaHistorico
@@ -38,6 +39,7 @@ __all__ = [
     "FilaAoVivo",
     "Programa",
     "ProgramaRadialista",
+    "PromessaNoAr",
     "PasswordResetToken",
     "Patrocinador",
     "VozClonada",

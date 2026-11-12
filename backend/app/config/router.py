@@ -31,6 +31,7 @@ from app.models.musica_historico import MusicaHistorico
 from app.models.noticia_historico import NoticiaHistorico
 from app.models.programa import Programa
 from app.models.programa_radialista import ProgramaRadialista
+from app.models.promessa_no_ar import PromessaNoAr
 from app.models.radio_config import RadioConfig
 from app.models.tema_historico import TemaHistorico
 from app.news.seeds_fontes import criar_seeds_fontes
@@ -1058,7 +1059,12 @@ def excluir_radialista(
     db.query(MensagemOuvinte).filter_by(radio_config_id=radialista.id).delete()
     db.query(InteractionLog).filter_by(radio_config_id=radialista.id).delete()
     db.query(FilaAoVivo).filter_by(radio_config_id=radialista.id).delete()
+    # Promessas no ar (F4): FK sem cascata para programas e radio_configs.
+    db.query(PromessaNoAr).filter_by(radio_config_id=radialista.id).delete()
     if programas_do_radialista:
+        db.query(PromessaNoAr).filter(PromessaNoAr.programa_id.in_(programas_do_radialista)).delete(
+            synchronize_session=False
+        )
         db.query(MusicaHistorico).filter(MusicaHistorico.programa_id.in_(programas_do_radialista)).delete(
             synchronize_session=False
         )
@@ -1421,6 +1427,7 @@ def excluir_programa(
     # ao vivo do banco de assuntos, ver plano-assuntos.md).
     db.query(NoticiaHistorico).filter_by(programa_id=programa.id).delete()
     db.query(AssuntoPrograma).filter_by(programa_id=programa.id).delete()
+    db.query(PromessaNoAr).filter_by(programa_id=programa.id).delete()  # F4, mesma FK sem cascata
     excluir_dados_do_programa(db, account.id, programa.id)
     db.delete(programa)
     db.commit()

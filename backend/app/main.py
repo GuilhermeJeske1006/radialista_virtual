@@ -157,6 +157,8 @@ async def criar_tabelas():
     aplicar(engine)
     from app.db.migrations.ritmo_voz_20261109 import aplicar as aplicar_ritmo_voz
     aplicar_ritmo_voz(engine)
+    from app.db.migrations.promessas_20261112 import aplicar as aplicar_promessas
+    aplicar_promessas(engine)
     Base.metadata.create_all(bind=engine)
     garantir_colunas_radio_config()
     garantir_colunas_account()
