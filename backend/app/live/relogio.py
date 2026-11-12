@@ -394,6 +394,10 @@ class Plano:
     instrucao: str | None = None
     # Adiantamento acima de adiantamento_max_s: nada coube e o compromisso começa mais cedo.
     forcado: bool = False
+    # F4: etapas depois desta, ainda não concluídas, até o fim da ocorrência (a agenda das promessas).
+    seguintes: tuple[Etapa, ...] = ()
+    # F4: etapas com promessa aberta (chaves "h:inicio_s"); o backtiming reserva o tempo da fala delas.
+    obrigacoes: frozenset[str] = frozenset()
 
 
 # ------------------------------------------------------------------------------------------------
@@ -608,7 +612,8 @@ def _categoria_simples(tipo: str) -> str:
 class _Decisao:
     """Decide o próximo bloco num espelho já montado (auditoria F1 §5.5, "Decisão")."""
 
-    def __init__(self, espelho, ocorrencia, instante, formato_musical, ultima_categoria, executadas, pecas, cfg):
+    def __init__(self, espelho, ocorrencia, instante, formato_musical, ultima_categoria, executadas, pecas, cfg,
+                 obrigacoes: frozenset[str] = frozenset()):
         self.espelho: list[Etapa] = espelho
         self.ocorrencia: Ocorrencia = ocorrencia
         self.instante: datetime.datetime = instante
@@ -617,6 +622,7 @@ class _Decisao:
         self.executadas: set[str] = set(executadas)
         self.pecas: PecasDisponiveis = pecas
         self.cfg: ConfigRelogio = cfg
+        self.obrigacoes: frozenset[str] = frozenset(obrigacoes)
 
     # --- tempo ----------------------------------------------------------------------------------
 
@@ -634,7 +640,16 @@ class _Decisao:
             etapa = self.espelho[j]
             if etapa.natureza == "obrigatorio" and not etapa.hard_time and not self.concluida(etapa):
                 espaco -= etapa.duracao_s
+            elif etapa.chave in self.obrigacoes and not etapa.hard_time and not self.concluida(etapa):
+                espaco -= self.reserva_obrigacao(etapa)
         return espaco
+
+    def reserva_obrigacao(self, etapa: Etapa) -> float:
+        """Etapa com promessa aberta (F4): reserva o máximo da unidade de fala dela, não a duração da etapa
+        ("Participação ou jogo" do C tem 7 min de etapa e 20-90 s de fala), limitado à duração."""
+        unidade = etapa.regra.unidade
+        maximo = self.cfg.unidades[unidade][1] if unidade in self.cfg.unidades else etapa.duracao_s
+        return min(float(maximo), etapa.duracao_s)
 
     # --- estado ---------------------------------------------------------------------------------
 
@@ -721,7 +736,9 @@ class _Decisao:
         return Plano(
             instante=self.instante, ocorrencia=self.ocorrencia, etapa=etapa, proximo_compromisso=alvo,
             segundos_ate_hard_time=round(self._ate(alvo.inicio), 2) if alvo is not None else None,
-            espaco_s=round(espaco, 2), acao=acao, tipo_bloco=tipo_bloco, **campos,
+            espaco_s=round(espaco, 2), acao=acao, tipo_bloco=tipo_bloco,
+            seguintes=tuple(e for e in self.espelho[indice + 1:] if not self.concluida(e)),
+            obrigacoes=self.obrigacoes, **campos,
         )
 
     def _fala(self, indice: int, unidade: str, tipo_bloco: str, *, disponivel: float, primeira: bool = False,
@@ -888,6 +905,9 @@ class _Decisao:
                 return plano if plano.puladas or not puladas else replace(plano, puladas=tuple(puladas))
             if self._deslocavel(etapa):
                 logger.info("relogio_etapa_pulada chave=%s tipo=%s motivo=sem_espaco", etapa.chave, etapa.tipo_efetivo)
+                if etapa.chave in self.obrigacoes:
+                    # A promessa para esta etapa vence e vira contingência na próxima fala (F4).
+                    logger.warning("relogio_promessa_pulada chave=%s tipo=%s", etapa.chave, etapa.tipo_efetivo)
                 puladas.append(etapa.chave)
             indice += 1
         return self._encerramento(len(self.espelho) - 1, puladas)
@@ -911,8 +931,9 @@ class _Decisao:
 
 def planejar(programa, relogio: RelogioHora, timezone: str, instante: datetime.datetime, *, formato_musical: bool,
              ultima_categoria: str | None, ja_encerrou: bool, executadas: set[str], pecas: PecasDisponiveis,
-             cfg: ConfigRelogio = CONFIG_PADRAO) -> Plano | None:
-    """Plano do bloco que vai ao ar em `instante`. None = caminho atual (sem relógio aplicável)."""
+             cfg: ConfigRelogio = CONFIG_PADRAO, obrigacoes: frozenset[str] = frozenset()) -> Plano | None:
+    """Plano do bloco que vai ao ar em `instante`. None = caminho atual (sem relógio aplicável). `obrigacoes`
+    (F4): etapas com promessa aberta; sem elas o plano é o mesmo de antes."""
     if ja_encerrou:
         return None
     instante = _utc(instante)
@@ -923,7 +944,8 @@ def planejar(programa, relogio: RelogioHora, timezone: str, instante: datetime.d
     if feriado and relogio.em_feriado == "sem_relogio":
         return None
     espelho = montar_espelho(relogio, ocorrencia, cfg, eh_feriado=feriado, pecas=pecas)
-    return _Decisao(espelho, ocorrencia, instante, formato_musical, ultima_categoria, executadas, pecas, cfg).decidir()
+    return _Decisao(espelho, ocorrencia, instante, formato_musical, ultima_categoria, executadas, pecas, cfg,
+                    obrigacoes=obrigacoes).decidir()
 
 
 def duracao_prevista_fala_s(texto: str, wpm: float) -> float:
@@ -1014,6 +1036,8 @@ class RelogioAoVivo(BaseModel):
     orcamento_s: tuple[int, int] | None = None
     # Etapas puladas nesta decisão (sem espaço), marcadas como executadas.
     puladas: list[str] = []
+    # F4: etapas com promessa aberta (obrigação no backtiming). Nulo sem obrigação.
+    obrigacoes: list[str] | None = None
 
 
 def _etapa_ao_vivo(etapa: Etapa) -> EtapaAoVivo:
@@ -1030,6 +1054,7 @@ def relogio_ao_vivo(plano: Plano, preset: str | None, aceito: bool, origem: str 
         proximo_compromisso=_etapa_ao_vivo(plano.proximo_compromisso) if plano.proximo_compromisso else None,
         segundos_ate_hard_time=plano.segundos_ate_hard_time, espaco_s=plano.espaco_s, acao=plano.acao,
         orcamento_s=plano.orcamento_s, puladas=list(plano.puladas),
+        obrigacoes=sorted(plano.obrigacoes) or None,
     )
 
 
