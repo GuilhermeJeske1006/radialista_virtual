@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.db.database import SessionLocal
 from app.billing.contexto_ia import por_conta
+from app.dados.texto_externo import limpar
 from app.models.account import Account
 from app.models.fonte_noticia import FonteNoticia
 from app.models.noticia import Noticia
@@ -110,9 +111,12 @@ def coletar_fonte(db: Session, account: Account, fonte: FonteNoticia) -> int:
 
         if _e_retificacao(item.titulo):
             original = _achar_noticia_para_retificar(db, account.id, item.titulo, desde)
-            if original is not None:
+            # F5 (D11): a retificação entra no prompt da correção; a ordem embutida sai antes de gravar, e uma
+            # retificação que era só ordem não corrige nada.
+            retificacao = limpar(item.resumo or item.titulo)[0]
+            if original is not None and retificacao:
                 original.retificada = True
-                original.texto_retificacao = item.resumo or item.titulo
+                original.texto_retificacao = retificacao
                 db.commit()
                 continue
             # Retificação sem matéria original encontrada (já saiu da janela, ou nunca foi
