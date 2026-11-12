@@ -1613,6 +1613,17 @@ def _proximo_pedido_fila_dentre(db: Session, radialista: RadioConfig, tipos: tup
     return pedido
 
 
+def _reprovar_pedido(db: Session, pedido: FilaAoVivo, motivo: str) -> None:
+    """Pedido de música que não vai tocar (F4, D2): fica "nao_atendido" à vista da equipe, antes da geração, e o
+    nome do ouvinte não vai ao ar (pesquisa §10: não anunciar; manter o status na fila)."""
+    from app.whatsapp.atendimento import registrar_evento
+
+    pedido.estado, pedido.motivo, pedido.selecao_token = "nao_atendido", motivo, None
+    registrar_evento(pedido, "musica_indisponivel")
+    db.commit()
+    logger.info("live_pedido_musica_indisponivel pedido_id=%s", pedido.id)
+
+
 def _pedido_recente_nao_atendido(db: Session, radialista: RadioConfig, tipo: str) -> FilaAoVivo | None:
     """Espia (sem consumir) o pedido nao atendido mais recente, pra saber se algo "acabou de
     chegar" no WhatsApp enquanto o locutor esta gerando outro tipo de bloco -- ao contrario de
@@ -1660,7 +1671,8 @@ def _nomes_da_transmissao(db: Session, radialista: RadioConfig, programa: Progra
         .limit(_MAX_PEDIDOS_FILA_VALIDACAO)
         .all()
     )
-    ja_atendidos = [nome for nome, estado, atendido in linhas if nome and (atendido or estado in _ESTADOS_JA_ATENDIDOS)]
+    # Pelo estado, não por `atendido`: o legado reprovado (Música indisponível) foi consumido, mas não atendido.
+    ja_atendidos = [nome for nome, estado, _ in linhas if nome and estado in _ESTADOS_JA_ATENDIDOS]
     return ja_atendidos, [nome for nome, _, _ in linhas if nome]
 
 

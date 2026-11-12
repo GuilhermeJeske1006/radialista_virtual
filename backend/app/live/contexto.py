@@ -367,13 +367,15 @@ def resolver_musica_e_pedidos(entrada: EntradaEmissao, decisao: DecisaoBloco, po
             # pedido real do ouvinte -- alimenta o sinal de preferencia do publico em blocos futuros.
             portas.registrar_historico_persistente(db, programa.id, musica, query, origem="pedido_ouvinte")
         else:
-            # O pedido ja foi marcado como atendido antes da busca: sem esse fallback a musica pedida sumia.
-            # Cai pra escolha automatica pra sempre tocar algo neste bloco.
+            # Cai pra escolha automatica pra sempre tocar algo neste bloco. O pedido fica "nao_atendido" (Música
+            # indisponível) antes da geração e o nome do ouvinte não vai ao ar (F4, D2; pesquisa §10).
             pedido_sem_resultado = True
             logger.warning(
                 "Pedido de musica sem resultado na busca, caindo pra escolha automatica: programa_id=%s query=%r",
                 programa.id, query,
             )
+            portas.reprovar_pedido(db, pedido_musica, "Música indisponível")
+            pedido_musica = None
             musica = (
                 portas.buscar_musica_para_bloco(db, programa, tipo) if plano is None
                 else portas.buscar_musica_para_bloco(db, programa, tipo, plano_relogio=teto_musica(plano))

@@ -1158,10 +1158,11 @@ def test_pedido_musica_sem_resultado_cai_para_escolha_automatica(
     assert corpo["video_id"] == "id-auto"
     assert corpo["titulo_musica"] == "Musica Automatica"
 
-    # pedido segue marcado como atendido (nao entra em loop tentando pra sempre uma busca que
-    # nunca vai achar nada), mas nao fica registrado como pedido_ouvinte bem-sucedido.
+    # pedido sai da fila (nao entra em loop tentando pra sempre uma busca que nunca vai achar nada) como
+    # "nao_atendido" (F4, D2: o nome nao vai ao ar), e nao fica registrado como pedido_ouvinte bem-sucedido.
     db_session.refresh(pedido)
     assert pedido.atendido is True
+    assert (pedido.estado, pedido.motivo) == ("nao_atendido", "Música indisponível")
     assert db_session.query(MusicaHistorico).filter_by(programa_id=programa.id, origem="pedido_ouvinte").count() == 0
 
 

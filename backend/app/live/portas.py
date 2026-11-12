@@ -44,6 +44,7 @@ class PortasEmissao:
     # Promessas e participação (F4): leituras do banco
     promessas_abertas: Funcao
     nomes_da_transmissao: Funcao
+    reprovar_pedido: Funcao
     # Roteiro e memória da sessão (Redis e banco)
     categoria_bloco: Funcao
     proxima_variacao: Funcao
@@ -85,6 +86,7 @@ class PortasEmissao:
         "ouvinte_recorrente_dias_anteriores": "_ouvinte_recorrente_dias_anteriores",
         "promessas_abertas": "_promessas_abertas",
         "nomes_da_transmissao": "_nomes_da_transmissao",
+        "reprovar_pedido": "_reprovar_pedido",
         "categoria_bloco": "_categoria_bloco",
         "proxima_variacao": "_proxima_variacao",
         "instrucao_transicao": "_instrucao_transicao",
