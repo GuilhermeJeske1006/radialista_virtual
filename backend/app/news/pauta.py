@@ -20,6 +20,7 @@ import itertools
 
 from sqlalchemy.orm import Session
 
+from app.dados.verificavel import janela_noticia
 from app.models.account import Account
 from app.models.noticia import Noticia
 from app.models.noticia_historico import NoticiaHistorico
@@ -44,18 +45,8 @@ LIMIAR_SCORE_PLANTAO = 85.0
 _CATEGORIAS_LEVES = {"servico_publico", "agenda_cultura", "clima_defesa_civil"}
 _BONUS_DOSE_PITADA = 20.0
 
-# Janela de validade por categoria (ver app.news.curadoria.CATEGORIAS_NOTICIA) -- hard news
-# envelhece rápido, serviço aguenta um pouco mais, agenda/cultura dura a semana.
-_JANELA_VALIDADE_HORAS = {
-    "seguranca": 24,
-    "transito": 24,
-    "clima_defesa_civil": 24,
-    "saude": 24,
-    "economia": 48,
-    "servico_publico": 48,
-    "geral": 48,
-    "agenda_cultura": 24 * 7,
-}
+# Janela de validade por categoria (ver app.news.curadoria.CATEGORIAS_NOTICIA): desde a F5 é a regra única de
+# app.dados.verificavel (ConfigDados.janela_noticia_h), a mesma do bloco de dados e do assunto derivado.
 
 _MAX_CANDIDATOS = 200
 
@@ -139,8 +130,7 @@ def _candidatos(
         publicado_em = noticia.publicado_em
         if publicado_em.tzinfo is None:
             publicado_em = publicado_em.replace(tzinfo=datetime.timezone.utc)
-        janela_horas = _JANELA_VALIDADE_HORAS.get(noticia.categoria, 48)
-        if publicado_em < agora - datetime.timedelta(hours=janela_horas):
+        if publicado_em < agora - janela_noticia(noticia.categoria):
             continue
         if not _categoria_permitida(noticia.categoria, tipos_noticias):
             continue
