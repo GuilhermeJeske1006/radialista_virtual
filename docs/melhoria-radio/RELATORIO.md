@@ -157,3 +157,56 @@ Next 16); não conta como regressão.
   música quando a mesma fala anuncia música.
 - Os registros do portão e do juiz da F3 foram commitados na branch `melhoria/f4-promessas` (a branch da F3
   estava em uso na árvore principal por outra sessão).
+
+### F4 — Promessas, chamadas e participação de verdade — CONCLUÍDA
+
+- Branch: `melhoria/f4-promessas` (a partir de `melhoria/f3-contexto-emissao`), worktree `locufy-radio`.
+- Commits: `44e1ee9` (auditoria), `b1a35de`, `cb1d7e5`, `9ed9152`, `0639ef0`, `5f591b6`, `30ddc8f`, `b70144b` (D2),
+  `81943cf` (D7), `122d2a3` (caracterização do legado), `835d8e4` (D1), `4281825`, `b216d65`, `93a438c`, `4153bf3`,
+  `17f9cf9` (+ registro do portão).
+- Entregas: `app/live/promessas.py` e `participacao.py` (detectores puros, sem LLM), `promessas_repo.py`, tabela
+  `promessas_no_ar` (migração aditiva `promessas_20261112.py`, apagada na exclusão de programa e radialista);
+  agenda de chamadas pelas etapas seguintes do relógio (sem relógio, pelo roteiro, sem consumir sorteio);
+  checagens de promessa e participação na mesma reescrita única e remoção de frase da F3; registro sobre o texto
+  que vai ao ar, depois do TTS; cumprimento no bloco-alvo, contingência com frase fixa garantida pelo código,
+  vencimento resolvido na fala seguinte e no encerramento; relógio com `planejar(obrigacoes)` (lista vazia = plano
+  idêntico); textos de prompt sem promessa fora da agenda; simulador mede pelos detectores do backend. Contrato e
+  painel só com campos opcionais.
+- Decisões: D1 confirmada pelo usuário em 12/11/2026 (opção A): o fluxo legado de pedidos passa a ser selecionado
+  com token e confirmado pelo player depois de tocar. D2 a D12 adotadas pelo padrão da auditoria, a confirmar
+  ([`f4/pendencias.md`](f4/pendencias.md)); as de maior efeito: D2 (pedido de música indisponível não vai ao ar com
+  o nome do ouvinte) e D3 (promessas só no banco, sem Redis).
+- Goldens de `/proxima`: idênticos nas extrações; regravados com diff revisado 1 na D2, 8 na D1 e os 31 no commit
+  dos textos de prompt; 3 novos de promessa.
+- Portão independente (testador): VERDE. ruff limpo; pytest 1515/1515 (+136), cobertura 88%; vitest 318/318;
+  `tsc` ok; 12 simulações e o cenário dedicado com `as_run.json` idêntico byte a byte.
+- Simulação fake, F3 → F4 (com relógio / sem relógio / voz 120 / painel antigo):
+
+| | musical | popular | variedades |
+|---|---|---|---|
+| Promessa vencida | 0/0/0/0 → 0 | 0/1/1/1 → 0 | 0/0/0/0 → 0 |
+| Pedido indevido | 1/1/1/1 → 0 | 1/1/1/1 → 0 | 3/4/3/3 → 0 |
+| Ouvinte inexistente | 0 → 0 | 0 → 0 | 1/1/1/1 → 0 |
+| Participações legítimas no ar | 0/0/0/0 → 0/1/0/0 | 2/3/2/2 → igual | 0/0/0/0 → 2/3/2/2 |
+| Atraso máximo em hard time (com relógio) | 0 → 0 s | 0,36 → 0,36 s | 0,18 → 0 s |
+
+- Demais critérios herdados mantidos: 0% fora do orçamento com relógio, encerramento no ar, anúncio sem
+  confirmação 0, no máximo 2 chamadas de LLM e 1 síntese por fala. Estresse `voz_120`: popular segue em 12,1 s
+  (limite da F2), variedades cai de 14,3% para 6,7% fora do orçamento.
+- Juiz: APROVADO (só métricas automáticas, régua própria; rubrica exige `--modo llm`, pendente de aprovação de
+  custo). Pedido atendido antes de tocar 13 → 0; nenhum pedido selecionado e executado perdeu o nome no ar.
+  Detalhe em [`f4/avaliacao.md`](f4/avaliacao.md).
+- Ressalvas do juiz, não bloqueiam:
+  - D2 fecha como "música indisponível" um pedido cuja faixa existe e só tinha tocado na mesma hora; o pedido sai
+    da fila, e a pesquisa §10 pede manter o status. Ouvintes reais citados caem de 26 para 19 por causa da D2.
+  - A frase de contingência repete o convite ("o WhatsApp ... segue aberto. O WhatsApp ... está aberto") e afirma
+    "ainda não chegou recado" um minuto depois de um pedido chegar.
+  - No cenário dedicado do popular, a identificação vai ao ar como "Rádio. Daqui a pouco tem mais recado..." (4,55 s
+    para máximo de 4 s; hard time atrasa 2,02 s, dentro dos 5 s).
+  - Fim antecipado do musical sobe de 8,5 para 37,4 s (meta: 60 s).
+  - No simulador, `validacao_fala.regras` conta cada violação duas vezes por remoção e `falas_abaixo_minimo`
+    não mede o que o nome diz.
+- Pendências: [`f4/pendencias.md`](f4/pendencias.md) — falsos positivos com texto real não medidos (`--modo llm`);
+  estado marcado na geração, não na reprodução (F11); pedido legado selecionado sem confirmação fica preso até a
+  equipe reenfileirar; fallback do painel em `useLiveEngine.ts` ainda diz "já volto com mais uma novidade".
+

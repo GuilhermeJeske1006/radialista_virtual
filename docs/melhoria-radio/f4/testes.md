@@ -101,3 +101,48 @@ O que aconteceu com cada injeção e pedido nas rodadas F4:
 | Simulador usa os detectores do backend | `metricas` delega a `app.live.promessas` e `app.live.participacao` (S3) |
 | F1-F3 não pioram | hard time ≤ 5 s com relógio e painel antigo, encerramento no ar, 0% fora do orçamento com relógio, ≤ 2 LLM e 1 síntese por fala; voz 120 e sem relógio iguais ou melhores que na F3 |
 | Goldens de `/proxima` | 28 iguais nos commits de extração; 3 novos; regravados só nos commits previstos |
+
+## Portão independente (testador, 2026-11-12)
+Branch `melhoria/f4-promessas`, HEAD `17f9cf9`, worktree `locufy-radio`. Nada foi corrigido nem commitado.
+
+### Comandos e resultados
+- `ffmpeg -version`: 8.0.1.
+- `ruff check app tests scripts/simular_hora.py scripts/simulacao`: All checks passed.
+- `pytest -q --cov=app --cov-report=term`: **1515 passed**, 0 falhas, 460 s. Cobertura total **88%** (F3: 87%, não caiu).
+- Simulação `PYTHONPATH=. PYTHONHASHSEED=0 .venv/bin/python scripts/simular_hora.py --modo fake --programa <perfil> [--relogio-backend nenhum | --wpm-real 120 | --sem-inicio-previsto] --saida <scratchpad>/f4-portao/<variante>/<perfil>`: 12 rodadas, rc=0, 0 tentativas de rede.
+  `as_run.json` **byte a byte igual** aos gravados nas 12 rodadas. `resumo.json` igual exceto `tempo_execucao_s` e `config.commit` (HEAD atual `17f9cf9` contra `4153bf3` gravado).
+- Cenário dedicado S2 (sem CLI; usa `simular(..., injecoes_extra=...)` como em `tests/test_simulacao_f4.py`, com o ambiente de `preparar_processo("fake")`): `as_run.json` igual byte a byte nos dois perfis; `resumo.json` igual exceto tempo e commit.
+- Painel: `npm test` 318 passed (56 arquivos); `npx tsc --noEmit` sem erros; `npm run lint` falha preexistente (`next lint` lê "lint" como diretório: "Invalid project directory"), só listada.
+- Migração `app/db/migrations/promessas_20261112.py`: só cria `promessas_no_ar` se ausente (sem DROP/ALTER, idempotente), registrada em `main.py` no startup antes do `create_all`, no mesmo padrão das anteriores; coberta por `test_u11_*`.
+
+### Cobertura de app/live
+| Arquivo | Cobertura | Arquivo | Cobertura |
+|---|---|---|---|
+| audio_analysis | 100% | promessas | 95% |
+| contexto | 99% | promessas_repo | 100% |
+| formato | 100% | prompt_emissao | 99% |
+| geracao | 94% | prompts | 100% |
+| music | 77% | relogio | 96% |
+| orcamento | 97% | ritmo_voz | 95% |
+| participacao | 98% | roteiro | 97% |
+| portas | 100% | router | 95% |
+| prewarm | 85% | song_service | 95% |
+| spotify | 80% | validacao_fala | 97% |
+
+### Métricas contra os critérios
+| Critério | Resultado (12 rodadas + S2) | Atende |
+|---|---|---|
+| 0 promessas vencidas sem contingência | 0 em todas; sem registro 0; contingência no ar no S2 musical | sim |
+| 0 pedidos "toca agora" fora do estado | `pedido_indevido` 0 em todas | sim |
+| Nenhuma fala cita ouvinte inexistente | 0 em todas | sim |
+| Hard time <= 5 s (relógio e painel antigo) | relógio 0/0,36/0 s; painel antigo 0/0/0; S2 popular 2,02 s (voz 120 popular 12,1 s e sem relógio: estresse/linha de base, iguais à F3) | sim |
+| Encerramento no ar (relógio e painel antigo) | True nas 6 rodadas (sem relógio: False em musical e popular, linha de base F0, igual ao gravado) | sim |
+| Fora do orçamento com relógio | 0% (voz 120 variedades 6,7%, melhor que 14,3% da F3; S2 popular 10%) | sim |
+| <= 2 chamadas LLM por fala | máximo 2 em todas | sim |
+| `anuncio_sem_confirmacao` | 0 em todas | sim |
+
+### Falhas
+- Novas: nenhuma. Preexistente: `npm run lint` do painel (acima).
+- Arquivos `backend/.coverage.*` soltos removidos.
+
+**VERDE**
