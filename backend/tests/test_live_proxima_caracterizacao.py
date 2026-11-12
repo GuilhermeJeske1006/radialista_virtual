@@ -232,6 +232,42 @@ def _p_relogio(preset, *executadas):
     return preparar
 
 
+def _promessa_aberta(db, programa, ocorrencia, chave, *, posicao=None, texto="Mais tarde a gente lê os recados."):
+    from app.live import promessas as p
+    from app.live import promessas_repo
+
+    evento = p.EventoAgendado(chave=chave, tipo="participacao", rotulo="Retorno e participação", posicao=posicao)
+    promessas_repo.registrar(db, programa=programa, ocorrencia=ocorrencia, request_id="anterior",
+                             itens=[(p.detectar(texto)[0], evento)])
+
+
+def _p_retorno_com_promessa(com_pedido: bool):
+    """F4: relógio A no retorno de 27:00, com a promessa aberta para ele (cumpre com pedido, contingência sem)."""
+    def preparar(db, account, radialista, programa, mp):
+        _p_relogio("A", "0:40", "0:720")(db, account, radialista, programa, mp)
+        from app.live import relogio as r
+
+        instante = datetime.datetime(2026, 11, 10, 12, 0, tzinfo=datetime.timezone(datetime.timedelta(hours=-3)))
+        ocorrencia = r.ocorrencia_em(programa, radialista.timezone, instante)
+        ids = [int(t.split(":")[1]) for t in programa.estrutura_blocos if t.startswith("patrocinador:")]
+        r.marcar_executada(programa.id, ocorrencia, *(f"0:1440:patrocinador:{i}" for i in ids))
+        _promessa_aberta(db, programa, ocorrencia.chave, "etapa:0:1620")
+        if com_pedido:
+            _p_abraco(db, account, radialista, programa, mp)
+    return preparar
+
+
+def _p_promessa_vencida_sem_relogio(db, account, radialista, programa, mp):
+    """F4: sem relógio, a posição prometida (chamada de ouvinte na 2) passou: contingência no comentário."""
+    from app.live.contexto import chave_ocorrencia
+
+    programa.estrutura_blocos = ["abertura", "musica", "chamada_ouvinte", "comentario", "musica", "comentario"]
+    programa.ia_pode_adicionar_blocos = False
+    db.commit()
+    ocorrencia = chave_ocorrencia(programa, radialista.timezone, datetime.datetime.now(datetime.timezone.utc))
+    _promessa_aberta(db, programa, ocorrencia, "roteiro:2", posicao=2)
+
+
 def _p_multivoz(db, account, radialista, programa, mp):
     programa.estrutura_blocos = ["comentario"]
     programa.ia_pode_adicionar_blocos = False
@@ -319,6 +355,19 @@ CENARIOS = [
     Cenario("relogio_a_encerramento", {"total_falas": 20, "historico": HIST_MUSICA,
                                        "inicio_previsto": "2026-11-10T12:59:35-03:00"},
             agora="2026-11-10 15:52:00", preparar=_p_relogio("A"), respostas=["Obrigado pela companhia nesta tarde."]),
+    # F4: promessa aberta cumprida, com contingência e vencida (sem relógio). Gravados no commit do cumprimento.
+    Cenario("relogio_a_retorno_cumpre", {"total_falas": 6, "historico": ["patrocinador: Loja Dois, perto de você."],
+                                         "inicio_previsto": "2026-11-10T12:27:00-03:00"},
+            agora="2026-11-10 15:26:50", preparar=_p_retorno_com_promessa(True),
+            respostas=["Seu Valdir, café na oficina é coisa séria, abraço pra turma!"]),
+    Cenario("relogio_a_retorno_contingencia", {"total_falas": 6,
+                                               "historico": ["patrocinador: Loja Dois, perto de você."],
+                                               "inicio_previsto": "2026-11-10T12:27:00-03:00"},
+            agora="2026-11-10 15:26:50", preparar=_p_retorno_com_promessa(False),
+            respostas=["O WhatsApp da Rádio Teste está aberto para o seu recado."]),
+    Cenario("promessa_vencida_sem_relogio", {"total_falas": 3, "historico": HIST_COMENTARIO},
+            preparar=_p_promessa_vencida_sem_relogio,
+            respostas=["Repara como cada família tem um jeito próprio de arrumar a mesa no domingo."]),
     Cenario("multivoz", {"total_falas": 3, "historico": HIST_MUSICA}, preparar=_p_multivoz,
             respostas=[json.dumps({"linhas": [
                 {"locutor": "Ze do Radio", "texto": "Maria, você viu a feira de domingo?"},

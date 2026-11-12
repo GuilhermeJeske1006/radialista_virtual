@@ -83,8 +83,9 @@ class ConfigPromessas:
     # Promessa cujo alvo passou há mais que isto vence (vira contingência na próxima fala).
     tolerancia_vencimento_s: int = 60
     max_promessas_abertas: int = 3
-    # Contingência só entra numa fala cujo texto ocupa até esta fração do máximo do orçamento (sobra espaço);
-    # senão espera a próxima. O encerramento sempre resolve.
+    # Fora do encerramento, as frases de contingência de um bloco somam no máximo esta fração do máximo do
+    # orçamento aplicado (sobra espaço para a fala); as que não cabem esperam a próxima fala. O encerramento
+    # sempre resolve todas.
     fracao_orcamento_contingencia: float = 0.6
     # Palavras de conteúdo (casamento por conteúdo): pelo menos este tanto de letras, comparadas pelo prefixo.
     min_letras_conteudo: int = 5
@@ -105,6 +106,16 @@ class ConfigPromessas:
         "violacao": "Você prometeu '{trecho}' sem programação confirmada.",
         "com_agenda": "O que está agendado: {eventos}; se quiser chamar algo adiante, use só isso.",
         "sem_agenda": "Não prometa conteúdo futuro.",
+        "cumprir": "Você prometeu '{trecho}'. Cumpra agora: {conteudo}.",
+        "contingencia": "Comece a fala com esta frase, exatamente: '{texto}'",
+    })
+    # O que o bloco alvo traz, na instrução de cumprir.
+    conteudos: dict[str, str] = dataclasses.field(default_factory=lambda: {
+        "pedido_ouvinte": "o recado de {nome}",
+        "pedido_musica": "o pedido de {nome}",
+        "quadro": "o quadro {rotulo}",
+        "informacao": "a informação sobre {rotulo}",
+        "generico": "o que foi prometido",
     })
 
 
@@ -531,3 +542,122 @@ def a_registrar_no_texto(fala: str, ctx: "ContextoEmissao",
     return [(promessa, casamento.evento)
             for promessa, casamento in avaliar(fala, situacao_do_contexto(ctx), musica_do_contexto(ctx), config)
             if casamento.situacao == "evento" and casamento.evento is not None]
+
+
+# ---------------------------------------------------------------------------------------------------------
+# Cumprimento e contingência
+# ---------------------------------------------------------------------------------------------------------
+
+def _alvo(promessa: PromessaRef, ctx: "ContextoEmissao") -> tuple[bool, bool]:
+    """(este bloco é o alvo, o alvo já passou)."""
+    plano = ctx.tempo.plano
+    alvo = promessa.evento_alvo
+    if alvo == "encerramento":
+        return ctx.categoria == "encerramento", False
+    if alvo.startswith("etapa:"):
+        if plano is None:
+            return False, True
+        chave = alvo[len("etapa:"):]
+        if plano.etapa.chave == chave:
+            return True, False
+        return False, chave not in {e.chave for e in plano.seguintes}
+    if alvo.startswith("roteiro:") and plano is None:
+        posicao, atual = int(alvo[len("roteiro:"):]), ctx.total_falas + ctx.passos_roteiro - 1
+        return posicao == atual, atual > posicao
+    return False, True
+
+
+def _tem_conteudo(promessa: PromessaRef, ctx: "ContextoEmissao") -> bool:
+    if promessa.tipo == "participacao":
+        return ctx.participacao.pedido_ouvinte is not None or ctx.participacao.pedido_musica is not None
+    if promessa.tipo == "quadro":
+        return ctx.variacoes.quadro_fixo is not None
+    if promessa.tipo == "informacao":
+        pesquisa = ctx.jornalismo.pesquisa
+        return bool(ctx.jornalismo.pautas or ctx.jornalismo.pauta is not None
+                    or (pesquisa is not None and getattr(pesquisa, "status", "") == "ok"))
+    return True
+
+
+def conteudo_do_bloco(promessa: PromessaRef, ctx: "ContextoEmissao", config: ConfigPromessas | None = None) -> str:
+    cfg = config or CONFIG_PROMESSAS
+    p, rotulo = ctx.participacao, (promessa.rotulo or "").replace("_", " ")
+    if promessa.tipo == "participacao" and p.pedido_ouvinte is not None:
+        return cfg.conteudos["pedido_ouvinte"].format(nome=p.pedido_ouvinte.nome or "um ouvinte")
+    if promessa.tipo == "participacao" and p.pedido_musica is not None:
+        return cfg.conteudos["pedido_musica"].format(nome=p.pedido_musica.nome or "um ouvinte")
+    if promessa.tipo in ("quadro", "informacao") and rotulo:
+        return cfg.conteudos[promessa.tipo].format(rotulo=rotulo)
+    return cfg.conteudos["generico"]
+
+
+def _contingencia(promessa: PromessaRef, ctx: "ContextoEmissao", motivo: str, cfg: ConfigPromessas) -> Contingencia:
+    tipo = promessa.tipo if promessa.tipo in ("participacao", "quadro", "informacao") else "generico"
+    rotulo = promessa.rotulo if tipo != "generico" or promessa.rotulo else ""
+    texto = texto_contingencia(tipo, rotulo, getattr(ctx.account, "nome_radio", "") or "", cfg)
+    return Contingencia(promessa_id=promessa.id, texto=texto, motivo=motivo)
+
+
+def a_cumprir_e_contingencias(ctx: "ContextoEmissao", config: ConfigPromessas | None = None
+                              ) -> tuple[tuple[PromessaRef, ...], tuple[Contingencia, ...]]:
+    """Promessas abertas que este bloco cumpre (é o alvo e o conteúdo veio) e as contingências que ele diz: alvo
+    sem conteúdo, alvo que já passou (etapa pulada, posição trocada) e, no encerramento, todas as que sobraram."""
+    from app.live.orcamento import estimar_duracao_s
+
+    cfg = config or CONFIG_PROMESSAS
+    encerramento = ctx.categoria == "encerramento"
+    a_cumprir: list[PromessaRef] = []
+    contingencias: list[Contingencia] = []
+    for promessa in ctx.chamadas.promessas:
+        alvo, passou = _alvo(promessa, ctx)
+        if alvo and _tem_conteudo(promessa, ctx):
+            a_cumprir.append(promessa)
+        elif alvo:
+            contingencias.append(_contingencia(promessa, ctx, "conteudo_caiu", cfg))
+        elif encerramento:
+            contingencias.append(_contingencia(promessa, ctx, "fim_do_programa", cfg))
+        elif passou:
+            contingencias.append(_contingencia(promessa, ctx, "prazo_vencido", cfg))
+    if not encerramento and ctx.orcamento.aplicar:
+        cabem, total = [], 0.0
+        limite = ctx.orcamento.max_s * cfg.fracao_orcamento_contingencia
+        for contingencia in contingencias:
+            duracao = estimar_duracao_s(contingencia.texto, ctx.wpm_fala)
+            if total + duracao <= limite:
+                cabem.append(contingencia)
+                total += duracao
+        contingencias = cabem
+    return tuple(a_cumprir), tuple(contingencias)
+
+
+def instrucoes_do_bloco(ctx: "ContextoEmissao", config: ConfigPromessas | None = None) -> list[str]:
+    """Linhas do prompt: cumprir o que foi prometido e dizer a contingência com a frase exata."""
+    cfg = config or CONFIG_PROMESSAS
+    linhas = [cfg.instrucoes["cumprir"].format(trecho=p.trecho, conteudo=conteudo_do_bloco(p, ctx, cfg))
+              for p in ctx.chamadas.a_cumprir]
+    linhas += [cfg.instrucoes["contingencia"].format(texto=c.texto) for c in ctx.chamadas.contingencias]
+    return linhas
+
+
+def dita(texto: str, fala: str) -> bool:
+    alvo = normalizar(texto)
+    return bool(alvo) and f" {alvo} " in f" {normalizar(fala)} "
+
+
+def garantir_contingencia(fala: str, falas_bloco: list, contingencias: Iterable[Contingencia]
+                          ) -> tuple[str, list, list[Contingencia]]:
+    """A frase de contingência vai ao ar mesmo que o LLM a ignore (D5): a que falta entra no começo (no multivoz,
+    na primeira linha). Fala vazia (só música) fica vazia: a promessa espera a próxima fala."""
+    contingencias = list(contingencias)
+    if not fala.strip() or not contingencias:
+        return fala, falas_bloco, []
+    faltam = [c.texto for c in contingencias if not dita(c.texto, fala)]
+    if faltam:
+        prefixo = " ".join(faltam)
+        if falas_bloco:
+            primeira = falas_bloco[0].model_copy(update={"texto": f"{prefixo} {falas_bloco[0].texto}"})
+            falas_bloco = [primeira, *falas_bloco[1:]]
+            fala = " ".join(item.texto for item in falas_bloco)
+        else:
+            fala = f"{prefixo} {fala}"
+    return fala, falas_bloco, contingencias

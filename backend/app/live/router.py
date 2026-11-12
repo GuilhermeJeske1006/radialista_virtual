@@ -137,7 +137,7 @@ from app.live.validacao_fala import (
 )
 from app.live import promessas_repo
 from app.live.participacao import pedido_sem_mencao
-from app.live.promessas import PromessaRef, a_registrar_no_texto
+from app.live.promessas import PromessaRef, a_registrar_no_texto, dita, garantir_contingencia
 from app.live.roteiro import (  # noqa: F401 -- reexportados
     _LIMIAR_ENCERRAMENTO_MIN,
     _PATROCINADOR_RE,
@@ -1643,7 +1643,9 @@ _ESTADOS_JA_ATENDIDOS = ("executado", "selecionado", "historico_legado")
 
 
 def _promessas_abertas(db: Session, programa: Programa, ocorrencia: str) -> list[PromessaRef]:
-    """Promessas abertas desta ocorrência (F4). Só banco: com o Redis fora continuam valendo."""
+    """Promessas abertas desta ocorrência (F4). Só banco: com o Redis fora continuam valendo. As que sobraram de
+    outra ocorrência (transmissão que acabou sem encerramento) vencem aqui."""
+    promessas_repo.vencer(db, programa.id, exceto_ocorrencia=ocorrencia)
     return [promessas_repo.para_ref(linha) for linha in promessas_repo.abertas(db, programa.id, ocorrencia)]
 
 
@@ -1826,7 +1828,7 @@ def _planejar_relogio(
         programa, relogio, radialista.timezone, instante, formato_musical=formato_musical,
         ultima_categoria=ultima_categoria, ja_encerrou=ja_encerrou,
         executadas=etapas_executadas(programa.id, ocorrencia), pecas=_pecas_do_relogio(db, account, programa, cfg.wpm),
-        cfg=cfg,
+        cfg=cfg, obrigacoes=promessas_repo.obrigacoes(db, programa.id, ocorrencia.chave),  # F4: promessas abertas
     )
     if plano is not None:
         logger.info(
@@ -2286,18 +2288,36 @@ def _devolver_pedido_sem_mencao(db: Session, ctx: ContextoEmissao, resolucao: Re
     return True
 
 
-def _registrar_promessas(db: Session, ctx: ContextoEmissao, fala: str) -> PromessasBloco | None:
-    """Promessas do texto que vai ao ar (depois do TTS: o momento C pode ter tirado a frase), casadas com um
-    evento da agenda, viram linha aberta em promessas_no_ar. Sem promessa, nenhuma escrita."""
-    if not fala.strip() or ctx.chamadas.ocorrencia is None:
+def _registrar_promessas(db: Session, ctx: ContextoEmissao, fala: str, devolvido: bool = False
+                         ) -> PromessasBloco | None:
+    """Com o texto que vai ao ar (depois do TTS: o momento C pode ter tirado a frase): promessas novas casadas com
+    um evento da agenda viram linha aberta; as que este bloco cumpre viram cumpridas; as contingências ditas
+    cancelam as suas. No encerramento, o que sobrou vence. Sem promessa, nenhuma escrita."""
+    chamadas = ctx.chamadas
+    if chamadas.ocorrencia is None:
         return None
-    novas = promessas_repo.registrar(db, programa=ctx.programa, ocorrencia=ctx.chamadas.ocorrencia,
-                                     request_id=ctx.request_id, itens=a_registrar_no_texto(fala, ctx))
-    if not novas:
+    resolvidas = []
+    if fala.strip():
+        cumpridas = [p.id for p in chamadas.a_cumprir if not (devolvido and p.tipo == "participacao")]
+        resolvidas += promessas_repo.resolver(db, cumpridas, "cumprida", "cumprida no bloco")
+        for contingencia in chamadas.contingencias:
+            if dita(contingencia.texto, fala):
+                resolvidas += promessas_repo.resolver(db, [contingencia.promessa_id], "cancelada",
+                                                      f"contingencia:{contingencia.motivo}",
+                                                      contingencia=contingencia.texto)
+    novas = promessas_repo.registrar(db, programa=ctx.programa, ocorrencia=chamadas.ocorrencia,
+                                     request_id=ctx.request_id, itens=a_registrar_no_texto(fala, ctx)) \
+        if fala.strip() else []
+    if ctx.categoria == "encerramento":
+        resolvidas += promessas_repo.vencer(db, ctx.programa.id, ocorrencia=chamadas.ocorrencia)
+    if not (novas or resolvidas):
         return None
-    return PromessasBloco(registradas=[
-        PromessaResponse(id=linha.id, tipo=linha.tipo, trecho=linha.trecho, evento_alvo=linha.evento_alvo,
-                         prazo=linha.prazo, prazo_posicao=linha.prazo_posicao) for linha in novas])
+    return PromessasBloco(
+        registradas=[PromessaResponse(id=linha.id, tipo=linha.tipo, trecho=linha.trecho,
+                                      evento_alvo=linha.evento_alvo, prazo=linha.prazo,
+                                      prazo_posicao=linha.prazo_posicao) for linha in novas],
+        resolvidas=[PromessaResolvidaResponse(id=linha.id, estado=linha.estado, contingencia=linha.contingencia or None)
+                    for linha in resolvidas])
 
 
 def _pedido_confirmavel(db: Session, resolucao: ResolucaoBloco, musica: MusicaEncontrada | None):
@@ -2367,12 +2387,16 @@ def gerar_proxima_fala(
     so_musica = bool(musicas_bloco) and ctx.participacao.pedido_musica is None
 
     sintese = _validar_fala_final(ctx, gerada, preservar, so_musica)
+    # Contingência garantida (F4, D5): a frase vai ao ar mesmo que o LLM a ignore, e o momento C não a tira.
+    sintese.fala, sintese.falas_bloco, _ = garantir_contingencia(sintese.fala, sintese.falas_bloco,
+                                                                 ctx.chamadas.contingencias)
+    preservar = preservar + [c.texto for c in ctx.chamadas.contingencias]
     _sintetizar_voz_unica(db, entrada, ctx, sintese, gerada, preservar, so_musica)
     _sintetizar_multivoz(db, entrada, ctx, sintese, preservar)
     fala, falas_bloco = sintese.fala, sintese.falas_bloco
     _registrar_fala_no_ar(db, ctx, fala)
     devolvido = _devolver_pedido_sem_mencao(db, ctx, resolucao, sintese)
-    promessas = _registrar_promessas(db, ctx, fala)
+    promessas = _registrar_promessas(db, ctx, fala, devolvido)
 
     duracao_fala_estimada_s = _estimar_fala_do_bloco(fala, falas_bloco, ctx.wpm_fala)
     _registrar_duracao_fala(request_id, programa.id, tipo, fala, falas_bloco, ctx.orcamento, ctx.wpm_fala,

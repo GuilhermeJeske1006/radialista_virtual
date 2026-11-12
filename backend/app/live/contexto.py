@@ -43,6 +43,7 @@ from app.live.promessas import (
     Contingencia,
     EventoAgendado,
     PromessaRef,
+    a_cumprir_e_contingencias,
     agenda_do_plano,
     agenda_do_roteiro,
     tem_musica_no_plano,
@@ -643,7 +644,7 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
     abertas = tuple(portas.promessas_abertas(entrada.db, programa, ocorrencia))
     ja_atendidos, da_transmissao = portas.nomes_da_transmissao(entrada.db, radialista, programa)
     selecionados = tuple(p.nome for p in (pedido_musica, pedido_ouvinte) if p is not None and p.nome)
-    return ContextoEmissao(
+    ctx = ContextoEmissao(
         request_id=entrada.request_id, account=account, radialista=radialista, programa=programa,
         tipo=tipo, categoria=categoria, primeira_fala=decisao.primeira_fala, total_falas=entrada.total_falas,
         passos_roteiro=decisao.passos_roteiro, formato_musical=formato_musical, multi_voz=multi_voz,
@@ -688,3 +689,9 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
         orcamento=orcamento, wpm_fala=wpm_fala, categoria_voz=categoria_voz, limite_palavras=limite_palavras,
         prompt_base=prompt_base, modelo_com_tags=modelo_com_tags,
     )
+    # O que este bloco cumpre e as contingências que ele diz (F4), com o contexto completo.
+    a_cumprir, contingencias = a_cumprir_e_contingencias(ctx)
+    if not (a_cumprir or contingencias):
+        return ctx
+    return dataclasses.replace(ctx, chamadas=dataclasses.replace(ctx.chamadas, a_cumprir=a_cumprir,
+                                                                 contingencias=contingencias))

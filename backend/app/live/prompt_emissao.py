@@ -13,6 +13,7 @@ import json
 from typing import TYPE_CHECKING
 
 from app.live.formato import direcao_musical
+from app.live.promessas import instrucoes_do_bloco
 from app.live.orcamento import contar_pausas, palavras_max
 from app.live.prompts import (
     INSTRUCAO_TAGS_V3,
@@ -522,6 +523,7 @@ def montar_prompt(ctx: "ContextoEmissao") -> PromptEmissao:
         *_ouvintes_e_tempo(ctx),
         *_musica(ctx),
         *_participacao(ctx),
+        *instrucoes_do_bloco(ctx),
         *_duracao(ctx),
     ]
     mensagem = "\n".join([
