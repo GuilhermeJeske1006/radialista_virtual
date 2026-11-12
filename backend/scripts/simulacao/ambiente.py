@@ -184,11 +184,33 @@ def semear(sessao, fixture) -> Cenario:
 
     programa.estrutura_blocos = [_resolver(b) for b in estrutura_bruta]
     sessao.commit()
+    _semear_noticias(sessao, conta.id, fixture)
     return Cenario(
         account_id=conta.id, usuario_id=usuario.id, radialista_id=radialista.id, programa_id=programa.id,
         timezone=fixture.radialista.timezone, vinhetas=vinhetas, patrocinadores=patrocinadores,
         estrutura_blocos=list(programa.estrutura_blocos),
     )
+
+
+def _semear_noticias(sessao, account_id: int, fixture) -> None:
+    """F5: as notícias do cenário entram no banco como o worker gravaria (app.news.worker), com a publicação
+    relativa ao início do programa."""
+    import datetime
+    import hashlib
+
+    from app.models.noticia import Noticia
+
+    for indice, noticia in enumerate(fixture.noticias):
+        url = f"https://simulacao.invalid/{fixture.id}/{indice}"
+        sessao.add(Noticia(
+            account_id=account_id, fonte_nome=noticia.fonte_nome, fonte_tipo="oficial", titulo=noticia.titulo,
+            resumo=noticia.resumo, url=url, url_hash=hashlib.sha256(url.encode()).hexdigest(),
+            publicado_em=(fixture.inicio + datetime.timedelta(seconds=noticia.publicado_s)).astimezone(
+                datetime.timezone.utc),
+            categoria=noticia.categoria, cidade=fixture.conta.cidade, score=noticia.score, ativa=True,
+            detalhes=dict(noticia.detalhes)))
+    if fixture.noticias:
+        sessao.commit()
 
 
 def aplicar_relogio(sessao, cenario: Cenario, relogio_fixture, duracao_programa_s: int) -> dict:

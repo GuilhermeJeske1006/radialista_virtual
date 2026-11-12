@@ -5,6 +5,8 @@ participação: desde a F4, os do backend (app.live.promessas.detectar e app.liv
 importados na função; não existe um segundo detector aqui. Com os dados do backend no as-run (`promessas`, a
 tabela promessas_no_ar ao fim), promessa vencida é a que venceu ou ficou aberta, ou cuja resolução não foi ao ar;
 sem eles (as-runs antigos ou artificiais), vale a regra da F0 (promessa de música fechada pela faixa seguinte).
+Dado sem fonte e vencido: desde a F5, o detector do backend (app.dados.checagem.afirmacoes e checar_fala) sobre a
+fala que foi ao ar e os dados do bloco gravados no as-run, no instante em que a fala começou.
 Abertura repetida continua heurística da F0 (F8). Este módulo não importa app.* no carregamento.
 """
 
@@ -28,6 +30,8 @@ CONFIG_METRICAS = {
     "orcamento": {"teto": 0.30, "amostras_calibracao": 5},
     "tipos_fala": ["fala"],
     "tipos_silencio": ["bloco_vazio", "erro"],
+    # F5: fuso só para o texto da instrução do validador (a checagem não depende dele).
+    "dados": {"tz": "America/Sao_Paulo"},
 }
 
 
@@ -316,12 +320,77 @@ def _aviso_oralidade(falas: list[dict]) -> int | None:
 
 
 def _validacao(eventos: list[dict]) -> dict:
+    """Ações por bloco e regras por violação distinta: a mesma (regra, trecho) da fase "pre" (reescrita) e da
+    "final" (remoção) conta uma vez (D18 da F5; até a F4 esta chave contava o dobro por remoção)."""
     blocos = {e["bloco_n"]: e["validacao_fala"] for e in eventos if e.get("validacao_fala")}
+    distintas = [regra for v in blocos.values()
+                 for regra, _trecho in dict.fromkeys((x["regra"], x["trecho"]) for x in v["violacoes"])]
     return {
         "blocos": len(blocos),
         "acoes": dict(sorted(collections.Counter(v["acao"] for v in blocos.values()).items())),
-        "regras": dict(sorted(collections.Counter(x["regra"] for v in blocos.values()
-                                                  for x in v["violacoes"]).items())),
+        "regras": dict(sorted(collections.Counter(distintas).items())),
+    }
+
+
+def _instante(texto: str | None):
+    import datetime
+
+    return datetime.datetime.fromisoformat(texto) if texto else None
+
+
+def _dados_verificaveis(entradas: list[dict]) -> list:
+    """DadoVerificavel a partir do que o as-run guardou (resposta do /proxima e o texto do bloco de dados)."""
+    from app.dados.verificavel import DadoVerificavel
+
+    return [DadoVerificavel(
+        id=d["id"], tipo=d["tipo"], valor=d.get("texto") or "", fonte="" if d["estado"] == "sem_fonte" else "registro",
+        atualizado_em=_instante(d.get("atualizado_em")), valido_ate=_instante(d.get("valido_ate")),
+        aprovado=d["estado"] != "nao_aprovado", detalhes=d.get("detalhes") or {}, alertas=tuple(d.get("alertas") or ()))
+        for d in entradas]
+
+
+def _dados(eventos: list[dict], falas: list[dict], config: dict) -> dict:
+    """F5: dados dos blocos e afirmações de dado no ar, pelo detector do backend (app.dados.checagem)."""
+    import datetime
+
+    from app.dados.checagem import afirmacoes, checar_fala, cobre
+    from app.dados.verificavel import estado
+
+    tz = config["dados"]["tz"]
+    por_bloco = {e["bloco_n"]: _dados_verificaveis(e["dados"]) for e in eventos if e.get("dados")}
+    entradas = [d for e in eventos for d in e.get("dados") or []]
+    sem_fonte = vencido = com_horario = 0
+    sem_integracao: collections.Counter = collections.Counter()
+    for fala in falas:
+        dados = por_bloco.get(fala["bloco_n"], [])
+        # O instante em que a fala foi ao ar (as-runs artificiais sem horário: agora).
+        instante = _instante(fala.get("inicio")) or datetime.datetime.now(datetime.timezone.utc)
+        violacoes = checar_fala(fala["texto"], dados, instante, tz)
+        sem_fonte += any(v.regra == "dado_sem_fonte" for v in violacoes)
+        vencido += any(v.regra == "dado_vencido" for v in violacoes)
+        sem_integracao.update(v.ref_id for v in violacoes if v.regra == "dado_sem_fonte")
+        com_horario += sum(1 for a in afirmacoes(fala["texto"]) if a.com_horario and any(
+            cobre(a, d) and estado(d, instante) == "vencido" for d in dados))
+    removidos = 0
+    for evento in eventos:
+        legitimas = evento.get("dado_legitimo") or []
+        trechos = [x["trecho"] for x in (evento.get("validacao_fala") or {}).get("violacoes") or []
+                   if x["regra"] in ("dado_sem_fonte", "dado_vencido")]
+        removidos += sum(1 for frase in legitimas if any(frase in t or t in frase for t in trechos))
+    alertas = {d["id"] for d in entradas if "instrucao_removida" in (d.get("alertas") or [])}
+    return {
+        "dados": {
+            "blocos_com_dado": len(por_bloco),
+            "por_tipo": dict(sorted(collections.Counter(d["tipo"] for d in entradas).items())),
+            "por_estado": dict(sorted(collections.Counter(d["estado"] for d in entradas).items())),
+        },
+        "dado_sem_fonte": sem_fonte,
+        "dado_vencido": vencido,
+        "sem_integracao": {c: sem_integracao.get(c, 0) for c in ("temperatura", "condicao_tempo", "previsao",
+                                                                  "transito", "placar", "comercial")},
+        "vencido_com_horario": com_horario,
+        "dado_legitimo_removido": removidos,
+        "injecao": {"instrucoes_removidas": len(alertas)},
     }
 
 
@@ -442,6 +511,8 @@ def calcular_metricas(as_run: dict, config: dict | None = None) -> dict:
         ),
         # F3: o que o validador pós-geração fez (as-run de cada bloco, pela resposta do /proxima).
         "validacao_fala": _validacao(eventos),
+        # F5: dados do bloco, afirmação sem fonte ou vencida no ar, injeção.
+        **_dados(eventos, falas, config),
         "relogio_acoes": dict(sorted(collections.Counter(r["acao"] for r in blocos_relogio.values()).items())),
         "etapas_puladas": sorted({p for r in blocos_relogio.values() for p in r.get("puladas") or []}),
         "adiantamentos": sum(1 for r in blocos_relogio.values() if r["acao"] == "adiantamento"),

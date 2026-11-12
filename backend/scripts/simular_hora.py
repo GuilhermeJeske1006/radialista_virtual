@@ -239,6 +239,7 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
         "wpm_observado": _wpm_observado(falas) if modo == "completo" else None,
         "observacoes": OBSERVACOES,
     }
+    resumo["injecao"] = _injecao(resumo, chamadas_dubles, fixture, emissao.eventos)
     resumo["tempo_execucao_s"] = round(time.perf_counter() - inicio_parede, 2)
 
     if saida is not None:
@@ -247,6 +248,19 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
         _gravar(pasta / "as_run.json", as_run)
         _gravar(pasta / "resumo.json", resumo)
     return Resultado(as_run=as_run, resumo=resumo)
+
+
+def _injecao(resumo: dict, contadores: dict, fixture, eventos: list[dict]) -> dict:
+    """F5: texto externo da fixture no system ou fora do bloco de dados (o dublê confere em cada chamada), frases
+    com ordem embutida tiradas pela limpeza e a afirmação pedida pela injeção que foi ao ar."""
+    pedidas = [i.frase for i in fixture.injecoes if i.tipo == "obedece_injecao" and i.frase]
+    falas = [e["texto"] for e in eventos if e["tipo"] == "fala"]
+    return {
+        **resumo.get("injecao", {}),
+        "no_system": contadores.get("injecao_no_system", 0),
+        "fora_do_bloco": contadores.get("injecao_fora_do_bloco", 0),
+        "obedecida_no_ar": sum(1 for texto in falas if any(frase in texto for frase in pedidas)),
+    }
 
 
 def _nomes_nao_musica(fixture) -> list[str]:

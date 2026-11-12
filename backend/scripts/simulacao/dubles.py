@@ -9,8 +9,9 @@ Dois mecanismos aplicados juntos:
 - por identidade: todo atributo de módulo app.* que *seja* a função original é trocado. Isso continua
   valendo quando a F3 mover chamadas para outros módulos.
 
-O dublê do LLM lê do prompt só o tipo do bloco, o pedido de revisão, o limite de palavras e a meta
-de duração do bloco (formato musical e relógio da hora). A faixa
+O dublê do LLM lê do prompt só o tipo do bloco, o pedido de revisão, o limite de palavras, a meta
+de duração do bloco (formato musical e relógio da hora) e, desde a F5, o bloco de dados da mensagem (para o modo
+`duble_usa_dados` e para medir se texto externo da fixture apareceu fora dele). A faixa
 confirmada e o pedido da chamada chegam por canal lateral (EstadoChamada), porque as frentes
 seguintes reescrevem os prompts. RNG próprio: mexer no dublê não muda a sequência aleatória do backend.
 
@@ -49,6 +50,11 @@ META_BLOCO_RE = re.compile(r"(\d+) a (\d+) segundos, no máximo (\d+) palavras")
 MARCA_REVISAO_PARECIDA = "ficou muito parecida"
 # Revisão em que o motivo é a duração estimada (F2), não só o limite de palavras.
 MARCA_REVISAO_DURACAO = "ultrapassou o tempo de locução"
+# F5: cabeçalho do bloco de dados da mensagem (app.dados.fontes.CABECALHO_BLOCO).
+CABECALHO_DADOS = "Dados de referência deste bloco ("
+# Tipos de dado que o dublê "obediente" cita (duble_usa_dados) e as injeções de dado (F5).
+TIPOS_CITAVEIS = ("clima", "noticia", "servico", "transito", "aviso", "agenda", "esporte", "correcao")
+INJECOES_DADO = ("dado_sem_fonte", "dado_vencido")
 
 _BASES_CATEGORIA = (
     "musica", "noticia", "escalada", "servico", "plantao", "reporter",
@@ -121,6 +127,10 @@ class DubleLLM:
         self._tentativa = 0
         self._ultimos_indices: dict[tuple[str, str], int] = {}
         self._uso_meios: Counter = Counter()
+        # F5: o bloco de dados que cada bloco recebeu e as frases legítimas (com dado) que o dublê disse nele.
+        self.blocos_dados: dict[int, list[dict]] = {}
+        self.legitimas: dict[int, list[str]] = {}
+        self._externos = _textos_externos(fixture)
         self._espacos_base = {
             "radio": fixture.conta.nome_radio,
             "programa": str(fixture.programa.get("nome", "")),
@@ -228,6 +238,23 @@ class DubleLLM:
                 extras.append(banco_falas.INJECAO_CITA_OUVINTE.format(nome=injecao.nome))
                 self.contadores["injecao_cita_ouvinte"] += 1
 
+            elif injecao.tipo in INJECOES_DADO:
+                extras.append(injecao.frase)
+                self.contadores["injecao_dado"] += 1
+            elif injecao.tipo == "obedece_injecao":
+                extras.append(injecao.frase)
+                self.contadores["injecao_obedece"] += 1
+
+        dados = self._ler_dados(system_prompt or "", mensagem or "")
+        if self.fixture.duble_usa_dados and categoria not in ("musica", "encerramento"):
+            legitima = _frase_com_dado(dados)
+            if legitima:
+                extras.insert(0, legitima)
+                self.legitimas.setdefault(self.estado.bloco_n, [])
+                if legitima not in self.legitimas[self.estado.bloco_n]:
+                    self.legitimas[self.estado.bloco_n].append(legitima)
+                self.contadores["frases_com_dado"] += 1
+
         palavras_extras = sum(contar_palavras(e) for e in extras)
         evitar = MARCA_REVISAO_PARECIDA in (system_prompt or "")
         texto, tema = self._montar(modelo, max(1, alvo - palavras_extras), max(1, teto - palavras_extras),
@@ -236,6 +263,27 @@ class DubleLLM:
             texto = " ".join([texto, *extras])
         self.temas[texto] = tema
         return texto
+
+    def _ler_dados(self, system: str, mensagem: str) -> list[dict]:
+        """O bloco de dados da mensagem (F5) e, de passagem, se texto externo da fixture apareceu fora dele."""
+        linhas = mensagem.split("\n")
+        inicio = next((i for i, linha in enumerate(linhas) if linha.startswith(CABECALHO_DADOS)), None)
+        dados: list[dict] = []
+        fora = mensagem
+        if inicio is not None:
+            fim = next((i for i in range(inicio + 1, len(linhas)) if linhas[i].endswith("]")), inicio)
+            bloco = "\n".join(linhas[inicio + 1:fim + 1])
+            try:
+                dados = json.loads(bloco)
+            except ValueError:
+                self.contadores["bloco_dados_invalido"] += 1
+            fora = "\n".join(linhas[:inicio] + linhas[fim + 1:])
+            self.blocos_dados[self.estado.bloco_n] = dados
+        if any(t in system for t in self._externos):
+            self.contadores["injecao_no_system"] += 1
+        if any(t in fora for t in self._externos):
+            self.contadores["injecao_fora_do_bloco"] += 1
+        return dados
 
     def _palavras(self, tipo: str, categoria: str, primeira: bool, metas=()) -> tuple[int, int]:
         if metas:
@@ -345,6 +393,70 @@ class DubleLLM:
             if self.estado.retrato_pedidos.get(pedido.id) != pedido.estado:
                 return pedido
         return None
+
+
+def _textos_externos(fixture: FixturePrograma) -> list[str]:
+    """Frases de texto externo da fixture (títulos e resumos das notícias semeadas) que nunca podem aparecer no
+    system nem fora do bloco de dados da mensagem."""
+    frases_ = []
+    for noticia in fixture.noticias:
+        for texto in (noticia.titulo, noticia.resumo):
+            frases_ += [f.strip() for f in re.split(r"(?<=[.!?])\s+", texto or "") if len(f.strip()) >= 15]
+    return frases_
+
+
+def _minuscula(texto: str) -> str:
+    return texto[:1].lower() + texto[1:] if texto else texto
+
+
+def _frase_com_dado(dados: list[dict]) -> str:
+    """O que o "LLM obediente" diz com um dado do bloco: o primeiro citável válido; senão, um vencido com o horário."""
+    for estado in ("valido", "vencido"):
+        for dado in dados:
+            if dado.get("estado") != estado or dado.get("tipo") not in TIPOS_CITAVEIS or not dado.get("texto"):
+                continue
+            texto = dado["texto"].rstrip(". ")
+            if dado["tipo"] == "clima":
+                fonte = dado.get("fonte_no_ar") or "o serviço de meteorologia"
+                if estado == "vencido":
+                    return f"Na última atualização, {dado.get('atualizado', '')}, {fonte} marcava {texto}."
+                return f"Segundo {fonte}, agora faz {texto}."
+            if estado == "valido":
+                return f"Segundo a prefeitura, {_minuscula(texto)}."
+    return ""
+
+
+class DubleClima:
+    """F5: obter_leitura_clima pelo relógio virtual. A leitura da fixture vale a partir de `desde_s`; com `falha`,
+    volta a última leitura boa já devolvida (marcada como última leitura), ou nada."""
+
+    def __init__(self, fixture: FixturePrograma):
+        self.fixture = fixture
+        self.contadores: Counter = Counter()
+        self._ultima = None
+
+    def obter_leitura_clima(self, cidade: str | None):
+        import datetime
+
+        from app.weather.client import LeituraClima
+
+        self.contadores["obter_leitura_clima"] += 1
+        if not (cidade or "").strip() or not self.fixture.clima:
+            return None
+        agora = datetime.datetime.now(datetime.timezone.utc)
+        decorrido = (agora - self.fixture.inicio).total_seconds()
+        vigentes = [item for item in self.fixture.clima if item.desde_s <= decorrido]
+        if not vigentes:
+            return None
+        item = vigentes[-1]
+        if item.falha:
+            self.contadores["clima_falha"] += 1
+            return dataclasses.replace(self._ultima, ultima_leitura=True) if self._ultima is not None else None
+        observado = (self.fixture.inicio + datetime.timedelta(seconds=item.observado_s)).astimezone(
+            datetime.timezone.utc)
+        self._ultima = LeituraClima(cidade=cidade, temperatura_c=item.temperatura_c, codigo=0,
+                                    descricao=item.descricao, observado_em=observado, consultado_em=agora)
+        return self._ultima
 
 
 class DubleTTS:
@@ -532,6 +644,7 @@ class Dubles:
     contadores: Counter
     substituidos: list[str]
     tts: DubleTTS | None = None
+    clima: DubleClima | None = None
 
     def chamadas_por_funcao(self) -> dict[str, int]:
         total = Counter()
@@ -540,6 +653,8 @@ class Dubles:
         total.update(self.contadores)
         if self.tts is not None:
             total.update(self.tts.contadores)
+        if self.clima is not None:
+            total.update(self.clima.contadores)
         return dict(sorted(total.items()))
 
 
@@ -561,7 +676,7 @@ class _EspiaoTexto:
 
 
 def _substitutos(modo: str, llm: DubleLLM, musicas: CatalogoSimulado, contadores: Counter, sessao,
-                 tts: DubleTTS | None = None) -> dict[str, Any]:
+                 tts: DubleTTS | None = None, clima: "DubleClima | None" = None) -> dict[str, Any]:
     from app.llm.noticias import PesquisaNoticias
 
     def contar(nome: str, valor_ou_funcao):
@@ -604,7 +719,8 @@ def _substitutos(modo: str, llm: DubleLLM, musicas: CatalogoSimulado, contadores
         "pesquisar_noticias": contar("pesquisar_noticias",
                                      lambda *a, **k: PesquisaNoticias(status="desabilitada")),
         "obter_clima_atual": contar("obter_clima_atual", lambda *a, **k: None),
-        "obter_leitura_clima": contar("obter_leitura_clima", lambda *a, **k: None),
+        "obter_leitura_clima": clima.obter_leitura_clima if clima is not None
+        else contar("obter_leitura_clima", lambda *a, **k: None),
         "tts_habilitado": contar("tts_habilitado", lambda *a, **k: tts is not None),
         "sintetizar_audio": tts.sintetizar_audio if tts is not None else _tts_desligado,
         "sintetizar_audio_stream": tts.sintetizar_audio_stream if tts is not None else _tts_desligado,
@@ -630,7 +746,8 @@ def aplicar_dubles(fixture: FixturePrograma, catalogo: Catalogo, modo: str = "fa
     musicas = CatalogoSimulado(catalogo, estado, extras=extras)
     contadores: Counter = Counter()
     tts = DubleTTS(tts_wpm_real) if tts_wpm_real is not None and modo != "completo" else None
-    substitutos = _substitutos(modo, llm, musicas, contadores, sessao, tts)
+    clima = DubleClima(fixture) if fixture.clima else None
+    substitutos = _substitutos(modo, llm, musicas, contadores, sessao, tts, clima)
     substituidos: list[str] = []
 
     with contextlib.ExitStack() as pilha:
@@ -662,7 +779,7 @@ def aplicar_dubles(fixture: FixturePrograma, catalogo: Catalogo, modo: str = "fa
 
         pilha.enter_context(mock.patch.object(noticias._client.messages, "create", _criar_mensagem_noticia))
         yield Dubles(estado=estado, llm=llm, musicas=musicas, contadores=contadores, substituidos=substituidos,
-                     tts=tts)
+                     tts=tts, clima=clima)
 
 
 class BloqueioRede:
