@@ -320,12 +320,13 @@ def _situacao_relogio_prompt(plano: Plano) -> str:
     )
 
 
-def _instrucao_relogio(plano: Plano, palavras: int | None = None) -> str:
+def _instrucao_relogio(plano: Plano, palavras: int | None = None, agenda: str | None = None) -> str:
+    """`agenda` (F4): a linha com o que está agendado adiante; sem ela, nada pode ser chamado."""
     minimo, maximo = plano.orcamento_s
     return (
         f"A duração deve seguir a meta deste bloco. Meta: {minimo} a {maximo} segundos, no máximo "
-        f"{palavras if palavras is not None else plano.palavras_max} palavras. Não anuncie o que vem a seguir "
-        "nem prometa conteúdo."
+        f"{palavras if palavras is not None else plano.palavras_max} palavras. "
+        + (agenda or "Não anuncie o que vem a seguir nem prometa conteúdo.")
     )
 
 

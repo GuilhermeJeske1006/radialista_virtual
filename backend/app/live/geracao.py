@@ -145,8 +145,6 @@ def _linhas_que_cabem(falas_bloco: list[FalaItem], duracoes: list[float], orcame
     return cortar_linhas_dialogo([f.texto for f in falas_bloco], duracoes, orcamento.max_s, pausa, preservar)
 
 
-# Reserva quando o diálogo multivoz não volta em JSON válido: não trava o ao vivo.
-_FALA_RESERVA_MULTIVOZ = "Seguimos no ar, ja volto com mais uma novidade."
 
 
 @dataclasses.dataclass
@@ -190,8 +188,11 @@ def _gerar_falas_bloco(ctx, mensagem: str, system: str, portas: PortasEmissao) -
         ))
     if falas:
         return falas, " ".join(item.texto for item in falas)
-    # LLM nao retornou dialogo em JSON valido -- nao trava o ao vivo, segue com uma fala generica.
-    return [], _FALA_RESERVA_MULTIVOZ
+    # LLM nao retornou dialogo em JSON valido -- nao trava o ao vivo: a reorientacao neutra, sem prometer nada
+    # (F4; antes "ja volto com mais uma novidade").
+    from app.live.validacao_fala import fala_reserva_neutra
+
+    return [], fala_reserva_neutra(ctx)
 
 
 def gerar_fala(ctx, prompt: PromptEmissao, portas: PortasEmissao,

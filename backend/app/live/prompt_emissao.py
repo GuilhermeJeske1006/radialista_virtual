@@ -13,7 +13,7 @@ import json
 from typing import TYPE_CHECKING
 
 from app.live.formato import direcao_musical
-from app.live.promessas import instrucoes_do_bloco
+from app.live.promessas import descrever_agenda, instrucoes_do_bloco, situacao_do_contexto
 from app.live.orcamento import contar_pausas, palavras_max
 from app.live.prompts import (
     INSTRUCAO_TAGS_V3,
@@ -235,7 +235,8 @@ _REGRAS_GERAIS = [
     "Quando o bloco for notícia, comente apenas notícias dos tipos e fontes permitidas.",
     "Nunca use tom de incerteza ou promessa vaga tipo 'quando pintar novidade confirmada eu aviso' ou "
     "'se tiver algo eu passo aqui depois' -- fale com convicção sobre o que souber, e se não tiver "
-    "conteúdo sólido pro bloco, mantenha a fala curta e direta em vez de enrolar.",
+    "conteúdo sólido pro bloco, mantenha a fala curta e direta em vez de enrolar. Não prometa conteúdo futuro "
+    "('daqui a pouco', 'depois do intervalo', 'já já', 'ainda hoje') fora da agenda informada.",
     "Quando o bloco for comentário, escolha um assunto diferente do último comentado no histórico.",
     "Se pesquisa externa estiver desabilitada, não invente fatos recentes: faça chamadas gerais e atemporais.",
     "Nunca soe como se o programa estivesse terminando ou se despedindo (frases tipo 'por hoje é só', "
@@ -364,17 +365,15 @@ def _ouvintes_e_tempo(ctx: "ContextoEmissao") -> list[str]:
     if p.pedido_recente is not None:
         recente = p.pedido_recente
         nome_pedido_recente = recente.nome or "um ouvinte"
-        o_que_pediu = (
-            f"pedindo a música '{recente.musica_query}'"
-            if recente.tipo == "musica" and recente.musica_query
-            else "com um recado"
-        )
+        # F4 (D7): o nome só com "chegou uma mensagem"; sem a música pedida (ela não está confirmada para tocar) e
+        # sem prometer quando o pedido entra.
+        o_que_pediu = "com um pedido de música" if recente.tipo == "musica" else "com um recado"
         linhas.append(
             f"Acabou de chegar uma mensagem nova no WhatsApp da rádio, de {nome_pedido_recente}, {o_que_pediu}, "
             "bem enquanto você já estava neste assunto. Se fizer sentido, você pode interromper naturalmente "
             "pra comentar rapidinho que acabou de chegar algo (tipo 'opa, peraí, chegou uma mensagem aqui...') "
-            "antes de voltar pro que estava falando -- não é obrigatório, só uma opção quando soar natural; "
-            "o pedido em si ainda vai ser atendido de verdade no bloco próprio dele depois."
+            "antes de voltar pro que estava falando -- não é obrigatório, só uma opção quando soar natural. "
+            "Diga só que a mensagem chegou: não diga que o pedido vai tocar nem quando ele vai ser lido."
         )
     if ctx.tempo.hora_certa is not None:
         linhas.append(
@@ -418,8 +417,7 @@ def _musica(ctx: "ContextoEmissao") -> list[str]:
             "Nenhuma faixa foi encontrada pra tocar ao vivo agora. Quando o bloco for música, NÃO anuncie "
             "nenhuma música, artista ou gênero específico -- nada vai tocar de verdade nesse bloco, e "
             "anunciar uma faixa que não toca soa quebrado pro ouvinte. Em vez disso, faça uma transição "
-            "curta e natural (comentário rápido, chamada pro próximo momento do programa) sem prometer "
-            "nenhuma música."
+            "curta e natural, sem prometer nada (nem música, nem o que vem a seguir)."
         )
     if musica is not None and ctx.musica.contexto_faixa:
         linhas.append(
@@ -497,16 +495,31 @@ def _participacao(ctx: "ContextoEmissao") -> list[str]:
     return linhas
 
 
+def _linha_agenda(ctx: "ContextoEmissao") -> str | None:
+    """F4: o que pode ser chamado adiante (agenda do relógio ou do roteiro). Nada no encerramento nem no
+    fechamento curto, que não prometem retorno."""
+    plano = ctx.tempo.plano
+    if ctx.categoria == "encerramento" or (plano is not None and plano.instrucao == "fechamento_curto"):
+        return None
+    agenda = descrever_agenda(situacao_do_contexto(ctx))
+    return f"Agenda confirmada adiante (só isto pode ser chamado como próximo): {agenda}." if agenda else None
+
+
 def _duracao(ctx: "ContextoEmissao") -> list[str]:
     linhas: list[str] = []
     plano, orcamento = ctx.tempo.plano, ctx.orcamento
+    agenda = _linha_agenda(ctx)
     if ctx.formato_musical:
         linhas.append(direcao_musical(
             ctx.tipo, ctx.primeira_fala,
             orcamento=(segundos_prompt(orcamento.min_s), segundos_prompt(orcamento.max_s), ctx.limite_palavras),
         ))
     elif plano is not None and plano.orcamento_s:
-        linhas.append(_instrucao_relogio(plano, ctx.limite_palavras))
+        # Com agenda, ela substitui o "não anuncie o que vem a seguir" do relógio.
+        linhas.append(_instrucao_relogio(plano, ctx.limite_palavras, agenda=agenda))
+        agenda = None
+    if agenda:
+        linhas.append(agenda)
     if plano is not None and plano.instrucao == "fechamento_curto":
         linhas.append(_INSTRUCAO_FECHAMENTO_CURTO)
     return linhas

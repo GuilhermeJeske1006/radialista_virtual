@@ -96,6 +96,11 @@ class ConfigPromessas:
         "para", "pra", "mais", "tem", "vai", "vem", "ainda", "logo", "entao", "essa", "esse", "este", "esta",
     })
     # Contingência (pesquisa §10): textos originais, sem nova promessa e sem "fica para depois".
+    # Rótulo dos eventos da agenda sem relógio (o bloco do roteiro é um identificador, não um nome para o ar).
+    rotulos_roteiro: dict[str, str] = dataclasses.field(default_factory=lambda: {
+        "participacao": "participação dos ouvintes", "informacao": "notícias", "retorno": "intervalo",
+        "encerramento": "encerramento",
+    })
     contingencias: dict[str, str] = dataclasses.field(default_factory=lambda: {
         "participacao": "Ainda não chegou recado para ler agora; o WhatsApp da {radio} segue aberto.",
         "quadro": "O {rotulo} não entra hoje.",
@@ -292,10 +297,12 @@ def tem_musica_no_plano(etapas: Iterable) -> bool:
 
 def agenda_do_roteiro(tipo_na_posicao: Callable[[int], str], categoria_de: Callable[[str], str | None], *,
                       posicao: int, posicoes: int, quadros: Iterable[str] = (),
-                      tem_fonte_noticia: bool | Callable[[str], bool] = False) -> tuple[EventoAgendado, ...]:
+                      tem_fonte_noticia: bool | Callable[[str], bool] = False,
+                      config: ConfigPromessas | None = None) -> tuple[EventoAgendado, ...]:
     """Agenda pelas próximas `posicoes` posições do roteiro, a partir de `posicao` (a do próximo bloco).
     `tipo_na_posicao` é a versão pura da escolha do roteiro (sem o sorteio de `ia_pode_adicionar_blocos`).
     `tem_fonte_noticia` (ou a função por tipo de bloco) diz se o bloco noticioso fica notícia."""
+    rotulos = (config or CONFIG_PROMESSAS).rotulos_roteiro
     quadros = set(q for q in quadros if q)
     fonte = tem_fonte_noticia if callable(tem_fonte_noticia) else (lambda _tipo: bool(tem_fonte_noticia))
     agenda: list[EventoAgendado] = []
@@ -304,7 +311,7 @@ def agenda_do_roteiro(tipo_na_posicao: Callable[[int], str], categoria_de: Calla
         if _VINHETA_RE.match(tipo_bloco):
             continue
         if _PATROCINADOR_RE.match(tipo_bloco):
-            agenda.append(EventoAgendado(chave=f"roteiro:{p}", tipo="retorno", rotulo="intervalo", posicao=p))
+            agenda.append(EventoAgendado(chave=f"roteiro:{p}", tipo="retorno", rotulo=rotulos["retorno"], posicao=p))
             continue
         if tipo_bloco in quadros:
             agenda.append(EventoAgendado(chave=f"roteiro:{p}", tipo="quadro", rotulo=tipo_bloco, posicao=p))
@@ -313,9 +320,10 @@ def agenda_do_roteiro(tipo_na_posicao: Callable[[int], str], categoria_de: Calla
         if tipo == "informacao" and not fonte(tipo_bloco):
             continue  # sem fonte, o bloco noticioso vira música (app.live.roteiro)
         if tipo is not None:
-            agenda.append(EventoAgendado(chave=f"roteiro:{p}", tipo=tipo, rotulo=tipo_bloco, posicao=p))
+            agenda.append(EventoAgendado(chave=f"roteiro:{p}", tipo=tipo, rotulo=rotulos.get(tipo, tipo_bloco),
+                                         posicao=p))
     # O encerramento sempre vem, mas sem posição conhecida (sai pelo horário).
-    agenda.append(EventoAgendado(chave="encerramento", tipo="encerramento", rotulo="encerramento"))
+    agenda.append(EventoAgendado(chave="encerramento", tipo="encerramento", rotulo=rotulos["encerramento"]))
     return tuple(agenda)
 
 
@@ -459,11 +467,14 @@ def _minutos(evento: EventoAgendado, situacao: SituacaoAgenda) -> str:
 def descrever_agenda(situacao: SituacaoAgenda, limite: int = 3) -> str:
     """"Participação em cerca de 8 minutos; Cantinho da Casa mais adiante neste programa" (sem o intervalo e o
     encerramento)."""
-    itens = []
+    itens, vistos = [], set()
     for evento in situacao.agenda:
         if evento.cancelado or evento.tipo in ("retorno", "encerramento"):
             continue
         rotulo = (evento.rotulo or evento.tipo).replace("_", " ")
+        if rotulo in vistos:
+            continue  # o mais próximo de cada um basta
+        vistos.add(rotulo)
         itens.append(f"{rotulo} {_minutos(evento, situacao)}" + (f" ({evento.conteudo})" if evento.conteudo else ""))
         if len(itens) >= limite:
             break
