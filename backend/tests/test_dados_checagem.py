@@ -270,3 +270,19 @@ def test_falas_dos_goldens_so_afirmam_dado_nos_blocos_com_pauta():
     for nome, fala in falas:
         if nome in ("escalada", "noticia_correcao", "noticia_pauta_com_retry"):
             assert _regras(fala, [pauta]) == []
+
+
+def test_cobertura_extra_nao_casa_palavra_curta_pelo_radical():
+    """Achado da simulação do cenário dedicado: o radical de "parado" casava "para" no slogan da rádio, e a frase de
+    trânsito inventada ia ao ar."""
+    fala = "O trânsito está parado na saída da cidade."
+    assert _regras(fala, cobertura_extra=["Companhia para o seu dia"]) == ["dado_sem_fonte"]
+    assert _regras(fala, cobertura_extra=["Avenida parada por obra, informe da prefeitura"]) == []
+    assert _regras("Concorra a prêmios.", cobertura_extra=["Sorteio de prêmio toda sexta"]) == []
+    assert _regras("Tudo com desconto.", cobertura_extra=["Semana de descontos"]) == []
+
+
+def test_vocabulario_de_cobertura_ja_e_radical():
+    """"interdi" não pode virar "inter" e casar "interior" ou "internet"."""
+    noticia = _dado(tipo="noticia", valor="Escola do interior ganha internet nova.")
+    assert _regras("A ponte está interditada.", [noticia]) == ["dado_sem_fonte"]

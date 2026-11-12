@@ -181,17 +181,24 @@ def _texto_do_dado(dado: DadoVerificavel) -> str:
 
 
 def _radical(palavra: str) -> str:
-    return palavra[:-2] if len(palavra) > 5 else palavra
+    """Radical para casar a flexão ("desconto"/"descontos", "parado"/"parada"): tira duas letras das palavras longas
+    e uma das médias; palavra curta fica inteira. Mais curto que isso casaria palavra comum ("para" com "parado")."""
+    if len(palavra) > 6:
+        return palavra[:-2]
+    if len(palavra) > 4:
+        return palavra[:-1]
+    return palavra
 
 
-def _tem_palavra(texto: str, termo: str) -> bool:
-    """`termo` (uma palavra ou expressão) aparece no texto: expressão inteira, ou palavra pelo radical."""
+def _tem_palavra(texto: str, termo: str, ja_radical: bool = False) -> bool:
+    """`termo` (uma palavra ou expressão) aparece no texto: expressão inteira, ou palavra pelo radical (o próprio
+    termo quando ele já é um radical, como no vocabulário de cobertura)."""
     termo = normalizar(termo)
     if not termo:
         return False
     if " " in termo:
         return f" {termo} " in f" {texto} "
-    radical = _radical(termo)
+    radical = termo if ja_radical else _radical(termo)
     return any(p.startswith(radical) for p in texto.split())
 
 
@@ -227,7 +234,8 @@ def cobre(afirmacao: Afirmacao, dado: DadoVerificavel) -> bool:
         return _tem_palavra(texto, afirmacao.gatilho)
     if dado.tipo in tipos:
         return True
-    return any(_tem_palavra(texto, termo) for termo in CONFIG_CHECAGEM["vocabulario_cobertura"].get(categoria, ()))
+    return any(_tem_palavra(texto, termo, ja_radical=True)
+               for termo in CONFIG_CHECAGEM["vocabulario_cobertura"].get(categoria, ()))
 
 
 def _palavra_chave(afirmacao: Afirmacao) -> str:
