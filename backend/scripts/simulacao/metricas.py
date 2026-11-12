@@ -1,9 +1,11 @@
 """Detectores e métricas do resumo.json (auditoria F0 §5.7 e §5.8).
 
-Música anunciada: desde a F3, o mesmo detector do backend (app.live.validacao_fala.mencoes_musica), importado
-na função; não existe um segundo validador aqui. Promessa e abertura repetida continuam heurísticas da F0, que a
-F4 e a F8 trocam por código em app/live. Este módulo não importa app.* no carregamento: as métricas são
-recalculáveis só com o as_run.json (os nomes que não são música vão em `nomes_nao_musica`).
+Música anunciada: desde a F3, o mesmo detector do backend (app.live.validacao_fala.mencoes_musica). Promessa e
+participação: desde a F4, os do backend (app.live.promessas.detectar e app.live.participacao.mencoes_participacao),
+importados na função; não existe um segundo detector aqui. Com os dados do backend no as-run (`promessas`, a
+tabela promessas_no_ar ao fim), promessa vencida é a que venceu ou ficou aberta, ou cuja resolução não foi ao ar;
+sem eles (as-runs antigos ou artificiais), vale a regra da F0 (promessa de música fechada pela faixa seguinte).
+Abertura repetida continua heurística da F0 (F8). Este módulo não importa app.* no carregamento.
 """
 
 import collections
@@ -12,14 +14,12 @@ import unicodedata
 
 CONFIG_METRICAS = {
     "promessas": {
-        "padroes": [
-            "daqui a pouco", "depois do intervalo", "já já", "ainda hoje", "logo mais", "mais tarde",
-            "em instantes", "a seguir", "na sequência", "volto já",
-        ],
-        "prazo_padrao_s": 900,
-        # Estes vencem só no fim do programa.
-        "ate_fim_do_programa": ["ainda hoje", "mais tarde", "logo mais"],
+        # Prazo por classe (app.live.promessas.CONFIG_PROMESSAS), só para as-runs sem dados do backend.
+        "prazo_s": {"imediato": 300, "curto": 900},
+        # Estas vencem só no fim do programa.
+        "ate_fim_do_programa": ["intervalo", "fim", "fora"],
     },
+    # Construções que o banco de falas do dublê só usa com pedido real (tests/test_simular_hora.py).
     "pedido_indevido": {"padroes": ["toca agora", "pediu"]},
     "abertura_repetida": {"palavras": 3, "seguidas": 3},
     "hard_time": {"tolerancia_s": 5.0},
@@ -41,22 +41,20 @@ def _contem(texto_normalizado: str, trecho: str) -> bool:
     return bool(alvo) and f" {alvo} " in f" {texto_normalizado} "
 
 
-def _frase_com(texto: str, padrao: str) -> str:
-    for frase in re.split(r"(?<=[.!?])\s+", texto):
-        if _contem(normalizar(frase), padrao):
-            return frase.strip()[:120]
-    return texto.strip()[:120]
-
-
 def detectar_promessas(texto: str, inicio_s: float, fim_programa_s: float, n: int, config: dict | None = None) -> list[dict]:
+    """Promessas a cumprir nesta transmissão: o detector do backend (app.live.promessas), sem as que a forma já
+    resolve (despedida e volta do programa, continuidade, "mais música")."""
+    from app.live.promessas import a_registrar, detectar
+
     cfg = (config or CONFIG_METRICAS)["promessas"]
-    normalizado = normalizar(texto)
     achadas = []
-    for padrao in cfg["padroes"]:
-        if _contem(normalizado, padrao):
-            prazo = max(0.0, fim_programa_s - inicio_s) if padrao in cfg["ate_fim_do_programa"] else cfg["prazo_padrao_s"]
-            achadas.append({"id": f"p{n}.{len(achadas) + 1}", "padrao": padrao, "trecho": _frase_com(texto, padrao),
-                            "prazo_s": round(prazo, 2)})
+    for promessa in detectar(texto):
+        if not a_registrar(promessa):
+            continue
+        prazo = max(0.0, fim_programa_s - inicio_s) if promessa.classe in cfg["ate_fim_do_programa"] \
+            else cfg["prazo_s"][promessa.classe]
+        achadas.append({"id": f"p{n}.{len(achadas) + 1}", "padrao": promessa.marcador, "classe": promessa.classe,
+                        "tipo": promessa.tipo, "trecho": promessa.frase, "prazo_s": round(prazo, 2)})
     return achadas
 
 
@@ -90,10 +88,11 @@ def titulos_citados(texto: str, citaveis: list[tuple[str, str]]) -> list[str]:
 
 def anotar_eventos(as_run: dict, citaveis: list[tuple[str, str]], config: dict | None = None,
                    nao_musica: list[str] | None = None) -> None:
-    """Preenche musicas_citadas, musica_anunciada, musica_tocada e promessas de cada evento."""
+    """Preenche musicas_citadas, musica_anunciada, musica_tocada, promessas e participação de cada evento."""
     eventos = as_run["eventos"]
     fim_programa_s = float(as_run["duracao_programa_s"])
     nao_musica = list(nao_musica if nao_musica is not None else as_run.get("nomes_nao_musica") or [])
+    backend = as_run.get("promessas") is not None
     tocadas: set[str] = set()
     for indice, evento in enumerate(eventos):
         if evento["tipo"] == "musica":
@@ -107,8 +106,18 @@ def anotar_eventos(as_run: dict, citaveis: list[tuple[str, str]], config: dict |
         citadas = mencoes(evento["texto"], citaveis, nao_musica, confirmaveis)
         evento["musicas_citadas"] = citadas
         evento["musica_anunciada"] = [c for c in citadas if c not in tocadas]
-        evento["promessas_abertas"] = detectar_promessas(evento["texto"], evento["inicio_s"], fim_programa_s,
-                                                         evento["n"], config)
+        promessas = detectar_promessas(evento["texto"], evento["inicio_s"], fim_programa_s, evento["n"], config)
+        if backend:
+            # Promessa de música é da F3 (anúncio sem confirmação); as outras casam com o registro do backend.
+            promessas = [p for p in promessas if not mencoes(p["trecho"], citaveis, nao_musica)]
+            _casar_com_registro(promessas, eventos, evento)
+        evento["promessas_abertas"] = promessas
+        evento["participacao"] = _participacao(evento, as_run, citaveis, nao_musica)
+    if backend:
+        for evento in eventos:
+            for item in (evento.get("promessas") or {}).get("resolvidas") or []:
+                evento["promessas_fechadas"].append(f"b{item['id']}")
+        return
     # Na F0 só fecha a promessa de música cumprida pela próxima faixa, dentro do prazo. O resto vence.
     for indice, evento in enumerate(eventos):
         if evento["tipo"] != "fala" or not evento["promessas_abertas"] or not evento["musica_anunciada"]:
@@ -119,6 +128,76 @@ def anotar_eventos(as_run: dict, citaveis: list[tuple[str, str]], config: dict |
         for promessa in evento["promessas_abertas"]:
             if proxima["inicio_s"] <= evento["inicio_s"] + promessa["prazo_s"]:
                 proxima["promessas_fechadas"].append(promessa["id"])
+
+
+def _casar_com_registro(promessas: list[dict], eventos: list[dict], evento: dict) -> None:
+    """Marca as promessas detectadas no texto que o backend registrou no mesmo bloco (pela frase)."""
+    primeiro = next((e for e in eventos if e["bloco_n"] == evento["bloco_n"]), evento)
+    registradas = list((primeiro.get("promessas") or {}).get("registradas") or [])
+    for promessa in promessas:
+        casada = next((r for r in registradas if normalizar(r["trecho"]) == normalizar(promessa["trecho"])), None)
+        promessa["registrada"] = casada is not None
+        if casada is not None:
+            promessa["id"] = f"b{casada['id']}"
+            registradas.remove(casada)
+
+
+def _nomes_participacao(evento: dict, as_run: dict, selecionado: bool, citaveis=(), nao_musica=()):
+    from app.live.contexto import MusicaRef
+    from app.live.participacao import NomesParticipacao
+
+    ouvintes = as_run.get("ouvintes") or {}
+    conhecidos = [n for n in ouvintes.get("fixture") or [] if n]
+    pedidos = {p["id"]: p for p in as_run.get("pedidos") or []}
+    pedido = pedidos.get(evento.get("pedido_id"))
+    ja_atendidos = [p["nome"] for p in pedidos.values() if p.get("tocou_em_s") is not None
+                    and p["tocou_em_s"] < evento["inicio_s"] and p.get("estado_final") == "executado"]
+    inexistentes = set(ouvintes.get("inexistentes") or [])
+    excluidos = [n for n in nao_musica if n not in conhecidos and n not in inexistentes]
+    return NomesParticipacao(
+        selecionados=(pedido["nome"],) if pedido is not None and selecionado else (),
+        ja_atendidos=tuple(ja_atendidos), conhecidos=tuple(conhecidos), excluidos=tuple(excluidos),
+        citaveis=tuple(MusicaRef(titulo, artista, origem="conhecida") for titulo, artista in citaveis))
+
+
+def _participacao(evento: dict, as_run: dict, citaveis=(), nao_musica=()) -> dict:
+    """Violações de participação da fala (o detector do backend) com o pedido do bloco como selecionado quando ele
+    está "selecionado". `so_pelo_legado`: some se o pedido legado consumido na seleção ("historico_legado", antes da
+    D1 da F4) contasse como selecionado."""
+    from app.live.participacao import mencoes_participacao
+
+    estado = evento.get("pedido_estado")
+    nao_musica = list(nao_musica or as_run.get("nomes_nao_musica") or [])
+    regras = [m.regra for m in mencoes_participacao(
+        evento["texto"], _nomes_participacao(evento, as_run, estado == "selecionado", citaveis, nao_musica))]
+    if not regras and estado == "selecionado" and evento.get("pedido_tipo") == "musica" \
+            and any(_contem(normalizar(evento["texto"]), p) for p in CONFIG_METRICAS["pedido_indevido"]["padroes"]):
+        faixa_do_pedido = (evento.get("musicas_bloco") or [None])[0]
+        if faixa_do_pedido is None or evento.get("musica_tocada") != faixa_do_pedido:
+            regras = ["pedido_faixa_trocada"]
+    so_pelo_legado = bool(regras) and estado == "historico_legado" and not mencoes_participacao(
+        evento["texto"], _nomes_participacao(evento, as_run, True, citaveis, nao_musica))
+    return {"regras": regras, "so_pelo_legado": so_pelo_legado}
+
+
+def _resumo_promessas(promessas: list[dict], eventos: list[dict]) -> dict:
+    """Promessas do backend que foram ao ar: cumpridas, canceladas com a contingência no ar, vencidas, abertas
+    no fim e resolvidas num bloco que não tocou (contam como vencidas: o ouvinte não ouviu a resolução)."""
+    no_ar = [p for p in promessas if p.get("registro_no_ar", True)]
+    estados = collections.Counter(p["estado"] for p in no_ar)
+    cumpridas_sem_ar = sum(1 for p in no_ar if p["estado"] == "cumprida" and p.get("resolucao_no_ar") is False)
+    canceladas_no_ar = sum(1 for p in no_ar if p["estado"] == "cancelada" and p.get("contingencia_no_ar"))
+    return {
+        "registradas": len(promessas),
+        "registradas_sem_ar": len(promessas) - len(no_ar),
+        "cumpridas": estados["cumprida"],
+        "canceladas_com_contingencia": canceladas_no_ar,
+        "canceladas_sem_contingencia_no_ar": estados["cancelada"] - canceladas_no_ar,
+        "vencidas": estados["vencida"],
+        "abertas_no_fim": estados["aberta"],
+        "cumpridas_sem_ar": cumpridas_sem_ar,
+        "contingencias_no_ar": [p["contingencia"] for p in no_ar if p.get("contingencia_no_ar")],
+    }
 
 
 def _duracao(evento: dict) -> float:
@@ -161,18 +240,6 @@ def _duracao_fala(falas: list[dict], amostras_calibracao: int) -> dict:
     }
 
 
-def _pedido_indevido(evento: dict, nomes: list[str], config: dict) -> bool:
-    normalizado = normalizar(evento["texto"])
-    menciona = any(_contem(normalizado, p) for p in config["pedido_indevido"]["padroes"])
-    menciona = menciona or any(_contem(normalizado, nome) for nome in nomes)
-    if not menciona:
-        return False
-    if evento.get("pedido_id") is None or evento.get("pedido_estado") != "selecionado":
-        return True
-    if evento.get("pedido_tipo") == "musica":
-        faixa_do_pedido = (evento.get("musicas_bloco") or [None])[0]
-        return faixa_do_pedido is None or evento.get("musica_tocada") != faixa_do_pedido
-    return False
 
 
 def _etapa(evento: dict) -> tuple[int, int] | None:
@@ -299,6 +366,16 @@ def calcular_metricas(as_run: dict, config: dict | None = None) -> dict:
 
     fechadas = {pid for e in eventos for pid in e.get("promessas_fechadas") or []}
     abertas = [p for e in eventos for p in e.get("promessas_abertas") or []]
+    backend = as_run.get("promessas")
+    if backend is not None:
+        resumo_promessas = _resumo_promessas(backend, eventos)
+        # Vencida para o ouvinte: venceu, ficou aberta, ou a resolução (cumprimento ou contingência) não foi ao ar.
+        promessa_vencida = resumo_promessas["vencidas"] + resumo_promessas["abertas_no_fim"] + \
+            resumo_promessas["cumpridas_sem_ar"] + resumo_promessas["canceladas_sem_contingencia_no_ar"]
+    else:
+        resumo_promessas = None
+        promessa_vencida = sum(1 for p in abertas if p["id"] not in fechadas)
+    participacao = [f.get("participacao") or _participacao(f, as_run) for f in falas]
 
     hard_times = _hard_times(eventos, as_run.get("relogio") or {}, config["hard_time"]["tolerancia_s"],
                              as_run.get("relogio_backend"))
@@ -328,9 +405,15 @@ def calcular_metricas(as_run: dict, config: dict | None = None) -> dict:
         "ajustes_fala": dict(sorted(collections.Counter(f["fala_ajuste"] for f in falas if f.get("fala_ajuste")).items())),
         "atraso_hard_time_s": round(max(atrasos), 2) if atrasos else 0.0,
         "anuncio_sem_confirmacao": anuncio_sem_confirmacao,
-        "promessa_vencida": sum(1 for p in abertas if p["id"] not in fechadas),
+        "promessa_vencida": promessa_vencida,
         "promessas_abertas": len(abertas),
-        "pedido_indevido": sum(1 for f in falas if _pedido_indevido(f, nomes_fixture + nomes_inexistentes, config)),
+        # F4: promessa detectada no texto que foi ao ar, nem livre nem registrada pelo backend.
+        "promessa_sem_registro": sum(1 for p in abertas if p.get("registrada") is False),
+        "promessas": resumo_promessas,
+        # F4: o detector de participação do backend; a parcela que só existe por causa do legado consumido na
+        # seleção ("historico_legado", antes da D1) fica à parte.
+        "pedido_indevido": sum(1 for p in participacao if p["regras"]),
+        "pedido_indevido_legado": sum(1 for p in participacao if p["so_pelo_legado"]),
         "ouvinte_inexistente": sum(
             1 for f in falas if any(_contem(normalizar(f["texto"]), n) for n in nomes_inexistentes if n not in nomes_fixture)
         ),

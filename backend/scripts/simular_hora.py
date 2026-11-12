@@ -61,7 +61,9 @@ OBSERVACOES = [
     "Modo fake: o comprimento das falas é sintético (o dublê fala dentro da meta por construção); "
     "só a mecânica é medida (relógio, fila, corte, pedidos, continuidade e detectores).",
     "Música anunciada sem confirmação: o mesmo detector do backend (app/live/validacao_fala.py, F3). Promessa e "
-    "abertura repetida continuam detectores provisórios da F0.",
+    "participação também (app/live/promessas.py e app/live/participacao.py, F4): promessa vencida e com "
+    "contingência vêm da tabela promessas_no_ar e das falas que foram ao ar. Abertura repetida continua o "
+    "detector provisório da F0.",
     "Com --tts duble (F2), a fala dura o que o /tts mede num mp3 silencioso à velocidade wpm_real; a calibração "
     "do ritmo por voz começa vazia em cada simulação (pior caso: a primeira hora de uma voz nova).",
     "SQLite em memória e execução sequencial: with_for_update(skip_locked) não é exercitado.",
@@ -90,11 +92,12 @@ def _gravar(caminho: pathlib.Path, dados: dict) -> None:
 def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = None, saida=None, relogio=None,
             antecedencia: int = 2, preparo_antecipado_s: float = 90, corte: str = "agendado",
             relogio_backend: str = "nenhum", inicio_previsto: bool = True, tts: str = "nenhum",
-            wpm_real: float | None = None) -> Resultado:
+            wpm_real: float | None = None, injecoes_extra=(), pedidos_extra=()) -> Resultado:
     """Roda uma hora de programa. `programa` aceita o id da fixture, o caminho ou um FixturePrograma.
 
     Pressupõe o ambiente pronto (main() ou tests/conftest.py). Guarda e restaura random global e
-    app.dependency_overrides; limpa o fakeredis no início.
+    app.dependency_overrides; limpa o fakeredis no início. `injecoes_extra` e `pedidos_extra` (só para testes,
+    F4) somam injeções e pedidos aos da fixture sem mudar as três fixtures de linha de base.
     """
     if modo not in MODOS:
         raise ValueError(f"modo inválido: {modo}")
@@ -119,6 +122,9 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
     from scripts.simulacao.emissao import Emissao
 
     fixture = programa if isinstance(programa, FixturePrograma) else carregar_fixture(programa)
+    if injecoes_extra or pedidos_extra:
+        fixture = fixture.model_copy(update={"injecoes": [*fixture.injecoes, *injecoes_extra],
+                                             "pedidos": [*fixture.pedidos, *pedidos_extra]})
     relogio_fixture = carregar_relogio(relogio or fixture.relogio)
     catalogo = carregar_catalogo(fixture.catalogo)
     base = fixture.inicio.astimezone(ZoneInfo(fixture.timezone))
@@ -150,6 +156,7 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
             )
             emissao.executar()
             pedidos = emissao.pedidos_finais()
+            promessas = emissao.promessas_finais()
             chamadas_dubles = dubles.chamadas_por_funcao()
             contadores_llm = dict(dubles.llm.contadores)
     finally:
@@ -177,6 +184,8 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
             "inexistentes": [i.nome for i in fixture.injecoes if i.tipo == "cita_ouvinte" and i.nome],
         },
         "pedidos": pedidos,
+        # F4: promessas_no_ar ao fim, com o bloco de registro e de resolução (e se foram ao ar).
+        "promessas": promessas,
         # Nomes próprios que não são música (detector de música anunciada, F3).
         "nomes_nao_musica": _nomes_nao_musica(fixture),
         "blocos_nao_tocados": emissao.nao_tocados,
@@ -281,7 +290,8 @@ def _linha_resumo(resumo: dict) -> str:
         f"tempo={resumo['tempo_execucao_s']}s proxima={resumo['chamadas_proxima']} "
         f"llm={resumo['chamadas_llm']['total']} tentativas_rede={resumo['tentativas_rede']} "
         f"fora_orcamento_pct={resumo['fora_orcamento_pct']} anuncio_sem_confirmacao={resumo['anuncio_sem_confirmacao']} "
-        f"promessa_vencida={resumo['promessa_vencida']} pedido_indevido={resumo['pedido_indevido']} "
+        f"promessa_vencida={resumo['promessa_vencida']} promessa_sem_registro={resumo['promessa_sem_registro']} "
+        f"pedido_indevido={resumo['pedido_indevido']} ouvinte_inexistente={resumo['ouvinte_inexistente']} "
         f"hard_times_perdidos={resumo['hard_times_perdidos']} encerramento_no_ar={resumo['encerramento_no_ar']} "
         f"estouro_fim_s={resumo['estouro_fim_programa_s']} relogio_backend={resumo['config']['relogio_backend']} "
         f"atraso_hard_time_s={resumo['atraso_hard_time_s']} fim_antecipado_s={resumo['fim_antecipado_s']} "

@@ -424,6 +424,8 @@ class Emissao:
             "relogio": relogio,
             # F3: validador pós-geração, no primeiro evento do bloco (a fala, ou a música quando a fala saiu).
             "validacao_fala": segmento.get("validacao_fala") if primeiro else None,
+            # F4: promessas registradas e resolvidas neste bloco (resposta do /proxima), no primeiro evento.
+            "promessas": segmento.get("promessas") if primeiro else None,
         }
 
     # --- pedidos -------------------------------------------------------------------------------------
@@ -483,6 +485,40 @@ class Emissao:
         if instante.tzinfo is None:
             instante = instante.replace(tzinfo=datetime.timezone.utc)
         return round((instante - self.base).total_seconds(), 2)
+
+    def promessas_finais(self) -> list[dict]:
+        """Promessas no banco ao fim da simulação (F4), com o bloco em que foram registradas e resolvidas e se
+        esses blocos foram ao ar (a contingência só conta quando a frase está numa fala que tocou)."""
+        from app.models.promessa_no_ar import PromessaNoAr
+
+        no_ar = {e["bloco_n"] for e in self.eventos}
+        falas = collections.defaultdict(str)
+        for evento in self.eventos:
+            if evento["tipo"] == "fala":
+                falas[evento["bloco_n"]] += " " + evento["texto"]
+        registro, resolucao = {}, {}
+        for bloco in self.blocos:
+            promessas = (bloco.segmento or {}).get("promessas") or {}
+            for item in promessas.get("registradas") or []:
+                registro.setdefault(item["id"], bloco.n)
+            for item in promessas.get("resolvidas") or []:
+                resolucao.setdefault(item["id"], bloco.n)
+        finais = []
+        for linha in self.sessao.query(PromessaNoAr).order_by(PromessaNoAr.id.asc()).all():
+            self.sessao.refresh(linha)
+            bloco_resolucao = resolucao.get(linha.id)
+            contingencia_no_ar = bool(linha.contingencia) and bloco_resolucao in no_ar and \
+                " ".join(linha.contingencia.split()) in " ".join(falas[bloco_resolucao].split())
+            finais.append({
+                "id": linha.id, "tipo": linha.tipo, "classe": linha.classe, "trecho": linha.trecho,
+                "evento_alvo": linha.evento_alvo, "estado": linha.estado, "motivo": linha.motivo,
+                "contingencia": linha.contingencia or None,
+                "bloco_registro": registro.get(linha.id), "registro_no_ar": registro.get(linha.id) in no_ar,
+                "bloco_resolucao": bloco_resolucao,
+                "resolucao_no_ar": bloco_resolucao in no_ar if bloco_resolucao is not None else None,
+                "contingencia_no_ar": contingencia_no_ar,
+            })
+        return finais
 
     def pedidos_finais(self) -> list[dict]:
         finais = []
