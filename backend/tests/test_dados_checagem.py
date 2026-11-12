@@ -252,15 +252,19 @@ def test_falas_gravadas_da_linha_de_base_nao_tem_achado():
 
 def test_falas_dos_goldens_so_afirmam_dado_nos_blocos_com_pauta():
     """Só as três notícias com pauta afirmam algo (a ponte liberada), coberto pelo texto da pauta: os goldens ficam
-    iguais quando a checagem entra no ar (C1)."""
+    iguais quando a checagem entra no ar (C1). Os dois goldens de clima da F5 afirmam temperatura com o dado (válido,
+    ou vencido com o horário) e passam pela rota sem violação."""
     falas = []
     for arquivo in sorted(GOLDENS.glob("*.json")):
         resposta = json.loads(arquivo.read_text(encoding="utf-8"))["resposta"]
+        regras = {v["regra"] for v in (resposta.get("validacao_fala") or {}).get("violacoes", [])}
+        assert not regras & {"dado_sem_fonte", "dado_vencido"}, arquivo.stem
         falas += [(arquivo.stem, f) for f in [resposta.get("fala") or ""]
                   + [linha["texto"] for linha in resposta.get("falas") or []] if f]
     assert len(falas) >= 30
     achados = sorted({(nome, a.categoria) for nome, f in falas for a in c.afirmacoes(f)})
-    assert achados == [("escalada", "transito"), ("noticia_correcao", "transito"),
+    assert achados == [("clima_valido", "temperatura"), ("clima_vencido_com_horario", "temperatura"),
+                       ("escalada", "transito"), ("noticia_correcao", "transito"),
                        ("noticia_pauta_com_retry", "transito")]
     pauta = _dado(tipo="noticia", valor="Ponte da Rua Nova é liberada após reparo.")
     for nome, fala in falas:

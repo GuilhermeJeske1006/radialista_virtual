@@ -106,6 +106,8 @@ def test_noticia_ja_ao_ar_nao_volta_a_ser_pauta(db_session, account, programa):
 
 
 def test_montar_lauda_nao_cita_fonte_inclui_angulo_e_servico():
+    """F5: a lauda é só instrução e aponta para o dado; o fato e o serviço vão no bloco de dados da mensagem."""
+    from app.dados.fontes import de_pauta
     from app.news.pauta import NoticiaPauta
 
     pauta = NoticiaPauta(
@@ -116,7 +118,8 @@ def test_montar_lauda_nao_cita_fonte_inclui_angulo_e_servico():
     texto = montar_lauda(pauta)
     assert "Prefeitura" not in texto
     assert "ÂNGULO DESTE BLOCO: SERVICO" in texto
-    assert "Desvio pela Antonio da Veiga" in texto
+    assert "dado noticia:1" in texto and "Rua interditada" not in texto
+    assert de_pauta(pauta).detalhes["servico"] == "Desvio pela Antonio da Veiga"
 
 
 def test_proximas_noticias_devolve_ate_o_limite_pedido(db_session, account, programa):
@@ -196,6 +199,7 @@ def test_dose_pitada_prioriza_categoria_leve_sobre_hard_news_de_score_parecido(d
 
 
 def test_montar_escalada_lista_manchetes_numeradas():
+    """F5: a escalada aponta para os dados na ordem; as manchetes vão no bloco de dados da mensagem."""
     from app.news.pauta import NoticiaPauta
 
     pautas = [
@@ -203,12 +207,14 @@ def test_montar_escalada_lista_manchetes_numeradas():
         NoticiaPauta(noticia_id=2, titulo="Fato B", resumo="", fonte_nome="Fonte B", fonte_tipo="imprensa", url="x", categoria="geral", publicado_em=_agora(), angulo="fato", aberturas_usadas=[]),
     ]
     texto = montar_escalada(pautas)
-    assert "1. Fato A" in texto
-    assert "2. Fato B" in texto
+    assert "noticia:1, noticia:2, nessa ordem" in texto
+    assert "Fato A" not in texto
     assert "fonte" not in texto.lower()
 
 
 def test_montar_lauda_correcao_prioriza_frase_de_correcao():
+    """F5: a correção vai como dado (campo 'correcao'); a instrução pede para anunciar que está corrigindo."""
+    from app.dados.fontes import de_correcao
     from app.news.pauta import NoticiaPauta
 
     pauta = NoticiaPauta(
@@ -217,5 +223,6 @@ def test_montar_lauda_correcao_prioriza_frase_de_correcao():
         aberturas_usadas=[],
     )
     texto = montar_lauda(pauta)
-    assert "CORREÇÃO PENDENTE" in texto
-    assert "Na verdade foram 5 casas." in texto
+    assert "CORREÇÃO PENDENTE" in texto and "dado noticia:1" in texto
+    assert "Na verdade foram 5 casas." not in texto
+    assert de_correcao(pauta).detalhes["correcao"] == "Na verdade foram 5 casas."

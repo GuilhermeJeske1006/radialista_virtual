@@ -25,7 +25,7 @@ from zoneinfo import ZoneInfo
 
 from app.billing.contexto_ia import modelo_efetivo
 from app.config.settings import settings
-from app.dados.fontes import dados_do_bloco
+from app.dados.fontes import dados_do_bloco, no_bloco
 from app.dados.texto_externo import nome_seguro
 from app.dados.verificavel import DadoVerificavel
 from app.live.orcamento import OrcamentoFala, formato_do_programa, orcamento_para, palavras_max
@@ -232,6 +232,7 @@ class ContextoEmissao:
     prompt_base: str                     # montar_system_prompt(...), chamado no montador (efeitos no Redis)
     modelo_com_tags: bool
     dados: tuple[DadoVerificavel, ...] = ()   # F5: dados verificáveis do bloco (app.dados.fontes.dados_do_bloco)
+    clima_ja_mencionado: bool = False         # F5: trava de 45 min do clima (só com clima no bloco)
     extensoes: Mapping[str, Any] = dataclasses.field(default_factory=dict)  # F4/F7/F8
 
 
@@ -597,9 +598,11 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
         else portas.categoria_bloco(t)
         for t in roteiro
     )
+    # F5: o clima sai do prompt_base do ao vivo e vai como dado verificável na mensagem (app.live.prompt_emissao).
     prompt_base = portas.montar_system_prompt(account, radialista, programa,
                                               roster=list(resolucao.roster) if multi_voz else None,
-                                              agora=agora_local if plano is not None else None)
+                                              agora=agora_local if plano is not None else None,
+                                              incluir_clima=False)
     transicao = portas.instrucao_transicao(programa.id, ultima_categoria, categoria)
     ajuste_energia = portas.ajuste_energia_meio_programa(programa, radialista.timezone) \
         if tipo != "encerramento" else None
@@ -665,8 +668,12 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
     abertas = tuple(portas.promessas_abertas(entrada.db, programa, ocorrencia))
     ja_atendidos, da_transmissao = portas.nomes_da_transmissao(entrada.db, radialista, programa)
     ja_atendidos, da_transmissao = [nome_seguro(n) for n in ja_atendidos], [nome_seguro(n) for n in da_transmissao]
-    # Dados verificáveis (F5): só leituras, depois de todos os sorteios; o clima só com cidade configurada.
+    # Dados verificáveis (F5): só leituras, depois de todos os sorteios; o clima só com cidade configurada, e a trava
+    # de 45 min só quando o clima vai ao bloco (sem leitura, nenhuma chave no Redis).
     dados = _dados(entrada, decisao, jornalismo, quadro, portas)
+    instante_dados = plano.instante if plano is not None else agora_local.astimezone(datetime.timezone.utc)
+    clima_no_bloco = any(d.tipo == "clima" for d, _ in no_bloco(dados, instante_dados))
+    clima_ja_mencionado = portas.clima_ja_mencionado(programa.id) if clima_no_bloco else False
     selecionados = tuple(p.nome for p in (pedido_musica, pedido_ouvinte) if p is not None and p.nome)
     ctx = ContextoEmissao(
         request_id=entrada.request_id, account=account, radialista=radialista, programa=programa,
@@ -712,6 +719,7 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
         jornalismo=jornalismo,
         orcamento=orcamento, wpm_fala=wpm_fala, categoria_voz=categoria_voz, limite_palavras=limite_palavras,
         prompt_base=prompt_base, modelo_com_tags=modelo_com_tags, dados=dados,
+        clima_ja_mencionado=clima_ja_mencionado,
     )
     # O que este bloco cumpre e as contingências que ele diz (F4), com o contexto completo.
     a_cumprir, contingencias = a_cumprir_e_contingencias(ctx)

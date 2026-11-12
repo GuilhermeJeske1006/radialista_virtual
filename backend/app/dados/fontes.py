@@ -149,9 +149,13 @@ def de_pesquisa(pesquisa, fontes_programa: Iterable[str] = (), config: ConfigDad
     return dados
 
 
+def id_do_assunto(assunto) -> str:
+    return f"assunto:{assunto.assunto_id or assunto.origem or 'reserva'}"
+
+
 def de_assunto(assunto) -> DadoVerificavel:
     """Pauta de assunto (app.topics.pauta_conversa): já curada e dentro da validade na seleção; atemporal aqui."""
-    dado_id = f"assunto:{assunto.assunto_id or assunto.origem or 'reserva'}"
+    dado_id = id_do_assunto(assunto)
     gancho, removidas = limpar(assunto.gancho)
     fatos, saiu_fatos = [], []
     for fato in assunto.fatos or []:

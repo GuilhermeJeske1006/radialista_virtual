@@ -96,11 +96,11 @@ _CATEGORIAS_NOTICIA_LIKE = ("noticia", "escalada", "servico", "plantao", "report
 # recorte editorial entre escalada/plantão e a notícia comum.
 _INSTRUCAO_EXTRA_CATEGORIA_NOTICIA = {
     "escalada": (
-        "Leia como ESCALADA: cada manchete abaixo em uma frase só, ritmo marcado, sem desenvolver "
+        "Leia como ESCALADA: cada manchete da pauta em uma frase só, ritmo marcado, sem desenvolver "
         "nenhuma delas agora -- é o cartão de visitas do jornal, a matéria em si vem depois."
     ),
     "servico": (
-        "Priorize o campo Serviço da pauta abaixo -- é a informação prática que o ouvinte precisa "
+        "Priorize o campo 'servico' do dado da pauta -- é a informação prática que o ouvinte precisa "
         "anotar agora (desvio, prazo, telefone, horário)."
     ),
     "plantao": (
@@ -237,10 +237,12 @@ _VARIACOES_CONVITE_OUVINTE = [
     "WhatsApp da rádio.",
 ]
 
-def _instrucao_reacao_recado_comum(nome: str, mensagem: str, tom: str) -> str:
+# A mensagem do ouvinte não entra mais na instrução (F5, item 3 de docs/auditoria.md): vai limpa no bloco de dados da
+# mensagem do LLM, e a instrução só aponta para ela (`dado` = "ouvinte:<id>").
+def _instrucao_reacao_recado_comum(nome: str, dado: str, tom: str) -> str:
     return (
         f"Quando o bloco for chamada_ouvinte, mande um alô pra {nome}: cumprimente pelo nome e "
-        f"reaja de verdade ao que ele mandou pelo WhatsApp: \"{mensagem}\" -- "
+        f"reaja de verdade ao que ele mandou pelo WhatsApp (a mensagem é o dado {dado} dos dados de referência) -- "
         "calibre a reação pelo tom do programa já estabelecido acima (programa descontraído: reaja com "
         "bom humor genuíno, brinque, comente o clima da mensagem; programa mais sério: agradeça com "
         "cordialidade, sem forçar humor que não combina). Não é só citar o que ele escreveu, é reagir "
@@ -248,30 +250,30 @@ def _instrucao_reacao_recado_comum(nome: str, mensagem: str, tom: str) -> str:
     )
 
 
-def _instrucao_reacao_engracada(nome: str, mensagem: str, tom: str) -> str:
+def _instrucao_reacao_engracada(nome: str, dado: str, tom: str) -> str:
     return (
         f"Quando o bloco for chamada_ouvinte, mande um alô pra {nome}: cumprimente pelo nome e "
-        f"reaja ao que ele mandou pelo WhatsApp: \"{mensagem}\" -- é uma mensagem bem-humorada, "
-        f"brinque junto de verdade, no clima da piada, respeitando o tom do programa ({tom}). Não "
-        "seja morno nem ignore o humor."
+        f"reaja ao que ele mandou pelo WhatsApp (a mensagem é o dado {dado} dos dados de referência) -- é uma "
+        f"mensagem bem-humorada, brinque junto de verdade, no clima da piada, respeitando o tom do programa ({tom}). "
+        "Não seja morno nem ignore o humor."
     )
 
 
-def _instrucao_reacao_reclamacao(nome: str, mensagem: str, tom: str) -> str:
+def _instrucao_reacao_reclamacao(nome: str, dado: str, tom: str) -> str:
     return (
         f"Quando o bloco for chamada_ouvinte, mande um alô pra {nome}: cumprimente pelo nome e "
-        f"reconheça o que ele trouxe pelo WhatsApp: \"{mensagem}\" -- é uma reclamação ou crítica. "
-        "Reconheça com respeito e sem debochar, sem se desculpar de forma exagerada nem prometer "
-        "solução que você não tem como garantir."
+        f"reconheça o que ele trouxe pelo WhatsApp (a mensagem é o dado {dado} dos dados de referência) -- é uma "
+        "reclamação ou crítica. Reconheça com respeito e sem debochar, sem se desculpar de forma exagerada nem "
+        "prometer solução que você não tem como garantir."
     )
 
 
-def _instrucao_reacao_pergunta(nome: str, mensagem: str, tom: str) -> str:
+def _instrucao_reacao_pergunta(nome: str, dado: str, tom: str) -> str:
     return (
         f"Quando o bloco for chamada_ouvinte, mande um alô pra {nome}: cumprimente pelo nome e "
-        f"responda de verdade a pergunta que ele mandou pelo WhatsApp: \"{mensagem}\" -- use só "
-        "informação real que já está neste prompt (rádio, programa, cidade etc.); se não souber a "
-        "resposta com o que foi informado, diga com naturalidade que não tem essa informação agora, "
+        f"responda de verdade a pergunta que ele mandou pelo WhatsApp (a mensagem é o dado {dado} dos dados de "
+        "referência) -- use só informação real que já está neste prompt (rádio, programa, cidade etc.); se não "
+        "souber a resposta com o que foi informado, diga com naturalidade que não tem essa informação agora, "
         "sem inventar."
     )
 

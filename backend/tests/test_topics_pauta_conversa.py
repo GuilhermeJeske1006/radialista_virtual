@@ -139,11 +139,16 @@ def test_ponte_persistida_e_neutra_de_eixo_gera_falas_diferentes(db_session, acc
     texto_pergunta = montar_pauta_assunto(escolhido)
 
     assert texto_fato != texto_pergunta
-    assert "briefing neutro" in texto_fato and "briefing neutro" in texto_pergunta
     assert "FATO" in texto_fato
     assert "PERGUNTA" in texto_pergunta
-    assert "como esta o tempo ai no seu bairro?" in texto_pergunta
-    assert "como esta o tempo ai no seu bairro?" not in texto_fato
+    # F5: o briefing e a pergunta vão como dado no bloco da mensagem (iguais nos dois eixos); o system aponta.
+    from app.dados.fontes import de_assunto
+
+    dado = de_assunto(escolhido)
+    assert dado.detalhes["contexto"] == "briefing neutro"
+    assert dado.detalhes["pergunta"] == "como esta o tempo ai no seu bairro?"
+    assert "briefing neutro" not in texto_fato and "briefing neutro" not in texto_pergunta
+    assert "campo 'pergunta'" in texto_pergunta and "campo 'pergunta'" not in texto_fato
 
 
 def test_montar_pauta_assunto_marca_bloco_como_dado_nao_instrucao(db_session, account, programa):
