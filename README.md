@@ -89,6 +89,8 @@ Detalhes do servidor, do deploy e do rollback em `deploy/ovh/README.md`.
 
 Plano técnico completo em [docs/plano.md](docs/plano.md).
 
+WhatsApp, central de conversas, worker e contexto do Ao Vivo: [operação e validação](docs/whatsapp-operacao.md).
+
 Piloto editorial do Locufy Esportes, operação e limites: [docs/locufy-esportes.md](docs/locufy-esportes.md).
 
 Skills de agente disponíveis no repo (e como instalar/ativar) em [docs/skills.md](docs/skills.md).

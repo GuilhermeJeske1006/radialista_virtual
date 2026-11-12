@@ -1,5 +1,7 @@
 # Atendimento de ouvintes: operação e validação
 
+A evolução de 12/11/2026 acrescenta central de conversas, worker/outbox, eventos e contexto confirmado pelo player. Serviços, ativação e conferência de falhas estão em [WhatsApp: implementação e operação](whatsapp-operacao.md).
+
 O fluxo novo é ativado por rádio no painel **Ao Vivo → Atendimento aos ouvintes** (administradores). Por padrão fica desativado, permitindo um piloto sem alterar as outras contas. A opção **resposta automática no WhatsApp** do radialista continua controlando o envio de respostas. Desativar o fluxo novo retoma o caminho legado; os pedidos novos permanecem registrados para revisão e não são consumidos pela fila legada.
 
 ## Fluxo implementado

@@ -1,0 +1,43 @@
+{
+  "data": "2026-11-12",
+  "escopo": "Implementação local, sem deploy ou mensagens reais nos testes",
+  "backend": {
+    "suite_completa": {
+      "passaram": 1489,
+      "pulados": 3,
+      "segundos": 385.08
+    },
+    "direcionados_finais": {
+      "passaram": 54,
+      "pulados_postgres": 3
+    },
+    "postgres_real": {
+      "passaram": 3,
+      "isolamento": "Container PostgreSQL 16 temporário, schemas exclusivos, removido ao concluir"
+    },
+    "ruff": "aprovado"
+  },
+  "frontend": {
+    "testes": 350,
+    "arquivos": 63,
+    "typecheck": "aprovado",
+    "build_padrao": "aprovado em container isolado com Next 16.3.0 e Node 20.20.2",
+    "build_host_webpack": "aprovado",
+    "build_host_turbopack": "falhou na resolução de fontes com Next 16.3.5 instalado, diferente do lockfile"
+  },
+  "navegador": {
+    "chromium_desktop": "aprovado",
+    "chromium_celular": "aprovado",
+    "apis": "simuladas",
+    "capturas": [
+      "desktop.png",
+      "celular.png"
+    ],
+    "script": "playwright.cjs"
+  },
+  "compose": {
+    "local": "aprovado",
+    "producao": "estrutura aprovada sem interpolar segredos de produção"
+  },
+  "pendente": "Piloto com rádio/WhatsApp reais, contratos de recibos e aliases PN/LID, SLOs em carga e política definitiva de retenção"
+}
