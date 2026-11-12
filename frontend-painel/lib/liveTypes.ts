@@ -77,6 +77,9 @@ export type ProgramSegment = ConfirmacaoPedido & {
   // Validador pós-geração (F3): música anunciada sem confirmação ou fragmento abaixo do mínimo. Opcional e só
   // carregado no segmento (o painel não usa); nulo quando nada foi encontrado.
   validacao_fala?: ValidacaoFala | null;
+  // Promessas feitas no ar registradas e resolvidas neste bloco (F4). Opcional e só carregado no segmento (o
+  // painel não usa; o relatório é da F11); nulo quando não houve nenhuma.
+  promessas?: PromessasBloco | null;
   // Horário previsto enviado ao backend e início bruto da cadeia (ms desde a época).
   inicio_previsto_ms?: number;
   inicio_bruto_ms?: number;
@@ -108,6 +111,8 @@ export type RelogioAoVivo = {
   puladas?: string[];
   // F3: de onde veio o horário do bloco. "estimado": painel antigo sem inicio_previsto, cadeia no servidor.
   origem_instante?: "painel" | "estimado" | "agora";
+  // F4: etapas com promessa aberta ("hora:inicio_s"), reservadas no backtiming. Nulo sem obrigação.
+  obrigacoes?: string[] | null;
 };
 
 // Orçamento de duração da fala devolvido pelo /proxima (F2). aplicado=false: só medido (formato padrão
@@ -130,6 +135,27 @@ export type ViolacaoFala = {
 export type ValidacaoFala = {
   violacoes: ViolacaoFala[];
   acao: "nenhuma" | "reescrita" | "mencao_removida" | "fala_neutra" | "fala_removida";
+};
+
+// Promessas feitas no ar (F4, app/live/promessas.py e a tabela promessas_no_ar).
+export type PromessaRegistrada = {
+  id: number;
+  tipo: string;
+  trecho: string;
+  evento_alvo: string;
+  prazo?: string | null;
+  prazo_posicao?: number | null;
+};
+
+export type PromessaResolvida = {
+  id: number;
+  estado: "cumprida" | "cancelada" | "vencida";
+  contingencia?: string | null;
+};
+
+export type PromessasBloco = {
+  registradas: PromessaRegistrada[];
+  resolvidas: PromessaResolvida[];
 };
 
 // O que o backend fez para a fala caber no orçamento; nunca acelera a voz.
@@ -182,6 +208,8 @@ export type LiveProgramResponse = ConfirmacaoPedido & {
   duracao_fala_estimada_s?: number | null;
   orcamento_fala_s?: OrcamentoFala | null;
   fala_ajuste?: FalaAjuste | null;
+  // F4: promessas registradas e resolvidas neste bloco; nulo quando não houve nenhuma.
+  promessas?: PromessasBloco | null;
 };
 
 export type ProgramaOpcao = Programa & { radialistaId: number; radialistaNome: string };
