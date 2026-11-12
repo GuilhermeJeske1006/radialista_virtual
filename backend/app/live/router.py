@@ -2,6 +2,7 @@ from typing import Literal
 import base64
 import dataclasses
 import datetime
+from app.whatsapp.transmissao import acompanhar_geracao
 import logging
 import math
 import random
@@ -201,6 +202,7 @@ logger = logging.getLogger("radialista.live")
 router = APIRouter(prefix="/live", tags=["live"])
 
 
+
 class LiveProgramRequest(BaseModel):
     # O painel prepara a voz em paralelo ao texto seguinte. Clientes antigos
     # continuam recebendo o áudio embutido quando não informam esta opção.
@@ -306,6 +308,11 @@ class PromessasBloco(BaseModel):
 
 
 class LiveProgramResponse(BaseModel):
+    bloco_id: int | None = None
+    bloco_token: str | None = None
+    bloco_programa_id: int | None = None
+    assunto_id: int | None = None
+    assunto_titulo: str | None = None
     tipo: str
     fala: str
     pesquisa_noticias: PesquisaNoticias | None = None
@@ -2362,6 +2369,7 @@ def _pedido_confirmavel(db: Session, resolucao: ResolucaoBloco, musica: MusicaEn
 
 
 @router.post("/{radialista_id}/programas/{programa_id}/proxima", response_model=LiveProgramResponse)
+@acompanhar_geracao
 def gerar_proxima_fala(
     radialista_id: int,
     programa_id: int,
@@ -2457,6 +2465,8 @@ def gerar_proxima_fala(
         duracao_segundos=musica.duracao_segundos if musica else None,
         musicas=[_item_musica(m) for m in musicas_bloco],
         programa_atual=programa.nome,
+        assunto_id=ctx.variacoes.assunto.assunto_id if ctx.variacoes.assunto else None,
+        assunto_titulo=ctx.variacoes.assunto.titulo if ctx.variacoes.assunto else None,
         falas=falas_bloco or None,
         audios_falas_base64=sintese.audios_falas_base64,
         intervalo_ms=_intervalo_transicao_ms(decisao.ultima_categoria, categoria),

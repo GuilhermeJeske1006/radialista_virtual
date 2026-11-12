@@ -53,7 +53,7 @@ async def receber(db, account, config, programa, telefone, nome, texto, message_
 
 
 def processar(db, account, config, programa, telefone, nome, chave):
-    with bloquear_conversa(account.id, telefone):
+    with bloquear_conversa(account.id, telefone, db):
         item = (
             db.query(MensagemOuvinte).filter_by(chave=chave).populate_existing().one()
         )

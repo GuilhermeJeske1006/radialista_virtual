@@ -10,6 +10,12 @@ class Settings(BaseSettings):
     wuzapi_admin_token: str = ""
     wuzapi_webhook_url: str = "http://host.docker.internal:8000/webhook/whatsapp"
     locutor_nome: str = "Ze do Radio"
+    # Ativo no deploy com worker separado; desligado conserva atendimento síncrono.
+    whatsapp_worker_ativo: bool = False
+    whatsapp_debounce_s: float = 6.0
+    whatsapp_agrupamento_max_s: float = 60.0
+    whatsapp_tentativas_max: int = 5
+    whatsapp_midia_retencao_horas: int = 24
 
     database_url: str = "postgresql://radialista:radialista@localhost:5433/radialista"
     redis_url: str = "redis://localhost:6379/0"

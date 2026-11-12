@@ -45,7 +45,9 @@ def _wpm_da_voz() -> float:
 
 
 def _sem_campos_novos(dados: dict) -> dict:
-    return {k: v for k, v in dados.items() if k not in ("criado_em", "duracao_prevista_s", "relogio")}
+    return {k: v for k, v in dados.items() if k not in (
+        "criado_em", "duracao_prevista_s", "relogio", "bloco_id", "bloco_token", "bloco_programa_id",
+    )}
 
 
 # ---------------------------------------------------------------------------------------------

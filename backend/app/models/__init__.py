@@ -1,4 +1,5 @@
 from app.models.account import Account
+from app.models import canal_whatsapp  # noqa: F401 -- registra tabelas do canal
 from app.models.esportes import EdicaoEsportiva, FonteEsportiva, PerfilEsportivo
 from app.models.assunto import Assunto
 from app.models.assunto_programa import AssuntoPrograma

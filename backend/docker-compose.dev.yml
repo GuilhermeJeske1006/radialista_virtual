@@ -1,4 +1,7 @@
 services:
+  whatsapp-worker:
+    volumes:
+      - ./app:/app/app
   backend:
     volumes:
       - ./app:/app/app

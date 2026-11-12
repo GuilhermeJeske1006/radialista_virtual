@@ -65,6 +65,8 @@ from app.topics.router import router as topics_router
 from app.tts.router import router as tts_router
 from app.whatsapp.webhook import router as whatsapp_router
 from app.whatsapp.gestao import router as ouvintes_router
+from app.whatsapp.central import router as central_router
+from app.whatsapp.transmissao import router as transmissao_router
 
 _LOG_DIR = pathlib.Path("logs")
 _LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -131,6 +133,8 @@ async def _security_headers(request, call_next):
 
 app.include_router(whatsapp_router)
 app.include_router(ouvintes_router)
+app.include_router(central_router)
+app.include_router(transmissao_router)
 app.include_router(auth_router)
 app.include_router(funnel_router)
 app.include_router(equipe_router)
@@ -162,6 +166,8 @@ async def criar_tabelas():
     from app.db.migrations.promessas_20261112 import aplicar as aplicar_promessas
     aplicar_promessas(engine)
     Base.metadata.create_all(bind=engine)
+    from app.db.migrations.canal_whatsapp_20261112 import aplicar as aplicar_canal_whatsapp
+    aplicar_canal_whatsapp(engine)
     from app.db.migrations.fontes_esportivas_20261111 import aplicar as aplicar_fontes_esportivas
     aplicar_fontes_esportivas(engine)
     garantir_colunas_radio_config()

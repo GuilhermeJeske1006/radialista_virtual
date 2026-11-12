@@ -8,7 +8,7 @@ from app.config.settings import settings
 logger = logging.getLogger("radialista.whatsapp_sender")
 
 
-def enviar_mensagem(telefone: str, texto: str, wuzapi_token: str) -> None:
+def enviar_mensagem(telefone: str, texto: str, wuzapi_token: str) -> str | None:
     url = f"{settings.wuzapi_base_url}/chat/send/text"
     headers = {"token": wuzapi_token}
     payload = {"Phone": telefone, "Body": texto}
@@ -16,6 +16,17 @@ def enviar_mensagem(telefone: str, texto: str, wuzapi_token: str) -> None:
     with httpx.Client(timeout=10.0) as client:
         response = client.post(url, headers=headers, json=payload)
         response.raise_for_status()
+        try:
+            dados = response.json()
+        except ValueError:
+            return None
+        if not isinstance(dados, dict):
+            return None
+        dados = dados.get("data", dados)
+        if not isinstance(dados, dict):
+            return None
+        mid = dados.get("Id") or dados.get("ID") or dados.get("id")
+        return str(mid) if isinstance(mid, (str, int)) else None
 
 
 def enviar_audio(telefone: str, audio_mp3: bytes, wuzapi_token: str) -> None:

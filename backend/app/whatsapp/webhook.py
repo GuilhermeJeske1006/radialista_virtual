@@ -7,7 +7,7 @@ import logging
 import uuid
 
 import httpx
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.orm import Session
 
 from app.config.redis_client import redis_client
@@ -202,6 +202,9 @@ def _extrair_mensagem(
     if imagem_msg:
         imagem_base64 = payload.get("base64")
         imagem_mime_type = imagem_msg.get("mimetype") or imagem_msg.get("Mimetype") or imagem_mime_type
+        legenda = imagem_msg.get("caption") or imagem_msg.get("Caption")
+        if legenda and not texto:
+            texto = legenda
 
     # Status do WhatsApp (Stories) chega no webhook com Chat/Sender "status@broadcast" --
     # nao e' uma conversa de ouvinte nenhum, e sem esse filtro entra no guardrails/fila/log
@@ -278,7 +281,7 @@ async def _aguardar_contexto_completo(config_id: int, telefone: str, texto: str)
 
 @router.post(
     "/webhook/whatsapp",
-    dependencies=[Depends(limitar_por_ip("whatsapp_webhook", limite=60, janela_segundos=60))],
+    dependencies=[Depends(limitar_por_ip("whatsapp_webhook", limite=10000, janela_segundos=60))],
 )
 async def receber_webhook(request: Request, db: Session = Depends(get_db)):
     """Ouve mensagens do WhatsApp, dos dois lados da conversa. O bot nunca
@@ -293,8 +296,19 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
     texto por um LLM com visao (ver app.llm.client.descrever_imagem) -- dai em
     diante os dois seguem o mesmo caminho de uma mensagem de texto.
     """
-    raw_body = await request.body()
-    payload = json.loads(raw_body)
+    partes, tamanho = [], 0
+    async for parte in request.stream():
+        tamanho += len(parte)
+        if tamanho > 30 * 1024 * 1024:
+            raise HTTPException(413, "Mensagem acima do limite")
+        partes.append(parte)
+    raw_body = b"".join(partes)
+    try:
+        payload = json.loads(raw_body)
+    except (ValueError, UnicodeDecodeError):
+        raise HTTPException(400, "Evento inválido")
+    if not isinstance(payload, dict):
+        raise HTTPException(400, "Evento inválido")
     # Payloads de midia carregam base64 e podem ter megabytes. Alem de poluir o log e esconder
     # incidentes do ao vivo, registrar esse conteudo e' desnecessario para diagnostico.
     info = ((payload.get("event") or {}).get("Info") or {}) if isinstance(payload, dict) else {}
@@ -372,16 +386,27 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
         logger.warning("Nenhum radialista ativo para a conta %s", account.id)
         return {"status": "ignorado"}
 
+    from app.config.settings import settings
+    if account.atendimento_ouvinte_ativo and settings.whatsapp_worker_ativo:
+        from app.whatsapp.worker import persistir
+        if limite_excedido(f"whatsapp_conta:{account.id}", limite=600, janela_segundos=60):
+            raise HTTPException(429, "Limite de entrada da rádio atingido")
+        valores = (telefone, nome, texto_usuario, audio_base64, imagem_base64, imagem_mime_type,
+                   wuzapi_token, wuzapi_user_id, from_me, wuzapi_message_id)
+        return persistir(db, account, config, programa_atual, valores, payload)
+
     if from_me:
         if account.atendimento_ouvinte_ativo and texto_usuario:
             from app.whatsapp.atendimento import conversa
             from app.whatsapp.locks import bloquear_conversa
-            with bloquear_conversa(account.id, telefone):
+            with bloquear_conversa(account.id, telefone, db):
                 # Ecos do envio automático não assumem o atendimento humano.
-                eco = db.query(InteractionLog).join(RadioConfig).filter(
-                    RadioConfig.account_id == account.id, InteractionLog.telefone == telefone,
-                    (InteractionLog.resposta == texto_usuario) | (InteractionLog.resposta_pendente == texto_usuario),
-                ).order_by(InteractionLog.id.desc()).first()
+                from app.models.canal_whatsapp import EnvioWhatsapp
+                mid = info.get("ID") or info.get("Id") or info.get("id") or payload.get("id")
+                eco = db.query(EnvioWhatsapp).filter_by(account_id=account.id,
+                    telefone=telefone, provider_id=str(mid)).first() if mid else None
+                if eco:
+                    return {"status": "ok", "origem": "radio", "motivo": "eco"}
                 if not eco:
                     c = conversa(db, account.id, telefone)
                     c.humano = True
@@ -404,6 +429,16 @@ async def receber_webhook(request: Request, db: Session = Depends(get_db)):
     # sem isso, audio/foto custava a transcricao/descricao mesmo com o plano estourado ou o
     # telefone acima do limite (ver auditoria: item 2). Filtro de conteudo continua depois da
     # decodificacao porque so' existe texto pra filtrar depois dela.
+    from app.models.conversa_ouvinte import ConversaOuvinte
+    c = db.query(ConversaOuvinte).filter_by(account_id=account.id, telefone=telefone).first()
+    if c and c.humano and not account.atendimento_ouvinte_ativo:
+        # A central também pausa o caminho legado durante a migração.
+        c.atualizado_em = datetime.datetime.now(datetime.timezone.utc)
+        from app.whatsapp.eventos import registrar
+        registrar(db, account.id, "conversa.atualizada", conversa_id=c.id)
+        _registrar_log(db, config, telefone, nome, texto_usuario or "[mídia]", "aguardando_humano",
+                       wuzapi_message_id=wuzapi_message_id)
+        return {"status": "ok", "motivo": "aguardando_humano"}
     if (audio_base64 or imagem_base64) and limite_excedido(
         f"whatsapp_midia:{telefone}", limite=_LIMITE_MIDIA_POR_TELEFONE_HORA, janela_segundos=3600
     ):

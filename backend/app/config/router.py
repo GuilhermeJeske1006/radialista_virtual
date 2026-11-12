@@ -1053,6 +1053,11 @@ def excluir_radialista(
 ):
     radialista = _buscar_radialista(db, account, radialista_id)
     programas_do_radialista = [p.id for p in db.query(Programa.id).filter_by(radio_config_id=radialista.id).all()]
+    from app.models.canal_whatsapp import EntradaWhatsapp, EnvioWhatsapp
+    if db.query(EntradaWhatsapp.id).filter_by(radio_config_id=radialista.id).first() or db.query(EnvioWhatsapp.id).join(
+        InteractionLog, InteractionLog.id == EnvioWhatsapp.log_id,
+    ).filter(InteractionLog.radio_config_id == radialista.id).first():
+        raise HTTPException(409, "Desative este radialista para preservar o histórico de atendimento")
     # remove vinculos onde ele participa como co-apresentador em programas de outros
     # radialistas, e os vinculos dos programas dele que estao pra ser excluidos.
     db.query(ProgramaRadialista).filter_by(radio_config_id=radialista.id).delete()
@@ -1077,6 +1082,10 @@ def excluir_radialista(
             synchronize_session=False
         )
     for programa_id in programas_do_radialista:
+        from app.whatsapp.arquivo import arquivar_programa
+        arquivar_programa(db, programa_id)
+        db.query(NoticiaHistorico).filter_by(programa_id=programa_id).delete()
+        db.query(AssuntoPrograma).filter_by(programa_id=programa_id).delete()
         excluir_dados_do_programa(db, account.id, programa_id)
     db.query(Programa).filter_by(radio_config_id=radialista.id).delete()
     db.delete(radialista)
@@ -1433,6 +1442,8 @@ def excluir_programa(
     db: Session = Depends(get_db),
 ):
     programa = _buscar_programa(db, account, programa_id)
+    from app.whatsapp.arquivo import arquivar_programa
+    arquivar_programa(db, programa.id)
     from app.models.mensagem_ouvinte import MensagemOuvinte
     from app.whatsapp.atendimento import registrar_evento
     for pedido in db.query(FilaAoVivo).filter_by(programa_id=programa.id).all():

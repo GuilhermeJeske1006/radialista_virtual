@@ -478,7 +478,10 @@ def _sem_nulos(valor):
 
 
 def _resposta(dados: dict) -> dict:
-    dados = {k: v for k, v in dados.items() if k != "criado_em"}
+    # Este retrato protege a geração editorial legada. Identidades de reprodução
+    # variam a cada preparo e têm seus contratos/callbacks testados em test_whatsapp_canal.
+    transporte = {"criado_em", "bloco_id", "bloco_token", "bloco_programa_id", "assunto_id", "assunto_titulo"}
+    dados = {k: v for k, v in dados.items() if k not in transporte}
     if dados.get("pedido_token"):
         dados["pedido_token"] = "<token>"
     return _sem_nulos(dados)
@@ -542,6 +545,13 @@ def _rodar(cenario: Cenario, client, account, auth_headers, db_session, monkeypa
         # Dentro do freeze_time: as chaves têm TTL e, no relógio real, já teriam expirado.
         redis_depois, banco_depois = _retrato_redis(), _retrato_banco(db_session)
     assert resposta.status_code == 200, resposta.text
+    from app.models.canal_whatsapp import BlocoReproduzido
+    metadados = resposta.json()
+    bloco = db_session.get(BlocoReproduzido, metadados["bloco_id"])
+    assert bloco is not None and bloco.estado == "preparado"
+    assert bloco.token == metadados["bloco_token"] and len(bloco.token) == 32
+    assert metadados["bloco_programa_id"] == programa.id
+    assert bloco.fala == metadados["fala"]
     return {
         "cenario": cenario.nome,
         "chamadas_llm": chamadas,

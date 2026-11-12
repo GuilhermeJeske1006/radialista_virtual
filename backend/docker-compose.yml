@@ -36,12 +36,29 @@ services:
       DATABASE_URL: postgresql://radialista:${APP_DB_PASSWORD:-radialista}@app-db:5432/radialista
       REDIS_URL: redis://redis:6379/0
       WUZAPI_BASE_URL: http://host.docker.internal:8080
+      WHATSAPP_WORKER_ATIVO: "true"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
       - "8000:8000"
     volumes:
       - ./logs:/app/logs
+
+  whatsapp-worker:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - backend
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://radialista:${APP_DB_PASSWORD:-radialista}@app-db:5432/radialista
+      REDIS_URL: redis://redis:6379/0
+      WUZAPI_BASE_URL: http://host.docker.internal:8080
+      WHATSAPP_WORKER_ATIVO: "true"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: ["python", "-m", "app.whatsapp.worker"]
 
   frontend:
     build:

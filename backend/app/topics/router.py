@@ -16,6 +16,8 @@ from app.db.database import get_db
 from app.models.account import Account
 from app.models.assunto import Assunto
 from app.models.assunto_programa import AssuntoPrograma
+from app.models.programa import Programa
+from app.models.canal_whatsapp import DecisaoPauta
 
 router = APIRouter(prefix="/topics", tags=["topics"])
 
@@ -86,7 +88,16 @@ def fixar_assunto(
     db: Session = Depends(get_db),
 ):
     ap = _buscar_assunto_programa(db, account, programa_id, assunto_programa_id)
-    ap.score += _BONUS_FIXAR
+    db.query(Programa.id).filter_by(id=programa_id).with_for_update().one()
+    decisao = db.query(DecisaoPauta).filter_by(programa_id=programa_id, assunto_id=ap.assunto_id).first()
+    if not decisao:
+        db.add(DecisaoPauta(programa_id=programa_id, assunto_id=ap.assunto_id, estado="fixado"))
+        ap.score += _BONUS_FIXAR
+    elif decisao.estado != "fixado":
+        decisao.estado = "fixado"
+        ap.score = max(ap.score, _BONUS_FIXAR)
+    from app.whatsapp.eventos import registrar
+    registrar(db, account.id, "pauta.atualizada", programa_id=programa_id)
     db.commit()
     db.refresh(ap)
     assunto = db.get(Assunto, ap.assunto_id)
@@ -108,5 +119,13 @@ def descartar_assunto(
     """Remove so' o CASAMENTO com este programa (ver AssuntoPrograma) -- o gancho em si (Assunto)
     continua podendo servir outro programa da mesma conta, se tiver sido casado com ele tambem."""
     ap = _buscar_assunto_programa(db, account, programa_id, assunto_programa_id)
+    db.query(Programa.id).filter_by(id=programa_id).with_for_update().one()
+    decisao = db.query(DecisaoPauta).filter_by(programa_id=programa_id, assunto_id=ap.assunto_id).first()
+    if decisao:
+        decisao.estado = "descartado"
+    else:
+        db.add(DecisaoPauta(programa_id=programa_id, assunto_id=ap.assunto_id, estado="descartado"))
     db.delete(ap)
+    from app.whatsapp.eventos import registrar
+    registrar(db, account.id, "pauta.atualizada", programa_id=programa_id)
     db.commit()
