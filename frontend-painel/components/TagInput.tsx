@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { linkFonte } from "../lib/fontesPrograma";
 
 type Props = {
   label: string;
   tags: string[];
   onChange: (tags: string[]) => void;
+  links?: boolean;
 };
 
-export default function TagInput({ label, tags, onChange }: Props) {
+export default function TagInput({ label, tags, onChange, links = false }: Props) {
   const [texto, setTexto] = useState("");
 
   function adicionar() {
@@ -33,7 +35,9 @@ export default function TagInput({ label, tags, onChange }: Props) {
               key={tag}
               className="inline-flex items-center gap-1 rounded-full bg-acento/10 text-acento-claro border border-acento-claro/25 pl-2.5 pr-1.5 py-0.5 text-sm"
             >
-              {tag}
+              {links && linkFonte(tag)
+                ? <a href={linkFonte(tag)!} target="_blank" rel="noopener noreferrer" className="break-all hover:underline">{tag} ↗</a>
+                : tag}
               <button
                 type="button"
                 onClick={() => remover(tag)}

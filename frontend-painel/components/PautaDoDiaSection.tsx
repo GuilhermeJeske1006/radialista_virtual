@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { apiFetch, ApiError } from "../lib/api";
 import { AssuntoPauta } from "../lib/types";
 import { LocufySpin } from "./LocufyLogo";
+import Paginacao, { paginar } from "./Paginacao";
+
+const ASSUNTOS_POR_PAGINA = 5;
 
 const ORIGEM_LABEL: Record<string, string> = {
   noticia: "Notícia",
@@ -24,12 +27,14 @@ type PautaDoDiaSectionProps = {
 // não é erro nem trava o programa, o comentário livre continua funcionando enquanto isso.
 export default function PautaDoDiaSection({ programaId }: PautaDoDiaSectionProps) {
   const [pauta, setPauta] = useState<AssuntoPauta[] | null>(null);
+  const [pagina, setPagina] = useState(1);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const [processandoId, setProcessandoId] = useState<number | null>(null);
 
   function carregar() {
     setCarregando(true);
+    setPagina(1);
     apiFetch<AssuntoPauta[]>(`/topics/programas/${programaId}/pauta`)
       .then((dados) => setPauta(Array.isArray(dados) ? dados : []))
       .catch((err) => setErro(err instanceof ApiError ? err.message : "Erro ao carregar a pauta do dia"))
@@ -68,6 +73,8 @@ export default function PautaDoDiaSection({ programaId }: PautaDoDiaSectionProps
     }
   }
 
+  const paginaAtual = paginar(pauta ?? [], pagina, ASSUNTOS_POR_PAGINA);
+
   if (carregando) {
     return (
       <p className="flex items-center gap-2 text-sm text-fg/65">
@@ -87,7 +94,7 @@ export default function PautaDoDiaSection({ programaId }: PautaDoDiaSectionProps
       {erro && <p className="text-sm text-laranja">{erro}</p>}
 
       <div className="space-y-2">
-        {(pauta ?? []).map((item) => (
+        {paginaAtual.itens.map((item) => (
           <div key={item.id} className="rounded-xl border border-border-strong p-3 space-y-1.5">
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -127,6 +134,12 @@ export default function PautaDoDiaSection({ programaId }: PautaDoDiaSectionProps
           </p>
         )}
       </div>
+      <Paginacao
+        rotulo="Páginas da pauta do dia"
+        pagina={paginaAtual.pagina}
+        totalPaginas={paginaAtual.totalPaginas}
+        onMudar={setPagina}
+      />
     </div>
   );
 }

@@ -35,6 +35,7 @@ from app.models.promessa_no_ar import PromessaNoAr
 from app.models.radio_config import RadioConfig
 from app.models.tema_historico import TemaHistorico
 from app.news.seeds_fontes import criar_seeds_fontes
+from app.news.descoberta import DescobertaFontes, PerfilFontes, descobrir_fontes, preencher_fontes_programa
 from app.billing.limites import limite_agentes_efetivo, limite_radialistas_por_programa
 from app.tts.voices import validar_voz_ou_400
 from app.vinhetas.servico import criar_vinhetas_com_seguranca, excluir_dados_do_programa
@@ -719,6 +720,7 @@ def gerar_radialista_ia(
                 detail="Nao foi possivel gerar a configuracao agora. Tenta de novo em instantes.",
             )
 
+    programa_dados = preencher_fontes_programa(programa_dados, account)
     resposta = _commitar_radialista_gerado(
         db, account, radialista_dados, programa_dados, background_tasks, combinacao=combinacao
     )
@@ -852,6 +854,7 @@ def gerar_radialista_ia_preview(
         programa_dados, corrigidos_p = _construir_com_defaults(ProgramaRequest, dados_programa)
         campos_corrigidos = corrigidos_r + corrigidos_p
 
+    programa_dados = preencher_fontes_programa(programa_dados, account)
     avisos = _avisos_coerencia(db, account, programa_dados, radialista_dados, roster_existente)
     geracao_id = _registrar_geracao(
         db,
@@ -992,6 +995,8 @@ def refinar_radialista_ia_preview(
         programa_dados, corrigidos_p = _construir_com_defaults(ProgramaRequest, dados_programa)
         campos_corrigidos = corrigidos_r + corrigidos_p
 
+    if dados.escopo == "programa":
+        programa_dados = preencher_fontes_programa(programa_dados, account)
     avisos = _avisos_coerencia(db, account, programa_dados, radialista_dados, roster_existente)
     geracao_id = _registrar_geracao(
         db,
@@ -1194,6 +1199,7 @@ def gerar_programa_ia_endpoint(
             )
 
     _validar_conflito_horario(db, account.id, programa_dados)
+    programa_dados = preencher_fontes_programa(programa_dados, account)
     programa = Programa(radio_config_id=radialista.id, **programa_dados.model_dump())
     db.add(programa)
     db.commit()
@@ -1263,6 +1269,7 @@ def gerar_programa_ia_preview(
             logger.warning("Reparo de preview de programa falhou -- caindo pra defaults", exc_info=True)
         programa_dados, campos_corrigidos = _construir_com_defaults(ProgramaRequest, dados_programa)
 
+    programa_dados = preencher_fontes_programa(programa_dados, account)
     avisos = _avisos_coerencia(db, account, programa_dados)
     geracao_id = _registrar_geracao(
         db,
@@ -1326,6 +1333,26 @@ def ajustar_programa_ia_preview(
     return ProgramaIAPreviewResponse(
         programa=programa_dados, campos_corrigidos=campos_corrigidos, avisos=avisos, geracao_id=geracao_id
     )
+
+
+class DescobrirFontesRequest(PerfilFontes):
+    atualizar: bool = False
+
+
+@router.post("/programas/fontes/descobrir", response_model=DescobertaFontes)
+def descobrir_fontes_programa(
+    dados: DescobrirFontesRequest,
+    account: Account = Depends(get_current_account),
+):
+    """Pesquisa contextual para o rascunho; só o salvamento do programa grava a seleção."""
+    if not dados.nome.strip():
+        raise HTTPException(status_code=400, detail="Informe o nome do programa para buscar fontes.")
+    chave = f"descoberta-fontes:{account.id}"
+    if limite_atingido(chave, limite=30, janela_segundos=3600):
+        raise HTTPException(status_code=429, detail="Limite de buscas de fontes atingido. Tente mais tarde.")
+    registrar_consumo(chave, janela_segundos=3600)
+    perfil = PerfilFontes.model_validate(dados.model_dump(exclude={"atualizar"}))
+    return descobrir_fontes(perfil, account, atualizar=dados.atualizar)
 
 
 @router.get("/programas/{programa_id}", response_model=ProgramaResponse)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import ConfirmDialog from "./ConfirmDialog";
 import TagInput from "./TagInput";
@@ -9,6 +9,7 @@ import QuadrosFixosInput from "./QuadrosFixosInput";
 import FeriadosMunicipaisInput from "./FeriadosMunicipaisInput";
 import RadialistasProgramaSection from "./RadialistasProgramaSection";
 import FontesNoticiaSection from "./FontesNoticiaSection";
+import DescobertaFontesPrograma from "./DescobertaFontesPrograma";
 import PautaDoDiaSection from "./PautaDoDiaSection";
 import VinhetasProgramaSection, { marcarVinhetasCriadas } from "./VinhetasProgramaSection";
 import RelogioHoraEditor from "./RelogioHoraEditor";
@@ -83,14 +84,20 @@ export default function EditarProgramaForm({
   const [gerandoIA, setGerandoIA] = useState(false);
   const [erroIA, setErroIA] = useState("");
   const [tipoRadioConta, setTipoRadioConta] = useState("");
+  const [nomeRadio, setNomeRadio] = useState("");
   const [tiposRadio, setTiposRadio] = useState<TipoRadio[]>([]);
   const [avisosIA, setAvisosIA] = useState<string[]>([]);
   const [instrucaoAjuste, setInstrucaoAjuste] = useState("");
   const [ajustandoIA, setAjustandoIA] = useState(false);
+  const [buscandoFontes, setBuscandoFontes] = useState(false);
+  const aplicarFontes = useCallback((noticias: string[], pesquisa: string[], habilitarPesquisa: boolean) => {
+    setPrograma((atual) => atual ? { ...atual, fontes_noticias: noticias, fontes_pesquisa: pesquisa,
+      pode_pesquisar: habilitarPesquisa || atual.pode_pesquisar } : atual);
+  }, []);
 
   useEffect(() => {
     apiFetch<RadioPerfil>("/config/radio")
-      .then((radio) => setTipoRadioConta(radio.tipo_radio))
+      .then((radio) => { setTipoRadioConta(radio.tipo_radio); setNomeRadio(radio.nome_radio); })
       .catch(() => {});
     apiFetch<TipoRadio[]>("/config/tipos-radio")
       .then(setTiposRadio)
@@ -301,7 +308,7 @@ export default function EditarProgramaForm({
 
   return (
     <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <h2 className="font-display text-base font-bold text-fg">{criando ? "Novo programa" : "Editar programa"}</h2>
         {!criando && (
           <button
@@ -466,6 +473,9 @@ export default function EditarProgramaForm({
             placeholder="Do que se trata este programa: formato, proposta, público — dá mais contexto ao radialista além do tom e dos tópicos permitidos…"
           />
         </div>
+        <DescobertaFontesPrograma key={idEfetivo ?? "novo"} programa={programa} criando={criando} nomeRadio={nomeRadio}
+          suspenso={gerandoIA || ajustandoIA || salvando}
+          onAplicar={aplicarFontes} onBusy={setBuscandoFontes} />
         <div>
           <label className={labelClass}>Recorrência</label>
           <div className="flex gap-1.5 mb-3">
@@ -867,7 +877,8 @@ export default function EditarProgramaForm({
               onChange={(tags) => setPrograma({ ...programa, tipos_noticias: tags })}
             />
             <TagInput
-              label="Fontes de notícias (domínios ou URLs, fallback de busca)"
+              label="Links das fontes de notícias deste programa"
+              links
               tags={programa.fontes_noticias}
               onChange={(tags) => setPrograma({ ...programa, fontes_noticias: tags })}
             />
@@ -948,6 +959,7 @@ export default function EditarProgramaForm({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
             <TagInput
               label="Onde pode pesquisar"
+              links
               tags={programa.fontes_pesquisa}
               onChange={(tags) => setPrograma({ ...programa, fontes_pesquisa: tags })}
             />
@@ -968,10 +980,10 @@ export default function EditarProgramaForm({
         <div className="sticky bottom-0 z-10 -mx-6 -mb-6 flex flex-wrap items-center gap-3 rounded-b-3xl border-t border-border bg-surface/95 px-6 py-3 backdrop-blur">
           <button
             type="submit"
-            disabled={salvando}
+            disabled={salvando || buscandoFontes}
             className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {salvando ? "Salvando…" : criando ? "Criar programa" : "Salvar programa"}
+            {salvando ? "Salvando…" : buscandoFontes ? "Buscando fontes…" : criando ? "Criar programa" : "Salvar programa"}
           </button>
           {alteracoesPendentes && <span className="text-xs text-laranja">Alterações não salvas</span>}
           {mensagem && !alteracoesPendentes && <span role="status" className="text-xs text-ciano">{mensagem}</span>}
