@@ -240,6 +240,30 @@ def _p_musical_pedido(db, account, radialista, programa, mp):
     _p_legado_musica(db, account, radialista, programa, mp)
 
 
+def _p_formato(perfil, *passos):
+    """F6: o programa no formato do catálogo, depois dos outros preparos do cenário."""
+    def preparar(db, account, radialista, programa, mp):
+        for passo in passos:
+            passo(db, account, radialista, programa, mp)
+        programa.perfil_programacao = perfil
+    return preparar
+
+
+def _p_relogio_c_quadro(db, account, radialista, programa, mp):
+    """F6: relógio C no quadro de 44:00, com quadro fixo na estrutura; o que vem antes já foi ao ar."""
+    _p_relogio("C")(db, account, radialista, programa, mp)
+    from app.live import relogio as r
+
+    ids = [int(t.split(":")[1]) for t in programa.estrutura_blocos if t.startswith("patrocinador:")]
+    programa.estrutura_blocos = [*programa.estrutura_blocos, "Quadro da Receita"]
+    programa.quadros_fixos = {"Quadro da Receita": ["bolo de fubá cremoso", "pão de queijo de frigideira"]}
+    db.commit()
+    instante = datetime.datetime(2026, 11, 10, 12, 0, tzinfo=datetime.timezone(datetime.timedelta(hours=-3)))
+    ocorrencia = r.ocorrencia_em(programa, radialista.timezone, instante)
+    r.marcar_executada(programa.id, ocorrencia, *(f"0:{inicio}:patrocinador:{i}" for inicio in (960, 2460)
+                                                  for i in ids))
+
+
 def _p_relogio(preset, *executadas):
     def preparar(db, account, radialista, programa, mp):
         from app.live.relogio import PRESETS
@@ -414,6 +438,33 @@ CENARIOS = [
     Cenario("noticia_titulo_injetado", {"total_falas": 4, "historico": HIST_COMENTARIO},
             preparar=_p_titulo_injetado,
             respostas=["Segundo a prefeitura, a feira de artesanato abre neste sábado."]),
+    # F6: formatos do catálogo (popular e variedades com unidade, roteiro e seção próprios; o canônico do musical).
+    Cenario("formato_popular_comentario", {"total_falas": 4, "historico": HIST_MUSICA},
+            preparar=_p_formato("popular_sertanejo"),
+            respostas=["Tem coisa melhor do que uma moda boa tocando enquanto a tarde passa devagar? Por aqui a "
+                       "prosa segue do jeito que a gente gosta, sem pressa e com respeito por quem está do outro lado "
+                       "do rádio. O recado de quem quiser mandar continua aberto pelo WhatsApp da rádio, é só "
+                       "escrever com calma."]),
+    Cenario("formato_popular_chamada_recado", {"total_falas": 2, "historico": HIST_MUSICA},
+            preparar=_p_formato("popular_sertanejo", _p_abraco),
+            respostas=["Seu Valdir mandou um abraço pro pessoal da oficina, que está sem café. Fica o abraço "
+                       "registrado, Seu Valdir, e que o café chegue logo aí, porque trabalho sem café ninguém "
+                       "merece."]),
+    Cenario("formato_popular_relogio_a_link", {"total_falas": 3, "historico": HIST_MUSICA,
+                                               "inicio_previsto": "2026-11-10T12:12:30-03:00"},
+            agora="2026-11-10 15:12:20", preparar=_p_formato("popular_sertanejo", _p_relogio("A", "0:40")),
+            respostas=["Seguimos com você nesta tarde, com moda boa e prosa curta, do jeito que a casa gosta."]),
+    Cenario("formato_variedades_quadro", {"total_falas": 3, "historico": HIST_MUSICA},
+            preparar=_p_formato("variedades_leves", _p_quadro),
+            respostas=["Hoje o quadro é sobre bolo de fubá cremoso. Separe três ovos, uma xícara de fubá e um "
+                       "litro de leite, bata tudo e leve ao forno médio por uns quarenta minutos."]),
+    Cenario("formato_variedades_relogio_c_quadro", {"total_falas": 8, "historico": HIST_MUSICA,
+                                                    "inicio_previsto": "2026-11-10T12:44:00-03:00"},
+            agora="2026-11-10 15:43:50", preparar=_p_formato("variedades_leves", _p_relogio_c_quadro),
+            respostas=["Chegou a hora do quadro da receita: pão de queijo de frigideira, com polvilho, ovo e "
+                       "queijo, pronto em poucos minutos."]),
+    Cenario("formato_musical_adulto_identificacao", {"total_falas": 3, "historico": HIST_MUSICA},
+            preparar=_p_formato("musical_adulto"), respostas=["Você ouve a rádio da cidade."]),
 ]
 
 

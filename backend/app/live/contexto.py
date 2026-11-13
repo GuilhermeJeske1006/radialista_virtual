@@ -28,7 +28,7 @@ from app.config.settings import settings
 from app.dados.fontes import dados_do_bloco, no_bloco
 from app.dados.texto_externo import nome_seguro
 from app.dados.verificavel import DadoVerificavel
-from app.live.formatos import Formato, formato_pelo_booleano
+from app.live.formatos import Formato, eh_quadro_fixo, formato_pelo_booleano
 from app.live.orcamento import OrcamentoFala, orcamento_para, palavras_max
 from app.live.portas import PortasEmissao
 from app.live.prompts import (
@@ -655,6 +655,7 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
         formato, tipo, decisao.primeira_fala,
         teto_relogio_s=plano.orcamento_s[1] if plano is not None and plano.orcamento_s else None,
         minimo_relogio_s=plano.orcamento_s[0] if plano is not None and plano.orcamento_s else None,
+        quadro=eh_quadro_fixo(programa, tipo),  # F6: unidade de quadro nos formatos que a declaram (variedades)
     )
     categoria_voz = categoria_ritmo(tipo)
     wpm_fala = entrada.ritmos_voz.wpm(categoria_voz)

@@ -187,3 +187,57 @@ def test_secao_sem_efeito_colateral_e_identica_em_chamadas_repetidas():
     ctx = contexto(MUSICAL, "identificacao")
     assert montar_prompt(ctx) == montar_prompt(ctx)
     assert linhas_do_formato_no_system(ctx) == [*_formato(ctx), linhas_do_formato_no_system(ctx)[-1]]
+
+
+# ---------------------------------------------------------------------------------------------------------
+# _duracao: direção do formato para todo formato com orçamento aplicado, com e sem relógio (commit 6)
+# ---------------------------------------------------------------------------------------------------------
+
+def _plano_link_de_a(formato):
+    from zoneinfo import ZoneInfo
+
+    from app.live import relogio as r
+
+    programa = SimpleNamespace(id=1, horario_inicio=datetime.time(14, 0), horario_fim=datetime.time(15, 0),
+                               dias_semana=[], data_especifica=None, feriados_municipais=[], relogio_hora=None)
+    instante = datetime.datetime(2026, 11, 10, 14, 12, tzinfo=ZoneInfo("America/Sao_Paulo"))
+    pecas = r.PecasDisponiveis(patrocinadores=(r.Peca(5, 30.0),))
+    return r.planejar(programa, r.PRESETS["A"], "America/Sao_Paulo", instante, formato=f.resolver_formato(formato),
+                      ultima_categoria="musica", ja_encerrou=False, executadas={"0:0:fala:abertura"}, pecas=pecas)
+
+
+@pytest.mark.parametrize("formato", ["popular_sertanejo", "variedades_leves"])
+def test_duracao_dos_novos_usa_a_direcao_do_formato_com_e_sem_relogio(formato):
+    from app.live.promessas import EventoAgendado
+    from scripts.simulacao.dubles import META_BLOCO_RE
+
+    catalogo = f.FORMATOS[formato]
+    sem = montar_prompt(contexto(formato, "comentario")).system
+    assert "A duração deve seguir a meta específica deste bloco." in sem and "4 a 6 frases" not in sem
+    direcao = next(linha for linha in sem.split("\n") if linha.startswith(catalogo.direcao_cabecalho))
+    unidade = catalogo.unidades["comentario"]
+    assert META_BLOCO_RE.search(direcao).groups()[:2] == (str(unidade.min_s), str(unidade.max_s))
+
+    plano = _plano_link_de_a(formato)
+    com = montar_prompt(contexto(formato, plano.tipo_bloco, plano=plano)).system
+    direcao = next(linha for linha in com.split("\n") if linha.startswith(catalogo.direcao_cabecalho))
+    assert META_BLOCO_RE.search(direcao).groups()[:2] == tuple(str(v) for v in plano.orcamento_s)
+    assert "A duração deve seguir a meta deste bloco. Meta:" not in com  # a instrução genérica do relógio sai
+
+    agenda = (EventoAgendado(chave="roteiro:5", tipo="participacao", rotulo="Participação", posicao=5),)
+    ctx = dataclasses.replace(contexto(formato, "comentario"),
+                              chamadas=Chamadas(fio_condutor=None, agenda=agenda, posicao=3))
+    linhas = montar_prompt(ctx).system.split("\n")
+    indice = next(i for i, linha in enumerate(linhas) if linha.startswith(catalogo.direcao_cabecalho))
+    assert linhas[indice + 1].startswith("Agenda confirmada adiante (só isto pode ser chamado como próximo): "
+                                         "Participação")
+
+
+def test_secao_dos_novos_no_prompt():
+    popular = _formato(contexto("popular_sertanejo", "chamada_ouvinte", ultima_categoria="patrocinador"))
+    assert popular[0] == ("Programa Tarde Serena, formato Popular/sertanejo. Promessa: Companhia e reconhecimento.")
+    assert REORIENTA in popular  # retorno do intervalo
+    variedades = _formato(contexto("variedades_leves", "comentario", quadro=True))
+    assert variedades[0].startswith("Programa Tarde Serena, formato Variedades leves. Promessa: Ajudar na vida")
+    assert REORIENTA in variedades  # quadro fixo
+    assert REORIENTA not in _formato(contexto("variedades_leves", "comentario"))

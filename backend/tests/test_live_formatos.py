@@ -1,8 +1,9 @@
 """Catálogo de formatos (F6): integridade, resolvedor, flags, unidade, direção, relógio e roteiro.
 
-Numeração dos casos (U1-U9) em docs/melhoria-radio/f6/auditoria.md §8. Nesta leva o catálogo tem `padrao` e
-`musical_adulto` (alias `musical_companhia`) implementados e os sete formatos futuros com `implementado=False`;
-nenhum comportamento muda (os retratos de tests/test_live_formatos_caracterizacao.py continuam iguais).
+Numeração dos casos (U1-U9) em docs/melhoria-radio/f6/auditoria.md §8. O catálogo tem `padrao`, `musical_adulto`
+(alias `musical_companhia`), `popular_sertanejo` e `variedades_leves` implementados (os dois últimos desde a leva 2,
+tabela do §6.4) e os sete formatos futuros com `implementado=False`. `padrao` e o musical continuam iguais (os
+retratos de tests/test_live_formatos_caracterizacao.py não mudam).
 """
 
 import ast
@@ -10,6 +11,7 @@ import dataclasses
 import datetime
 import json
 import logging
+import math
 import pathlib
 import re
 from types import SimpleNamespace
@@ -26,6 +28,8 @@ GOLDEN = pathlib.Path(__file__).resolve().parent / "fixtures" / "caracterizacao_
 SP = ZoneInfo("America/Sao_Paulo")
 FUTUROS = ("hits", "regional", "noturno", "religioso", "morning", "esportivo", "jornalistico")
 MUSICAL, PADRAO = f.FORMATOS["musical_adulto"], f.FORMATOS["padrao"]
+POPULAR, VARIEDADES = f.FORMATOS["popular_sertanejo"], f.FORMATOS["variedades_leves"]
+NOVOS = (POPULAR, VARIEDADES)
 
 
 # ---------------------------------------------------------------------------------------------------------
@@ -52,7 +56,7 @@ def test_u1_campos_obrigatorios_e_unidades_coerentes(formato):
 
 def test_u1_implementados_e_futuros():
     implementados = {chave for chave, formato in f.FORMATOS.items() if formato.implementado}
-    assert implementados == {"padrao", "musical_adulto"}
+    assert implementados == {"padrao", "musical_adulto", "popular_sertanejo", "variedades_leves"}
     assert set(FUTUROS) <= set(f.FORMATOS)
     for chave in FUTUROS:
         futuro = f.FORMATOS[chave]
@@ -63,6 +67,53 @@ def test_u1_implementados_e_futuros():
     # A unidade principal dos futuros é a da pesquisa §3 / skill referencia-radio.
     assert f.FORMATOS["jornalistico"].relogio_padrao == "B" and "F5" in f.FORMATOS["jornalistico"].requer
     assert f.FORMATOS["morning"].relogio_padrao == "C"
+
+
+# Tabela do §6.4 (mín / alvo / máx, em segundos); o papel ausente cai em "*".
+UNIDADES_NOVOS = {
+    "popular_sertanejo": {
+        "abertura": (20, 40, 60), "retomada": (15, 25, 40), "identificacao": (3, 6, 10), "musica": (8, 15, 25),
+        "chamada_ouvinte": (20, 40, 60), "comentario": (20, 35, 60), "encerramento": (15, 30, 45),
+        "*": (20, 35, 60),
+    },
+    "variedades_leves": {
+        "abertura": (30, 60, 90), "retomada": (15, 25, 40), "identificacao": (3, 6, 10), "musica": (8, 15, 25),
+        "chamada_ouvinte": (20, 40, 60), "comentario": (20, 45, 60), "quadro": (60, 120, 180),
+        "encerramento": (20, 35, 45), "*": (20, 35, 60),
+    },
+}
+
+
+@pytest.mark.parametrize("formato", NOVOS, ids=[n.id for n in NOVOS])
+def test_u1_formatos_novos_seguem_a_tabela_do_catalogo(formato):
+    assert {papel: (u.min_s, u.alvo_s, u.max_s) for papel, u in formato.unidades.items()} == \
+        UNIDADES_NOVOS[formato.id]
+    assert all(u.max_palavras is None for u in formato.unidades.values())  # teto só pelo ritmo da voz
+    assert formato.aplica_orcamento and formato.implementado and formato.aliases == ()
+    assert formato.comportamento.ciclo == "padrao"
+    assert set(formato.funcoes) == set(formato.unidades)
+    assert formato.temas_revisao and formato.participacao and formato.direcao_cabecalho
+    assert formato.reorientacao_s == {"popular_sertanejo": 1200, "variedades_leves": 900}[formato.id]
+    assert formato.faixa_fala_pct == {"popular_sertanejo": (4.0, 20.0), "variedades_leves": (15.0, 45.0)}[formato.id]
+    assert formato.relogio_padrao == {"popular_sertanejo": "A", "variedades_leves": "C"}[formato.id]
+
+
+def test_u1_roteiros_e_blocos_do_relogio_dos_novos():
+    assert POPULAR.roteiro_padrao == ("musica", "chamada_ouvinte", "musica", "comentario", "musica", "retomada")
+    assert VARIEDADES.roteiro_padrao == ("musica", "comentario", "musica", "chamada_ouvinte", "musica", "retomada")
+    assert POPULAR.blocos_relogio == {}
+    assert VARIEDADES.blocos_relogio == {"quadro": "@quadro"}
+    assert "@quadro" == r.BLOCOS_POR_TIPO["quadro"].bloco_padrao  # o quadro do relógio C vira o quadro fixo
+
+
+def test_u1_temas_e_participacao_dos_novos():
+    assert POPULAR.temas_revisao == ("luto em recado", "saúde e medicamento", "dívida, empréstimo e aposta",
+                                     "política", "religião")
+    assert VARIEDADES.temas_revisao == ("saúde", "finanças e investimento", "orientação jurídica e de consumo",
+                                        "alimentação com promessa de saúde", "política", "religião")
+    assert "recados e pedidos reais" in POPULAR.participacao.lower()
+    assert "convite genérico" in POPULAR.participacao
+    assert "pergunta do dia" in VARIEDADES.participacao.lower() and "respostas reais" in VARIEDADES.participacao
 
 
 def test_u1_aliases_unicos_e_sem_colisao_com_ids():
@@ -187,6 +238,28 @@ def test_u3_flags_cobrem_todo_o_comportamento():
     assert cobertos == {campo.name for campo in dataclasses.fields(f.Comportamento)}
 
 
+# Tabela do §6.4: comportamento dos formatos novos (popular, variedades).
+FLAGS_NOVOS = {
+    "ciclo": ("padrao", "padrao"),
+    "musica_sem_fala": (False, False),
+    "uma_faixa_por_bloco": (False, False),
+    "multivoz": (True, True),
+    "naturalidade_encenada": (True, True),
+    "hora_e_marco": (True, True),
+    "convite": ("qualquer_bloco", "so_chamada"),
+    "tom_tts": (None, None),
+    "ia_pode_adicionar_blocos": (True, True),
+    "preenchimento_relogio": (True, True),
+    "abertura_apos_intervalo": (True, True),
+}
+
+
+@pytest.mark.parametrize("campo", list(FLAGS_NOVOS))
+def test_u3_flags_dos_formatos_novos(campo):
+    assert (getattr(POPULAR.comportamento, campo), getattr(VARIEDADES.comportamento, campo)) == FLAGS_NOVOS[campo]
+    assert set(FLAGS_NOVOS) == {campo.name for campo in dataclasses.fields(f.Comportamento)}
+
+
 # RegraBloco.bloco_musical antes da F6 (relogio.py:289-312 em 5987eda), tipo de evento -> bloco.
 _BLOCO_MUSICAL_ANTES = {
     "abertura": "abertura", "retomada": "retomada", "manchetes": "escalada", "musica": "musica",
@@ -255,13 +328,53 @@ def test_u4_orcamento_para_com_teto_e_quadro():
 def test_u4_tabelas_de_orcamento_derivadas_do_catalogo():
     from app.live import orcamento
 
-    assert orcamento.FORMATOS_APLICADOS == frozenset({"musical_adulto", "musical_companhia"})
-    assert set(orcamento.ORCAMENTOS_POR_FORMATO) == {"padrao", "musical_adulto", "musical_companhia"}
+    assert orcamento.FORMATOS_APLICADOS == frozenset({"musical_adulto", "musical_companhia", "popular_sertanejo",
+                                                      "variedades_leves"})
+    assert set(orcamento.ORCAMENTOS_POR_FORMATO) == {"padrao", "musical_adulto", "musical_companhia",
+                                                     "popular_sertanejo", "variedades_leves"}
     assert orcamento.ORCAMENTOS_POR_FORMATO["musical_companhia"] == {**ORCAMENTOS, "*": orcamento_fala("*")}
     assert orcamento.ORCAMENTOS_POR_FORMATO["musical_adulto"] == orcamento.ORCAMENTOS_POR_FORMATO["musical_companhia"]
     assert orcamento.ORCAMENTOS_POR_FORMATO["padrao"] == {"*": (15, 30, None)}
     assert orcamento.formato_do_programa(SimpleNamespace(perfil_programacao="musical_companhia")) == "musical_adulto"
     assert orcamento.formato_do_programa(SimpleNamespace(perfil_programacao="padrao")) == "padrao"
+
+
+@pytest.mark.parametrize("formato", NOVOS, ids=[n.id for n in NOVOS])
+@pytest.mark.parametrize("tipo, primeira", [("comentario", False), ("chamada_ouvinte", False), ("abertura", True),
+                                            ("abertura", False), ("musica", False), ("encerramento", False),
+                                            ("bloco livre", False)])
+def test_u4_novos_aplicados_sem_relogio_pela_unidade_do_papel(formato, tipo, primeira):
+    from app.live.orcamento import orcamento_para
+
+    orcamento = orcamento_para(formato.id, tipo, primeira)
+    papel = f.papel_do_bloco(formato, tipo, primeira)
+    u = UNIDADES_NOVOS[formato.id][papel]
+    assert (orcamento.min_s, orcamento.alvo_s, orcamento.max_s) == u
+    assert (orcamento.fonte, orcamento.aplicar, orcamento.max_palavras) == ("formato", True, None)
+
+
+def test_u4_quadro_do_variedades_so_com_quadro_fixo():
+    from app.live.orcamento import orcamento_para
+
+    quadro = orcamento_para("variedades_leves", "Cantinho da Casa", False, quadro=True)
+    assert (quadro.min_s, quadro.max_s, quadro.fonte) == (60, 180, "formato")
+    # Nome de bloco com "Quadro" sem ser quadro fixo do programa não é quadro (§6.3).
+    assert f.papel_do_bloco(VARIEDADES, "Quadro da Receita", False) == "*"
+    assert f.papel_do_bloco(VARIEDADES, "Quadro da Receita", False, quadro=True) == "quadro"
+    assert orcamento_para("variedades_leves", "Quadro da Receita", False).max_s == 60
+    # O popular não declara quadro: o quadro fixo segue o papel do nome (ou "*").
+    assert orcamento_para("popular_sertanejo", "Cantinho da Casa", False, quadro=True).max_s == 60
+    # Com o teto do relógio, o quadro fica limitado pela etapa.
+    apertado = orcamento_para("variedades_leves", "Cantinho da Casa", False, teto_relogio_s=90, minimo_relogio_s=60,
+                              quadro=True)
+    assert (apertado.min_s, apertado.max_s, apertado.fonte) == (60, 90, "relogio")
+
+
+def test_u4_fonte_e_eh_quadro_fixo():
+    programa = SimpleNamespace(quadros_fixos={"Cantinho da Casa": ["gavetas"], "Vazio": []})
+    assert f.eh_quadro_fixo(programa, "Cantinho da Casa")
+    assert not f.eh_quadro_fixo(programa, "Vazio") and not f.eh_quadro_fixo(programa, "comentario")
+    assert not f.eh_quadro_fixo(SimpleNamespace(), "Cantinho da Casa")
 
 
 # ---------------------------------------------------------------------------------------------------------
@@ -310,6 +423,48 @@ def test_u5_padrao_sem_direcao_e_meta_legivel_pelo_duble():
     assert f.direcao_formato(PADRAO, "comentario", False) == ""
     assert f.direcao_formato("padrao", "abertura", True) == ""
     assert META_BLOCO_RE.search(f.direcao_formato(MUSICAL, "retomada", False))
+
+
+_PALAVRAS_EM_MAIUSCULA_PERMITIDAS = {"POPULAR/SERTANEJO", "VARIEDADES", "LEVES", "WhatsApp"}
+
+
+@pytest.mark.parametrize("formato", NOVOS, ids=[n.id for n in NOVOS])
+@pytest.mark.parametrize("tipo, primeira, quadro", [
+    ("abertura", True, False), ("retomada", False, False), ("identificacao", False, False), ("musica", False, False),
+    ("chamada_ouvinte", False, False), ("comentario", False, False), ("Cantinho da Casa", False, True),
+    ("encerramento", False, False),
+])
+def test_u5_direcao_dos_novos(formato, tipo, primeira, quadro):
+    from scripts.simulacao.dubles import META_BLOCO_RE
+
+    direcao = f.direcao_formato(formato, tipo, primeira, orcamento=(20, 60, 150), quadro=quadro)
+    assert direcao.startswith(formato.direcao_cabecalho)
+    assert META_BLOCO_RE.search(direcao).groups() == ("20", "60", "150")
+    assert formato.conducao.rstrip(".").lower() in direcao.lower()
+    assert f.REGRA_PROMESSA in direcao and f.REGRA_FACTUAL in direcao
+    papel = f.papel_do_bloco(formato, tipo, primeira, quadro)
+    assert formato.funcoes[papel] in direcao
+    for proibido in ("4 a 6 frases", "quatro a seis frases", "MUSICAL", "Caio", "Zeca", "Ze do Radio"):
+        assert proibido not in direcao, proibido
+    # Nenhum nome próprio (de apresentador, emissora ou ouvinte) além do cabeçalho do formato e do canal.
+    maiusculas = {palavra.strip(",.;:()") for frase in re.split(r"[.:;]\s+", direcao)
+                  for palavra in frase.split()[1:] if palavra[:1].isupper()}
+    assert maiusculas <= _PALAVRAS_EM_MAIUSCULA_PERMITIDAS, maiusculas
+
+
+def test_u5_sem_orcamento_a_meta_dos_novos_vem_da_unidade():
+    direcao = f.direcao_formato(POPULAR, "comentario")
+    assert "Meta de locução: 20 a 60 segundos." in direcao and "no máximo" not in direcao
+    quadro = f.direcao_formato(VARIEDADES, "Cantinho da Casa", quadro=True)
+    assert "Meta de locução: 60 a 180 segundos." in quadro and VARIEDADES.funcoes["quadro"] in quadro
+
+
+def test_u5_mesmo_papel_dirige_diferente_em_cada_formato():
+    for tipo, primeira in (("abertura", True), ("retomada", False), ("identificacao", False), ("musica", False),
+                           ("chamada_ouvinte", False), ("comentario", False), ("encerramento", False)):
+        textos = {formato.id: f.direcao_formato(formato, tipo, primeira, orcamento=(10, 20, 40))
+                  for formato in (MUSICAL, POPULAR, VARIEDADES)}
+        assert len(set(textos.values())) == 3, tipo
 
 
 def test_u5_texto_do_catalogo_nao_cita_emissora_nem_apresentador_real():
@@ -378,6 +533,65 @@ def test_u7_unidade_do_formato_vence_a_do_relogio_d8():
     assert plano.palavras_max <= 90
 
 
+def test_u7_popular_no_link_de_a_e_comentario_de_20_a_35():
+    instante = datetime.datetime(2026, 11, 10, 14, 12, tzinfo=SP)  # link de 12:00 do relógio A (35 s)
+    feito = ("0:0:fala:abertura",)
+    popular = _planejar(instante, POPULAR, feito)
+    # A etapa de 35 s limita a unidade de comentário do popular (20 a 60 s): fala reduzida pela etapa (D8).
+    assert (popular.tipo_bloco, popular.acao, popular.orcamento_s) == ("comentario", "fala_reduzida", (20, 35))
+    assert popular.palavras_max == math.floor(35 * r.CONFIG_PADRAO.wpm / 60)
+    assert (_planejar(instante, MUSICAL, feito).tipo_bloco, _planejar(instante, MUSICAL, feito).orcamento_s) == \
+        ("retomada", (6, 12))
+    assert _planejar(instante, PADRAO, feito).orcamento_s == (10, 35)
+    retorno = _planejar(datetime.datetime(2026, 11, 10, 14, 27, tzinfo=SP), POPULAR,
+                        (*feito, "0:720", "0:1440:patrocinador:5", "0:1440:patrocinador:6"))
+    assert (retorno.tipo_bloco, retorno.orcamento_s) == ("chamada_ouvinte", (20, 60))
+
+
+def _planejar_c(instante, formato, executadas=(), quadros=("Cantinho da Casa",)):
+    pecas = r.PecasDisponiveis(patrocinadores=(r.Peca(5, 30.0),), quadros=quadros, tem_fonte_noticia=False)
+    return r.planejar(_programa_relogio(), r.PRESETS["C"], "America/Sao_Paulo", instante, formato=formato,
+                      ultima_categoria="musica", ja_encerrou=False, executadas=set(executadas), pecas=pecas)
+
+
+def test_u7_variedades_no_quadro_de_c():
+    instante = datetime.datetime(2026, 11, 10, 14, 44, tzinfo=SP)  # quadro de 44:00 do relógio C (360 s)
+    feito = ("0:0:fala:abertura", "0:600", "0:1140", "0:2040", "0:960:patrocinador:5", "0:2460:patrocinador:5")
+    plano = _planejar_c(instante, VARIEDADES, feito)
+    assert (plano.etapa.tipo_efetivo, plano.tipo_bloco, plano.orcamento_s) == ("quadro", "Cantinho da Casa", (60, 180))
+    sem_quadro = _planejar_c(instante, VARIEDADES, feito, quadros=())
+    assert (sem_quadro.tipo_bloco, sem_quadro.orcamento_s) == ("comentario", (20, 60))
+    padrao = _planejar_c(instante, PADRAO, feito)
+    assert (padrao.tipo_bloco, padrao.orcamento_s) == ("Cantinho da Casa", (60, 180))  # UNIDADES_PADRAO do quadro
+    assert _planejar_c(instante, MUSICAL, feito).tipo_bloco == "retomada"
+
+
+def relogio_efetivo(formato, preset: str) -> tuple:
+    """Sequência de (etapa, tipo_bloco, orcamento_s) numa hora, amostrada a cada 7 s, sem repetição seguida."""
+    pecas = r.PecasDisponiveis(patrocinadores=(r.Peca(5, 30.0),), quadros=("Cantinho da Casa",),
+                               tem_fonte_noticia=True)
+    sequencia: list[tuple] = []
+    for segundo in range(0, 3600, 7):
+        instante = datetime.datetime(2026, 11, 10, 14, 0, tzinfo=SP) + datetime.timedelta(seconds=segundo)
+        plano = r.planejar(_programa_relogio(), r.PRESETS[preset], "America/Sao_Paulo", instante, formato=formato,
+                           ultima_categoria="musica", ja_encerrou=False, executadas=set(), pecas=pecas)
+        item = (plano.etapa.chave, plano.tipo_bloco, plano.orcamento_s)
+        if not sequencia or sequencia[-1] != item:
+            sequencia.append(item)
+    return tuple(sequencia)
+
+
+def test_u7_relogio_efetivo_distinto_dois_a_dois_com_o_relogio_padrao_de_cada_formato():
+    efetivos = {formato.id: relogio_efetivo(formato, formato.relogio_padrao) for formato in (MUSICAL, *NOVOS)}
+    assert (MUSICAL.relogio_padrao, POPULAR.relogio_padrao, VARIEDADES.relogio_padrao) == ("A", "A", "C")
+    ids = list(efetivos)
+    for i, primeiro in enumerate(ids):
+        for segundo in ids[i + 1:]:
+            assert efetivos[primeiro] != efetivos[segundo], (primeiro, segundo)
+    # Mesmo preset (A), relógio efetivo diferente: o link do popular é comentário, o do musical é retomada.
+    assert {b for _, b, _ in efetivos["musical_adulto"]} != {b for _, b, _ in efetivos["popular_sertanejo"]}
+
+
 @pytest.mark.parametrize("preset", ["A", "B", "C"])
 @pytest.mark.parametrize("chave", [chave for chave, formato in f.FORMATOS.items() if formato.implementado])
 def test_u7_nenhum_plano_abaixo_do_minimo_em_cada_formato(preset, chave):
@@ -408,7 +622,8 @@ def _categoria(tipo):
     return _categoria_simples(tipo)
 
 
-@pytest.mark.parametrize("perfil", ["padrao", "musical_adulto", "musical_companhia"])
+@pytest.mark.parametrize("perfil", ["padrao", "musical_adulto", "musical_companhia", "popular_sertanejo",
+                                    "variedades_leves"])
 def test_u8_roteiro_vazio_e_o_do_formato(perfil):
     from app.live.roteiro import tipo_na_posicao
     from app.live.router import _tipo_proximo_bloco
@@ -457,6 +672,37 @@ def test_u8_abertura_depois_do_intervalo_pela_flag(monkeypatch):
     monkeypatch.setattr("app.live.router.formato_do_programa", lambda programa: com_flag)
     assert _tipo_proximo_bloco(programa, 2, "patrocinador") == "abertura"
     assert _tipo_proximo_bloco(programa, 2, "comentario") == "comentario"
+
+
+@pytest.mark.parametrize("perfil", ["popular_sertanejo", "variedades_leves"])
+def test_u8_abertura_depois_do_intervalo_permitida_nos_novos(perfil):
+    """D17 (pendência da F0): no popular e no variedades a abertura da volta sobrevive ao patrocinador; o padrão
+    continua igual (troca por comentário)."""
+    from app.live.roteiro import tipo_na_posicao
+    from app.live.router import _tipo_proximo_bloco
+
+    estrutura = ["musica", "patrocinador:7", "abertura", "comentario"]
+    novo, padrao = _programa(estrutura_blocos=estrutura, perfil_programacao=perfil), _programa(estrutura_blocos=estrutura)
+    assert _tipo_proximo_bloco(novo, 2, "patrocinador") == "abertura"
+    assert _tipo_proximo_bloco(padrao, 2, "patrocinador") == "comentario"
+    for ultima in ("musica", "vinheta", None):
+        assert _tipo_proximo_bloco(novo, 2, ultima) == _tipo_proximo_bloco(padrao, 2, ultima) == "abertura"
+    assert _tipo_proximo_bloco(novo, 2, "comentario") == "comentario"
+    assert [tipo_na_posicao(novo, p, _categoria) for p in range(9)] == \
+        [tipo_na_posicao(padrao, p, _categoria) for p in range(9)]
+
+
+@pytest.mark.parametrize("perfil", ["popular_sertanejo", "variedades_leves"])
+def test_u8_novos_respeitam_a_flag_de_blocos_extras_do_programa(perfil, monkeypatch):
+    """D23: só o musical ignora `ia_pode_adicionar_blocos`; os novos sorteiam o comentário extra como o padrão."""
+    from app.live.router import _tipo_proximo_bloco
+
+    monkeypatch.setattr("app.live.router.random.random", lambda: 0.0)
+    estrutura = ["musica", "noticia"]
+    assert _tipo_proximo_bloco(_programa(estrutura_blocos=estrutura, perfil_programacao=perfil,
+                                         ia_pode_adicionar_blocos=True), 1, "musica") == "comentario"
+    assert _tipo_proximo_bloco(_programa(estrutura_blocos=estrutura, perfil_programacao=perfil), 1, "musica") == \
+        "noticia"
 
 
 def test_u8_blocos_extras_pela_flag_do_formato(monkeypatch):

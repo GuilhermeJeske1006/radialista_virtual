@@ -16,7 +16,7 @@ import dataclasses
 from typing import TYPE_CHECKING
 
 from app.dados.fontes import bloco_de_dados, extra_faixa, extra_ouvinte, no_bloco
-from app.live.formatos import direcao_formato, linhas_do_formato
+from app.live.formatos import direcao_formato, eh_quadro_fixo, linhas_do_formato
 from app.live.promessas import descrever_agenda, instrucoes_do_bloco, situacao_do_contexto
 from app.live.orcamento import contar_pausas, palavras_max
 from app.live.prompts import (
@@ -578,6 +578,7 @@ def _duracao(ctx: "ContextoEmissao") -> list[str]:
         linhas.append(direcao_formato(
             ctx.formato, ctx.tipo, ctx.primeira_fala,
             orcamento=(segundos_prompt(orcamento.min_s), segundos_prompt(orcamento.max_s), ctx.limite_palavras),
+            quadro=eh_quadro_fixo(ctx.programa, ctx.tipo),
         ))
     elif plano is not None and plano.orcamento_s:
         # Com agenda, ela substitui o "não anuncie o que vem a seguir" do relógio.
@@ -598,7 +599,7 @@ def _formato(ctx: "ContextoEmissao") -> list[str]:
         plano is not None and getattr(plano.etapa, "tipo_efetivo", None) == "retorno")
     return linhas_do_formato(
         ctx.formato, programa=programa.nome, tipo=ctx.tipo, primeira=ctx.primeira_fala,
-        quadro=ctx.tipo in (getattr(programa, "quadros_fixos", None) or {}), retorno=retorno,
+        quadro=eh_quadro_fixo(programa, ctx.tipo), retorno=retorno,
         publico=getattr(programa, "publico_alvo", "") or "",
     )
 

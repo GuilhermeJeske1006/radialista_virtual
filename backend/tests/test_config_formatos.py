@@ -42,7 +42,7 @@ def programa_url(client, account, auth_headers):
 # ---------------------------------------------------------------------------------------------------------
 
 def test_i8_aceitos_sao_os_implementados_e_os_aliases():
-    assert set(ACEITOS) == {"padrao", "musical_adulto", "musical_companhia"}
+    assert set(ACEITOS) == {"padrao", "musical_adulto", "musical_companhia", "popular_sertanejo", "variedades_leves"}
 
 
 @pytest.mark.parametrize("valor", ACEITOS)
@@ -87,6 +87,10 @@ def test_i8_rota_de_formatos_lista_o_catalogo(client, account, auth_headers):
     assert musical["ia_pode_adicionar_blocos"] is False and musical["reorientacao_s"] == 900
     assert musical["roteiro_padrao"] == list(FORMATOS["musical_adulto"].roteiro_padrao)
     assert formatos["padrao"]["ia_pode_adicionar_blocos"] is True
+    popular, variedades = formatos["popular_sertanejo"], formatos["variedades_leves"]
+    assert (popular["relogio_padrao"], popular["reorientacao_s"], popular["implementado"]) == ("A", 1200, True)
+    assert (variedades["relogio_padrao"], variedades["reorientacao_s"], variedades["implementado"]) == ("C", 900, True)
+    assert popular["ia_pode_adicionar_blocos"] is True and variedades["ia_pode_adicionar_blocos"] is True
     assert "F5" in formatos["jornalistico"]["requer"] and formatos["jornalistico"]["implementado"] is False
 
 
@@ -118,7 +122,8 @@ def test_u12_prompt_do_gerador_lista_os_formatos_implementados():
     prompts = [g._montar_system_prompt_completo(), g._montar_system_prompt_programa("Caio", "calmo"),
                g._montar_system_prompt_ajuste_programa(), g._montar_system_prompt_ajuste_completo()]
     for prompt in prompts:
-        assert '"perfil_programacao": "padrao" ou "musical_adulto"' in prompt
+        assert ('"perfil_programacao": "padrao" ou "musical_adulto" ou "popular_sertanejo" ou "variedades_leves"'
+                in prompt)
         for chave in IMPLEMENTADOS:
             assert f"'{chave}'" in prompt, chave
         assert "musical_companhia" not in prompt
@@ -133,6 +138,9 @@ def test_u12_tipo_radio_sugere_o_formato_como_dica():
     assert "Formato sugerido para este tipo de rádio (dica, não regra): 'musical_adulto'" in \
         g._montar_system_prompt_completo(tipo_radio="mpb_variedades")
     assert "Formato sugerido" not in g._montar_system_prompt_completo(tipo_radio="jornalismo_noticia")
+    for tipo_radio in ("sertaneja", "popular_mix"):
+        assert "Formato sugerido para este tipo de rádio (dica, não regra): 'popular_sertanejo'" in \
+            g._montar_system_prompt_completo(tipo_radio=tipo_radio)
     for chave in g._FORMATO_SUGERIDO_POR_TIPO_RADIO.values():
         assert FORMATOS[chave].implementado
 
@@ -151,7 +159,27 @@ def _gerar(monkeypatch, perfil_programacao):
     monkeypatch.setattr("app.config.router.reparar_configuracao_ia", reparo_falha)
 
 
-@pytest.mark.parametrize("valor", ["musical_companhia", "musical_adulto"])
+def test_u12_uso_de_cada_formato_no_gerador():
+    from app.llm import config_generator as g
+
+    assert "jornalismo" in g._USO_FORMATO_NO_GERADOR["padrao"] and "variedades" not in g._USO_FORMATO_NO_GERADOR["padrao"]
+    assert "recados" in g._USO_FORMATO_NO_GERADOR["popular_sertanejo"]
+    assert "quadro fixo" in g._USO_FORMATO_NO_GERADOR["variedades_leves"]
+
+
+def test_u12_exemplo_sertanejo_usa_o_formato_popular():
+    from app.llm.exemplos_config import _EXEMPLOS
+
+    formatos = {e["saida"]["nome"]: e["saida"]["perfil_programacao"] for e in _EXEMPLOS}
+    # Sertanejo vira popular; o radiojornal e o noturno continuam padrao (ainda sem formato próprio, D13).
+    assert formatos == {"Trilha da Madrugada": "popular_sertanejo", "Jornal do Meio-Dia": "padrao",
+                        "Boa Noite, Coracao": "padrao"}
+    for exemplo in _EXEMPLOS:
+        assert exemplo["saida"]["perfil_programacao"] in FORMATOS and \
+            FORMATOS[exemplo["saida"]["perfil_programacao"]].implementado
+
+
+@pytest.mark.parametrize("valor", ["musical_companhia", "musical_adulto", "popular_sertanejo", "variedades_leves"])
 def test_u12_llm_devolvendo_formato_aceito_grava_sem_correcao(client, account, auth_headers, monkeypatch, valor):
     _gerar(monkeypatch, valor)
     resposta = client.post("/config/radialistas/gerar-ia/preview", json={"descricao": "tarde musical calma"},

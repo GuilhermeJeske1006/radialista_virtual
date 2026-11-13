@@ -15,6 +15,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.live import relogio as r
+from app.live.formatos import resolver_formato
 from app.live.orcamento import estimar_duracao_s
 
 SP = ZoneInfo("America/Sao_Paulo")
@@ -37,9 +38,11 @@ def _em(dia, hora, minuto, segundo=0, fuso=SP):
 
 def _planejar(programa, instante, relogio="A", *, executadas=(), pecas=COM_PATROCINIO, musical=False,
               ultima="musica", fuso="America/Sao_Paulo", cfg=r.CONFIG_PADRAO, ja_encerrou=False):
+    """`musical`: o antigo booleano, ou o id de um formato do catálogo (F6)."""
     relogio = r.PRESETS[relogio] if isinstance(relogio, str) else relogio
-    return r.planejar(programa, relogio, fuso, instante, formato_musical=musical, ultima_categoria=ultima,
-                      ja_encerrou=ja_encerrou, executadas=set(executadas), pecas=pecas, cfg=cfg)
+    formato = {"formato": resolver_formato(musical)} if isinstance(musical, str) else {"formato_musical": musical}
+    return r.planejar(programa, relogio, fuso, instante, ultima_categoria=ultima, ja_encerrou=ja_encerrou,
+                      executadas=set(executadas), pecas=pecas, cfg=cfg, **formato)
 
 
 def _ocorrencia(programa, instante, fuso="America/Sao_Paulo"):
@@ -258,7 +261,7 @@ def test_u11_orcamento_do_link():
 
 
 @pytest.mark.parametrize("chave", ["A", "B", "C"])
-@pytest.mark.parametrize("musical", [False, True])
+@pytest.mark.parametrize("musical", [False, True, "popular_sertanejo", "variedades_leves"])
 def test_u11_nenhum_plano_com_orcamento_abaixo_do_minimo(chave, musical):
     programa = _programa()
     pecas = r.PecasDisponiveis(patrocinadores=(r.Peca(5, 30.0),), tem_fonte_noticia=True)
@@ -269,7 +272,7 @@ def test_u11_nenhum_plano_com_orcamento_abaixo_do_minimo(chave, musical):
             if candidato is not None and candidato.orcamento_s is not None:
                 minimo, maximo = candidato.orcamento_s
                 assert maximo >= minimo, (segundo, candidato.acao, candidato.tipo_bloco)
-                if musical:
+                if musical is True:
                     assert candidato.palavras_max <= int(maximo * WPM // 60)
                 else:
                     assert candidato.palavras_max == int(maximo * WPM // 60)

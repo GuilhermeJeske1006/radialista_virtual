@@ -21,10 +21,14 @@ logger = logging.getLogger("radialista.live.formatos")
 
 ID_PADRAO = "padrao"
 ID_MUSICAL = "musical_adulto"
+ID_POPULAR = "popular_sertanejo"
+ID_VARIEDADES = "variedades_leves"
 FONTE = "docs/pesquisa-radio-locufy.md §3; skill referencia-radio"
 
 # Frase da meta lida pelo dublê do LLM da simulação (scripts/simulacao/dubles.py, META_BLOCO_RE): não mudar a forma.
 META_LOCUCAO = "Meta de locução: {minimo} a {maximo} segundos, no máximo {palavras} palavras."
+# Sem teto de palavras (formato sem `max_palavras` e sem o orçamento calculado pelo ritmo da voz).
+META_LOCUCAO_SEM_PALAVRAS = "Meta de locução: {minimo} a {maximo} segundos."
 REGRA_PROMESSA = "Não prometa intervalo, retorno ou conteúdo futuro sem programação confirmada."
 REGRA_FACTUAL = "Mantenha as regras factuais e de atendimento dos pedidos reais."
 
@@ -184,6 +188,125 @@ MUSICAL_ADULTO = Formato(
 )
 
 
+# Popular/sertanejo e variedades leves (leva 2, tabela do §6.4). Ciclo e flags do padrão, mas com orçamento aplicado
+# (D9), unidade por papel, roteiro próprio, relógio sugerido e abertura aceita na volta do intervalo (D17). As
+# funções do bloco são estruturas de intenção (pesquisa §8), nunca frase pronta nem imitação de apresentador real.
+COMPORTAMENTO_POPULAR = Comportamento(
+    ciclo="padrao", musica_sem_fala=False, uma_faixa_por_bloco=False, multivoz=True, naturalidade_encenada=True,
+    hora_e_marco=True, convite="qualquer_bloco", tom_tts=None, ia_pode_adicionar_blocos=True,
+    preenchimento_relogio=True, abertura_apos_intervalo=True,
+)
+COMPORTAMENTO_VARIEDADES = Comportamento(
+    ciclo="padrao", musica_sem_fala=False, uma_faixa_por_bloco=False, multivoz=True, naturalidade_encenada=True,
+    hora_e_marco=True, convite="so_chamada", tom_tts=None, ia_pode_adicionar_blocos=True,
+    preenchimento_relogio=True, abertura_apos_intervalo=True,
+)
+
+POPULAR_SERTANEJO = Formato(
+    id=ID_POPULAR,
+    nome="Popular/sertanejo",
+    promessa="Companhia e reconhecimento.",
+    conteudo="Música, recados, histórias e vida local.",
+    conducao="Próxima e afetiva.",
+    unidade_principal="entrada de 20 a 60 s",
+    unidades={
+        "abertura": Unidade(20, 40, 60),
+        "retomada": Unidade(15, 25, 40),
+        "identificacao": Unidade(3, 6, 10),
+        "musica": Unidade(8, 15, 25),
+        "chamada_ouvinte": Unidade(20, 40, 60),      # recados
+        "comentario": Unidade(20, 35, 60),           # história, vida local
+        "encerramento": Unidade(15, 30, 45),
+        "*": Unidade(20, 35, 60),
+    },
+    aplica_orcamento=True,
+    comportamento=COMPORTAMENTO_POPULAR,
+    roteiro_padrao=("musica", "chamada_ouvinte", "musica", "comentario", "musica", "retomada"),
+    relogio_padrao="A",   # D6: preset A com as unidades e os blocos do formato (o relógio efetivo é outro)
+    blocos_relogio={},
+    funcoes={
+        "abertura": "Receba quem chega com proximidade, diga o nome do programa e da rádio e chame a primeira "
+                    "música confirmada.",
+        "retomada": "Retome o programa em andamento com uma frase próxima, sem repetir o que já foi ao ar.",
+        "identificacao": "Diga o nome da rádio e do programa com uma assinatura curta e calorosa.",
+        "musica": "Apresente a faixa confirmada pelo título e pelo artista; com pedido real, diga o nome "
+                  "autorizado de quem pediu.",
+        "chamada_ouvinte": "Leia o recado ou o pedido real pelo nome autorizado e responda com afeto; sem recado "
+                           "real, faça um convite genérico para participar, sem inventar mensagem.",
+        "comentario": "Conte uma história curta do cotidiano ou da vida local, sem inventar fato, nome ou lugar, "
+                      "e volte para a música.",
+        "encerramento": "Agradeça a companhia, diga o nome do programa e despeça-se sem prometer retorno que não "
+                        "esteja agendado.",
+        "*": "Cumpra a função deste bloco com proximidade, uma ideia por vez.",
+    },
+    temas_revisao=("luto em recado", "saúde e medicamento", "dívida, empréstimo e aposta", "política", "religião"),
+    participacao="Recados e pedidos reais pelo nome autorizado; sem recado, convite genérico, sem simular "
+                 "mensagem recebida.",
+    reorientacao_s=1200,
+    faixa_fala_pct=(4.0, 20.0),
+    direcao_cabecalho="FORMATO POPULAR/SERTANEJO: a companhia e o reconhecimento do ouvinte ocupam o centro.",
+    direcao_regras=(
+        "Condução próxima e afetiva: fale com um ouvinte de cada vez, em português coloquial, sem caricatura de "
+        "sotaque, bordão repetido ou exagero.",
+        "Recado, pedido, nome e cidade de ouvinte só os reais e autorizados; não simule participação.",
+        "Ajuste a energia ao horário sem mudar a identidade do programa.",
+    ),
+)
+
+VARIEDADES_LEVES = Formato(
+    id=ID_VARIEDADES,
+    nome="Variedades leves",
+    promessa="Ajudar na vida cotidiana, com leveza.",
+    conteudo="Cidade, cultura, trabalho, tecnologia, serviço leve e quadro fixo.",
+    conducao="Prática e inclusiva.",
+    unidade_principal="quadro de 2 a 8 min",
+    unidades={
+        "abertura": Unidade(30, 60, 90),             # pergunta do dia
+        "retomada": Unidade(15, 25, 40),
+        "identificacao": Unidade(3, 6, 10),
+        "musica": Unidade(8, 15, 25),
+        "chamada_ouvinte": Unidade(20, 40, 60),      # respostas reais
+        "comentario": Unidade(20, 45, 60),           # conversa
+        "quadro": Unidade(60, 120, 180),             # por fala; o quadro inteiro (2 a 8 min) é a soma no relógio C
+        "encerramento": Unidade(20, 35, 45),
+        "*": Unidade(20, 35, 60),
+    },
+    aplica_orcamento=True,
+    comportamento=COMPORTAMENTO_VARIEDADES,
+    roteiro_padrao=("musica", "comentario", "musica", "chamada_ouvinte", "musica", "retomada"),
+    relogio_padrao="C",
+    blocos_relogio={"quadro": "@quadro"},
+    funcoes={
+        "abertura": "Abra com o nome do programa e da rádio e a pergunta do dia, sem supor a rotina de quem ouve; "
+                    "peça respostas só se houver leitura agendada.",
+        "retomada": "Retome o assunto em andamento em uma frase e situe o ouvinte no programa.",
+        "identificacao": "Diga o nome da rádio e do programa e o tema do dia numa assinatura curta.",
+        "musica": "Apresente a faixa confirmada de forma breve; ligue a música ao assunto só se a relação for real.",
+        "chamada_ouvinte": "Leia só respostas reais à pergunta do dia, pelo nome autorizado; sem resposta real, faça "
+                           "um convite para participar, sem simular mensagem.",
+        "comentario": "Converse sobre um assunto útil do dia a dia com uma dica concreta e um exemplo, separando "
+                      "serviço e opinião.",
+        "quadro": "Conduza o quadro fixo: diga o nome do quadro, apresente o tema de hoje e dê passos simples, em "
+                  "unidades pequenas.",
+        "encerramento": "Resuma em uma frase o que foi útil hoje, agradeça a companhia e despeça-se sem prometer o "
+                        "que não está agendado.",
+        "*": "Cumpra a função deste bloco de forma prática, com uma ideia útil por vez.",
+    },
+    temas_revisao=("saúde", "finanças e investimento", "orientação jurídica e de consumo",
+                   "alimentação com promessa de saúde", "política", "religião"),
+    participacao="Pergunta do dia na abertura e leitura só de respostas reais; convite só com retorno agendado.",
+    reorientacao_s=900,
+    faixa_fala_pct=(15.0, 45.0),
+    direcao_cabecalho="FORMATO VARIEDADES LEVES: o serviço útil do dia a dia, com leveza, ocupa o centro.",
+    direcao_regras=(
+        "Condução prática e inclusiva: uma ideia útil por fala, em frases curtas, sem supor que todo ouvinte tem "
+        "a mesma rotina, casa ou renda.",
+        "Marque com clareza a passagem entre serviço e conversa; dica de serviço só com informação confirmada.",
+        "Convite para mandar mensagem só no bloco de chamada; leia apenas respostas reais de ouvintes.",
+    ),
+)
+
+
 # ---------------------------------------------------------------------------------------------------------
 # Formatos futuros (D13): só estrutura, nunca resolvidos; a API recusa e o painel mostra o que vem
 # ---------------------------------------------------------------------------------------------------------
@@ -226,7 +349,9 @@ FUTUROS = (
 )
 
 
-FORMATOS: Mapping[str, Formato] = {formato.id: formato for formato in (PADRAO, MUSICAL_ADULTO, *FUTUROS)}
+FORMATOS: Mapping[str, Formato] = {
+    formato.id: formato for formato in (PADRAO, MUSICAL_ADULTO, POPULAR_SERTANEJO, VARIEDADES_LEVES, *FUTUROS)
+}
 _ALIASES: Mapping[str, str] = {alias: formato.id for formato in FORMATOS.values() for alias in formato.aliases}
 
 
@@ -266,6 +391,12 @@ def ids_aceitos() -> frozenset[str]:
                      for chave in (formato.id, *formato.aliases))
 
 
+def eh_quadro_fixo(programa, tipo: str) -> bool:
+    """O bloco é quadro fixo do programa (`quadros_fixos[tipo]` com conteúdo), a mesma regra do relógio e do
+    contexto."""
+    return bool((getattr(programa, "quadros_fixos", None) or {}).get(tipo))
+
+
 def _papel_pelo_tipo(tipo: str, primeira: bool) -> str:
     papel = _tipo_fala(tipo)
     return "retomada" if papel == "abertura" and not primeira else papel
@@ -289,21 +420,23 @@ def unidade(formato, tipo: str, primeira: bool, quadro: bool = False) -> Unidade
 
 
 def direcao_formato(formato, tipo: str, primeira: bool = False,
-                    orcamento: tuple[float, float, int | None] | None = None) -> str:
+                    orcamento: tuple[float, float, int | None] | None = None, quadro: bool = False) -> str:
     """Direção do formato no prompt do bloco; vazia no `padrao`. `orcamento` (mínimo s, máximo s, palavras)
-    substitui a unidade do formato quando o relógio ou o ritmo da voz já calcularam o espaço do bloco."""
+    substitui a unidade do formato quando o relógio ou o ritmo da voz já calcularam o espaço do bloco. `quadro`:
+    o bloco é quadro fixo do programa."""
     formato = resolver_formato(formato)
     if not formato.direcao_cabecalho:
         return ""
-    papel = papel_do_bloco(formato, tipo, primeira)
+    papel = papel_do_bloco(formato, tipo, primeira, quadro)
     if orcamento is None:
         u = formato.unidades[papel]
         orcamento = (u.min_s, u.max_s, u.max_palavras)
     minimo, maximo, palavras = orcamento
+    meta = META_LOCUCAO if palavras is not None else META_LOCUCAO_SEM_PALAVRAS
     partes = [
         formato.direcao_cabecalho,
         formato.funcoes.get(papel) or formato.funcoes.get("*", ""),
-        META_LOCUCAO.format(minimo=minimo, maximo=maximo, palavras=palavras),
+        meta.format(minimo=minimo, maximo=maximo, palavras=palavras),
         *formato.direcao_regras,
         REGRA_PROMESSA,
         REGRA_FACTUAL,
