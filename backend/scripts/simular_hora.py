@@ -5,7 +5,8 @@ Uso (a partir de backend/):
     PYTHONPATH=. .venv/bin/python scripts/simular_hora.py --programa musical_adulto --saida /tmp/sim/musical_adulto \
         [--modo fake|llm|completo] [--semente 7] [--wpm 162] [--relogio A|B|C|<caminho>] [--antecedencia 2] \
         [--preparo-antecipado-s 90] [--corte agendado|manual] [--relogio-backend fixture|nenhum]
-        [--tts duble|nenhum] [--wpm-real 145] [--sem-inicio-previsto] [--confirmo-custo]
+        [--tts duble|nenhum] [--wpm-real 145] [--sem-inicio-previsto] [--formato programa|fixture|<id>]
+        [--confirmo-custo]
 
 - fake (padrão): sem rede. LLM, TTS, música, notícia e clima são dublês; a fala dura palavras/wpm.
   --wpm é o ritmo com que o dublê do LLM escreve e estima; sem ele, o mesmo do backend sem calibração
@@ -20,6 +21,10 @@ Uso (a partir de backend/):
 --relogio-backend fixture (padrão do CLI desde a F1) grava no programa o relógio da fixture
 (app.live.relogio.PRESETS, fonte de verdade) e o backend decide pelo relógio; nenhum reproduz a linha de
 base da F0 (a função simular() mantém nenhum como padrão). --sem-inicio-previsto imita o painel antigo.
+
+--formato (F6, D19): programa (padrão) usa o perfil_programacao gravado na fixture, como as linhas de base da F0 à F5;
+fixture aplica o campo `formato` da fixture (musical_adulto, popular_sertanejo, variedades_leves), como as rodadas da
+F6 em diante; um id do catálogo (ou alias) aplica esse formato. resumo.json ganha o bloco `formato` (auditoria F6 §9).
 
 llm e completo sem --confirmo-custo rodam só o modo fake, imprimem a estimativa e saem com código 3.
 Só passe --confirmo-custo com aprovação explícita do usuário. Códigos de saída: 0 simulação concluída
@@ -47,6 +52,7 @@ if __package__ in (None, ""):
 from scripts.simulacao.fixtures import FixturePrograma, carregar_catalogo, carregar_fixture, carregar_relogio  # noqa: E402
 
 MODOS = ("fake", "llm", "completo")
+FORMATOS_SIMULACAO = ("programa", "fixture")  # ou um id do catálogo (app.live.formatos.ids_aceitos)
 CORTES = ("agendado", "manual")
 RELOGIOS_BACKEND = ("fixture", "nenhum")
 TTS = ("duble", "nenhum")
@@ -92,12 +98,14 @@ def _gravar(caminho: pathlib.Path, dados: dict) -> None:
 def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = None, saida=None, relogio=None,
             antecedencia: int = 2, preparo_antecipado_s: float = 90, corte: str = "agendado",
             relogio_backend: str = "nenhum", inicio_previsto: bool = True, tts: str = "nenhum",
-            wpm_real: float | None = None, injecoes_extra=(), pedidos_extra=()) -> Resultado:
+            wpm_real: float | None = None, injecoes_extra=(), pedidos_extra=(), formato: str | None = None) -> Resultado:
     """Roda uma hora de programa. `programa` aceita o id da fixture, o caminho ou um FixturePrograma.
 
     Pressupõe o ambiente pronto (main() ou tests/conftest.py). Guarda e restaura random global e
     app.dependency_overrides; limpa o fakeredis no início. `injecoes_extra` e `pedidos_extra` (só para testes,
-    F4) somam injeções e pedidos aos da fixture sem mudar as três fixtures de linha de base.
+    F4) somam injeções e pedidos aos da fixture sem mudar as três fixtures de linha de base. `formato` (F6): None ou
+    "programa" mantém o perfil_programacao da fixture; "fixture" aplica o campo `formato` dela; senão, um id aceito pelo
+    catálogo (a referência de orçamento do as-run passa a ser a do catálogo nos dois últimos casos).
     """
     if modo not in MODOS:
         raise ValueError(f"modo inválido: {modo}")
@@ -122,6 +130,7 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
     from scripts.simulacao.emissao import Emissao
 
     fixture = programa if isinstance(programa, FixturePrograma) else carregar_fixture(programa)
+    fixture = _aplicar_formato(fixture, formato)
     if injecoes_extra or pedidos_extra:
         fixture = fixture.model_copy(update={"injecoes": [*fixture.injecoes, *injecoes_extra],
                                              "pedidos": [*fixture.pedidos, *pedidos_extra]})
@@ -159,6 +168,7 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
             promessas = emissao.promessas_finais()
             chamadas_dubles = dubles.chamadas_por_funcao()
             contadores_llm = dict(dubles.llm.contadores)
+            instrucao_formato = dubles.llm.instrucao()
     finally:
         random.setstate(estado_random)
         sessao.close()
@@ -206,7 +216,8 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
             "antecedencia": antecedencia,
             "preparo_antecipado_s": preparo_antecipado_s, "corte": corte, "fixture": fixture.id,
             "relogio": relogio_fixture.id, "relogio_backend": relogio_backend, "inicio_previsto": inicio_previsto,
-            "commit": _commit_atual(), "versao_formato": VERSAO_FORMATO,
+            "commit": _commit_atual(), "versao_formato": VERSAO_FORMATO, "formato": formato or "programa",
+            "perfil_programacao": fixture.programa.get("perfil_programacao"),
         },
         "chamadas_proxima": contagem["chamadas_proxima"],
         "chamadas_llm": {
@@ -240,6 +251,10 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
         "observacoes": OBSERVACOES,
     }
     resumo["injecao"] = _injecao(resumo, chamadas_dubles, fixture, emissao.eventos)
+    # F6: coerência com o formato que o backend resolveu para o programa (app.live.formatos.coerencia).
+    resumo["formato"] = metricas.metricas_formato(
+        as_run, formato=fixture.formato_backend.id, quadros=fixture.quadros(),
+        nomes=(str(fixture.programa.get("nome", "")), fixture.conta.nome_radio), instrucao=instrucao_formato)
     resumo["tempo_execucao_s"] = round(time.perf_counter() - inicio_parede, 2)
 
     if saida is not None:
@@ -248,6 +263,22 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
         _gravar(pasta / "as_run.json", as_run)
         _gravar(pasta / "resumo.json", resumo)
     return Resultado(as_run=as_run, resumo=resumo)
+
+
+def _aplicar_formato(fixture: FixturePrograma, formato: str | None) -> FixturePrograma:
+    """F6 (D19): "programa" (ou None) não muda nada; "fixture" grava o campo `formato` da fixture em
+    programa.perfil_programacao, como injecoes_extra faz, sem tocar no arquivo; um id aceito pelo catálogo grava esse
+    id. Fora disso, ValueError."""
+    if formato in (None, "programa"):
+        return fixture
+    from app.live.formatos import ids_aceitos
+
+    valor = fixture.formato if formato == "fixture" else formato
+    if valor not in ids_aceitos():
+        raise ValueError(f"formato inválido para a simulação: {valor} (aceitos: programa, fixture, "
+                         f"{', '.join(sorted(ids_aceitos()))})")
+    return fixture.model_copy(update={"programa": {**fixture.programa, "perfil_programacao": valor},
+                                      "orcamento_do_catalogo": True})
 
 
 def _injecao(resumo: dict, contadores: dict, fixture, eventos: list[dict]) -> dict:
@@ -312,7 +343,8 @@ def _linha_resumo(resumo: dict) -> str:
         f"falas_abaixo_minimo={resumo['falas_abaixo_minimo']} tts={resumo['config']['tts']} "
         f"estouro_max_pct={resumo['estouro_max_pct']} acima_teto={resumo['acima_teto_orcamento']} "
         f"max_llm_por_fala={resumo['orcamento_fala']['max_chamadas_llm_por_fala']} "
-        f"max_sinteses_por_fala={resumo['orcamento_fala']['max_sinteses_por_fala']}"
+        f"max_sinteses_por_fala={resumo['orcamento_fala']['max_sinteses_por_fala']} "
+        f"formato={resumo['formato']['id']} coerencia_automatica={resumo['formato']['coerencia_automatica']}"
     )
 
 
@@ -348,6 +380,9 @@ def _argumentos(argv: list[str] | None) -> argparse.Namespace:
                         help="ritmo real da voz do dublê de TTS, em palavras/min")
     parser.add_argument("--sem-inicio-previsto", action="store_true",
                         help="não envia inicio_previsto em /proxima (painel antigo)")
+    parser.add_argument("--formato", default="programa",
+                        help="programa (perfil gravado na fixture, linhas de base), fixture (campo formato da fixture, "
+                             "rodadas da F6) ou um id do catálogo de formatos")
     parser.add_argument("--confirmo-custo", action="store_true",
                         help="autoriza os modos pagos (só com aprovação explícita do usuário)")
     return parser.parse_args(argv)
@@ -372,7 +407,7 @@ def main(argv: list[str] | None = None) -> int:
             saida=None if pago_sem_confirmacao else args.saida, relogio=args.relogio,
             antecedencia=args.antecedencia, preparo_antecipado_s=args.preparo_antecipado_s, corte=args.corte,
             relogio_backend=args.relogio_backend, inicio_previsto=not args.sem_inicio_previsto,
-            tts=args.tts, wpm_real=args.wpm_real,
+            tts=args.tts, wpm_real=args.wpm_real, formato=args.formato,
         )
     except Exception as erro:  # noqa: BLE001 -- o CLI devolve código 2 com a causa
         print(f"erro na simulação: {type(erro).__name__}: {erro}", file=sys.stderr)

@@ -7,7 +7,9 @@ tabela promessas_no_ar ao fim), promessa vencida é a que venceu ou ficou aberta
 sem eles (as-runs antigos ou artificiais), vale a regra da F0 (promessa de música fechada pela faixa seguinte).
 Dado sem fonte e vencido: desde a F5, o detector do backend (app.dados.checagem.afirmacoes e checar_fala) sobre a
 fala que foi ao ar e os dados do bloco gravados no as-run, no instante em que a fala começou.
-Abertura repetida continua heurística da F0 (F8). Este módulo não importa app.* no carregamento.
+Abertura repetida continua heurística da F0 (F8). Coerência com o formato (F6): `metricas_formato` só leva o as-run
+para `app.live.formatos.coerencia` (convite, tema, reorientação e unidade são detectados lá, não aqui). Este módulo
+não importa app.* no carregamento.
 """
 
 import collections
@@ -522,3 +524,33 @@ def calcular_metricas(as_run: dict, config: dict | None = None) -> dict:
         "eventos_por_tipo": dict(sorted(collections.Counter(e["tipo"] for e in eventos).items())),
         "falas_por_bloco": dict(sorted(collections.Counter(f["bloco"] for f in falas).items())),
     }
+
+
+def metricas_formato(as_run: dict, *, formato: str, quadros=(), nomes=(), instrucao: dict | None = None) -> dict:
+    """Bloco `resumo.json["formato"]` (F6, auditoria §9): o as-run vira falas e eventos para a função do backend
+    (`app.live.formatos.coerencia`, importação tardia como F3-F5); nenhum detector próprio. `instrucao`: o canal
+    lateral do dublê (blocos de fala com a direção do formato no prompt)."""
+    from app.live import formatos
+
+    eventos = as_run["eventos"]
+    falas, anterior = [], None
+    for evento in eventos:
+        if evento["tipo"] == "fala":
+            orcamento = evento.get("orcamento_s") or {}
+            etapa = (evento.get("relogio") or {}).get("etapa") or {}
+            falas.append(formatos.FalaNoAr(
+                bloco=evento["bloco"], categoria=evento.get("categoria") or "", texto=evento.get("texto") or "",
+                duracao_s=_duracao(evento), inicio_s=float(evento["inicio_s"]),
+                primeira=not falas and evento.get("categoria") == "abertura", quadro=evento["bloco"] in quadros,
+                retorno=anterior in ("intervalo", "patrocinador") or etapa.get("tipo_efetivo") == "retorno",
+                teto_s=float(orcamento["max"]) if orcamento.get("fonte") == "relogio" else None,
+            ))
+        anterior = evento["tipo"]
+    relatorio = formatos.coerencia(
+        formato, falas, duracao_programa_s=float(as_run["duracao_programa_s"]), nomes=tuple(n for n in nomes if n),
+        eventos=[(e["tipo"], float(e["inicio_s"]), float(e["fim_s"])) for e in eventos], instrucao=instrucao,
+    )
+    resolvido = formatos.resolver_formato(formato)
+    dados = relatorio.como_dict()
+    dados.pop("formato", None)
+    return {"id": resolvido.id, "relogio_padrao": resolvido.relogio_padrao, **dados}

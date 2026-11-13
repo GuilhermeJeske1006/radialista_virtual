@@ -11,7 +11,9 @@ Dois mecanismos aplicados juntos:
 
 O dublê do LLM lê do prompt só o tipo do bloco, o pedido de revisão, o limite de palavras, a meta
 de duração do bloco (formato musical e relógio da hora) e, desde a F5, o bloco de dados da mensagem (para o modo
-`duble_usa_dados` e para medir se texto externo da fixture apareceu fora dele). A faixa
+`duble_usa_dados` e para medir se texto externo da fixture apareceu fora dele). Desde a F6, por canal lateral, se
+o system de cada bloco de fala tinha a direção do formato que o backend resolve para o programa (ou a de outro
+formato); o texto continua do banco, igual para todo formato (fato 7 da auditoria da F6). A faixa
 confirmada e o pedido da chamada chegam por canal lateral (EstadoChamada), porque as frentes
 seguintes reescrevem os prompts. RNG próprio: mexer no dublê não muda a sequência aleatória do backend.
 
@@ -33,7 +35,8 @@ from typing import Any, Callable, Iterator
 from unittest import mock
 
 from app.config.settings import settings
-from app.live.formato import contar_palavras, orcamento_fala
+from app.live.formato import contar_palavras
+from app.live.formatos import FORMATOS, unidade as unidade_do_formato
 from app.live.music import MusicaEncontrada, titulo_ja_tocado
 from app.live.orcamento import contar_pausas, palavras_faladas, wpm_padrao
 from app.util.texto import sem_acento
@@ -55,6 +58,8 @@ CABECALHO_DADOS = "Dados de referência deste bloco ("
 # Tipos de dado que o dublê "obediente" cita (duble_usa_dados) e as injeções de dado (F5).
 TIPOS_CITAVEIS = ("clima", "noticia", "servico", "transito", "aviso", "agenda", "esporte", "correcao")
 INJECOES_DADO = ("dado_sem_fonte", "dado_vencido")
+# F6: injeções de coerência com o formato que só acrescentam a frase da fixture (convite, tema que exige revisão).
+INJECOES_FRASE_F6 = ("convite", "tema_revisao")
 
 _BASES_CATEGORIA = (
     "musica", "noticia", "escalada", "servico", "plantao", "reporter",
@@ -131,6 +136,10 @@ class DubleLLM:
         self.blocos_dados: dict[int, list[dict]] = {}
         self.legitimas: dict[int, list[str]] = {}
         self._externos = _textos_externos(fixture)
+        # F6, canal lateral: por bloco de fala, o system tinha a direção do formato que o backend resolve para o
+        # programa? E a de outro formato? (como os contadores de injeção da F5)
+        self.formato_esperado = fixture.formato_backend
+        self.instrucao_por_bloco: dict[int, tuple[bool, bool]] = {}
         self._espacos_base = {
             "radio": fixture.conta.nome_radio,
             "programa": str(fixture.programa.get("nome", "")),
@@ -186,6 +195,7 @@ class DubleLLM:
             self._fala_n += 1
             self._tentativa = 0
             self.contadores["falas"] += 1
+            self._registrar_instrucao(system_prompt or "")
         else:
             self._tentativa += 1
             self.contadores["revisoes"] += 1
@@ -222,6 +232,15 @@ class DubleLLM:
             teto = min(teto, int(limite.group(1)))
             alvo = min(alvo, teto)
 
+        debate = next((i for i in self.fixture.injecoes if i.fala == self._fala_n and i.tipo == "debate_longo"), None)
+        if debate is not None:
+            # F6: uma frase corrida de `segundos`, em toda tentativa (nem a reescrita nem o encurtamento por frases
+            # resolvem): mede o aviso fora_da_unidade, que não corta nada (D21).
+            self.contadores["injecao_debate_longo"] += 1
+            texto = _debate_longo(round(self.wpm * debate.segundos / 60))
+            self.temas[texto] = "debate_longo"
+            return texto
+
         extras: list[str] = []
         for injecao in (i for i in self.fixture.injecoes if i.fala == self._fala_n):
             if injecao.tipo == "excesso" and self._tentativa == 0 and not limite:
@@ -244,6 +263,9 @@ class DubleLLM:
             elif injecao.tipo == "obedece_injecao":
                 extras.append(injecao.frase)
                 self.contadores["injecao_obedece"] += 1
+            elif injecao.tipo in INJECOES_FRASE_F6:
+                extras.append(injecao.frase)
+                self.contadores[f"injecao_{injecao.tipo}"] += 1
 
         dados = self._ler_dados(system_prompt or "", mensagem or "")
         if self.fixture.duble_usa_dados and categoria not in ("musica", "encerramento"):
@@ -285,15 +307,32 @@ class DubleLLM:
             self.contadores["injecao_fora_do_bloco"] += 1
         return dados
 
+    def _registrar_instrucao(self, system: str) -> None:
+        esperado = self.formato_esperado
+        tem = bool(esperado.direcao_cabecalho) and esperado.direcao_cabecalho in system
+        outro = any(f.direcao_cabecalho and f.id != esperado.id and f.direcao_cabecalho in system
+                    for f in FORMATOS.values())
+        self.instrucao_por_bloco[self.estado.bloco_n] = (tem, outro)
+
+    def instrucao(self) -> dict[str, int]:
+        """Resumo do canal lateral: blocos de fala, com a direção do formato esperado e com a de outro formato."""
+        valores = list(self.instrucao_por_bloco.values())
+        return {"blocos": len(valores), "com_formato": sum(1 for tem, _ in valores if tem),
+                "com_outro": sum(1 for _, outro in valores if outro)}
+
     def _palavras(self, tipo: str, categoria: str, primeira: bool, metas=()) -> tuple[int, int]:
+        formato = self.fixture.formato_backend
         if metas:
-            # Meta que o backend pôs no prompt (a última vale): a mesma conta do formato musical abaixo.
+            # Meta que o backend pôs no prompt (a última vale): a mesma conta do formato com orçamento abaixo.
             minimo, maximo, palavras = (int(v) for v in metas[-1])
             alvo_s, teto = (minimo + maximo) / 2, min(palavras, math.floor(self.wpm * maximo / 60))
-        elif self.fixture.formato_musical:
-            # Mesma função do backend (app/live/formato.py): meta em segundos e teto de palavras.
-            minimo, maximo, palavras = orcamento_fala(tipo, primeira)
-            alvo_s, teto = (minimo + maximo) / 2, min(palavras, math.floor(self.wpm * maximo / 60))
+        elif formato.aplica_orcamento:
+            # Sem meta no prompt, a unidade do catálogo do backend (app.live.formatos; no musical, os números de
+            # app/live/formato.py): meta em segundos e teto de palavras.
+            u = unidade_do_formato(formato, tipo, primeira, quadro=tipo in self.fixture.quadros())
+            alvo_s, teto = (u.min_s + u.max_s) / 2, math.floor(self.wpm * u.max_s / 60)
+            if u.max_palavras is not None:
+                teto = min(u.max_palavras, teto)
         else:
             orcamento = self.fixture.orcamento_para(tipo, categoria)
             alvo_s, teto = orcamento.alvo_s(), math.floor(self.wpm * orcamento.max / 60)
@@ -393,6 +432,27 @@ class DubleLLM:
             if self.estado.retrato_pedidos.get(pedido.id) != pedido.estado:
                 return pedido
         return None
+
+
+# Partes de uma frase corrida de debate (texto original, sem tema que exige revisão, sem promessa nem título).
+_DEBATE = (
+    "e tem quem diga que a cidade mudou demais", "enquanto outros juram que tudo continua igual",
+    "e cada um defende o seu lado com argumento", "porque ninguém aqui gosta de ficar sem resposta",
+    "e a conversa vai longe sem chegar a lugar nenhum", "com um lembrando do tempo da praça cheia",
+    "e o outro dizendo que hoje é melhor", "e a gente fica no meio tentando entender os dois",
+)
+
+
+def _debate_longo(palavras: int) -> str:
+    """Uma frase só, emendada por vírgulas, com cerca de `palavras` palavras."""
+    partes, total, i = [], 0, 0
+    while total < max(palavras, 1):
+        parte = _DEBATE[i % len(_DEBATE)]
+        partes.append(parte)
+        total += contar_palavras(parte)
+        i += 1
+    texto = ", ".join(partes)
+    return texto[:1].upper() + texto[1:] + "."
 
 
 def _textos_externos(fixture: FixturePrograma) -> list[str]:

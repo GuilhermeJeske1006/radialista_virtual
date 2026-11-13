@@ -12,8 +12,10 @@ Desenho em docs/melhoria-radio/f6/auditoria.md (§6.3 a §6.5).
 """
 
 import logging
-from dataclasses import dataclass
-from typing import Literal, Mapping
+import re
+import unicodedata
+from dataclasses import asdict, dataclass, field, replace
+from typing import Literal, Mapping, Sequence
 
 from app.live.formato import ORCAMENTOS, ROTEIRO_MUSICAL, ROTEIRO_PADRAO, _tipo_fala, orcamento_fala
 
@@ -76,6 +78,15 @@ class Comportamento:
 
 
 @dataclass(frozen=True)
+class LimitesCoerencia:
+    """Limites de coerência próprios do formato (auditoria §9); None ou vazio = não se aplica."""
+
+    sequencia_musical_min_s: int | None = None   # maior trecho só de música (promessa musical, pesquisa §4.4)
+    interrupcoes_max_hora: int | None = None     # falas por hora no máximo
+    categorias_fora: tuple[str, ...] = ()        # categorias de bloco que o formato não prevê
+
+
+@dataclass(frozen=True)
 class Formato:
     id: str
     nome: str                                  # painel
@@ -97,6 +108,7 @@ class Formato:
     # Direção do formato no prompt (direcao_formato): cabeçalho e regras de condução depois da meta.
     direcao_cabecalho: str = ""
     direcao_regras: tuple[str, ...] = ()
+    limites: LimitesCoerencia = field(default_factory=LimitesCoerencia)
     aliases: tuple[str, ...] = ()
     implementado: bool = True
     requer: str = ""                           # condição para implementar (formatos futuros)
@@ -184,6 +196,10 @@ MUSICAL_ADULTO = Formato(
         "Não acrescente assunto, hora, clima, pergunta, convite ao WhatsApp ou gancho só para preencher.",
         "Não anuncie cada música da sequência, não peça [BLOCO_MUSICAS:N] e não invente vinhetas.",
     ),
+    # §9: a música ocupa o centro (nove minutos seguidos sem fala, no máximo dez falas por hora) e o musical não
+    # tem comentário nem notícia.
+    limites=LimitesCoerencia(sequencia_musical_min_s=540, interrupcoes_max_hora=10,
+                             categorias_fora=("comentario", "noticia", "escalada", "servico", "plantao", "reporter")),
     aliases=("musical_companhia",),
 )
 
@@ -468,3 +484,245 @@ def linhas_do_formato(formato, *, programa: str, tipo: str, primeira: bool, quad
     if papeis & set(PAPEIS_REORIENTACAO):
         linhas.append(SECAO_REORIENTACAO)
     return linhas
+
+
+# ---------------------------------------------------------------------------------------------------------
+# Coerência com o formato (§6.14 e §9): funções puras que só medem. Nada é reescrito nem removido por coerência
+# (D21): o /proxima só registra `live_formato_aviso` e a simulação resume em resumo.json["formato"].
+# ---------------------------------------------------------------------------------------------------------
+
+AVISOS = ("fora_da_unidade", "bloco_fora_do_formato", "convite_fora_da_politica", "tema_revisao", "reorientacao")
+
+
+@dataclass(frozen=True)
+class ConfigCoerencia:
+    # Hipóteses de projeto (auditoria §9); a primeira rodada da F6 calibra e registra.
+    tolerancia_unidade: float = 0.15          # a mesma de settings.fala_tolerancia_orcamento (teste)
+    fora_da_unidade_max_pct: float = 5.0      # falas fora da unidade do papel, em % das falas
+    fator_reorientacao: float = 1.5           # maior intervalo sem reorientação ≤ fator × reorientacao_s
+    instrucao_min_pct: float = 100.0          # blocos de fala com a direção do formato no prompt
+    categoria_convite: str = "chamada_ouvinte"  # onde cabe o convite quando o formato é "so_chamada"
+    # Convite ao ouvinte numa frase (texto sem acento e em minúsculas): verbo de convite e canal, ou o canal "aberto".
+    convite: tuple[str, ...] = (
+        r"\b(mande|manda|mandar|envie|envia|enviar|escreva|escreve|escrever|participe|participa|participar|conte|"
+        r"conta|contar|comente|comenta|sugira|sugere|sugerir|peca|pede|pedir|ligue|liga)\b[^.!?]*"
+        r"\b(whatsapp|mensagem|recado|audio|pedido|dedicatoria|alo|resposta)\b",
+        r"\b(whatsapp|recado|mensagem)\b[^.!?]*\b(aberto|recebe|espera)\b",
+    )
+    # Palavras que marcam cada tema que exige revisão humana (texto sem acento, palavra inteira).
+    temas: Mapping[str, tuple[str, ...]] = field(default_factory=lambda: {
+        "notícia grave ou tragédia": ("tragedia", "acidente grave", "mortos", "morreram", "vitimas fatais",
+                                      "desastre", "chacina", "assassinato"),
+        "saúde e medicamento": ("remedio", "remedios", "medicamento", "medicamentos", "dose", "antibiotico",
+                                "receita medica", "tratamento medico", "pressao alta", "diabetes"),
+        "saúde": ("remedio", "remedios", "medicamento", "medicamentos", "dose", "doenca", "sintoma", "sintomas",
+                  "diagnostico", "tratamento medico", "pressao alta", "diabetes"),
+        "política": ("eleicao", "eleicoes", "candidato", "candidata", "partido politico", "deputado", "senador",
+                     "vereador", "voto", "votar"),
+        "religião": ("religiao", "igreja", "culto", "missa", "pastor", "padre", "oracao", "biblia"),
+        "luto em recado": ("faleceu", "falecimento", "luto", "velorio", "sepultamento", "morreu"),
+        "dívida, empréstimo e aposta": ("divida", "dividas", "emprestimo", "consignado", "aposta", "apostas",
+                                        "apostar", "cassino", "juros"),
+        "finanças e investimento": ("investimento", "investimentos", "investir", "bolsa de valores", "rendimento",
+                                    "criptomoeda", "renda fixa", "juros"),
+        "orientação jurídica e de consumo": ("advogado", "processo judicial", "processar", "direito do consumidor",
+                                             "procon", "indenizacao"),
+        "alimentação com promessa de saúde": ("emagrecer", "emagrecimento", "dieta", "detox", "cura", "curar",
+                                              "previne"),
+    })
+
+
+CONFIG_COERENCIA = ConfigCoerencia()
+
+
+@dataclass(frozen=True)
+class FalaNoAr:
+    """Uma fala que foi (ou vai) ao ar, só com o que a coerência precisa."""
+
+    bloco: str                      # tipo do bloco (rótulo do roteiro ou do relógio)
+    categoria: str
+    texto: str
+    duracao_s: float | None         # None = duração desconhecida (a unidade não é avaliada)
+    inicio_s: float = 0.0           # segundos desde o início do programa
+    primeira: bool = False          # a primeira fala do programa
+    quadro: bool = False            # quadro fixo do programa
+    retorno: bool = False           # volta do intervalo (patrocinador antes ou etapa "retorno" do relógio)
+    teto_s: float | None = None     # máximo que o relógio deu a esta fala (None = sem relógio)
+    # Segundos desde a última reorientação (ou desde o início do programa); None = sem memória (o /proxima, até a F8).
+    desde_reorientacao_s: float | None = None
+
+
+@dataclass(frozen=True)
+class AvisoFormato:
+    codigo: str                     # um de AVISOS
+    fala: int | None = None         # índice da fala; None = aviso da hora (intervalo sem reorientação)
+    detalhe: str = ""               # papel, categoria ou tema; nunca trecho de fala
+
+
+@dataclass(frozen=True)
+class RelatorioCoerencia:
+    formato: str
+    fala_pct: float
+    faixa_fala_pct: tuple[float, float] | None
+    falas: int
+    falas_fora_da_unidade: int
+    falas_fora_da_unidade_pct: float
+    blocos_fora_do_formato: int
+    maior_sequencia_musical_s: float
+    interrupcoes_por_hora: float
+    reorientacoes: int
+    maior_intervalo_sem_reorientacao_s: float
+    reorientacao_s: int | None
+    convites: int
+    convites_fora_da_politica: int
+    temas_revisao_no_ar: int
+    instrucao_no_prompt_pct: float | None
+    instrucao_de_outro_formato: int | None
+    avisos: tuple[AvisoFormato, ...]
+    itens: Mapping[str, bool]
+    coerencia_automatica: bool
+
+    def como_dict(self) -> dict:
+        dados = asdict(self)
+        dados["faixa_fala_pct"] = list(self.faixa_fala_pct) if self.faixa_fala_pct else None
+        dados["itens"] = dict(self.itens)
+        dados["avisos"] = [asdict(aviso) for aviso in self.avisos]
+        dados["avisos_por_codigo"] = {codigo: sum(1 for a in self.avisos if a.codigo == codigo) for codigo in AVISOS}
+        return dados
+
+
+def _sem_acento(texto: str) -> str:
+    sem = "".join(c for c in unicodedata.normalize("NFD", (texto or "").lower()) if unicodedata.category(c) != "Mn")
+    return re.sub(r"[^a-z0-9.!?]+", " ", sem)
+
+
+def _frases(texto: str) -> list[str]:
+    return [frase.strip() for frase in re.split(r"[.!?]+", _sem_acento(texto)) if frase.strip()]
+
+
+def convites_no_texto(texto: str, config: ConfigCoerencia = CONFIG_COERENCIA) -> int:
+    """Frases com convite ao ouvinte (mandar recado, mensagem ou pedido; o canal aberto)."""
+    padroes = [re.compile(p) for p in config.convite]
+    return sum(1 for frase in _frases(texto) if any(p.search(frase) for p in padroes))
+
+
+def temas_no_texto(texto: str, temas: Sequence[str], config: ConfigCoerencia = CONFIG_COERENCIA) -> list[str]:
+    """Temas de `temas` (rótulos do catálogo) que a fala toca, pela lista de palavras de cada um."""
+    alvo = f" {' '.join(_sem_acento(texto).replace('.', ' ').replace('!', ' ').replace('?', ' ').split())} "
+    return [tema for tema in temas if any(f" {palavra} " in alvo for palavra in config.temas.get(tema, ()))]
+
+
+def reorienta(texto: str, nomes: Sequence[str]) -> bool:
+    """A fala diz o nome do programa ou da rádio ("Você está no…")."""
+    alvo = f" {' '.join(re.sub(r'[.!?]', ' ', _sem_acento(texto)).split())} "
+    return any(chave and f" {chave} " in alvo
+               for chave in (" ".join(re.sub(r"[.!?]", " ", _sem_acento(nome)).split()) for nome in nomes))
+
+
+def avisos_da_fala(formato, fala: FalaNoAr, *, nomes: Sequence[str] = (), indice: int | None = None,
+                   config: ConfigCoerencia = CONFIG_COERENCIA) -> list[AvisoFormato]:
+    """Avisos de uma fala (D21: só mede). `nomes`: programa e rádio, para a reorientação, que só é avaliada com a
+    memória de quando foi a última (`desde_reorientacao_s`): passou de `fator_reorientacao` × `reorientacao_s` e esta
+    fala também não reorienta."""
+    formato = resolver_formato(formato)
+    avisos: list[AvisoFormato] = []
+    papel = papel_do_bloco(formato, fala.bloco, fala.primeira, fala.quadro)
+    if formato.aplica_orcamento and fala.duracao_s is not None:
+        u = formato.unidades[papel]
+        reduzida = fala.teto_s is not None and fala.teto_s < u.max_s
+        if not reduzida and (fala.duracao_s < u.min_s or fala.duracao_s > u.max_s * (1 + config.tolerancia_unidade)):
+            avisos.append(AvisoFormato("fora_da_unidade", indice, papel))
+    if fala.categoria in formato.limites.categorias_fora:
+        avisos.append(AvisoFormato("bloco_fora_do_formato", indice, fala.categoria))
+    if formato.comportamento.convite == "so_chamada" and fala.categoria != config.categoria_convite \
+            and convites_no_texto(fala.texto, config):
+        avisos.append(AvisoFormato("convite_fora_da_politica", indice, fala.categoria))
+    avisos += [AvisoFormato("tema_revisao", indice, tema)
+               for tema in temas_no_texto(fala.texto, formato.temas_revisao, config)]
+    if formato.reorientacao_s and nomes and fala.desde_reorientacao_s is not None \
+            and fala.desde_reorientacao_s > config.fator_reorientacao * formato.reorientacao_s \
+            and not reorienta(fala.texto, nomes):
+        avisos.append(AvisoFormato("reorientacao", indice, papel))
+    return avisos
+
+
+def _maior_sequencia_musical(eventos: Sequence[tuple[str, float, float]]) -> float:
+    maior, inicio, fim = 0.0, None, None
+    for tipo, comeco, termino in sorted(eventos, key=lambda e: e[1]):
+        if tipo != "musica":
+            inicio = None
+            continue
+        inicio = comeco if inicio is None else inicio
+        fim = termino
+        maior = max(maior, fim - inicio)
+    return round(maior, 2)
+
+
+def coerencia(formato, falas: Sequence[FalaNoAr], *, duracao_programa_s: float, nomes: Sequence[str] = (),
+              eventos: Sequence[tuple[str, float, float]] = (), instrucao: Mapping[str, int] | None = None,
+              config: ConfigCoerencia = CONFIG_COERENCIA) -> RelatorioCoerencia:
+    """Coerência de uma hora com o formato (auditoria §9). `eventos`: (tipo, início s, fim s) de tudo que foi ao ar,
+    para a sequência musical; `instrucao`: canal lateral do dublê (`blocos`, `com_formato`, `com_outro`), blocos de
+    fala cujo prompt tinha a direção do formato esperado e a de outro formato."""
+    formato = resolver_formato(formato)
+    falas = sorted(falas, key=lambda f: f.inicio_s)
+    ultima, com_memoria = 0.0, []
+    for fala in falas:
+        com_memoria.append(replace(fala, desde_reorientacao_s=fala.inicio_s - ultima)
+                           if fala.desde_reorientacao_s is None else fala)
+        if nomes and reorienta(fala.texto, nomes):
+            ultima = fala.inicio_s
+    falas = com_memoria
+    avisos = [aviso for i, fala in enumerate(falas) for aviso in avisos_da_fala(formato, fala, nomes=nomes, indice=i,
+                                                                               config=config)]
+    contagem = {codigo: sum(1 for a in avisos if a.codigo == codigo) for codigo in AVISOS}
+    horas = duracao_programa_s / 3600 if duracao_programa_s else 1.0
+    fala_pct = round(100 * sum(f.duracao_s or 0.0 for f in falas) / duracao_programa_s, 1) \
+        if duracao_programa_s else 0.0
+    marcos = [0.0, *(f.inicio_s for f in falas if nomes and reorienta(f.texto, nomes)), float(duracao_programa_s)]
+    maior_intervalo = round(max(b - a for a, b in zip(marcos, marcos[1:])), 2)
+    limite_reorientacao = config.fator_reorientacao * formato.reorientacao_s if formato.reorientacao_s else None
+    if limite_reorientacao is not None and maior_intervalo > limite_reorientacao:
+        avisos.append(AvisoFormato("reorientacao", None, "intervalo"))
+    fora_unidade = contagem["fora_da_unidade"]
+    fora_pct = round(100 * fora_unidade / len(falas), 1) if falas else 0.0
+    sequencia = _maior_sequencia_musical(eventos)
+    interrupcoes = round(len(falas) / horas, 1)
+    instrucao_pct = outro = None
+    if instrucao is not None:
+        blocos = instrucao.get("blocos", 0)
+        instrucao_pct = round(100 * instrucao.get("com_formato", 0) / blocos, 1) if blocos else 0.0
+        outro = instrucao.get("com_outro", 0)
+
+    limites = formato.limites
+    itens: dict[str, bool] = {}
+    if instrucao is not None:
+        itens["instrucao_no_prompt"] = instrucao_pct >= config.instrucao_min_pct if formato.direcao_cabecalho \
+            else instrucao_pct == 0
+        itens["instrucao_de_outro_formato"] = outro == 0
+    if formato.faixa_fala_pct is not None:
+        itens["fala_pct"] = formato.faixa_fala_pct[0] <= fala_pct <= formato.faixa_fala_pct[1]
+    if formato.aplica_orcamento:
+        itens["falas_fora_da_unidade"] = fora_pct <= config.fora_da_unidade_max_pct
+    itens["blocos_fora_do_formato"] = contagem["bloco_fora_do_formato"] == 0
+    if limites.sequencia_musical_min_s is not None:
+        itens["maior_sequencia_musical"] = sequencia >= limites.sequencia_musical_min_s
+    if limites.interrupcoes_max_hora is not None:
+        itens["interrupcoes_por_hora"] = interrupcoes <= limites.interrupcoes_max_hora
+    if limite_reorientacao is not None:
+        itens["reorientacao"] = maior_intervalo <= limite_reorientacao
+    itens["convites_fora_da_politica"] = contagem["convite_fora_da_politica"] == 0
+    itens["temas_revisao_no_ar"] = contagem["tema_revisao"] == 0
+    return RelatorioCoerencia(
+        formato=formato.id, fala_pct=fala_pct, faixa_fala_pct=formato.faixa_fala_pct, falas=len(falas),
+        falas_fora_da_unidade=fora_unidade, falas_fora_da_unidade_pct=fora_pct,
+        blocos_fora_do_formato=contagem["bloco_fora_do_formato"], maior_sequencia_musical_s=sequencia,
+        interrupcoes_por_hora=interrupcoes,
+        reorientacoes=sum(1 for f in falas if nomes and reorienta(f.texto, nomes)),
+        maior_intervalo_sem_reorientacao_s=maior_intervalo, reorientacao_s=formato.reorientacao_s,
+        convites=sum(1 for f in falas if convites_no_texto(f.texto, config)),
+        convites_fora_da_politica=contagem["convite_fora_da_politica"],
+        temas_revisao_no_ar=sum(1 for f in falas if temas_no_texto(f.texto, formato.temas_revisao, config)),
+        instrucao_no_prompt_pct=instrucao_pct, instrucao_de_outro_formato=outro, avisos=tuple(avisos),
+        itens=itens, coerencia_automatica=all(itens.values()),
+    )

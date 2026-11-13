@@ -134,13 +134,17 @@ class Injecao(_Estrito):
     excesso: só a primeira versão passa do limite (a reescrita obedece); excesso_persistente (F2): o dublê
     ignora também o limite da reescrita, para exercitar o encurtamento por frases do backend.
     F5: dado_sem_fonte (afirmação sem dado, como temperatura ou placar), dado_vencido (a leitura antiga dita como
-    atual) e obedece_injecao (a afirmação que a ordem embutida num título pedia), todas com a `frase`."""
+    atual) e obedece_injecao (a afirmação que a ordem embutida num título pedia), todas com a `frase`.
+    F6 (coerência com o formato): debate_longo (uma frase corrida de `segundos`, que nem a reescrita nem o encurtamento
+    por frases resolvem), convite (convite ao ouvinte, a `frase`) e tema_revisao (a `frase` com tema que o formato manda
+    revisar)."""
 
     fala: int = Field(ge=1)
     tipo: Literal["promessa", "excesso", "excesso_persistente", "cita_musica", "cita_ouvinte", "dado_sem_fonte",
-                  "dado_vencido", "obedece_injecao"]
+                  "dado_vencido", "obedece_injecao", "debate_longo", "convite", "tema_revisao"]
     frase: str = ""
     fator: float = 1.6
+    segundos: float = 0
     titulo: str = ""
     artista: str = ""
     nome: str = ""
@@ -194,6 +198,10 @@ class FixturePrograma(_Estrito):
     noticias: list[NoticiaFixture] = Field(default_factory=list)
     # O dublê do LLM usa um dado do bloco da mensagem (o LLM obediente): mede o falso positivo do validador.
     duble_usa_dados: bool = False
+    # F6 (D19): ligado pelo simulador com --formato fixture|<id>. A referência de orçamento do as-run passa a vir do
+    # catálogo de formatos quando o formato aplica orçamento (a da fixture fica para o padrao); com --formato programa
+    # (as linhas de base) continua a de antes.
+    orcamento_do_catalogo: bool = False
 
     @field_validator("inicio")
     @classmethod
@@ -215,11 +223,31 @@ class FixturePrograma(_Estrito):
         return self
 
     @property
-    def formato_musical(self) -> bool:
-        """Pergunta ao catálogo do backend (alias incluído); importação tardia, este módulo não importa app.* no topo."""
+    def formato_backend(self):
+        """O `Formato` que o backend resolve para o programa (alias incluído). Importação tardia: este módulo não
+        importa app.* no topo."""
         from app.live.formatos import resolver_formato
 
-        return resolver_formato(self.programa.get("perfil_programacao")).comportamento.ciclo == "musical"
+        return resolver_formato(self.programa.get("perfil_programacao"))
+
+    @property
+    def formato_musical(self) -> bool:
+        return self.formato_backend.comportamento.ciclo == "musical"
+
+    def quadros(self) -> tuple[str, ...]:
+        """Rótulos dos quadros fixos com conteúdo (a mesma regra do backend, app.live.formatos.eh_quadro_fixo)."""
+        return tuple(rotulo for rotulo, pool in (self.programa.get("quadros_fixos") or {}).items() if pool)
+
+    def referencia(self, tipo: str, categoria: str | None = None, primeira: bool = False) -> Orcamento:
+        """Referência de orçamento do as-run: com `orcamento_do_catalogo` e formato que aplica orçamento, a unidade do
+        catálogo para o papel do bloco; senão a da fixture (unidade_fala no musical, orcamento_ref_s no resto)."""
+        formato = self.formato_backend
+        if self.orcamento_do_catalogo and formato.aplica_orcamento:
+            from app.live.formatos import unidade
+
+            u = unidade(formato, tipo, primeira, quadro=tipo in self.quadros())
+            return Orcamento(min=u.min_s, max=u.max_s, alvo=u.alvo_s, fonte=f"catalogo {formato.id}")
+        return self.unidade_fala if self.formato_musical else self.orcamento_para(tipo, categoria)
 
     def horario(self, campo: str) -> datetime.time:
         hora, minuto = str(self.programa[campo]).split(":")

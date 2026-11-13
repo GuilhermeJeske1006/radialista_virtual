@@ -147,7 +147,7 @@ from app.live.roteiro import (  # noqa: F401 -- reexportados
     EntradaEmissao,
     decidir_bloco,
 )
-from app.live.formatos import Formato, formato_do_programa
+from app.live.formatos import FalaNoAr, Formato, avisos_da_fala, eh_quadro_fixo, formato_do_programa
 from app.live.song_service import dividir_artista_titulo, esquecer_video_catalogado, resolver_musica_catalogada
 from app.live.spotify import buscar_faixas_por_categoria
 from app.llm.client import (
@@ -2492,6 +2492,8 @@ def gerar_proxima_fala(
         logger.info("live_validacao_fala request_id=%s programa_id=%s tipo=%s acao=%s regras=%s refs=%s", request_id,
                     programa.id, tipo, sintese.acao_validacao, [v.regra for v in sintese.violacoes],
                     [v.ref_id for v in sintese.violacoes])
+    _registrar_coerencia_formato(ctx, fala, sintese.duracao_fala_s if sintese.duracao_fala_s is not None
+                                 else duracao_fala_estimada_s)
     logger.info("live_proxima_pronta request_id=%s programa_id=%s tipo=%s audio_status=%s total_ms=%s", request_id,
                 programa.id, tipo, sintese.audio_status, round((time.perf_counter() - inicio_request) * 1000))
 
@@ -2542,6 +2544,24 @@ def gerar_proxima_fala(
     ), programa.id, plano, decisao.preset_relogio, decisao.inicio_previsto_aceito, cfg=cfg_relogio,
         origem=decisao.origem_instante, duracao_vinheta_fim_s=float(vinheta_fim.duracao_segundos)
         if vinheta_fim and vinheta_fim.audio_path and vinheta_fim.duracao_segundos else None)
+
+
+def _registrar_coerencia_formato(ctx: ContextoEmissao, fala: str, duracao_s: float | None) -> None:
+    """F6 (D21): a coerência da fala com o formato só é medida e registrada (ids e códigos, nunca trecho de fala);
+    nada é reescrito nem removido. Pura (sem Redis nem sorteio): não muda o retrato dos goldens."""
+    if not fala.strip():
+        return
+    plano, programa = ctx.tempo.plano, ctx.programa
+    retorno = ctx.memoria.ultima_categoria == "patrocinador" or (
+        plano is not None and getattr(plano.etapa, "tipo_efetivo", None) == "retorno")
+    avisos = avisos_da_fala(ctx.formato, FalaNoAr(
+        bloco=ctx.tipo, categoria=ctx.categoria, texto=fala, duracao_s=duracao_s or 0.0, primeira=ctx.primeira_fala,
+        quadro=eh_quadro_fixo(programa, ctx.tipo), retorno=retorno,
+        teto_s=plano.orcamento_s[1] if plano is not None and plano.orcamento_s else None,
+    ), nomes=(programa.nome, getattr(ctx.account, "nome_radio", "") or ""))
+    if avisos:
+        logger.info("live_formato_aviso request_id=%s programa_id=%s formato=%s tipo=%s avisos=%s", ctx.request_id,
+                    programa.id, ctx.formato.id, ctx.categoria, sorted({a.codigo for a in avisos}))
 
 
 @router.get("/{radialista_id}/programas/{programa_id}/preparo")

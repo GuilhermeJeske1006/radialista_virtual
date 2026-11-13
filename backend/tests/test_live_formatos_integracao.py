@@ -174,3 +174,36 @@ def test_i7_painel_antigo_sem_inicio_previsto(perfil, preset, client, account, a
     resposta = _rodar(cenario, client, account, auth_headers, db_session, monkeypatch)["resposta"]
     assert resposta["relogio"]["inicio_previsto_aceito"] is False
     assert resposta["relogio"]["preset"] == preset
+
+
+# ---------------------------------------------------------------------------------------------------------
+# D21: coerência no /proxima é só log (live_formato_aviso), com ids e códigos; nada é reescrito nem removido
+# ---------------------------------------------------------------------------------------------------------
+
+CONVITE = "Você ouve a rádio da cidade. Mande sua mensagem pelo WhatsApp da rádio."
+
+
+def test_d21_aviso_de_coerencia_vira_log_sem_trecho_e_sem_mexer_na_fala(client, account, auth_headers, db_session,
+                                                                       monkeypatch, caplog):
+    import logging
+
+    cenario = _cenario("d21", {"total_falas": 3, "historico": caracterizacao.HIST_MUSICA}, perfil="musical_adulto",
+                       respostas=[CONVITE])
+    with caplog.at_level(logging.INFO, logger="radialista.live"):
+        retrato = _rodar(cenario, client, account, auth_headers, db_session, monkeypatch)
+    assert retrato["resposta"]["fala"] == CONVITE  # nada removido (D21)
+    assert len(retrato["chamadas_llm"]) == 1        # nem reescrito
+    linhas = [r.getMessage() for r in caplog.records if r.getMessage().startswith("live_formato_aviso")]
+    assert len(linhas) == 1
+    assert "formato=musical_adulto" in linhas[0] and "convite_fora_da_politica" in linhas[0]
+    assert "WhatsApp" not in linhas[0] and "Mande" not in linhas[0]
+
+
+def test_d21_padrao_nao_registra_aviso(client, account, auth_headers, db_session, monkeypatch, caplog):
+    import logging
+
+    cenario = caracterizacao.Cenario("d21_padrao", {"total_falas": 3, "historico": caracterizacao.HIST_MUSICA},
+                                     respostas=[CONVITE])
+    with caplog.at_level(logging.INFO, logger="radialista.live"):
+        _rodar(cenario, client, account, auth_headers, db_session, monkeypatch)
+    assert not [r for r in caplog.records if r.getMessage().startswith("live_formato_aviso")]
