@@ -509,9 +509,7 @@ def test_u9_formatos_e_puro():
     assert not [nome for nome in importados if nome.startswith(proibidos)], importados
 
 
-# Contrato da API e prompt do gerador por IA ainda citam o valor: saem no commit do contrato (leva 1, commit 4).
-_STRING_CRUA_PERMITIDA = {"app/live/formatos.py", "app/live/formato.py", "app/config/router.py",
-                          "app/llm/config_generator.py"}
+_STRING_CRUA_PERMITIDA = {"app/live/formatos.py", "app/live/formato.py"}
 
 
 def test_risco_1_nenhuma_comparacao_de_string_crua_do_musical():

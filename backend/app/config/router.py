@@ -4,6 +4,7 @@ from typing import Literal
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, status
 from pydantic import BaseModel, Field, ValidationError, ValidatorFunctionWrapHandler, field_validator
+from pydantic_core import PydanticCustomError
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_account
@@ -20,6 +21,7 @@ from app.llm.config_generator import (
     reparar_programa_ia,
 )
 from app.llm.tipos_radio import TIPOS_RADIO, tipo_radio_valido
+from app.live.formatos import FORMATOS, ids_aceitos
 from app.live.relogio import PRESETS_INFO, RelogioHora, TotaisRelogio, mensagens_de_erro, totais
 from app.models.account import Account
 from app.models.assunto_programa import AssuntoPrograma
@@ -134,7 +136,9 @@ class ProgramaRequest(BaseModel):
     limite_mensagens_hora: int = 1000
 
     estrutura_blocos: list[str] = Field(default_factory=list)
-    perfil_programacao: Literal["padrao", "musical_companhia"] = "padrao"
+    # Formato do programa (catálogo app.live.formatos, F6): padrao, os ids implementados e os aliases. O valor
+    # gravado não é reescrito (D2): o alias musical_companhia continua aceito e ecoado.
+    perfil_programacao: str = "padrao"
     ia_pode_adicionar_blocos: bool = True
 
     generos_musicais: list[str] = Field(default_factory=list)
@@ -166,10 +170,22 @@ class ProgramaRequest(BaseModel):
     publico_alvo: str = ""
     densidade_assunto: Literal["leve", "equilibrada", "informado"] = "leve"
 
+    @field_validator("perfil_programacao")
+    @classmethod
+    def _formato_do_catalogo(cls, valor: str) -> str:
+        if valor not in ids_aceitos():
+            raise PydanticCustomError("formato_invalido", "Formato desconhecido ou ainda não disponível: {formato}.",
+                                      {"formato": valor[:40]})
+        return valor
+
 
 class ProgramaResponse(ProgramaRequest):
     id: int
     radio_config_id: int
+    # Leitura tolerante (F6, risco 2 da auditoria): ecoa o valor gravado mesmo fora do catálogo (versão mais nova
+    # do backend, edição direta no banco). O validador da requisição é herdado pelo nome, então é sobrescrito aqui;
+    # redeclarar só o campo não basta.
+    perfil_programacao: str = "padrao"
     # Relogio da hora (F1). Fora de ProgramaRequest de proposito (D6): os PUTs atuais ecoam o
     # programa inteiro e nao podem apaga-lo; grava-se por PUT/DELETE /programas/{id}/relogio.
     relogio_hora: RelogioHora | None = None
@@ -187,6 +203,31 @@ class ProgramaResponse(ProgramaRequest):
         except ValidationError as erro:
             logger.warning("relogio_hora_invalido_na_leitura erros=%s", mensagens_de_erro(erro))
             return None
+
+    @field_validator("perfil_programacao")
+    @classmethod
+    def _formato_do_catalogo(cls, valor: str) -> str:
+        return valor
+
+
+class FormatoResponse(BaseModel):
+    """Formato do catálogo para o painel (F6, §6.10), inclusive os ainda não implementados."""
+
+    id: str
+    nome: str
+    promessa: str
+    conteudo: str
+    conducao: str
+    unidade_principal: str
+    roteiro_padrao: list[str]
+    relogio_padrao: str | None
+    ia_pode_adicionar_blocos: bool
+    participacao: str
+    temas_revisao: list[str]
+    reorientacao_s: int | None
+    aliases: list[str]
+    implementado: bool
+    requer: str
 
 
 class PresetRelogioResponse(BaseModel):
@@ -1387,6 +1428,21 @@ def atualizar_programa(
     db.commit()
     db.refresh(programa)
     return programa
+
+
+@router.get("/formatos", response_model=list[FormatoResponse])
+def listar_formatos(account: Account = Depends(get_current_account)):
+    """Catálogo de formatos (app.live.formatos): promessa, condução, unidade, roteiro e relógio sugeridos."""
+    return [
+        FormatoResponse(
+            id=f.id, nome=f.nome, promessa=f.promessa, conteudo=f.conteudo, conducao=f.conducao,
+            unidade_principal=f.unidade_principal, roteiro_padrao=list(f.roteiro_padrao),
+            relogio_padrao=f.relogio_padrao, ia_pode_adicionar_blocos=f.comportamento.ia_pode_adicionar_blocos,
+            participacao=f.participacao, temas_revisao=list(f.temas_revisao), reorientacao_s=f.reorientacao_s,
+            aliases=list(f.aliases), implementado=f.implementado, requer=f.requer,
+        )
+        for f in FORMATOS.values()
+    ]
 
 
 @router.get("/relogios/presets", response_model=list[PresetRelogioResponse])

@@ -2,6 +2,7 @@ import json
 import logging
 
 from app.guardrails.content_filter import TERMOS_SEMPRE_BLOQUEADOS
+from app.live.formatos import FORMATOS
 from app.llm.client import gerar_classificacao, gerar_configuracao
 from app.llm.exemplos_config import exemplos_texto
 from app.llm.json_utils import extrair_json
@@ -12,11 +13,37 @@ from app.util.texto import sem_acento as _sem_acento
 
 logger = logging.getLogger("radialista.config_generator")
 
+# Quando usar cada formato implementado do catálogo (app.live.formatos, F6, D15). Todo formato implementado tem
+# uma linha aqui (teste U12); os ainda não implementados ficam fora do gerador (D13).
+_USO_FORMATO_NO_GERADOR = {
+    "padrao": "variedades, entrevistas, debate, jornalismo, esporte, religioso e noturno, que ainda não têm "
+              "formato próprio",
+    "musical_adulto": "programa predominantemente musical, com poucas intervenções de companhia",
+}
+# Dica de formato pelo tipo de rádio da conta (D15): sugestão no prompt, nunca regra.
+_FORMATO_SUGERIDO_POR_TIPO_RADIO = {"mpb_variedades": "musical_adulto", "regional_flashback": "musical_adulto"}
+_FORMATOS_DO_GERADOR = tuple(formato for formato in FORMATOS.values() if formato.implementado)
+
+
+def _regra_formatos() -> str:
+    opcoes = []
+    for formato in _FORMATOS_DO_GERADOR:
+        texto = f"'{formato.id}' ({formato.nome}: {_USO_FORMATO_NO_GERADOR[formato.id]}"
+        if not formato.comportamento.ia_pode_adicionar_blocos:
+            roteiro = ",".join(f"'{bloco}'" for bloco in formato.roteiro_padrao)
+            texto += (f"; nesse formato use ia_pode_adicionar_blocos=false e estrutura_blocos=[{roteiro}], e a "
+                      "abertura e o encerramento são automáticos")
+        opcoes.append(texto + ")")
+    return ("perfil_programacao é o formato do programa; use exatamente um destes valores: " + "; ".join(opcoes)
+            + ". Nenhum outro valor é aceito.")
+
+
 _CAMPOS_PROGRAMA_JSON = (
     '{"nome": str, "descricao": str, "dias_semana": [int], "horario_inicio": "HH:MM", '
     '"horario_fim": "HH:MM", "tom": str, "topicos_permitidos": [str], "topicos_proibidos": [str], '
     '"mensagem_saudacao": str, "mensagem_recusa": str, "limite_mensagens_hora": int, '
-    '"estrutura_blocos": [str], "perfil_programacao": "padrao" ou "musical_companhia", '
+    '"estrutura_blocos": [str], "perfil_programacao": '
+    + " ou ".join(f'"{formato.id}"' for formato in _FORMATOS_DO_GERADOR) + ', '
     '"ia_pode_adicionar_blocos": bool, "generos_musicais": [str], '
     '"musicas_permitidas": [str], "musicas_bloqueadas": [str], "criterios_busca_musicas": str, '
     '"assuntos_ao_vivo": [str], "tipos_noticias": [str], "fontes_noticias": [str], '
@@ -54,10 +81,7 @@ _REGRAS_COMUNS = [
     "dosagem, não o programa inteiro: use dose_noticia='pitada' (programa musical com raríssima "
     "menção a notícia) ou 'equilibrada' (alguma notícia, sem virar jornal), e só inclua bloco "
     "'noticia'/'servico' na estrutura se isso realmente fizer sentido pro pedido do usuário.",
-    "Use perfil_programacao='musical_companhia' quando o pedido for um programa predominantemente "
-    "musical, com poucas intervenções de companhia. Nesse formato use ia_pode_adicionar_blocos=false "
-    "e estrutura_blocos=['musica','musica','identificacao','musica','musica','retomada']; a abertura "
-    "e o encerramento são automáticos. Para variedades, entrevistas, debate ou jornalismo, use 'padrao'.",
+    _regra_formatos(),
     "dias_semana usa inteiros (0=segunda ... 6=domingo); lista vazia significa todos os dias.",
     "horario_inicio e horario_fim no formato 24h HH:MM.",
     "Nunca inclua nenhum destes temas em topicos_permitidos, generos_musicais ou qualquer outro campo "
@@ -104,12 +128,16 @@ def _linha_perfil_tipo_radio(tipo_radio: str | None) -> str | None:
     contexto = contexto_prompt_tipo_radio(tipo_radio)
     if not contexto:
         return None
-    return (
+    linha = (
         f"Perfil da radio (tipo pre-definido escolhido pelo usuario): {contexto} "
         "Use isso como base pros campos de genero musical, tom e topicos, mesmo que a "
         "descricao do usuario abaixo seja curta ou vaga -- so desvie desse perfil se a "
         "descricao pedir algo claramente diferente."
     )
+    sugerido = FORMATOS.get(_FORMATO_SUGERIDO_POR_TIPO_RADIO.get(tipo_radio or "", ""))
+    if sugerido is not None and sugerido.implementado:
+        linha += f" Formato sugerido para este tipo de rádio (dica, não regra): '{sugerido.id}'."
+    return linha
 
 
 def _linha_contexto_conta(account: Account | None) -> str | None:
