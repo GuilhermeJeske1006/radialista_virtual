@@ -1,0 +1,3266 @@
+{
+ "musical_companhia|  Identificação |0|sem_teto": {
+  "alvo_s": 5.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 14,
+  "max_s": 7,
+  "min_s": 3
+ },
+ "musical_companhia|  Identificação |0|teto_14": {
+  "alvo_s": 5.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 14,
+  "max_s": 7,
+  "min_s": 3
+ },
+ "musical_companhia|  Identificação |0|teto_14_min_6": {
+  "alvo_s": 5.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 14,
+  "max_s": 7,
+  "min_s": 6
+ },
+ "musical_companhia|  Identificação |0|teto_35": {
+  "alvo_s": 5.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 14,
+  "max_s": 7,
+  "min_s": 3
+ },
+ "musical_companhia|  Identificação |0|teto_35_min_20": {
+  "alvo_s": 5.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 14,
+  "max_s": 7,
+  "min_s": 20
+ },
+ "musical_companhia|  Identificação |0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 14,
+  "max_s": 4,
+  "min_s": 3
+ },
+ "musical_companhia|  Identificação |1|sem_teto": {
+  "alvo_s": 5.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 14,
+  "max_s": 7,
+  "min_s": 3
+ },
+ "musical_companhia|  Identificação |1|teto_14": {
+  "alvo_s": 5.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 14,
+  "max_s": 7,
+  "min_s": 3
+ },
+ "musical_companhia|  Identificação |1|teto_14_min_6": {
+  "alvo_s": 5.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 14,
+  "max_s": 7,
+  "min_s": 6
+ },
+ "musical_companhia|  Identificação |1|teto_35": {
+  "alvo_s": 5.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 14,
+  "max_s": 7,
+  "min_s": 3
+ },
+ "musical_companhia|  Identificação |1|teto_35_min_20": {
+  "alvo_s": 5.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 14,
+  "max_s": 7,
+  "min_s": 20
+ },
+ "musical_companhia|  Identificação |1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 14,
+  "max_s": 4,
+  "min_s": 3
+ },
+ "musical_companhia|Abertura|0|sem_teto": {
+  "alvo_s": 9.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 25,
+  "max_s": 12,
+  "min_s": 6
+ },
+ "musical_companhia|Abertura|0|teto_14": {
+  "alvo_s": 9.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 25,
+  "max_s": 12,
+  "min_s": 6
+ },
+ "musical_companhia|Abertura|0|teto_14_min_6": {
+  "alvo_s": 9.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 25,
+  "max_s": 12,
+  "min_s": 6
+ },
+ "musical_companhia|Abertura|0|teto_35": {
+  "alvo_s": 9.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 25,
+  "max_s": 12,
+  "min_s": 6
+ },
+ "musical_companhia|Abertura|0|teto_35_min_20": {
+  "alvo_s": 9.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 25,
+  "max_s": 12,
+  "min_s": 20
+ },
+ "musical_companhia|Abertura|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 25,
+  "max_s": 4,
+  "min_s": 6
+ },
+ "musical_companhia|Abertura|1|sem_teto": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 65,
+  "max_s": 30,
+  "min_s": 20
+ },
+ "musical_companhia|Abertura|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 65,
+  "max_s": 14,
+  "min_s": 20
+ },
+ "musical_companhia|Abertura|1|teto_14_min_6": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 65,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia|Abertura|1|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 65,
+  "max_s": 30,
+  "min_s": 20
+ },
+ "musical_companhia|Abertura|1|teto_35_min_20": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 65,
+  "max_s": 30,
+  "min_s": 20
+ },
+ "musical_companhia|Abertura|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 65,
+  "max_s": 4,
+  "min_s": 20
+ },
+ "musical_companhia|Música Sertaneja|0|sem_teto": {
+  "alvo_s": 6.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 18,
+  "max_s": 8,
+  "min_s": 4
+ },
+ "musical_companhia|Música Sertaneja|0|teto_14": {
+  "alvo_s": 6.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 18,
+  "max_s": 8,
+  "min_s": 4
+ },
+ "musical_companhia|Música Sertaneja|0|teto_14_min_6": {
+  "alvo_s": 6.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 18,
+  "max_s": 8,
+  "min_s": 6
+ },
+ "musical_companhia|Música Sertaneja|0|teto_35": {
+  "alvo_s": 6.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 18,
+  "max_s": 8,
+  "min_s": 4
+ },
+ "musical_companhia|Música Sertaneja|0|teto_35_min_20": {
+  "alvo_s": 6.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 18,
+  "max_s": 8,
+  "min_s": 20
+ },
+ "musical_companhia|Música Sertaneja|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 18,
+  "max_s": 4,
+  "min_s": 4
+ },
+ "musical_companhia|Música Sertaneja|1|sem_teto": {
+  "alvo_s": 6.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 18,
+  "max_s": 8,
+  "min_s": 4
+ },
+ "musical_companhia|Música Sertaneja|1|teto_14": {
+  "alvo_s": 6.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 18,
+  "max_s": 8,
+  "min_s": 4
+ },
+ "musical_companhia|Música Sertaneja|1|teto_14_min_6": {
+  "alvo_s": 6.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 18,
+  "max_s": 8,
+  "min_s": 6
+ },
+ "musical_companhia|Música Sertaneja|1|teto_35": {
+  "alvo_s": 6.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 18,
+  "max_s": 8,
+  "min_s": 4
+ },
+ "musical_companhia|Música Sertaneja|1|teto_35_min_20": {
+  "alvo_s": 6.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 18,
+  "max_s": 8,
+  "min_s": 20
+ },
+ "musical_companhia|Música Sertaneja|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 18,
+  "max_s": 4,
+  "min_s": 4
+ },
+ "musical_companhia|Quadro da Receita|0|sem_teto": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|Quadro da Receita|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 10
+ },
+ "musical_companhia|Quadro da Receita|0|teto_14_min_6": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia|Quadro da Receita|0|teto_35": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|Quadro da Receita|0|teto_35_min_20": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 20
+ },
+ "musical_companhia|Quadro da Receita|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 4,
+  "min_s": 10
+ },
+ "musical_companhia|Quadro da Receita|1|sem_teto": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|Quadro da Receita|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 10
+ },
+ "musical_companhia|Quadro da Receita|1|teto_14_min_6": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia|Quadro da Receita|1|teto_35": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|Quadro da Receita|1|teto_35_min_20": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 20
+ },
+ "musical_companhia|Quadro da Receita|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 4,
+  "min_s": 10
+ },
+ "musical_companhia|abertura|0|sem_teto": {
+  "alvo_s": 9.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 25,
+  "max_s": 12,
+  "min_s": 6
+ },
+ "musical_companhia|abertura|0|teto_14": {
+  "alvo_s": 9.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 25,
+  "max_s": 12,
+  "min_s": 6
+ },
+ "musical_companhia|abertura|0|teto_14_min_6": {
+  "alvo_s": 9.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 25,
+  "max_s": 12,
+  "min_s": 6
+ },
+ "musical_companhia|abertura|0|teto_35": {
+  "alvo_s": 9.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 25,
+  "max_s": 12,
+  "min_s": 6
+ },
+ "musical_companhia|abertura|0|teto_35_min_20": {
+  "alvo_s": 9.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 25,
+  "max_s": 12,
+  "min_s": 20
+ },
+ "musical_companhia|abertura|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 25,
+  "max_s": 4,
+  "min_s": 6
+ },
+ "musical_companhia|abertura|1|sem_teto": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 65,
+  "max_s": 30,
+  "min_s": 20
+ },
+ "musical_companhia|abertura|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 65,
+  "max_s": 14,
+  "min_s": 20
+ },
+ "musical_companhia|abertura|1|teto_14_min_6": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 65,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia|abertura|1|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 65,
+  "max_s": 30,
+  "min_s": 20
+ },
+ "musical_companhia|abertura|1|teto_35_min_20": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 65,
+  "max_s": 30,
+  "min_s": 20
+ },
+ "musical_companhia|abertura|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 65,
+  "max_s": 4,
+  "min_s": 20
+ },
+ "musical_companhia|chamada_ouvinte|0|sem_teto": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|chamada_ouvinte|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 10
+ },
+ "musical_companhia|chamada_ouvinte|0|teto_14_min_6": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia|chamada_ouvinte|0|teto_35": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|chamada_ouvinte|0|teto_35_min_20": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 20
+ },
+ "musical_companhia|chamada_ouvinte|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 4,
+  "min_s": 10
+ },
+ "musical_companhia|chamada_ouvinte|1|sem_teto": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|chamada_ouvinte|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 10
+ },
+ "musical_companhia|chamada_ouvinte|1|teto_14_min_6": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia|chamada_ouvinte|1|teto_35": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|chamada_ouvinte|1|teto_35_min_20": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 20
+ },
+ "musical_companhia|chamada_ouvinte|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 4,
+  "min_s": 10
+ },
+ "musical_companhia|comentario|0|sem_teto": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|comentario|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 10
+ },
+ "musical_companhia|comentario|0|teto_14_min_6": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia|comentario|0|teto_35": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|comentario|0|teto_35_min_20": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 20
+ },
+ "musical_companhia|comentario|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 4,
+  "min_s": 10
+ },
+ "musical_companhia|comentario|1|sem_teto": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|comentario|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 10
+ },
+ "musical_companhia|comentario|1|teto_14_min_6": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia|comentario|1|teto_35": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|comentario|1|teto_35_min_20": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 20
+ },
+ "musical_companhia|comentario|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 4,
+  "min_s": 10
+ },
+ "musical_companhia|encerramento|0|sem_teto": {
+  "alvo_s": 14.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 38,
+  "max_s": 18,
+  "min_s": 10
+ },
+ "musical_companhia|encerramento|0|teto_14": {
+  "alvo_s": 14.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 38,
+  "max_s": 14,
+  "min_s": 10
+ },
+ "musical_companhia|encerramento|0|teto_14_min_6": {
+  "alvo_s": 14.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 38,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia|encerramento|0|teto_35": {
+  "alvo_s": 14.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 38,
+  "max_s": 18,
+  "min_s": 10
+ },
+ "musical_companhia|encerramento|0|teto_35_min_20": {
+  "alvo_s": 14.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 38,
+  "max_s": 18,
+  "min_s": 20
+ },
+ "musical_companhia|encerramento|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 38,
+  "max_s": 4,
+  "min_s": 10
+ },
+ "musical_companhia|encerramento|1|sem_teto": {
+  "alvo_s": 14.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 38,
+  "max_s": 18,
+  "min_s": 10
+ },
+ "musical_companhia|encerramento|1|teto_14": {
+  "alvo_s": 14.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 38,
+  "max_s": 14,
+  "min_s": 10
+ },
+ "musical_companhia|encerramento|1|teto_14_min_6": {
+  "alvo_s": 14.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 38,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia|encerramento|1|teto_35": {
+  "alvo_s": 14.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 38,
+  "max_s": 18,
+  "min_s": 10
+ },
+ "musical_companhia|encerramento|1|teto_35_min_20": {
+  "alvo_s": 14.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 38,
+  "max_s": 18,
+  "min_s": 20
+ },
+ "musical_companhia|encerramento|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 38,
+  "max_s": 4,
+  "min_s": 10
+ },
+ "musical_companhia|escalada|0|sem_teto": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|escalada|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 10
+ },
+ "musical_companhia|escalada|0|teto_14_min_6": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia|escalada|0|teto_35": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|escalada|0|teto_35_min_20": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 20
+ },
+ "musical_companhia|escalada|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 4,
+  "min_s": 10
+ },
+ "musical_companhia|escalada|1|sem_teto": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|escalada|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 10
+ },
+ "musical_companhia|escalada|1|teto_14_min_6": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia|escalada|1|teto_35": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|escalada|1|teto_35_min_20": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 20
+ },
+ "musical_companhia|escalada|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 4,
+  "min_s": 10
+ },
+ "musical_companhia|identificacao|0|sem_teto": {
+  "alvo_s": 5.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 14,
+  "max_s": 7,
+  "min_s": 3
+ },
+ "musical_companhia|identificacao|0|teto_14": {
+  "alvo_s": 5.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 14,
+  "max_s": 7,
+  "min_s": 3
+ },
+ "musical_companhia|identificacao|0|teto_14_min_6": {
+  "alvo_s": 5.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 14,
+  "max_s": 7,
+  "min_s": 6
+ },
+ "musical_companhia|identificacao|0|teto_35": {
+  "alvo_s": 5.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 14,
+  "max_s": 7,
+  "min_s": 3
+ },
+ "musical_companhia|identificacao|0|teto_35_min_20": {
+  "alvo_s": 5.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 14,
+  "max_s": 7,
+  "min_s": 20
+ },
+ "musical_companhia|identificacao|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 14,
+  "max_s": 4,
+  "min_s": 3
+ },
+ "musical_companhia|identificacao|1|sem_teto": {
+  "alvo_s": 5.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 14,
+  "max_s": 7,
+  "min_s": 3
+ },
+ "musical_companhia|identificacao|1|teto_14": {
+  "alvo_s": 5.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 14,
+  "max_s": 7,
+  "min_s": 3
+ },
+ "musical_companhia|identificacao|1|teto_14_min_6": {
+  "alvo_s": 5.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 14,
+  "max_s": 7,
+  "min_s": 6
+ },
+ "musical_companhia|identificacao|1|teto_35": {
+  "alvo_s": 5.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 14,
+  "max_s": 7,
+  "min_s": 3
+ },
+ "musical_companhia|identificacao|1|teto_35_min_20": {
+  "alvo_s": 5.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 14,
+  "max_s": 7,
+  "min_s": 20
+ },
+ "musical_companhia|identificacao|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 14,
+  "max_s": 4,
+  "min_s": 3
+ },
+ "musical_companhia|musica|0|sem_teto": {
+  "alvo_s": 6.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 18,
+  "max_s": 8,
+  "min_s": 4
+ },
+ "musical_companhia|musica|0|teto_14": {
+  "alvo_s": 6.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 18,
+  "max_s": 8,
+  "min_s": 4
+ },
+ "musical_companhia|musica|0|teto_14_min_6": {
+  "alvo_s": 6.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 18,
+  "max_s": 8,
+  "min_s": 6
+ },
+ "musical_companhia|musica|0|teto_35": {
+  "alvo_s": 6.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 18,
+  "max_s": 8,
+  "min_s": 4
+ },
+ "musical_companhia|musica|0|teto_35_min_20": {
+  "alvo_s": 6.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 18,
+  "max_s": 8,
+  "min_s": 20
+ },
+ "musical_companhia|musica|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 18,
+  "max_s": 4,
+  "min_s": 4
+ },
+ "musical_companhia|musica|1|sem_teto": {
+  "alvo_s": 6.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 18,
+  "max_s": 8,
+  "min_s": 4
+ },
+ "musical_companhia|musica|1|teto_14": {
+  "alvo_s": 6.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 18,
+  "max_s": 8,
+  "min_s": 4
+ },
+ "musical_companhia|musica|1|teto_14_min_6": {
+  "alvo_s": 6.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 18,
+  "max_s": 8,
+  "min_s": 6
+ },
+ "musical_companhia|musica|1|teto_35": {
+  "alvo_s": 6.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 18,
+  "max_s": 8,
+  "min_s": 4
+ },
+ "musical_companhia|musica|1|teto_35_min_20": {
+  "alvo_s": 6.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 18,
+  "max_s": 8,
+  "min_s": 20
+ },
+ "musical_companhia|musica|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 18,
+  "max_s": 4,
+  "min_s": 4
+ },
+ "musical_companhia|noticia|0|sem_teto": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|noticia|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 10
+ },
+ "musical_companhia|noticia|0|teto_14_min_6": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia|noticia|0|teto_35": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|noticia|0|teto_35_min_20": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 20
+ },
+ "musical_companhia|noticia|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 4,
+  "min_s": 10
+ },
+ "musical_companhia|noticia|1|sem_teto": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|noticia|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 10
+ },
+ "musical_companhia|noticia|1|teto_14_min_6": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia|noticia|1|teto_35": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|noticia|1|teto_35_min_20": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 20
+ },
+ "musical_companhia|noticia|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 4,
+  "min_s": 10
+ },
+ "musical_companhia|patrocinador|0|sem_teto": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|patrocinador|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 10
+ },
+ "musical_companhia|patrocinador|0|teto_14_min_6": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia|patrocinador|0|teto_35": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|patrocinador|0|teto_35_min_20": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 20
+ },
+ "musical_companhia|patrocinador|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 4,
+  "min_s": 10
+ },
+ "musical_companhia|patrocinador|1|sem_teto": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|patrocinador|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 10
+ },
+ "musical_companhia|patrocinador|1|teto_14_min_6": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia|patrocinador|1|teto_35": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|patrocinador|1|teto_35_min_20": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 20
+ },
+ "musical_companhia|patrocinador|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 4,
+  "min_s": 10
+ },
+ "musical_companhia|retomada|0|sem_teto": {
+  "alvo_s": 9.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 25,
+  "max_s": 12,
+  "min_s": 6
+ },
+ "musical_companhia|retomada|0|teto_14": {
+  "alvo_s": 9.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 25,
+  "max_s": 12,
+  "min_s": 6
+ },
+ "musical_companhia|retomada|0|teto_14_min_6": {
+  "alvo_s": 9.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 25,
+  "max_s": 12,
+  "min_s": 6
+ },
+ "musical_companhia|retomada|0|teto_35": {
+  "alvo_s": 9.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 25,
+  "max_s": 12,
+  "min_s": 6
+ },
+ "musical_companhia|retomada|0|teto_35_min_20": {
+  "alvo_s": 9.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 25,
+  "max_s": 12,
+  "min_s": 20
+ },
+ "musical_companhia|retomada|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 25,
+  "max_s": 4,
+  "min_s": 6
+ },
+ "musical_companhia|retomada|1|sem_teto": {
+  "alvo_s": 9.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 25,
+  "max_s": 12,
+  "min_s": 6
+ },
+ "musical_companhia|retomada|1|teto_14": {
+  "alvo_s": 9.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 25,
+  "max_s": 12,
+  "min_s": 6
+ },
+ "musical_companhia|retomada|1|teto_14_min_6": {
+  "alvo_s": 9.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 25,
+  "max_s": 12,
+  "min_s": 6
+ },
+ "musical_companhia|retomada|1|teto_35": {
+  "alvo_s": 9.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 25,
+  "max_s": 12,
+  "min_s": 6
+ },
+ "musical_companhia|retomada|1|teto_35_min_20": {
+  "alvo_s": 9.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 25,
+  "max_s": 12,
+  "min_s": 20
+ },
+ "musical_companhia|retomada|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 25,
+  "max_s": 4,
+  "min_s": 6
+ },
+ "musical_companhia|servico|0|sem_teto": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|servico|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 10
+ },
+ "musical_companhia|servico|0|teto_14_min_6": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia|servico|0|teto_35": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|servico|0|teto_35_min_20": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 20
+ },
+ "musical_companhia|servico|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 4,
+  "min_s": 10
+ },
+ "musical_companhia|servico|1|sem_teto": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|servico|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 10
+ },
+ "musical_companhia|servico|1|teto_14_min_6": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia|servico|1|teto_35": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|servico|1|teto_35_min_20": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 20
+ },
+ "musical_companhia|servico|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 4,
+  "min_s": 10
+ },
+ "musical_companhia|vinheta:3|0|sem_teto": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|vinheta:3|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 10
+ },
+ "musical_companhia|vinheta:3|0|teto_14_min_6": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia|vinheta:3|0|teto_35": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|vinheta:3|0|teto_35_min_20": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 20
+ },
+ "musical_companhia|vinheta:3|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 4,
+  "min_s": 10
+ },
+ "musical_companhia|vinheta:3|1|sem_teto": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|vinheta:3|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 10
+ },
+ "musical_companhia|vinheta:3|1|teto_14_min_6": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia|vinheta:3|1|teto_35": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia|vinheta:3|1|teto_35_min_20": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 20
+ },
+ "musical_companhia|vinheta:3|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 4,
+  "min_s": 10
+ },
+ "musical_companhia||0|sem_teto": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia||0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 10
+ },
+ "musical_companhia||0|teto_14_min_6": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia||0|teto_35": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia||0|teto_35_min_20": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 20
+ },
+ "musical_companhia||0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 4,
+  "min_s": 10
+ },
+ "musical_companhia||1|sem_teto": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "formato",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia||1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 10
+ },
+ "musical_companhia||1|teto_14_min_6": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "musical_companhia||1|teto_35": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 10
+ },
+ "musical_companhia||1|teto_35_min_20": {
+  "alvo_s": 15.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 20,
+  "min_s": 20
+ },
+ "musical_companhia||1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": 45,
+  "max_s": 4,
+  "min_s": 10
+ },
+ "padrao|  Identificação |0|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|  Identificação |0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|  Identificação |0|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|  Identificação |0|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|  Identificação |0|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|  Identificação |0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|  Identificação |1|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|  Identificação |1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|  Identificação |1|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|  Identificação |1|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|  Identificação |1|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|  Identificação |1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|Abertura|0|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|Abertura|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|Abertura|0|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|Abertura|0|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|Abertura|0|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|Abertura|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|Abertura|1|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|Abertura|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|Abertura|1|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|Abertura|1|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|Abertura|1|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|Abertura|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|Música Sertaneja|0|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|Música Sertaneja|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|Música Sertaneja|0|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|Música Sertaneja|0|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|Música Sertaneja|0|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|Música Sertaneja|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|Música Sertaneja|1|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|Música Sertaneja|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|Música Sertaneja|1|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|Música Sertaneja|1|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|Música Sertaneja|1|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|Música Sertaneja|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|Quadro da Receita|0|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|Quadro da Receita|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|Quadro da Receita|0|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|Quadro da Receita|0|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|Quadro da Receita|0|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|Quadro da Receita|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|Quadro da Receita|1|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|Quadro da Receita|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|Quadro da Receita|1|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|Quadro da Receita|1|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|Quadro da Receita|1|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|Quadro da Receita|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|abertura|0|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|abertura|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|abertura|0|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|abertura|0|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|abertura|0|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|abertura|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|abertura|1|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|abertura|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|abertura|1|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|abertura|1|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|abertura|1|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|abertura|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|chamada_ouvinte|0|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|chamada_ouvinte|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|chamada_ouvinte|0|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|chamada_ouvinte|0|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|chamada_ouvinte|0|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|chamada_ouvinte|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|chamada_ouvinte|1|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|chamada_ouvinte|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|chamada_ouvinte|1|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|chamada_ouvinte|1|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|chamada_ouvinte|1|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|chamada_ouvinte|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|comentario|0|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|comentario|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|comentario|0|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|comentario|0|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|comentario|0|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|comentario|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|comentario|1|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|comentario|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|comentario|1|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|comentario|1|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|comentario|1|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|comentario|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|encerramento|0|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|encerramento|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|encerramento|0|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|encerramento|0|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|encerramento|0|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|encerramento|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|encerramento|1|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|encerramento|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|encerramento|1|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|encerramento|1|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|encerramento|1|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|encerramento|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|escalada|0|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|escalada|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|escalada|0|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|escalada|0|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|escalada|0|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|escalada|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|escalada|1|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|escalada|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|escalada|1|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|escalada|1|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|escalada|1|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|escalada|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|identificacao|0|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|identificacao|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|identificacao|0|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|identificacao|0|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|identificacao|0|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|identificacao|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|identificacao|1|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|identificacao|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|identificacao|1|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|identificacao|1|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|identificacao|1|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|identificacao|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|musica|0|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|musica|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|musica|0|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|musica|0|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|musica|0|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|musica|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|musica|1|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|musica|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|musica|1|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|musica|1|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|musica|1|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|musica|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|noticia|0|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|noticia|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|noticia|0|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|noticia|0|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|noticia|0|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|noticia|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|noticia|1|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|noticia|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|noticia|1|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|noticia|1|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|noticia|1|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|noticia|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|patrocinador|0|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|patrocinador|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|patrocinador|0|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|patrocinador|0|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|patrocinador|0|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|patrocinador|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|patrocinador|1|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|patrocinador|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|patrocinador|1|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|patrocinador|1|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|patrocinador|1|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|patrocinador|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|retomada|0|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|retomada|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|retomada|0|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|retomada|0|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|retomada|0|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|retomada|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|retomada|1|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|retomada|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|retomada|1|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|retomada|1|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|retomada|1|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|retomada|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|servico|0|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|servico|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|servico|0|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|servico|0|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|servico|0|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|servico|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|servico|1|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|servico|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|servico|1|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|servico|1|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|servico|1|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|servico|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|vinheta:3|0|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|vinheta:3|0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|vinheta:3|0|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|vinheta:3|0|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|vinheta:3|0|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|vinheta:3|0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao|vinheta:3|1|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao|vinheta:3|1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao|vinheta:3|1|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao|vinheta:3|1|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao|vinheta:3|1|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao|vinheta:3|1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao||0|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao||0|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao||0|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao||0|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao||0|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao||0|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ },
+ "padrao||1|sem_teto": {
+  "alvo_s": 22.5,
+  "aplicar": false,
+  "fonte": "observacao",
+  "max_palavras": null,
+  "max_s": 30,
+  "min_s": 15
+ },
+ "padrao||1|teto_14": {
+  "alvo_s": 14,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 15
+ },
+ "padrao||1|teto_14_min_6": {
+  "alvo_s": 10.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 14,
+  "min_s": 6
+ },
+ "padrao||1|teto_35": {
+  "alvo_s": 25.0,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 15
+ },
+ "padrao||1|teto_35_min_20": {
+  "alvo_s": 27.5,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 35,
+  "min_s": 20
+ },
+ "padrao||1|teto_4": {
+  "alvo_s": 4,
+  "aplicar": true,
+  "fonte": "relogio",
+  "max_palavras": null,
+  "max_s": 4,
+  "min_s": 15
+ }
+}

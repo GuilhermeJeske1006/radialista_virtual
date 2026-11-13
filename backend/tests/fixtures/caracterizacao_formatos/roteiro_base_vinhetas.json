@@ -1,0 +1,24 @@
+{
+ "musical_companhia": [
+  "musica",
+  "musica",
+  "identificacao",
+  "musica",
+  "musica",
+  "retomada"
+ ],
+ "padrao": [
+  "musica",
+  "abertura",
+  "comentario",
+  "noticia",
+  "chamada_ouvinte"
+ ],
+ "sem_campo": [
+  "musica",
+  "abertura",
+  "comentario",
+  "noticia",
+  "chamada_ouvinte"
+ ]
+}
