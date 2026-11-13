@@ -216,7 +216,10 @@ class FixturePrograma(_Estrito):
 
     @property
     def formato_musical(self) -> bool:
-        return self.programa.get("perfil_programacao") == "musical_companhia"
+        """Pergunta ao catálogo do backend (alias incluído); importação tardia, este módulo não importa app.* no topo."""
+        from app.live.formatos import resolver_formato
+
+        return resolver_formato(self.programa.get("perfil_programacao")).comportamento.ciclo == "musical"
 
     def horario(self, campo: str) -> datetime.time:
         hora, minuto = str(self.programa[campo]).split(":")

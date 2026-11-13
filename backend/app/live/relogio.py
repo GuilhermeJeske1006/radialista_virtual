@@ -11,8 +11,9 @@ estado (`etapas_executadas` / `marcar_executada`) usa Redis, e falha aberto. Est
 
 Os números (unidades de fala, ritmo, tolerâncias) são hipóteses de projeto da skill referencia-radio
 e da pesquisa (§5, §7, §9). Ficam em `ConfigRelogio`: o ritmo vem da calibração por voz da F2
-(`app.live.ritmo_voz.wpm_para`) e a F6 troca as unidades pelo catálogo de formatos. Desenho completo em
-docs/melhoria-radio/f1/auditoria.md (§5).
+(`app.live.ritmo_voz.wpm_para`). Nos formatos que aplicam orçamento, a unidade de fala e o bloco de cada tipo de
+evento vêm do catálogo de formatos (`app.live.formatos`, F6, D8). Desenho completo em
+docs/melhoria-radio/f1/auditoria.md (§5) e docs/melhoria-radio/f6/auditoria.md (§6.7).
 """
 
 import datetime
@@ -28,7 +29,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError, field_validator, mo
 from pydantic_core import PydanticCustomError
 
 from app.feriados import feriado_do_dia
-from app.live.formato import orcamento_fala
+from app.live.formatos import Formato, formato_pelo_booleano, unidade as unidade_do_formato
 from app.live.orcamento import estimar_duracao_s, wpm_padrao
 
 logger = logging.getLogger("radialista.live.relogio")
@@ -201,8 +202,8 @@ PRESETS: dict[str, RelogioHora] = {chave: preset.relogio for chave, preset in PR
 
 UNIDADES_PADRAO: dict[str, tuple[int, int]] = {
     # Unidade de fala por tipo de evento, em segundos (mínimo, máximo). Origem: tabela "Unidades de
-    # fala iniciais por formato" da skill referencia-radio e pesquisa §9. No formato musical vale o
-    # menor entre isto e app.live.formato.ORCAMENTOS (divergência registrada na F0, D5).
+    # fala iniciais por formato" da skill referencia-radio e pesquisa §9. Vale no formato `padrao`; nos
+    # formatos que aplicam orçamento vale a unidade do catálogo (F6, D8), limitada pela etapa e pelo espaço.
     "abertura": (20, 40),
     "retomada": (6, 20),
     "manchetes": (20, 60),
@@ -277,36 +278,36 @@ CONFIG_PADRAO = ConfigRelogio()
 @dataclass(frozen=True)
 class RegraBloco:
     # "fala": um bloco de fala; "musica": faixa sem fala; "intervalo": patrocinadores;
-    # "pecas": sequência de peças (vinhetas e falas) na ordem.
+    # "pecas": sequência de peças (vinhetas e falas) na ordem. O formato pode trocar o bloco de um tipo de
+    # evento (Formato.blocos_relogio; o musical troca as falas longas por retomada).
     modo: Literal["fala", "musica", "intervalo", "pecas"]
     bloco_padrao: str
-    bloco_musical: str
     repete: bool
     unidade: str | None
 
 
 BLOCOS_POR_TIPO: dict[str, RegraBloco] = {
-    "abertura": RegraBloco("pecas", "abertura", "abertura", False, "abertura"),
-    "retomada": RegraBloco("pecas", "retomada", "retomada", False, "retomada"),
-    "manchetes": RegraBloco("pecas", "escalada", "escalada", False, "manchetes"),
-    "musica": RegraBloco("musica", "musica", "musica", True, "musica"),
-    "link": RegraBloco("fala", "comentario", "retomada", False, "link"),
-    "curadoria": RegraBloco("fala", "comentario", "retomada", False, "curadoria"),
-    "retorno": RegraBloco("fala", "chamada_ouvinte", "chamada_ouvinte", False, "retorno"),
-    "participacao": RegraBloco("fala", "chamada_ouvinte", "chamada_ouvinte", False, "participacao"),
-    "conversa": RegraBloco("fala", "comentario", "retomada", True, "conversa"),
+    "abertura": RegraBloco("pecas", "abertura", False, "abertura"),
+    "retomada": RegraBloco("pecas", "retomada", False, "retomada"),
+    "manchetes": RegraBloco("pecas", "escalada", False, "manchetes"),
+    "musica": RegraBloco("musica", "musica", True, "musica"),
+    "link": RegraBloco("fala", "comentario", False, "link"),
+    "curadoria": RegraBloco("fala", "comentario", False, "curadoria"),
+    "retorno": RegraBloco("fala", "chamada_ouvinte", False, "retorno"),
+    "participacao": RegraBloco("fala", "chamada_ouvinte", False, "participacao"),
+    "conversa": RegraBloco("fala", "comentario", True, "conversa"),
     # "@quadro": primeiro rótulo de quadros_fixos presente na estrutura; senão comentário.
-    "quadro": RegraBloco("fala", "@quadro", "retomada", True, "quadro"),
-    "servico": RegraBloco("fala", "servico", "servico", True, "servico"),
-    "noticia": RegraBloco("fala", "noticia", "noticia", True, "noticia"),
-    "reportagem": RegraBloco("fala", "noticia", "noticia", True, "reportagem"),
-    "atualizacao": RegraBloco("fala", "escalada", "escalada", False, "atualizacao"),
+    "quadro": RegraBloco("fala", "@quadro", True, "quadro"),
+    "servico": RegraBloco("fala", "servico", True, "servico"),
+    "noticia": RegraBloco("fala", "noticia", True, "noticia"),
+    "reportagem": RegraBloco("fala", "noticia", True, "reportagem"),
+    "atualizacao": RegraBloco("fala", "escalada", False, "atualizacao"),
     # Sem convidado real (F12/F13): contingência "convidado não entrou → conteúdo aprovado".
-    "entrevista": RegraBloco("fala", "comentario", "retomada", True, "entrevista"),
-    "intervalo": RegraBloco("intervalo", "patrocinador", "patrocinador", True, None),
-    "identificacao": RegraBloco("pecas", "identificacao", "identificacao", False, "passagem"),
-    "encerramento": RegraBloco("fala", "encerramento", "encerramento", False, "encerramento"),
-    "resumo": RegraBloco("fala", "comentario", "retomada", False, "resumo"),
+    "entrevista": RegraBloco("fala", "comentario", True, "entrevista"),
+    "intervalo": RegraBloco("intervalo", "patrocinador", True, None),
+    "identificacao": RegraBloco("pecas", "identificacao", False, "passagem"),
+    "encerramento": RegraBloco("fala", "encerramento", False, "encerramento"),
+    "resumo": RegraBloco("fala", "comentario", False, "resumo"),
 }
 # Tipos de evento cujo bloco é jornalístico: sem fonte de notícia configurada viram música, como a
 # regra atual do ao vivo ("sem fonte vira música").
@@ -591,7 +592,8 @@ def espaco_livre(relogio: RelogioHora, ocorrencia: Ocorrencia, instante: datetim
     precisam acontecer antes dele."""
     instante = _utc(instante)
     espelho = montar_espelho(relogio, ocorrencia, cfg, **kwargs)
-    decisao = _Decisao(espelho, ocorrencia, instante, False, None, executadas, kwargs.get("pecas") or PecasDisponiveis(), cfg)
+    decisao = _Decisao(espelho, ocorrencia, instante, formato_pelo_booleano(False), None, executadas,
+                       kwargs.get("pecas") or PecasDisponiveis(), cfg)
     indice = _indice_contendo(espelho, instante)
     compromisso = decisao.compromisso_apos(indice)
     return decisao.espaco(indice, compromisso)
@@ -612,12 +614,12 @@ def _categoria_simples(tipo: str) -> str:
 class _Decisao:
     """Decide o próximo bloco num espelho já montado (auditoria F1 §5.5, "Decisão")."""
 
-    def __init__(self, espelho, ocorrencia, instante, formato_musical, ultima_categoria, executadas, pecas, cfg,
+    def __init__(self, espelho, ocorrencia, instante, formato, ultima_categoria, executadas, pecas, cfg,
                  obrigacoes: frozenset[str] = frozenset()):
         self.espelho: list[Etapa] = espelho
         self.ocorrencia: Ocorrencia = ocorrencia
         self.instante: datetime.datetime = instante
-        self.formato_musical: bool = formato_musical
+        self.formato: Formato = formato
         self.ultima_categoria: str | None = ultima_categoria
         self.executadas: set[str] = set(executadas)
         self.pecas: PecasDisponiveis = pecas
@@ -702,18 +704,21 @@ class _Decisao:
     # --- orçamento ------------------------------------------------------------------------------
 
     def unidade(self, unidade: str, tipo_bloco: str, primeira: bool) -> tuple[int, int, int | None]:
-        minimo, maximo = self.cfg.unidades[unidade]
-        if not self.formato_musical:
+        """(mínimo, máximo, teto de palavras). Sem orçamento aplicado (`padrao`), a unidade do tipo de evento em
+        `cfg.unidades`; com orçamento, a unidade do formato para o papel do bloco (D8: o formato vence, e a etapa e
+        o espaço limitam depois, em `_fala`). No musical é o mesmo que o menor dos dois de antes (§2, fato 5)."""
+        if not self.formato.aplica_orcamento:
+            minimo, maximo = self.cfg.unidades[unidade]
             return minimo, maximo, None
-        o_min, o_max, o_palavras = orcamento_fala(tipo_bloco, primeira)
-        return min(minimo, o_min), min(maximo, o_max), o_palavras
+        u = unidade_do_formato(self.formato, tipo_bloco, primeira, quadro=tipo_bloco in self.pecas.quadros)
+        return u.min_s, u.max_s, u.max_palavras
 
     def _palavras(self, maximo: int, teto_formato: int | None) -> int:
         palavras = math.floor(maximo * self.cfg.wpm / 60)
         return min(palavras, teto_formato) if teto_formato is not None else palavras
 
-    def _bloco(self, regra: RegraBloco) -> str:
-        bloco = regra.bloco_musical if self.formato_musical else regra.bloco_padrao
+    def _bloco(self, tipo_evento: str, regra: RegraBloco) -> str:
+        bloco = self.formato.blocos_relogio.get(tipo_evento, regra.bloco_padrao)
         if bloco == "@quadro":
             return self.pecas.quadros[0] if self.pecas.quadros else "comentario"
         return bloco
@@ -767,7 +772,7 @@ class _Decisao:
         etapa = self.espelho[indice]
         regra = etapa.regra
         disponivel = self._ate(etapa.fim) if regra.repete else etapa.duracao_s
-        return self._fala(indice, regra.unidade, self._bloco(regra), disponivel=disponivel,
+        return self._fala(indice, regra.unidade, self._bloco(etapa.tipo_efetivo, regra), disponivel=disponivel,
                           chave=None if regra.repete else etapa.chave, repete=regra.repete)
 
     def _etapa_pecas(self, indice: int) -> Plano | None:
@@ -832,7 +837,8 @@ class _Decisao:
         teto = espaco + self.cfg.folga_teto_s
         if teto < self.cfg.musica_busca_min_s:
             return alternativa
-        preenchimento = 0 if self.formato_musical else self.cfg.unidades["preenchimento"][1]
+        preenchimento = self.cfg.unidades["preenchimento"][1] if self.formato.comportamento.preenchimento_relogio \
+            else 0
         final = self.espelho[compromisso].tipo_efetivo == "encerramento"
         adiantamento = self.cfg.adiantamento_final_max_s if final else self.cfg.adiantamento_max_s
         piso, topo = adiantamento + preenchimento, self.cfg.musica_duracao_min_s
@@ -865,7 +871,8 @@ class _Decisao:
                                    puladas=tuple(puladas))
         chave_link = f"{etapa.chave}:preenchimento"
         l_min, l_max = self.cfg.unidades["preenchimento"]
-        if not self.formato_musical and chave_link not in self.executadas and espaco >= l_min:
+        if self.formato.comportamento.preenchimento_relogio and chave_link not in self.executadas \
+                and espaco >= l_min:
             minimo, limite = orcamento(l_min, l_max)
             return self._plano(indice, "reserva", "comentario", orcamento_s=(minimo, limite),
                                palavras_max=self._palavras(limite, None), chave_estado=chave_link,
@@ -929,11 +936,13 @@ class _Decisao:
         return self._a_partir(self.vigente(), [])
 
 
-def planejar(programa, relogio: RelogioHora, timezone: str, instante: datetime.datetime, *, formato_musical: bool,
-             ultima_categoria: str | None, ja_encerrou: bool, executadas: set[str], pecas: PecasDisponiveis,
-             cfg: ConfigRelogio = CONFIG_PADRAO, obrigacoes: frozenset[str] = frozenset()) -> Plano | None:
+def planejar(programa, relogio: RelogioHora, timezone: str, instante: datetime.datetime, *,
+             formato: Formato | None = None, formato_musical: bool | None = None, ultima_categoria: str | None,
+             ja_encerrou: bool, executadas: set[str], pecas: PecasDisponiveis, cfg: ConfigRelogio = CONFIG_PADRAO,
+             obrigacoes: frozenset[str] = frozenset()) -> Plano | None:
     """Plano do bloco que vai ao ar em `instante`. None = caminho atual (sem relógio aplicável). `obrigacoes`
-    (F4): etapas com promessa aberta; sem elas o plano é o mesmo de antes."""
+    (F4): etapas com promessa aberta; sem elas o plano é o mesmo de antes. `formato` (F6) é o do catálogo; sem
+    ele, o antigo booleano `formato_musical` escolhe entre o musical e o padrão."""
     if ja_encerrou:
         return None
     instante = _utc(instante)
@@ -944,7 +953,8 @@ def planejar(programa, relogio: RelogioHora, timezone: str, instante: datetime.d
     if feriado and relogio.em_feriado == "sem_relogio":
         return None
     espelho = montar_espelho(relogio, ocorrencia, cfg, eh_feriado=feriado, pecas=pecas)
-    return _Decisao(espelho, ocorrencia, instante, formato_musical, ultima_categoria, executadas, pecas, cfg,
+    formato = formato if formato is not None else formato_pelo_booleano(bool(formato_musical))
+    return _Decisao(espelho, ocorrencia, instante, formato, ultima_categoria, executadas, pecas, cfg,
                     obrigacoes=obrigacoes).decidir()
 
 

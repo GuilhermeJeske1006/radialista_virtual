@@ -15,7 +15,8 @@ from dataclasses import dataclass, replace
 from typing import Callable, Iterable, Literal
 
 from app.config.settings import settings
-from app.live.formato import ORCAMENTOS, _tipo_fala, contar_palavras, musical_companhia, orcamento_fala
+from app.live.formato import contar_palavras
+from app.live.formatos import FORMATOS, Formato, formato_do_programa as _formato_do_programa, resolver_formato, unidade
 from app.numeros import normalizar_texto_fala
 
 Fonte = Literal["relogio", "formato", "observacao"]
@@ -29,16 +30,18 @@ Ajuste = Literal["nenhum", "reescrita", "encurtada", "cortada", "acima_do_teto"]
 _PAUSA_RE = re.compile(r"\.{4,}|\[\s*pause\s*\]", re.IGNORECASE)
 _FRONTEIRA_FRASE_RE = re.compile(r"(?<=[.!?…])\s+")
 
-# Orçamento por formato: (mínimo s, máximo s, máximo de palavras ou None = pelo ritmo). O musical é
-# construído a partir de formato.ORCAMENTOS (sem copiar números). O padrão só observa: 15 a 30 s
-# correspondem às "4 a 6 frases de rádio" do prompt atual (hipótese; a F6 troca pela unidade de fala
-# do catálogo de formatos mantendo a assinatura de orcamento_para).
+# Orçamento por formato: (mínimo s, máximo s, máximo de palavras ou None = pelo ritmo), derivado do catálogo de
+# formatos (app.live.formatos, F6) e exportado com os mesmos nomes da F2. Os ids canônicos e os aliases entram;
+# o padrão só observa (15 a 30 s, as "4 a 6 frases de rádio" do prompt).
 ORCAMENTOS_POR_FORMATO: dict[str, dict[str, tuple[float, float, int | None]]] = {
-    "musical_companhia": {**ORCAMENTOS, "*": orcamento_fala("*")},
-    "padrao": {"*": (15, 30, None)},
+    chave: {papel: (u.min_s, u.max_s, u.max_palavras) for papel, u in formato.unidades.items()}
+    for formato in FORMATOS.values() if formato.implementado for chave in (formato.id, *formato.aliases)
 }
 # Formatos cujo orçamento sem relógio é aplicado (reescrita e encurtamento). Os demais só medem.
-FORMATOS_APLICADOS = frozenset({"musical_companhia"})
+FORMATOS_APLICADOS = frozenset(
+    chave for formato in FORMATOS.values() if formato.implementado and formato.aplica_orcamento
+    for chave in (formato.id, *formato.aliases)
+)
 
 
 @dataclass(frozen=True)
@@ -94,34 +97,28 @@ def wpm_observado(palavras: int, duracao_s: float, pausas: int = 0, pausa_s: flo
 # --- orçamento ----------------------------------------------------------------------------------
 
 def formato_do_programa(programa) -> str:
-    return "musical_companhia" if musical_companhia(programa) else "padrao"
+    """Id canônico do formato do programa (o alias `musical_companhia` vira `musical_adulto`)."""
+    return _formato_do_programa(programa).id
 
 
-def _do_formato(formato: str, tipo: str, primeira: bool) -> tuple[float, float, int | None]:
-    tabela = ORCAMENTOS_POR_FORMATO.get(formato, ORCAMENTOS_POR_FORMATO["padrao"])
-    chave = _tipo_fala(tipo)
-    if chave == "abertura" and not primeira:
-        chave = "retomada"
-    return tabela.get(chave, tabela["*"])
-
-
-def orcamento_para(formato: str, tipo: str, primeira: bool, teto_relogio_s: float | None = None, *,
-                   minimo_relogio_s: float | None = None) -> OrcamentoFala:
-    """Orçamento da fala. Sem relógio, o do formato (aplicado só no musical). Com o teto do relógio
-    (backtiming da F1), o máximo é o menor entre ele e o do formato aplicado, e o orçamento vale em
-    qualquer formato; o mínimo é o do relógio quando informado."""
-    minimo, maximo, palavras = _do_formato(formato, tipo, primeira)
-    alvo = (minimo + maximo) / 2
+def orcamento_para(formato: "str | Formato", tipo: str, primeira: bool, teto_relogio_s: float | None = None, *,
+                   minimo_relogio_s: float | None = None, quadro: bool = False) -> OrcamentoFala:
+    """Orçamento da fala. Sem relógio, a unidade do formato (aplicada só nos formatos com `aplica_orcamento`).
+    Com o teto do relógio (backtiming da F1), o máximo é o menor entre ele e o do formato aplicado, e o orçamento
+    vale em qualquer formato; o mínimo é o do relógio quando informado. `formato` aceita id, alias ou Formato."""
+    formato = resolver_formato(formato)
+    u = unidade(formato, tipo, primeira, quadro)
+    minimo, maximo, palavras, alvo = u.min_s, u.max_s, u.max_palavras, u.alvo_s
+    aplicado = formato.aplica_orcamento
     if teto_relogio_s is None:
-        aplicar = formato in FORMATOS_APLICADOS
-        return OrcamentoFala(minimo, alvo, maximo, palavras, "formato" if aplicar else "observacao", aplicar)
-    if formato in FORMATOS_APLICADOS:
+        return OrcamentoFala(minimo, alvo, maximo, palavras, "formato" if aplicado else "observacao", aplicado)
+    if aplicado:
         maximo = min(maximo, teto_relogio_s)
     else:
         maximo, palavras = teto_relogio_s, None
     if minimo_relogio_s is not None:
         minimo = minimo_relogio_s
-    alvo = min((minimo + maximo) / 2 if formato not in FORMATOS_APLICADOS else alvo, maximo)
+    alvo = min((minimo + maximo) / 2 if not aplicado else alvo, maximo)
     return OrcamentoFala(minimo, alvo, maximo, palavras, "relogio", True)
 
 

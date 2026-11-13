@@ -16,7 +16,7 @@ import dataclasses
 from typing import TYPE_CHECKING
 
 from app.dados.fontes import bloco_de_dados, extra_faixa, extra_ouvinte, no_bloco
-from app.live.formato import direcao_musical
+from app.live.formatos import direcao_formato
 from app.live.promessas import descrever_agenda, instrucoes_do_bloco, situacao_do_contexto
 from app.live.orcamento import contar_pausas, palavras_max
 from app.live.prompts import (
@@ -105,7 +105,8 @@ def _introducao(ctx: "ContextoEmissao") -> list[str]:
     return [
         "Você também apresenta um programa de rádio ao vivo dentro do painel.",
         "Gere somente a fala do locutor, sem aspas, sem markdown e sem narração externa.",
-        "A duração deve seguir a meta específica deste bloco." if ctx.formato_musical or ctx.tempo.plano is not None else
+        "A duração deve seguir a meta específica deste bloco."
+        if ctx.formato.aplica_orcamento or ctx.tempo.plano is not None else
         "A fala deve durar o equivalente a umas 4 a 6 frases de rádio, mas varie o tamanho de cada uma "
         "como alguém fala de verdade -- misture frase curta de impacto com uma frase mais longa emendada "
         "por vírgula. Não force um número fixo de frases nem um tamanho parecido pra todas.",
@@ -187,7 +188,7 @@ def _ritmo_e_naturalidade(ctx: "ContextoEmissao") -> list[str]:
     if ctx.tipo != "encerramento" and ctx.tempo.ajuste_energia:
         linhas.append(ctx.tempo.ajuste_energia)
 
-    if categoria not in _CATEGORIAS_NOTICIA_LIKE and not ctx.formato_musical:
+    if categoria not in _CATEGORIAS_NOTICIA_LIKE and ctx.formato.comportamento.naturalidade_encenada:
         opcoes_fala_natural = [
             "um maneirismo no começo da frase (\"então\", \"olha só\", \"e aí\", \"pô\")",
             "uma autocorreção leve (\"quer dizer\", \"ou melhor\", \"deixa eu reformular\")",
@@ -468,7 +469,7 @@ def _musica(ctx: "ContextoEmissao", dp: DadosDoPrompt) -> list[str]:
             "Há contexto real sobre essa música nos dados de referência (dado faixa), pra você citar naturalmente "
             "ao anunciar se fizer sentido (não force, não é obrigatório usar tudo)."
         )
-    if categoria == "musica" and musica is not None and not ctx.formato_musical:
+    if categoria == "musica" and musica is not None and not ctx.formato.comportamento.uma_faixa_por_bloco:
         linhas.append(
             "Toda música específica que você citar pelo nome nesta fala vai tocar de verdade, em sequência, "
             "logo depois da anunciada -- então só cite outra música se quiser mesmo que ela toque agora."
@@ -573,9 +574,9 @@ def _duracao(ctx: "ContextoEmissao") -> list[str]:
     linhas: list[str] = []
     plano, orcamento = ctx.tempo.plano, ctx.orcamento
     agenda = _linha_agenda(ctx)
-    if ctx.formato_musical:
-        linhas.append(direcao_musical(
-            ctx.tipo, ctx.primeira_fala,
+    if ctx.formato.aplica_orcamento:
+        linhas.append(direcao_formato(
+            ctx.formato, ctx.tipo, ctx.primeira_fala,
             orcamento=(segundos_prompt(orcamento.min_s), segundos_prompt(orcamento.max_s), ctx.limite_palavras),
         ))
     elif plano is not None and plano.orcamento_s:

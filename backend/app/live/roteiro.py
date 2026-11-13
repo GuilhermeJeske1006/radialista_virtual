@@ -13,6 +13,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.live.formatos import Formato, formato_do_programa, formato_pelo_booleano
 from app.live.portas import PortasEmissao
 from app.live.prompts import _CATEGORIAS_NOTICIA_LIKE
 from app.live.relogio import ConfigRelogio, Plano
@@ -38,10 +39,17 @@ class EntradaEmissao:
     programa: Any
     dados: Any                      # LiveProgramRequest
     total_falas: int
-    formato_musical: bool
+    formato_musical: bool           # derivado do formato (D12 da F6); aceito na construção por compatibilidade
     voz_programa: Any
     ritmos_voz: Any                 # app.live.ritmo_voz.RitmosVoz
     cfg_relogio: ConfigRelogio
+    # F6: formato do catálogo (app.live.formatos). Sem ele, o booleano escolhe o musical ou o padrão.
+    formato: Formato | None = None
+
+    def __post_init__(self):
+        formato = self.formato if self.formato is not None else formato_pelo_booleano(self.formato_musical)
+        object.__setattr__(self, "formato", formato)
+        object.__setattr__(self, "formato_musical", formato.comportamento.ciclo == "musical")
 
 
 @dataclasses.dataclass(frozen=True)
@@ -67,20 +75,22 @@ class DecisaoBloco:
 def tipo_na_posicao(programa, posicao: int, categoria_de) -> str:
     """Tipo do bloco na posição `posicao` do roteiro, como app.live.router._tipo_proximo_bloco, mas puro: sem o
     comentário extra sorteado de `ia_pode_adicionar_blocos` (que consome o `random`) e sem a troca de abertura
-    fora de lugar (que depende do bloco anterior). Usado pela agenda de promessas sem relógio (F4)."""
-    from app.live.formato import ROTEIRO_MUSICAL, ROTEIRO_PADRAO, musical_companhia
+    fora de lugar (que depende do bloco anterior). Usado pela agenda de promessas sem relógio (F4). O ciclo e o
+    roteiro com a estrutura vazia são os do formato do programa (F6)."""
     from app.util.texto import sem_acento
 
+    formato = formato_do_programa(programa)
     estrutura = [t.strip() for t in (programa.estrutura_blocos or []) if t.strip()]
-    if musical_companhia(programa):
+    if formato.comportamento.ciclo == "musical":
         if posicao == 0:
             return "abertura"
         roteiro = [t for t in estrutura if sem_acento(t.lower()) != "abertura" and categoria_de(t) != "encerramento"] \
-            or list(ROTEIRO_MUSICAL)
+            or list(formato.roteiro_padrao)
         return roteiro[(posicao - 1) % len(roteiro)]
     customizado = [t for t in estrutura if categoria_de(t) != "encerramento"]
     if not customizado:
-        return "abertura" if posicao == 0 else ROTEIRO_PADRAO[(posicao - 1) % len(ROTEIRO_PADRAO)]
+        roteiro = formato.roteiro_padrao
+        return "abertura" if posicao == 0 else roteiro[(posicao - 1) % len(roteiro)]
     return customizado[posicao % len(customizado)]
 
 
@@ -93,7 +103,7 @@ def decidir_bloco(entrada: EntradaEmissao, portas: PortasEmissao) -> DecisaoBloc
     # Relogio da hora (F1): com programa.relogio_hora, o tipo do bloco vem da etapa do relogio no horario
     # previsto de ir ao ar (dados.inicio_previsto), nao da posicao na estrutura_blocos.
     plano, inicio_previsto_aceito, preset_relogio, origem_instante = portas.planejar_relogio(
-        db, account, radialista, programa, entrada.dados, formato_musical=entrada.formato_musical,
+        db, account, radialista, programa, entrada.dados, formato=entrada.formato,
         ultima_categoria=ultima_categoria, ja_encerrou=ja_encerrou, cfg=entrada.cfg_relogio,
     )
     musica_relogio, buscou_musica_relogio = None, False
