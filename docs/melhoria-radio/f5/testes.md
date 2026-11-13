@@ -154,3 +154,62 @@ exige aprovação de custo.
 | Conteúdo externo em bloco delimitado de dados, não em instruções (auditoria 3) | U6, I1, I4, I5, I7 e os goldens: nada de texto externo no system; `injecao.no_system` 0 |
 | Testes: dado dentro e fora da validade, sem fonte e injeção em título | U1, U3, U4, I1, I2, I3, I4, golden `noticia_titulo_injetado`, S2 |
 | Herdados F1-F4 | hard time ≤ 5 s, 0% fora com relógio, anúncio sem confirmação 0, promessa vencida 0, pedido indevido 0, ouvinte inexistente 0, ≤ 2 LLM por fala |
+
+## Portão independente (testador-locufy, 2026-11-13, HEAD d6bc878)
+
+### Comandos executados
+- `backend/`: `.venv/bin/ruff check app tests scripts/simular_hora.py scripts/simulacao`; `ffmpeg -version` (8.0.1);
+  `.venv/bin/pytest -q --cov=app --cov-report=term` (Python 3.12.13).
+- `backend/`: `PYTHONPATH=. PYTHONHASHSEED=0 .venv/bin/python scripts/simular_hora.py --modo fake --programa <perfil>
+  [--relogio-backend nenhum] --saida <scratchpad>/f5-portao/{relogio,sem_relogio}/<perfil>` para `musical_adulto`,
+  `popular_sertanejo` e `variedades_leves` (6 rodadas; nunca `--modo llm`/`completo`).
+- `frontend-painel/`: `npx vitest run`, `npx tsc --noEmit`, `npm run lint`.
+
+### Linha de base (passo 0) x resultado
+| Item | Linha de base | Portão independente |
+|---|---|---|
+| ruff | All checks passed | All checks passed |
+| pytest | 1633 passed, 3 skipped, 538 s | **1901 passed, 3 skipped, 0 failed**, 645,57 s |
+| Cobertura total | 87% | **88%** (17104 linhas, 2027 sem cobrir) |
+| `app/dados/*` | - | `__init__` 100%, `verificavel` 100%, `fontes` 98%, `texto_externo` 98%, `checagem` 97% |
+| `live/contexto` | 99% | 99% |
+| `live/validacao_fala` | 97% | 97% |
+| `live/geracao` | 94% | 94% |
+| `live/router` | 95% | 95% |
+| `llm/prompt_builder` | 98% | 97% (-1 ponto) |
+| `news/pauta` | 62% | 93% |
+| `news/curadoria` | 96% | 97% |
+| `news/worker` | 81% | 81% |
+| `weather/client` | 95% | 97% |
+| vitest | 350 passed (63 arquivos) | **354 passed** (65 arquivos) |
+| tsc --noEmit | sem erros | sem erros (rc=0) |
+| `npm run lint` | falha preexistente (F0) | mesma falha (`next lint` inexistente no Next 16; "Invalid project directory .../lint") |
+
+### Simulação fake (6 rodadas, rc=0 em todas)
+Chaves reais: `dado_sem_fonte`, `dado_vencido`, `dado_legitimo_removido`, `injecao.no_system`, `sem_integracao.*`
+(temperatura, condicao_tempo, previsao, placar, transito, comercial), `tentativas_rede`, `destinos_rede`,
+`orcamento_fala.max_chamadas_llm_por_fala`.
+
+| Rodada | atraso hard time (s) | encerr. no ar | fora orçam. % | anúncio s/ conf. | promessa venc. | pedido indev. | ouvinte inex. | dado s/ fonte | dado venc. | s/ integração (todas as chaves) | injeção no system | LLM/fala máx | rede |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| relógio musical_adulto | 0,0 | sim | 0,0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 0 |
+| relógio popular_sertanejo | 0,36 | sim | 0,0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 0 |
+| relógio variedades_leves | 0,0 | sim | 0,0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 0 |
+| sem relógio musical_adulto | 0,0 | não | 0,0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 0 |
+| sem relógio popular_sertanejo | 0,0 | não | 0,0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 0 |
+| sem relógio variedades_leves | 0,0 | sim | 0,0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 0 |
+
+`destinos_rede` vazio e `erros_http` 0 em todas. `dado_legitimo_removido` 0. Encerramento "não" sem relógio é o esperado
+(igual à linha de base). Os 3 `resumo.json` com relógio batem com `docs/melhoria-radio/f5/simulacao/<perfil>/` campo a
+campo; só diferem `config.commit` (`d6bc878` x `6bcc0b3`) e `tempo_execucao_s` (ruído).
+
+### Falhas
+Nenhuma. Única ressalva preexistente: `npm run lint` (F0).
+
+### Divergências contra o portão local do implementador
+Nenhuma nos números: 1901 passed / 3 skipped, 88%, vitest 354, tsc limpo, ruff limpo, tempo 645 s x 647 s, cobertura
+dos módulos igual (`prompt_builder` 97% aqui; o texto do portão local não o cita). Observação: ao final da execução,
+`git status` mostrava `docs/plano.md` modificado (2 linhas na seção 7, sobre F3/F4/F5), alteração que não é deste
+portão e não afeta os testes.
+
+VERDE

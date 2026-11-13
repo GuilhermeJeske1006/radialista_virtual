@@ -210,7 +210,7 @@ Next 16); não conta como regressão.
   estado marcado na geração, não na reprodução (F11); pedido legado selecionado sem confirmação fica preso até a
   equipe reenfileirar; fallback do painel em `useLiveEngine.ts` ainda diz "já volto com mais uma novidade".
 
-### F5 — Fontes, validade e dados verificáveis — IMPLEMENTADA (portão local verde; portão independente e juiz pendentes)
+### F5 — Fontes, validade e dados verificáveis — CONCLUÍDA
 
 - Branch: `melhoria/f5-fontes` (a partir de `integracao/whatsapp-pos-f4`, `6ca7049`), worktree `locufy-radio`.
 - Integração solicitada pelo usuário: o merge com `f1efbba` incorpora também o fechamento documental da integração pós-F4; todo o código de WhatsApp, conversas, contexto e demais frentes já está nesta F5. Histórico e validação em [árvore de commits](../arvore-commits.md).
@@ -235,6 +235,17 @@ Next 16); não conta como regressão.
 - Goldens: idênticos nos commits 1 a 5 e na checagem no ar; regravados uma vez, no commit do bloco de dados, com o diff
   revisado (os 31: regra geral e gancho; 26: texto da segunda; e os de notícia, ouvinte e faixa); 3 novos.
 - Portão local: ruff limpo; pytest **1901 passed**, 3 skipped (+268), cobertura **88%**; vitest **354**; `tsc` ok.
+- Portão independente (testador, 13/11/2026, HEAD `d6bc878`, worktree `locufy-radio`): VERDE. ruff limpo; pytest
+  1901 passed, 3 skipped, 0 failed (645 s); cobertura 88% (`app/dados`: 100/98/98/97%; `news/pauta` 62% → 93%;
+  `llm/prompt_builder` 98% → 97%, única queda, de um ponto); vitest 354/354; `tsc` ok; `npm run lint` com a falha
+  preexistente da F0. Seis simulações fake (3 perfis × com e sem relógio), 0 tentativas de rede: `dado_sem_fonte`,
+  `dado_vencido`, `dado_legitimo_removido`, `sem_integracao.*` e `injecao.no_system` em 0; herdados em 0 (hard time
+  máximo 0,36 s no popular com relógio; `fora_orcamento_pct` 0 nas seis; ≤ 2 LLM por fala; encerramento no ar com
+  relógio). Os `resumo.json` com relógio batem com os gravados em `f5/simulacao/` (só `config.commit` e
+  `tempo_execucao_s` diferem). Nenhuma divergência contra o portão local. Detalhe em [`f5/testes.md`](f5/testes.md).
+- Juiz: não exigido para a F5 (o portão do plano pede juiz em F2–F4, F6–F8 e F13; a dimensão "Precisão" da F5 é
+  medida pelas métricas automáticas de dado acima, como a F1 fez com "Tempo"). A rubrica com texto real continua
+  dependendo de `--modo llm`, pendente de aprovação de custo.
 - Simulação fake ([`f5/simulacao/`](f5/simulacao/)): as 12 rodadas sem dado iguais à linha de base fora o registro novo
   dos dados (três eventos ganham o assunto puxado pela música), critérios herdados número por número iguais. Guardrail
   por perfil: afirmação de temperatura, placar e trânsito inventadas saem, 0 no ar. Cenários dedicados (variedades com
