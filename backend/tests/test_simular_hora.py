@@ -582,19 +582,22 @@ def test_casos_de_avaliacao_cobrem_as_regras():
         "anuncio_sem_confirmacao", "promessa_sem_evento", "pedido_indevido", "ouvinte_inexistente",
         "dado_sem_fonte", "dado_vencido", "avisos_oralidade_min", "excede_orcamento", "abertura_repetida",
     }
+    # F6: avisos de coerência com o formato (app.live.formatos.AVISOS), rotulados só nos casos da F6.
+    chaves_f6 = {"fora_da_unidade", "bloco_fora_do_formato", "convite_fora_da_politica", "tema_revisao", "reorientacao"}
     contexto_chaves = {
         "tocou", "proxima_confirmada", "pedidos", "promessas_pendentes", "eventos_agendados", "dados",
         "segundos_ate_hard_time", "orcamento_s",
     }
-    positivos = {c: 0 for c in chaves}
-    negativos = {c: 0 for c in chaves}
+    assert set(dados["regras"]["esperado"]) == chaves | chaves_f6
+    positivos = {c: 0 for c in chaves | chaves_f6}
+    negativos = {c: 0 for c in chaves | chaves_f6}
     wpm = dados["regras"]["wpm_referencia"]
     for caso in casos:
         assert {"id", "formato", "bloco", "frentes", "dimensoes", "contexto", "criterio", "falas_rotuladas"} <= set(caso)
         assert caso["formato"] in PERFIS
         assert contexto_chaves <= set(caso["contexto"])
         for fala in caso["falas_rotuladas"]:
-            assert set(fala["esperado"]) == chaves, caso["id"]
+            assert set(fala["esperado"]) == (chaves | chaves_f6 if "F6" in caso["frentes"] else chaves), caso["id"]
             assert not any(ch.isdigit() for ch in fala["texto"]), caso["id"]
             for chave, valor in fala["esperado"].items():
                 ativo = valor > 0 if chave == "avisos_oralidade_min" else bool(valor)
@@ -603,7 +606,7 @@ def test_casos_de_avaliacao_cobrem_as_regras():
             if orcamento:
                 excede = contar_palavras(fala["texto"]) / wpm * 60 > orcamento["max"]
                 assert fala["esperado"]["excede_orcamento"] == excede, caso["id"]
-    for chave in chaves:
+    for chave in chaves | chaves_f6:
         assert positivos[chave] >= 1 and negativos[chave] >= 1, chave
     assert {c["formato"] for c in casos} == set(PERFIS)
 

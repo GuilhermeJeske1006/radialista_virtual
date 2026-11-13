@@ -197,5 +197,5 @@ def test_u7_benchmark_participacao():
                     resultado[chave][1].append((caso["id"], fala["texto"]))
                 elif esperado:
                     resultado[chave][2].append((caso["id"], fala["texto"]))
-    assert total == 70
+    assert total == 96  # 35 casos da F0 à F5 e 13 da F6, duas falas cada
     assert resultado == {"pedido": [5, [], []], "inexistente": [1, [], []]}

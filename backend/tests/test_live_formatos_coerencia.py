@@ -285,3 +285,54 @@ def test_convites_do_banco_so_nos_modelos_de_chamada_e_um_do_quadro():
 def test_padroes_de_convite_compilam():
     for padrao in f.CONFIG_COERENCIA.convite:
         re.compile(padrao)
+
+
+# ---------------------------------------------------------------------------------------------------------
+# Benchmark (commit 8): casos F6 em docs/benchmarks/2026-11-06-formatos/casos.json
+# ---------------------------------------------------------------------------------------------------------
+
+CASOS = RAIZ / "docs" / "benchmarks" / "2026-11-06-formatos" / "casos.json"
+
+
+def _fala_do_caso(caso: dict, texto: str, wpm: float) -> tuple[FalaNoAr, tuple[str, ...]]:
+    """A fala do caso para a coerência. Sem `formato_coerencia` (casos de outras frentes), só os avisos do texto:
+    a duração e a memória de reorientação não são conhecidas."""
+    from app.live.formato import contar_palavras
+    from scripts.simulacao.dubles import categoria_do_tipo
+
+    contexto = caso["contexto"].get("formato_coerencia") or {}
+    fixture = json.loads((FIXTURES / f"{caso['formato']}.json").read_text(encoding="utf-8"))
+    nomes = tuple(contexto.get("nomes") or (fixture["programa"]["nome"], fixture["conta"]["nome_radio"]))
+    fala = FalaNoAr(
+        bloco=caso["bloco"], categoria=categoria_do_tipo(caso["bloco"]), texto=texto,
+        duracao_s=contar_palavras(texto) / wpm * 60 if contexto.get("medir_unidade") else None,
+        primeira=bool(contexto.get("primeira")), quadro=bool(contexto.get("quadro")),
+        retorno=bool(contexto.get("retorno")), desde_reorientacao_s=contexto.get("segundos_desde_reorientacao"),
+    )
+    return fala, nomes
+
+
+def test_benchmark_coerencia_acha_todos_os_positivos_sem_falso_positivo():
+    dados = json.loads(CASOS.read_text(encoding="utf-8"))
+    wpm = dados["regras"]["wpm_referencia"]
+    assert set(f.AVISOS) <= set(dados["regras"]["esperado"])
+    acertos, perdidos, falsos = {codigo: 0 for codigo in f.AVISOS}, [], []
+    casos_f6 = [c for c in dados["casos"] if "F6" in c["frentes"]]
+    for caso in dados["casos"]:
+        for rotulada in caso["falas_rotuladas"]:
+            fala, nomes = _fala_do_caso(caso, rotulada["texto"], wpm)
+            achados = {a.codigo for a in f.avisos_da_fala(caso["formato"], fala, nomes=nomes)}
+            esperados = {codigo for codigo in f.AVISOS if rotulada["esperado"].get(codigo)}
+            for codigo in achados & esperados:
+                acertos[codigo] += 1
+            perdidos += [(caso["id"], codigo) for codigo in esperados - achados]
+            falsos += [(caso["id"], codigo) for codigo in achados - esperados]
+    assert perdidos == [] and falsos == []
+    assert all(acertos[codigo] >= 2 for codigo in f.AVISOS), acertos
+    # Positivo e negativo por formato e "coerencia" como dimensão de todo caso F6.
+    assert {c["formato"] for c in casos_f6} == {"musical_adulto", "popular_sertanejo", "variedades_leves"}
+    for formato in ("musical_adulto", "popular_sertanejo", "variedades_leves"):
+        rotulos = [any(r["esperado"].get(codigo) for codigo in f.AVISOS)
+                   for c in casos_f6 if c["formato"] == formato for r in c["falas_rotuladas"]]
+        assert True in rotulos and False in rotulos, formato
+    assert all("coerencia" in c["dimensoes"] for c in casos_f6)

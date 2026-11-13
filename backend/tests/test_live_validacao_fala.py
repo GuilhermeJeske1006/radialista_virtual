@@ -170,7 +170,7 @@ def test_casos_benchmark_musica():
                 perdidos.append((caso["id"], fala["texto"]))
             elif achou:
                 falsos.append((caso["id"], fala["texto"]))
-    assert total == 70
+    assert total == 96  # 35 casos da F0 à F5 e 13 da F6, duas falas cada
     assert (detectados, perdidos, falsos) == (7, [], [])
 
 
