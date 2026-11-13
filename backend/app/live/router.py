@@ -878,7 +878,8 @@ _TIPOS_COM_COMPORTAMENTO = (
 # cache no Redis (hash, por texto normalizado de bloco) da classificacao via LLM -- so paga a
 # chamada uma vez por bloco customizado distinto, mesmo que o ao vivo gere falas pra ele varias
 # vezes e mesmo entre workers/instancias diferentes do backend (cache em memoria de processo nao
-# seria compartilhado entre eles).
+# seria compartilhado entre eles). TTL e teto em settings (item 9 da docs/auditoria.md): o hash e'
+# global, entao sem eles cresceria pra sempre com os rotulos de todas as contas.
 _CACHE_CATEGORIA_CUSTOMIZADA = "cache:categoria_bloco_customizado"
 
 
@@ -891,7 +892,12 @@ def _classificar_bloco_customizado(tipo_original: str, normalizado: str) -> str:
             logger.warning("Falha ao classificar categoria de bloco customizado: %r", tipo_original, exc_info=True)
             categoria = "outro"
         categoria = categoria if categoria in _TIPOS_COM_COMPORTAMENTO else ""
+        if redis_client.hlen(_CACHE_CATEGORIA_CUSTOMIZADA) >= settings.cache_categoria_bloco_max:
+            # Passou do teto: recomeca (cada rotulo paga uma classificacao de novo) em vez de crescer sem limite.
+            logger.info("live_cache_categoria_recomecou max=%s", settings.cache_categoria_bloco_max)
+            redis_client.delete(_CACHE_CATEGORIA_CUSTOMIZADA)
         redis_client.hset(_CACHE_CATEGORIA_CUSTOMIZADA, normalizado, categoria)
+        redis_client.expire(_CACHE_CATEGORIA_CUSTOMIZADA, settings.cache_categoria_bloco_ttl_s)
     return categoria
 
 

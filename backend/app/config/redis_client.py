@@ -87,7 +87,7 @@ def seguro(operacao: Callable[[], T], padrao: T, nome: str) -> T:
 # Padrão neutro de cada comando quando o Redis está fora (estado de sessão e cache do ao vivo).
 PADROES_SESSAO: dict[str, Any] = {
     "get": None, "set": None, "delete": 0, "exists": 0, "expire": False, "ttl": -2,
-    "incr": 1, "hget": None, "hset": 0, "hgetall": {}, "hincrby": 0,
+    "incr": 1, "hget": None, "hset": 0, "hgetall": {}, "hincrby": 0, "hlen": 0,
     "smembers": set(), "sadd": 0, "srem": 0, "sismember": False,
     "lrange": [], "lpush": 0, "rpush": 0, "ltrim": True, "lrem": 0, "llen": 0,
 }
