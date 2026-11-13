@@ -16,7 +16,7 @@ import dataclasses
 from typing import TYPE_CHECKING
 
 from app.dados.fontes import bloco_de_dados, extra_faixa, extra_ouvinte, no_bloco
-from app.live.formatos import direcao_formato
+from app.live.formatos import direcao_formato, linhas_do_formato
 from app.live.promessas import descrever_agenda, instrucoes_do_bloco, situacao_do_contexto
 from app.live.orcamento import contar_pausas, palavras_max
 from app.live.prompts import (
@@ -590,6 +590,19 @@ def _duracao(ctx: "ContextoEmissao") -> list[str]:
     return linhas
 
 
+def _formato(ctx: "ContextoEmissao") -> list[str]:
+    """F6 (§6.9, D10): a identidade do programa no formato (promessa, público, participação, temas que exigem revisão
+    e a reorientação nos blocos de retomada, identificação, retorno e quadro). Nenhuma linha no `padrao`."""
+    plano, programa = ctx.tempo.plano, ctx.programa
+    retorno = ctx.memoria.ultima_categoria == "patrocinador" or (
+        plano is not None and getattr(plano.etapa, "tipo_efetivo", None) == "retorno")
+    return linhas_do_formato(
+        ctx.formato, programa=programa.nome, tipo=ctx.tipo, primeira=ctx.primeira_fala,
+        quadro=ctx.tipo in (getattr(programa, "quadros_fixos", None) or {}), retorno=retorno,
+        publico=getattr(programa, "publico_alvo", "") or "",
+    )
+
+
 def montar_prompt(ctx: "ContextoEmissao") -> PromptEmissao:
     """System e mensagem do LLM para o bloco descrito por `ctx`. Puro: mesmo ctx, mesmo texto. O bloco de dados
     (F5) entra na mensagem, entre o histórico e o pedido, só quando há algo."""
@@ -605,6 +618,7 @@ def montar_prompt(ctx: "ContextoEmissao") -> PromptEmissao:
         *_musica(ctx, dp),
         *_participacao(ctx, dp),
         *instrucoes_do_bloco(ctx),
+        *_formato(ctx),
         *_duracao(ctx),
     ]
     mensagem = "\n".join([

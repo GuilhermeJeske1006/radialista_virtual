@@ -28,6 +28,16 @@ META_LOCUCAO = "Meta de locução: {minimo} a {maximo} segundos, no máximo {pal
 REGRA_PROMESSA = "Não prometa intervalo, retorno ou conteúdo futuro sem programação confirmada."
 REGRA_FACTUAL = "Mantenha as regras factuais e de atendimento dos pedidos reais."
 
+# Seção do formato no prompt (`linhas_do_formato`, §6.9 e D10): só nos formatos com promessa (nunca no `padrao`).
+SECAO_PROGRAMA = "Programa {programa}, formato {formato}. Promessa: {promessa}."
+SECAO_PUBLICO = " Público: {publico}."
+SECAO_PREVALECE = "A promessa do formato prevalece sobre o perfil do horário."
+SECAO_PARTICIPACAO = "Participação neste formato: {participacao}"
+SECAO_TEMAS = "Temas que exigem revisão humana neste formato: {temas}; sem conteúdo aprovado, não trate deles."
+SECAO_REORIENTACAO = "Reoriente quem acabou de chegar: nome do programa e da rádio em uma frase."
+# Papéis do bloco em que a seção pede a reorientação (a frequência com memória é da F8).
+PAPEIS_REORIENTACAO = ("retomada", "identificacao", "retorno", "quadro")
+
 
 @dataclass(frozen=True)
 class Unidade:
@@ -256,14 +266,20 @@ def ids_aceitos() -> frozenset[str]:
                      for chave in (formato.id, *formato.aliases))
 
 
+def _papel_pelo_tipo(tipo: str, primeira: bool) -> str:
+    papel = _tipo_fala(tipo)
+    return "retomada" if papel == "abertura" and not primeira else papel
+
+
 def papel_do_bloco(formato: Formato, tipo: str, primeira: bool, quadro: bool = False) -> str:
     """Chave de `formato.unidades`: `quadro` (quadro fixo, se o formato declara), senão o tipo do bloco (abertura
-    fora da largada é retomada), senão `*`."""
+    fora da largada é retomada), senão `*`. O papel `quadro` só vem do programa (`quadro=True`, quadro fixo), nunca do
+    nome do bloco (§6.3)."""
     if quadro and "quadro" in formato.unidades:
         return "quadro"
-    papel = _tipo_fala(tipo)
-    if papel == "abertura" and not primeira:
-        papel = "retomada"
+    papel = _papel_pelo_tipo(tipo, primeira)
+    if papel == "quadro" and not quadro:
+        return "*"
     return papel if papel in formato.unidades else "*"
 
 
@@ -294,3 +310,28 @@ def direcao_formato(formato, tipo: str, primeira: bool = False,
     ]
     return " ".join(parte for parte in partes if parte)
 
+
+
+def linhas_do_formato(formato, *, programa: str, tipo: str, primeira: bool, quadro: bool = False,
+                      retorno: bool = False, publico: str = "") -> list[str]:
+    """Seção do formato no prompt do bloco (§6.9): programa, formato, promessa e público (só quando preenchido); a
+    promessa do formato acima do perfil do horário; participação; temas que exigem revisão humana; e, nos papéis de
+    `PAPEIS_REORIENTACAO` (quadro fixo, retorno do intervalo), a reorientação. Vazia no `padrao`."""
+    formato = resolver_formato(formato)
+    if formato.id == ID_PADRAO:
+        return []
+    publico = " ".join(str(publico or "").split()).rstrip(".")
+    linhas = [
+        SECAO_PROGRAMA.format(programa=programa, formato=formato.nome, promessa=formato.promessa.rstrip("."))
+        + (SECAO_PUBLICO.format(publico=publico) if publico else ""),
+        SECAO_PREVALECE,
+    ]
+    if formato.participacao:
+        linhas.append(SECAO_PARTICIPACAO.format(participacao=formato.participacao))
+    if formato.temas_revisao:
+        linhas.append(SECAO_TEMAS.format(temas=", ".join(formato.temas_revisao)))
+    papel = "quadro" if quadro else _papel_pelo_tipo(tipo, primeira)
+    papeis = {"*" if papel == "quadro" and not quadro else papel, *(("retorno",) if retorno else ())}
+    if papeis & set(PAPEIS_REORIENTACAO):
+        linhas.append(SECAO_REORIENTACAO)
+    return linhas
