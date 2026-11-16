@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "../../lib/api";
-import { Patrocinador, Programa, rotuloBloco } from "../../lib/types";
+import { FormatoPrograma, Patrocinador, Programa, rotuloBloco } from "../../lib/types";
 import { BibliotecaAudioItem } from "../../lib/bibliotecaAudio";
-import { tipoMusical } from "../../lib/formatoPrograma";
+import { blocosExtrasDoFormato, ehMusical, roteiroDoFormato, tipoMusical } from "../../lib/formatoPrograma";
 import { RelogioAoVivo } from "../../lib/liveTypes";
 import { formatarMinSeg } from "../../lib/relogio";
 
@@ -18,7 +18,10 @@ import { formatarMinSeg } from "../../lib/relogio";
 //    backend via LLM+cache (_classificar_bloco_customizado) pra decidir se e' um "encerramento"
 //    disfarcado; aqui tratamos como o proprio texto (sem chamada de LLM), entao um "encerramento"
 //    digitado sem esse prefixo pode nao ser filtrado do loop como seria no motor real.
-const ROTEIRO_PADRAO = ["musica", "abertura", "comentario", "noticia", "chamada_ouvinte"];
+//
+// O ciclo e o roteiro com a estrutura vazia vêm do formato do programa (F6, lib/formatoPrograma.ts):
+// musical = abertura só na largada e roteiro pelo deslocamento (n-1); os outros formatos seguem
+// a estrutura do programa ou, vazia, o roteiro do formato com o mesmo deslocamento.
 
 const TIPOS_COM_COMPORTAMENTO = ["musica", "noticia", "chamada_ouvinte", "abertura", "comentario", "encerramento"];
 
@@ -38,20 +41,25 @@ function categoriaBlocoAproximada(tipo: string): string {
   return normalizado;
 }
 
-function tipoDoBloco(estruturaBlocos: string[], totalFalas: number): string {
+function tipoDoBloco(estruturaBlocos: string[], totalFalas: number, roteiroFormato: string[]): string {
   const roteiroCustom = estruturaBlocos
     .map((t) => t.trim())
     .filter((t) => t && categoriaBlocoAproximada(t) !== "encerramento");
 
   if (roteiroCustom.length === 0) {
     if (totalFalas === 0) return "abertura";
-    return ROTEIRO_PADRAO[(totalFalas - 1) % ROTEIRO_PADRAO.length];
+    return roteiroFormato[(totalFalas - 1) % roteiroFormato.length];
   }
   return roteiroCustom[totalFalas % roteiroCustom.length];
 }
 
-function proximosTipos(estruturaBlocos: string[], totalFalasAtual: number, quantidade: number): string[] {
-  return Array.from({ length: quantidade }, (_, i) => tipoDoBloco(estruturaBlocos, totalFalasAtual + i));
+function proximosTipos(
+  estruturaBlocos: string[],
+  totalFalasAtual: number,
+  quantidade: number,
+  roteiroFormato: string[],
+): string[] {
+  return Array.from({ length: quantidade }, (_, i) => tipoDoBloco(estruturaBlocos, totalFalasAtual + i, roteiroFormato));
 }
 
 type Props = {
@@ -99,6 +107,8 @@ const QUANTIDADE_PREVIEW = 5;
 export default function ProximosBlocosPanel({ programa, totalFalas, variant = "card", relogioAoVivo }: Props) {
   const [patrocinadores, setPatrocinadores] = useState<Patrocinador[]>([]);
   const [vinhetas, setVinhetas] = useState<BibliotecaAudioItem[]>([]);
+  // Catálogo de formatos (F6); vazio = espelho local de lib/formatoPrograma.ts.
+  const [formatos, setFormatos] = useState<FormatoPrograma[]>([]);
 
   useEffect(() => {
     apiFetch<Patrocinador[]>("/patrocinadores")
@@ -107,6 +117,9 @@ export default function ProximosBlocosPanel({ programa, totalFalas, variant = "c
     apiFetch<BibliotecaAudioItem[]>("/biblioteca-audio")
       .then(setVinhetas)
       .catch(() => setVinhetas([]));
+    apiFetch<FormatoPrograma[]>("/config/formatos")
+      .then((lista) => setFormatos(Array.isArray(lista) ? lista : []))
+      .catch(() => setFormatos([]));
   }, []);
 
   if (!programa) return null;
@@ -130,10 +143,13 @@ export default function ProximosBlocosPanel({ programa, totalFalas, variant = "c
 
   const nomesPatrocinadores = Object.fromEntries(patrocinadores.map((p) => [p.id, p.nome]));
   const nomesVinhetas = Object.fromEntries(vinhetas.map((v) => [v.id, v.nome]));
-  const musical = programa.perfil_programacao === "musical_companhia";
+  const musical = ehMusical(programa, formatos);
+  const roteiroFormato = roteiroDoFormato(programa, formatos);
+  // Aviso de blocos extras só quando o formato permite (D23) e o programa liga a flag.
+  const blocosExtras = blocosExtrasDoFormato(programa, formatos) && programa.ia_pode_adicionar_blocos;
   const tipos = musical
-    ? Array.from({ length: QUANTIDADE_PREVIEW }, (_, i) => tipoMusical(programa.estrutura_blocos, totalFalas + i))
-    : proximosTipos(programa.estrutura_blocos, totalFalas, QUANTIDADE_PREVIEW);
+    ? Array.from({ length: QUANTIDADE_PREVIEW }, (_, i) => tipoMusical(programa.estrutura_blocos, totalFalas + i, roteiroFormato))
+    : proximosTipos(programa.estrutura_blocos, totalFalas, QUANTIDADE_PREVIEW, roteiroFormato);
 
   const lista = (
     <ol
@@ -178,7 +194,7 @@ export default function ProximosBlocosPanel({ programa, totalFalas, variant = "c
           {lista}
           <div className="pointer-events-none absolute right-0 top-0 bottom-1.5 w-10 bg-linear-to-l from-surface to-transparent" />
         </div>
-        {!musical && programa.ia_pode_adicionar_blocos && (
+        {blocosExtras && (
           <p className="text-xs text-fg/65 mt-2">A IA pode ocasionalmente inserir um comentário extra fora dessa sequência.</p>
         )}
       </div>
@@ -193,7 +209,7 @@ export default function ProximosBlocosPanel({ programa, totalFalas, variant = "c
         na hora de ir ao ar.
       </p>
       {lista}
-      {!musical && programa.ia_pode_adicionar_blocos && (
+      {blocosExtras && (
         <p className="text-xs text-fg/65 mt-3">
           A IA pode ocasionalmente inserir um comentário extra fora dessa sequência.
         </p>
