@@ -157,7 +157,10 @@ export type Programa = {
   limite_mensagens_hora: number;
 
   estrutura_blocos: string[];
-  perfil_programacao?: "padrao" | "musical_companhia";
+  // Id do formato do catálogo (F6, backend app/live/formatos.py; lista em GET /config/formatos). O backend
+  // aceita só os implementados e os aliases (`musical_companhia` → `musical_adulto`) e ecoa o valor gravado;
+  // o painel exibe o canônico (lib/formatoPrograma.ts) e só grava o canônico quando o usuário troca.
+  perfil_programacao?: string;
   ia_pode_adicionar_blocos: boolean;
 
   generos_musicais: string[];
@@ -223,6 +226,26 @@ export type PresetRelogio = {
   nota?: string;
   relogio: RelogioHora;
   totais: TotaisRelogio;
+};
+
+// GET /config/formatos (F6): catálogo de formatos radiofônicos, inclusive os ainda não implementados
+// (`implementado: false`, fora do select). Fonte da verdade: backend app/live/formatos.py.
+export type FormatoPrograma = {
+  id: string;
+  nome: string;
+  promessa: string;
+  conteudo: string;
+  conducao: string;
+  unidade_principal: string;
+  roteiro_padrao: string[];
+  relogio_padrao: "A" | "B" | "C" | null;
+  ia_pode_adicionar_blocos: boolean;
+  participacao: string;
+  temas_revisao: string[];
+  reorientacao_s: number | null;
+  aliases: string[];
+  implementado: boolean;
+  requer: string;
 };
 
 // Um gancho de conversa ja' casado com este programa (ver backend app/topics/router.py) --
