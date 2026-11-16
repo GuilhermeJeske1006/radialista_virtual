@@ -151,3 +151,29 @@ relógio): fala no ar em % da hora, maior trecho só de música e maior interval
 Em todas: nenhum bloco fora do formato, nenhum tema de revisão no ar, instrução de outro formato 0, no máximo 2 LLM e 1
 síntese por fala, anúncio sem confirmação, promessa vencida, pedido indevido, ouvinte inexistente e dado sem fonte ou
 vencido em 0. O encerramento foi ao ar em todas as variantes com relógio.
+
+## Leva 3 (commit 9 do §7: painel)
+
+Só `frontend-painel/`; o backend não mudou desde `913fc19`.
+
+| Commit | O que mudou | Testes |
+|---|---|---|
+| `3ba3ed0` | `lib/types.ts` (`perfil_programacao: string`, `FormatoPrograma`); `lib/formatoPrograma.ts` com `formatoDe`, `definicaoDoFormato`, `ehMusical`, `roteiroDoFormato`, `blocosExtrasDoFormato`, `formatosImplementados`, `catalogoFormatos`; espelho estrutural dos quatro implementados; `tipoMusical` com o roteiro do formato | `lib/__tests__/formatoPrograma.test.ts` (novo, 16) e `lib/__tests__/formatosFixtures.ts` (cópia de `GET /config/formatos`) |
+| `3fb469d` | `ProximosBlocosPanel`: ciclo por `ehMusical`, roteiro do formato com a estrutura vazia, aviso de blocos extras pela flag do formato (D23); lê a rota e cai no espelho | `ProximosBlocosPanel.test.tsx` +5 (14): musical pelo alias e pelo canônico, popular e variedades vazios e personalizados, lista da rota prevalece |
+| `f1a05d4` | `gerarFalaLocal` exportada: `ehMusical`, tipo pela regra do motor (estrutura em loop ou abertura + roteiro do formato por n-1), reorientação neutra em toda fala (D22) | `hooks/__tests__/gerarFalaLocal.test.ts` (novo, 6) |
+| `bbe3d9f` | `EditarProgramaForm`: select pelo catálogo, textos do formato, "Usar relógio sugerido", "Usar sequência sugerida", checkbox pela flag do formato, aviso de valor fora do catálogo, cartão "Identidade da rádio" e seção "Identidade do programa" (D16) | `EditarProgramaForm.test.tsx` +8 (17): opções só implementadas com "Livre" primeiro, musical pelo canônico, popular com relógio A aplicado uma vez, "Livre" sem sugestões, alias preservado ao salvar (D2), troca grava o canônico, valor desconhecido avisado e preservado, identidade separada, sem rádio configurada |
+
+Testes primeiro em cada commit; os novos falharam pelo motivo certo antes do código (exports ausentes em
+`formatoPrograma.ts`, `musical_adulto` tratado como não musical na prévia, `gerarFalaLocal` não exportada, select
+com duas opções fixas e sem as seções de identidade).
+
+### Fim da leva (HEAD `bbe3d9f`, 16/11/2026)
+| Item | Leva 2 | Leva 3 |
+|---|---|---|
+| `npx vitest run` | 354 | **389** (+35) |
+| `npx tsc --noEmit` | ok | ok |
+| `npm run lint` | falha preexistente (F0) | falha preexistente (F0) |
+| `grep musical_companhia` fora de `lib/formatoPrograma.ts` (código de produção) | 3 arquivos | só o comentário de `lib/types.ts` |
+| Backend (`ruff`, `pytest -q`, simulações) | ruff limpo; 2266 passed, 3 skipped; 12 + 12 rodadas | iguais: nenhum arquivo do backend mudou |
+
+Não conferido: o formulário no navegador (a validação visual do painel precisa do backend e do banco de pé).

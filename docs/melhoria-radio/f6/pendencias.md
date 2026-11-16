@@ -3,7 +3,7 @@
 Achados e ideias fora do escopo da F6 (catálogo de formatos e perfis editoriais), ou fora da leva em andamento.
 A leva 1 cobre os commits 0 a 4 do §7 da auditoria (linha de base, caracterização, catálogo sem mudar comportamento,
 item 9 e contrato/gerador); a leva 2, os commits 5 a 8 (seção do formato no prompt, popular e variedades, simulador e
-coerência, benchmark). Painel (commit 9) e fechamento (commit 10) ficam para a leva 3.
+coerência, benchmark); a leva 3, o painel (commit 9) e o fechamento (commit 10).
 
 ## Decisões (auditoria §11), todas adotadas pelo padrão, a confirmar
 - **D1** formato em `perfil_programacao` (coluna existente), sem migração. **D2** alias resolvido na leitura, nada
@@ -54,10 +54,8 @@ coerência, benchmark). Painel (commit 9) e fechamento (commit 10) ficam para a 
   declara `quadro` ainda; rever na leva 2 (variedades). **Resolvido na leva 2** (commit 5): ver abaixo.
 
 ## Riscos até as próximas levas
-- **Painel ainda compara a string crua** (`EditarProgramaForm.tsx`, `ProximosBlocosPanel.tsx:133`,
-  `useLiveEngine.ts:165`). Desde o commit 4, o gerador por IA oferece o id canônico `musical_adulto`: um programa
-  gerado assim aparece como "padrão" no select do painel e a prévia/fala local do painel o tratam como não musical
-  (o backend o trata como musical). **Não publicar a F6 antes do commit do painel (leva 3, §6.11).**
+- **Painel comparava a string crua** (`EditarProgramaForm.tsx`, `ProximosBlocosPanel.tsx`, `useLiveEngine.ts`):
+  **resolvido na leva 3** (`3ba3ed0`–`bbe3d9f`, `lib/formatoPrograma.ts`). O bloqueio de publicação caiu.
 - **Rollback:** um backend anterior à F6 falha a leitura de um programa com `musical_adulto`, `popular_sertanejo` ou
   `variedades_leves` (o `Literal` antigo). SQL de volta: `UPDATE programas SET perfil_programacao='musical_companhia'
   WHERE perfil_programacao='musical_adulto'` e `UPDATE programas SET perfil_programacao='padrao' WHERE
@@ -165,12 +163,43 @@ fechou e falha se ele mudar.
 - **Palavras dos temas de revisão:** lista curta e literal; um classificador (com a revisão humana da F12) fica para
   depois.
 
-### Para a leva 3 (painel) e o fechamento
-- **Painel (commit 9, §6.11):** select com os quatro implementados e "Livre (sem formato)"; promessa, condução, unidade
-  e participação vindas de `GET /config/formatos`; "Usar sequência sugerida" e "Usar relógio sugerido"; checkbox de
-  blocos extras pela flag; `formatoDe`/`ehMusical` em `lib/formatoPrograma.ts`; `ProximosBlocosPanel` e
-  `useLiveEngine` sem string crua (o popular e o variedades têm roteiro próprio); D22 em `gerarFalaLocal`; cartão da
-  identidade da rádio e seção "Identidade do programa". **Não publicar antes:** o gerador por IA já oferece
-  `popular_sertanejo` e `variedades_leves`, e o painel atual os mostra como "padrão" no select.
-- **Fechamento (commit 10):** `RELATORIO.md` com o SQL de rollback acima, `docs/plano.md` §7, as rodadas desta leva
-  (`f6/simulacao/`) e o S7 só com aprovação de custo.
+## Leva 3 (commits 9 e 10: painel e fechamento)
+
+### Decisões que entraram (pelo PADRÃO da auditoria §11)
+- **D2:** o select mostra o id canônico (`musical_companhia` aparece como "Musical adulto") e o valor gravado só muda
+  quando o usuário troca; salvar sem tocar reenvia `musical_companhia`. Um valor fora do catálogo deste painel
+  (ex.: um formato implementado só no backend) é avisado abaixo do select, mostrado como "Livre" e preservado ao
+  salvar.
+- **D7:** "Usar relógio sugerido (A|C)" aparece ao lado do editor do relógio só enquanto o preset sugerido não está
+  aplicado; nunca é aplicado sozinho. **D13:** `formatosImplementados` filtra `implementado`. **D16:** cartão
+  "Identidade da rádio" (somente leitura, link para `/configuracoes`) e seção "Identidade do programa" (nome,
+  sobre, formato com promessa/conteúdo/condução/unidade/participação/temas, público). **D22:** `gerarFalaLocal`
+  reorienta com `falaReservaNeutra` em toda fala. **D23:** checkbox de blocos extras desabilitado só quando o formato
+  não permite (musical).
+
+### Desvios e precisões do desenho (leva 3)
+- **Posição da identidade:** a seção "Identidade do programa" foi para o topo do formulário (antes de "No ar"), não
+  logo antes de "Persona e conteúdo" como o §6.11 escreveu: o nome do programa precisa continuar o primeiro campo, e
+  os botões de sugestão ficaram onde agem (relógio ao lado do editor do relógio; sequência ao lado do editor de
+  blocos). "O que rende conversa aqui" (`publico_alvo`) saiu de "Assuntos e notícias" para a identidade, porque é o
+  "Público" que a seção `_formato(ctx)` lê.
+- **Espelho estrutural, textos só da rota:** `lib/formatoPrograma.ts` guarda id, nome, alias, roteiro, relógio
+  sugerido e blocos extras dos quatro implementados (o que a prévia e a fala local precisam sem rede); promessa e os
+  outros textos só aparecem quando `GET /config/formatos` responde. `lib/__tests__/formatoPrograma.test.ts` confere o
+  espelho contra a cópia da rota (`formatosFixtures.ts`); se o catálogo do backend mudar, os dois precisam acompanhar.
+- **`ehMusical` pelo id:** o ciclo musical não vem na rota (é flag do `Comportamento`), então o painel decide por
+  `id === "musical_adulto"`. Um formato futuro com ciclo musical pede atualização do painel.
+- **D22 em três frases, não duas:** além de "Ja volto com mais" (música) e "assim que a fonte confirmar eu trago
+  certinho" (notícia), "manda mensagem no WhatsApp que eu leio aqui" (comentário) também prometia; as três viraram a
+  reorientação neutra. O tipo da fala local passou a seguir a regra do motor (estrutura em loop ou abertura na largada
+  e roteiro do formato por n-1), inclusive no `padrao`, cuja ordem de emergência era diferente de propósito.
+- **`ProximosBlocosPanel` lê a rota:** terceira chamada (`/config/formatos`) além de patrocinadores e vinhetas; com a
+  rota fora, o espelho.
+
+### Fora do escopo e pendente
+- **S7 (`--modo llm`, juiz ≥ 4/5):** depende de aprovação de custo; o aceite do plano fica medido só pelo proxy fake.
+- **Painel no navegador:** não conferido (precisa do backend e do banco de pé); os 389 testes do vitest e o `tsc`
+  cobrem o comportamento.
+- **Editor completo do relógio e seleção de faixa por duração-alvo:** continuam pendências da F1 (§10).
+- As ideias da leva 2 (dublê obediente ao formato, "primeira" pela meta, teto de palavras na identificação, critério
+  de unidade em contagem, reorientação com memória no `/proxima`, classificador de temas) seguem abertas.
