@@ -17,6 +17,7 @@ import { apiFetch, ApiError } from "../lib/api";
 import {
   CategoriaVinheta,
   DIAS_SEMANA_LABEL,
+  FormatoPrograma,
   normalizarPrograma,
   Patrocinador,
   PresetRelogio,
@@ -24,12 +25,13 @@ import {
   PROGRAMA_VAZIO,
   ProgramaIAPreview,
   RadioPerfil,
+  RelogioHora,
   ROTEIRO_JORNALISMO,
   rotuloBloco,
   TipoRadio,
 } from "../lib/types";
 import { janelaSegundos } from "../lib/duracaoBloco";
-import { ROTEIRO_MUSICAL } from "../lib/formatoPrograma";
+import { definicaoDoFormato, FORMATO_PADRAO, formatosImplementados } from "../lib/formatoPrograma";
 import { BibliotecaAudioItem } from "../lib/bibliotecaAudio";
 import { CORES_BLOCO, kindDoBloco } from "../lib/blocoVisual";
 import { LocufySpin } from "./LocufyLogo";
@@ -85,6 +87,10 @@ export default function EditarProgramaForm({
   const [erroIA, setErroIA] = useState("");
   const [tipoRadioConta, setTipoRadioConta] = useState("");
   const [nomeRadio, setNomeRadio] = useState("");
+  // Identidade da rádio (Account), somente leitura aqui: edita-se em /configuracoes (F6, D16).
+  const [radioPerfil, setRadioPerfil] = useState<RadioPerfil | null>(null);
+  // Catálogo de formatos (F6); vazio = espelho local de lib/formatoPrograma.ts, sem os textos.
+  const [formatos, setFormatos] = useState<FormatoPrograma[]>([]);
   const [tiposRadio, setTiposRadio] = useState<TipoRadio[]>([]);
   const [avisosIA, setAvisosIA] = useState<string[]>([]);
   const [instrucaoAjuste, setInstrucaoAjuste] = useState("");
@@ -97,11 +103,14 @@ export default function EditarProgramaForm({
 
   useEffect(() => {
     apiFetch<RadioPerfil>("/config/radio")
-      .then((radio) => { setTipoRadioConta(radio.tipo_radio); setNomeRadio(radio.nome_radio); })
+      .then((radio) => { setRadioPerfil(radio); setTipoRadioConta(radio.tipo_radio); setNomeRadio(radio.nome_radio); })
       .catch(() => {});
     apiFetch<TipoRadio[]>("/config/tipos-radio")
       .then(setTiposRadio)
       .catch(() => {});
+    apiFetch<FormatoPrograma[]>("/config/formatos")
+      .then((lista) => setFormatos(Array.isArray(lista) ? lista : []))
+      .catch(() => setFormatos([]));
     apiFetch<PresetRelogio[]>("/config/relogios/presets")
       .then((presets) => setPresetsRelogio(Array.isArray(presets) ? presets : []))
       .catch(() => setPresetsRelogio([]));
@@ -306,6 +315,24 @@ export default function EditarProgramaForm({
     return <p className="text-sm text-laranja">{erro || "Programa não encontrado."}</p>;
   }
 
+  // Formato do programa (F6): o select mostra o id canônico (alias resolvido) e só grava quando o usuário
+  // troca; um valor gravado fora do catálogo deste painel é avisado e preservado (D2).
+  const formato = definicaoDoFormato(programa, formatos);
+  const formatoLivre = formato.id === FORMATO_PADRAO;
+  const valorFormatoGravado = (programa.perfil_programacao ?? "").trim();
+  const formatoDesconhecido =
+    valorFormatoGravado !== "" && valorFormatoGravado !== formato.id && !formato.aliases.includes(valorFormatoGravado);
+  const presetSugerido = formato.relogio_padrao ? presetsRelogio.find((p) => p.id === formato.relogio_padrao) : undefined;
+  const relogioSugeridoAplicado = programa.relogio_hora?.preset === formato.relogio_padrao;
+  const linhasDoFormato: [string, string][] = [
+    ["Promessa", formato.promessa],
+    ["Conteúdo", formato.conteudo],
+    ["Condução", formato.conducao],
+    ["Unidade principal", formato.unidade_principal],
+    ["Participação", formato.participacao],
+    ["Temas que exigem revisão", formato.temas_revisao.join(", ")],
+  ];
+
   return (
     <div className="bg-surface rounded-3xl border border-border-strong shadow-theme-xs p-6">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
@@ -430,8 +457,29 @@ export default function EditarProgramaForm({
       )}
 
       <form onSubmit={salvar} className="space-y-4">
-        <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro">No ar</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {radioPerfil && (
+          <section aria-label="Identidade da rádio" className="rounded-xl border border-border-strong bg-bg/40 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro">Identidade da rádio</h3>
+              <Link href="/configuracoes" className="text-xs font-medium text-acento-claro hover:text-acento-dim">
+                Editar em Configurações ↗
+              </Link>
+            </div>
+            <p className="mt-2 text-sm font-medium text-fg">
+              {radioPerfil.nome_radio || "Rádio sem nome"}
+              {radioPerfil.frequencia ? ` · ${radioPerfil.frequencia}` : ""}
+              {radioPerfil.cidade ? ` · ${radioPerfil.cidade}` : ""}
+            </p>
+            {radioPerfil.slogan && <p className="text-sm text-fg/65">{radioPerfil.slogan}</p>}
+            <p className="mt-1 text-xs text-fg/65">
+              Nome, slogan, cidade e frequência valem para todos os programas. O formato, a promessa e o público
+              abaixo são só deste programa.
+            </p>
+          </section>
+        )}
+
+        <section aria-label="Identidade do programa" className="space-y-4">
+          <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro">Identidade do programa</h3>
           <div>
             <label htmlFor="editarprogramaform-nome-do-programa" className={labelClass}>Nome do programa</label>
             <input
@@ -441,6 +489,67 @@ export default function EditarProgramaForm({
               onChange={(e) => setPrograma({ ...programa, nome: e.target.value })}
             />
           </div>
+          <div>
+            <label htmlFor="editarprogramaform-sobre-o-programa" className={labelClass}>Sobre o programa</label>
+            <textarea
+              id="editarprogramaform-sobre-o-programa"
+              rows={3}
+              className={inputClass}
+              value={programa.descricao}
+              onChange={(e) => setPrograma({ ...programa, descricao: e.target.value })}
+              placeholder="Do que se trata este programa: formato, proposta, público — dá mais contexto ao radialista além do tom e dos tópicos permitidos…"
+            />
+          </div>
+          <div>
+            <label htmlFor="perfil-programacao" className={labelClass}>Formato do programa</label>
+            <select
+              id="perfil-programacao"
+              className={inputClass}
+              value={formato.id}
+              onChange={(e) => setPrograma({ ...programa, perfil_programacao: e.target.value })}
+            >
+              {formatosImplementados(formatos).map((f) => (
+                <option key={f.id} value={f.id}>{f.nome}</option>
+              ))}
+            </select>
+            {formatoDesconhecido && (
+              <p className="mt-1 text-xs text-laranja">
+                {`Formato gravado "${valorFormatoGravado}" ainda não está disponível neste painel; o ao vivo usa o padrão até você trocar.`}
+              </p>
+            )}
+            <ul className="mt-2 space-y-1 text-sm text-fg/65">
+              {linhasDoFormato.filter(([, texto]) => texto).map(([rotulo, texto]) => (
+                <li key={rotulo}>
+                  <span className="font-medium text-fg/80">{`${rotulo}: `}</span>
+                  {texto}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <label htmlFor="editarprogramaform-o-que-rende-conversa" className={labelClass}>O que rende conversa aqui</label>
+            <textarea
+              id="editarprogramaform-o-que-rende-conversa"
+              className={inputClass}
+              rows={2}
+              placeholder="Ex.: trabalhador rural que sai de casa às cinco, ouve rádio indo pro serviço"
+              value={programa.publico_alvo ?? ""}
+              onChange={(e) => setPrograma({ ...programa, publico_alvo: e.target.value })}
+            />
+            <p className="mt-1 text-xs text-fg/65">
+              Texto livre descrevendo quem de fato ouve este programa — entra na identidade do programa no ao vivo
+              e alimenta o banco de assuntos (ver Pauta do dia mais abaixo). Opcional: vazio, o sistema deriva um
+              briefing a partir de horário, gênero musical, cidade e pedido do público.
+            </p>
+          </div>
+        </section>
+        <DescobertaFontesPrograma key={idEfetivo ?? "novo"} programa={programa} criando={criando} nomeRadio={nomeRadio}
+          suspenso={gerandoIA || ajustandoIA || salvando}
+          onAplicar={aplicarFontes} onBusy={setBuscandoFontes} />
+
+        <hr className="border-border" />
+        <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro">No ar</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label htmlFor="editarprogramaform-horario-de-inicio" className={labelClass}>Horário de início</label>
             <input
@@ -462,20 +571,6 @@ export default function EditarProgramaForm({
             />
           </div>
         </div>
-        <div>
-          <label htmlFor="editarprogramaform-sobre-o-programa" className={labelClass}>Sobre o programa</label>
-          <textarea
-            id="editarprogramaform-sobre-o-programa"
-            rows={3}
-            className={inputClass}
-            value={programa.descricao}
-            onChange={(e) => setPrograma({ ...programa, descricao: e.target.value })}
-            placeholder="Do que se trata este programa: formato, proposta, público — dá mais contexto ao radialista além do tom e dos tópicos permitidos…"
-          />
-        </div>
-        <DescobertaFontesPrograma key={idEfetivo ?? "novo"} programa={programa} criando={criando} nomeRadio={nomeRadio}
-          suspenso={gerandoIA || ajustandoIA || salvando}
-          onAplicar={aplicarFontes} onBusy={setBuscandoFontes} />
         <div>
           <label className={labelClass}>Recorrência</label>
           <div className="flex gap-1.5 mb-3">
@@ -633,42 +728,6 @@ export default function EditarProgramaForm({
           )}
         </div>
 
-        <div>
-          <label htmlFor="perfil-programacao" className={labelClass}>Formato do programa</label>
-          <select
-            id="perfil-programacao"
-            className={inputClass}
-            value={programa.perfil_programacao ?? "padrao"}
-            onChange={(e) => setPrograma({ ...programa, perfil_programacao: e.target.value as Programa["perfil_programacao"] })}
-          >
-            <option value="padrao">Variedades e conversa</option>
-            <option value="musical_companhia">Musical de companhia</option>
-          </select>
-          {programa.perfil_programacao === "musical_companhia" && (
-            <div className="mt-2 space-y-2 text-sm text-fg/65">
-              <p>
-                Abertura breve, sequências de músicas e retomadas curtas com o apresentador principal.
-                Pedidos reais continuam recebendo anúncio. A sequência se repete até o encerramento.
-              </p>
-              <p>
-                Sem roteiro personalizado, o programa alterna duas músicas, uma identificação curta,
-                mais duas músicas e uma retomada. Você pode inserir as vinhetas da rádio no roteiro.
-              </p>
-              <button
-                type="button"
-                className="font-medium text-acento-claro hover:text-acento-dim"
-                onClick={() => setPrograma({
-                  ...programa,
-                  estrutura_blocos: [...ROTEIRO_MUSICAL],
-                  ia_pode_adicionar_blocos: false,
-                })}
-              >
-                Usar sequência musical sugerida
-              </button>
-            </div>
-          )}
-        </div>
-
         <RelogioHoraEditor
           valor={programa.relogio_hora ?? null}
           presets={presetsRelogio}
@@ -679,6 +738,41 @@ export default function EditarProgramaForm({
             || !(programa.pode_pesquisar || programa.tipos_noticias.length > 0 || programa.fontes_noticias.length > 0)
           }
         />
+        {presetSugerido && !relogioSugeridoAplicado && (
+          <p className="text-sm text-fg/65">
+            {`O formato ${formato.nome} sugere o relógio ${presetSugerido.id} (${presetSugerido.nome}); ele nunca é aplicado sozinho. `}
+            <button
+              type="button"
+              className="font-medium text-acento-claro hover:text-acento-dim"
+              onClick={() => setPrograma({
+                ...programa,
+                relogio_hora: {
+                  ...(JSON.parse(JSON.stringify(presetSugerido.relogio)) as RelogioHora),
+                  em_feriado: programa.relogio_hora?.em_feriado ?? presetSugerido.relogio.em_feriado,
+                },
+              })}
+            >
+              {`Usar relógio sugerido (${presetSugerido.id})`}
+            </button>
+          </p>
+        )}
+
+        {!formatoLivre && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-fg/65">
+            <button
+              type="button"
+              className="font-medium text-acento-claro hover:text-acento-dim"
+              onClick={() => setPrograma({
+                ...programa,
+                estrutura_blocos: [...formato.roteiro_padrao],
+                ia_pode_adicionar_blocos: formato.ia_pode_adicionar_blocos && programa.ia_pode_adicionar_blocos,
+              })}
+            >
+              Usar sequência sugerida
+            </button>
+            <span>{`Sequência do formato ${formato.nome}: ${formato.roteiro_padrao.map((b) => rotuloBloco(b)).join(" → ")}`}</span>
+          </div>
+        )}
 
         {criando ? (
           <RoteiroBlocosEditor
@@ -712,9 +806,9 @@ export default function EditarProgramaForm({
               </ol>
             ) : (
               <p className="text-sm text-fg/65 mb-3">
-                {programa.perfil_programacao === "musical_companhia"
-                  ? "O programa usará a sequência musical sugerida."
-                  : "Nenhum bloco montado ainda — o programa não tem roteiro definido."}
+                {formatoLivre
+                  ? "Nenhum bloco montado ainda — o programa não tem roteiro definido."
+                  : `O programa usará a sequência sugerida do formato ${formato.nome}.`}
               </p>
             )}
             <Link
@@ -741,14 +835,14 @@ export default function EditarProgramaForm({
         <label className="inline-flex items-center gap-2 text-sm font-medium text-fg/80">
           <input
             type="checkbox"
-            checked={programa.perfil_programacao !== "musical_companhia" && programa.ia_pode_adicionar_blocos}
-            disabled={programa.perfil_programacao === "musical_companhia"}
+            checked={formato.ia_pode_adicionar_blocos && programa.ia_pode_adicionar_blocos}
+            disabled={!formato.ia_pode_adicionar_blocos}
             onChange={(e) => setPrograma({ ...programa, ia_pode_adicionar_blocos: e.target.checked })}
             className="h-4 w-4 rounded border-border-strong bg-bg text-acento-claro focus:ring-acento-claro/40"
           />
-          {programa.perfil_programacao === "musical_companhia"
-            ? "O formato musical segue a sequência sem inserir comentários extras"
-            : "IA pode inserir blocos extras entre os da sequência"}
+          {formato.ia_pode_adicionar_blocos
+            ? "IA pode inserir blocos extras entre os da sequência"
+            : `O formato ${formato.nome} segue a sequência sem inserir comentários extras`}
         </label>
 
         <hr className="border-border" />
@@ -860,22 +954,6 @@ export default function EditarProgramaForm({
             </span>
             <span className="text-fg/65 transition-transform group-open:rotate-90">›</span>
           </summary>
-          <div className="sm:col-span-2 mb-3">
-            <label htmlFor="editarprogramaform-o-que-rende-conversa" className={labelClass}>O que rende conversa aqui</label>
-            <textarea
-              id="editarprogramaform-o-que-rende-conversa"
-              className={inputClass}
-              rows={2}
-              placeholder="Ex.: trabalhador rural que sai de casa às cinco, ouve rádio indo pro serviço"
-              value={programa.publico_alvo ?? ""}
-              onChange={(e) => setPrograma({ ...programa, publico_alvo: e.target.value })}
-            />
-            <p className="mt-1 text-xs text-fg/65">
-              Texto livre descrevendo quem de fato ouve este programa — alimenta o banco de
-              assuntos (ver Pauta do dia mais abaixo). Opcional: vazio, o sistema deriva um
-              briefing a partir de horário, gênero musical, cidade e pedido do público.
-            </p>
-          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 mt-3">
             <TagInput
               label="Assuntos do ao vivo"
