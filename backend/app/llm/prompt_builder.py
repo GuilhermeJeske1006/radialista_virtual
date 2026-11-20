@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 
 from app.config.redis_client import redis_sessao as redis_client  # estado de sessão e cache: falha aberta (F3)
 from app.feriados import feriado_nacional_do_dia
+from app.live.bancada import instrucao_de_turnos
 from app.live.formatos import formato_do_programa
 from app.models.account import Account
 from app.models.programa import Programa
@@ -61,10 +62,11 @@ class ParticipantePrograma:
     """Um radialista participando de um programa, com papel e comportamento
     especificos daquele programa (ver app/models/programa_radialista.py)."""
 
-    def __init__(self, radialista: RadioConfig, papel: str, comportamento: str):
+    def __init__(self, radialista: RadioConfig, papel: str, comportamento: str, papel_bancada: str | None = None):
         self.radialista = radialista
         self.papel = papel
         self.comportamento = comportamento
+        self.papel_bancada = papel_bancada  # F13: mediador | comentarista | contraponto (ou None)
 
 
 _TEMPERATURA_CLIMA_RE = re.compile(r"^(-?\d+)°C, (.+)$")
@@ -244,7 +246,9 @@ def montar_system_prompt(
 
     if multi_voz:
         vozes_texto = "\n".join(
-            f"- {p.radialista.nome_locutor} (papel: {p.papel}): "
+            f"- {p.radialista.nome_locutor} (papel: {p.papel}"
+            + (f"; papel na bancada: {p.papel_bancada}" if getattr(p, "papel_bancada", None) else "")
+            + "): "
             f"{p.comportamento or p.radialista.personalidade or 'sem instruções específicas de comportamento'}."
             + (f" Fatos fixos sobre ele(a): {p.radialista.biografia}." if p.radialista.biografia else "")
             + (
@@ -271,6 +275,8 @@ def montar_system_prompt(
             "Gere um diálogo natural entre eles, respeitando o papel e o comportamento de cada um -- cada "
             "locutor fala de acordo com sua própria personalidade, sem se confundir com a dos outros.",
         ]
+        if any(getattr(p, "papel_bancada", None) for p in roster):
+            partes.append(instrucao_de_turnos())
     else:
         partes = [
             f"Você é {radialista.nome_locutor}, um locutor de rádio virtual que conversa com ouvintes pelo WhatsApp "

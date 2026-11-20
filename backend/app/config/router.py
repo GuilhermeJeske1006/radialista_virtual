@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 
 from app.live.pecas_reserva import aprovar, normalizar_pecas
+from app.live.bancada import validar_papel_bancada
 from app.live.revisao import RevisaoInvalida, decidir_no_banco
 from app.live.relatorio_programa import montar_relatorio
 from app.auth.dependencies import get_current_account
@@ -272,6 +273,7 @@ class PresetRelogioResponse(BaseModel):
 class RadialistaProgramaRequest(BaseModel):
     papel: str = "Apresentador principal"
     comportamento: str = ""
+    papel_bancada: str | None = None  # F13: mediador | comentarista | contraponto (ou nulo)
 
 
 class RadialistaProgramaResponse(BaseModel):
@@ -281,6 +283,7 @@ class RadialistaProgramaResponse(BaseModel):
     papel: str
     comportamento: str
     e_dono: bool
+    papel_bancada: str | None = None
 
 
 class GerarConfiguracaoIARequest(BaseModel):
@@ -631,6 +634,7 @@ def _resposta_vinculo_radialista(
         papel=vinculo.papel if vinculo else "Apresentador principal",
         comportamento=vinculo.comportamento if vinculo else "",
         e_dono=e_dono,
+        papel_bancada=vinculo.papel_bancada if vinculo else None,
     )
 
 
@@ -1735,8 +1739,13 @@ def definir_radialista_programa(
         vinculo = ProgramaRadialista(programa_id=programa.id, radio_config_id=radialista.id)
         db.add(vinculo)
 
+    try:
+        papel_bancada = validar_papel_bancada(dados.papel_bancada)
+    except ValueError as erro:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(erro))
     vinculo.papel = dados.papel
     vinculo.comportamento = dados.comportamento
+    vinculo.papel_bancada = papel_bancada
     db.commit()
     db.refresh(vinculo)
     return _resposta_vinculo_radialista(radialista, vinculo, e_dono)

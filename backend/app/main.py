@@ -174,6 +174,7 @@ async def criar_tabelas():
     garantir_colunas_radio_config()
     garantir_colunas_account()
     garantir_colunas_programa()
+    garantir_colunas_programa_radialistas()
     from app.db.migrations.relogio_20261107 import aplicar as aplicar_relogio
     aplicar_relogio(engine)
     garantir_colunas_interaction_log()
@@ -359,6 +360,17 @@ def garantir_colunas_account():
             conn.execute(
                 text("CREATE UNIQUE INDEX IF NOT EXISTS ix_accounts_wuzapi_user_id ON accounts (wuzapi_user_id)")
             )
+
+
+def garantir_colunas_programa_radialistas():
+    """papel_bancada (F13): coluna aditiva em programa_radialistas. Nula = sem papel na bancada."""
+    inspector = inspect(engine)
+    if "programa_radialistas" not in inspector.get_table_names():
+        return
+    colunas = {coluna["name"] for coluna in inspector.get_columns("programa_radialistas")}
+    with engine.begin() as conn:
+        if "papel_bancada" not in colunas:
+            conn.execute(text("ALTER TABLE programa_radialistas ADD COLUMN papel_bancada VARCHAR NULL"))
 
 
 def garantir_colunas_programa():

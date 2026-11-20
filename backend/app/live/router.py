@@ -169,6 +169,7 @@ from app.llm.prompt_builder import (  # noqa: F401 -- portas
     montar_system_prompt,
 )
 from app.live.as_run import confirmar_evento, registrar_envio
+from app.live.bancada import ordenar_turnos
 from app.live.revisao import registrar as registrar_revisao, substituta
 from app.live.roteamento_revisao import AUTOMATICO, rotear
 from app.models.account import Account
@@ -530,6 +531,7 @@ def _buscar_roster(db: Session, account: Account, programa: Programa) -> list[Pa
             config,
             vinculo.papel if vinculo else "Apresentador principal",
             vinculo.comportamento if vinculo else "",
+            papel_bancada=vinculo.papel_bancada if vinculo else None,
         )
 
     dono = _participante(programa.radio_config_id)
@@ -540,7 +542,8 @@ def _buscar_roster(db: Session, account: Account, programa: Programa) -> list[Pa
         participante = _participante(radio_config_id)
         if participante is not None:
             roster.append(participante)
-    return roster
+    # F13: com papéis na bancada, a ordem de fala segue mediador -> comentarista -> contraponto.
+    return ordenar_turnos(roster, lambda p: getattr(p, "papel_bancada", None))
 
 
 _JANELA_MARCO_TEMPO_MIN = 10

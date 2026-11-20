@@ -24,6 +24,8 @@ class ProgramaRadialista(Base):
     papel: Mapped[str] = mapped_column(String, default="Apresentador principal")
     comportamento: Mapped[str] = mapped_column(String, default="")
     ordem: Mapped[int] = mapped_column(Integer, default=0)
+    # Papel fixo na bancada (F13, app.live.bancada): mediador | comentarista | contraponto | nulo.
+    papel_bancada: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
 
     criado_em: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.datetime.now(datetime.timezone.utc)
