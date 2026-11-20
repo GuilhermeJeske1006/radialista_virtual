@@ -127,13 +127,16 @@ def test_u11_migracao_aditiva_idempotente_sem_tocar_outras_tabelas():
     engine.dispose()
 
 
-def test_u11_startup_chama_a_migracao_antes_do_create_all():
+def test_u11_startup_cria_dependencias_antes_da_migracao_de_promessas():
+    # Regra atualizada: em banco novo a tabela `programas` (create_all) tem que existir antes da migração de
+    # promessas, que tem FK para ela. Migração antes do create_all quebra com UndefinedTable (testado em Postgres 16
+    # vazio: ordem antiga falha, ordem atual passa).
     import inspect as inspecao
 
     from app import main
 
     fonte = inspecao.getsource(main.criar_tabelas)
-    assert fonte.index("aplicar_promessas(engine)") < fonte.index("Base.metadata.create_all")
+    assert fonte.index("Base.metadata.create_all") < fonte.index("aplicar_promessas(engine)")
 
 
 # --- I14: exclusões apagam a tabela nova -----------------------------------------------------------------

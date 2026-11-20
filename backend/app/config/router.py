@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 
 from app.live.pecas_reserva import aprovar, normalizar_pecas
+from app.live.revisao import RevisaoInvalida, decidir_no_banco
 from app.live.relatorio_programa import montar_relatorio
 from app.auth.dependencies import get_current_account
 from app.db.database import get_db
@@ -39,6 +40,7 @@ from app.models.programa import Programa
 from app.models.programa_radialista import ProgramaRadialista
 from app.models.promessa_no_ar import PromessaNoAr
 from app.models.as_run_evento import AsRunEvento
+from app.models.fala_em_revisao import FalaEmRevisao
 from app.models.radio_config import RadioConfig
 from app.models.tema_historico import TemaHistorico
 from app.news.seeds_fontes import criar_seeds_fontes
@@ -1149,6 +1151,9 @@ def excluir_radialista(
         db.query(AsRunEvento).filter(AsRunEvento.programa_id.in_(programas_do_radialista)).delete(
             synchronize_session=False
         )
+        db.query(FalaEmRevisao).filter(FalaEmRevisao.programa_id.in_(programas_do_radialista)).delete(
+            synchronize_session=False
+        )
         db.query(TemaHistorico).filter(TemaHistorico.programa_id.in_(programas_do_radialista)).delete(
             synchronize_session=False
         )
@@ -1457,6 +1462,62 @@ def relatorio_pos_programa(
     return {"programa_id": programa.id, **montar_relatorio(resumo)}
 
 
+def _falas_revisao_json(linhas) -> list[dict]:
+    return [
+        {"id": fala.id, "categoria": fala.categoria, "texto": fala.texto, "rota": fala.rota, "motivo": fala.motivo,
+         "estado": fala.estado, "criado_em": fala.criado_em.isoformat(),
+         "prazo_em": fala.prazo_em.isoformat() if fala.prazo_em else None}
+        for fala in linhas
+    ]
+
+
+@router.get("/programas/{programa_id}/falas-revisao")
+def listar_falas_revisao(
+    programa_id: int,
+    estado: str | None = None,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Falas que aguardam decisão (F12). Sem `estado`, traz todas."""
+    _buscar_programa(db, account, programa_id)
+    consulta = db.query(FalaEmRevisao).filter_by(programa_id=programa_id, account_id=account.id)
+    if estado:
+        consulta = consulta.filter_by(estado=estado)
+    return _falas_revisao_json(consulta.order_by(FalaEmRevisao.criado_em.desc()).limit(100).all())
+
+
+def _decidir_fala_revisao(db: Session, account: Account, programa_id: int, fala_id: int, acao: str) -> dict:
+    _buscar_programa(db, account, programa_id)
+    try:
+        linha = decidir_no_banco(db, account.id, programa_id, fala_id, acao,
+                                 datetime.datetime.now(datetime.timezone.utc))
+    except RevisaoInvalida as erro:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(erro))
+    if linha is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fala não encontrada")
+    return _falas_revisao_json([linha])[0]
+
+
+@router.post("/programas/{programa_id}/falas-revisao/{fala_id}/aprovar")
+def aprovar_fala_revisao(
+    programa_id: int,
+    fala_id: int,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    return _decidir_fala_revisao(db, account, programa_id, fala_id, "aprovar")
+
+
+@router.post("/programas/{programa_id}/falas-revisao/{fala_id}/rejeitar")
+def rejeitar_fala_revisao(
+    programa_id: int,
+    fala_id: int,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    return _decidir_fala_revisao(db, account, programa_id, fala_id, "rejeitar")
+
+
 @router.get("/programas/{programa_id}/pecas-reserva")
 def listar_pecas_reserva(
     programa_id: int,
@@ -1611,6 +1672,7 @@ def excluir_programa(
     db.query(AssuntoPrograma).filter_by(programa_id=programa.id).delete()
     db.query(PromessaNoAr).filter_by(programa_id=programa.id).delete()  # F4, mesma FK sem cascata
     db.query(AsRunEvento).filter_by(programa_id=programa.id).delete()  # F11, idem
+    db.query(FalaEmRevisao).filter_by(programa_id=programa.id).delete()  # F12, idem
     excluir_dados_do_programa(db, account.id, programa.id)
     db.delete(programa)
     db.commit()

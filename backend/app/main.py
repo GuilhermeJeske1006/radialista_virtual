@@ -163,9 +163,10 @@ async def criar_tabelas():
     aplicar(engine)
     from app.db.migrations.ritmo_voz_20261109 import aplicar as aplicar_ritmo_voz
     aplicar_ritmo_voz(engine)
+    # Cria também as dependências das migrações em bancos novos (ex.: programas).
+    Base.metadata.create_all(bind=engine)
     from app.db.migrations.promessas_20261112 import aplicar as aplicar_promessas
     aplicar_promessas(engine)
-    Base.metadata.create_all(bind=engine)
     from app.db.migrations.canal_whatsapp_20261112 import aplicar as aplicar_canal_whatsapp
     aplicar_canal_whatsapp(engine)
     from app.db.migrations.fontes_esportivas_20261111 import aplicar as aplicar_fontes_esportivas

@@ -169,6 +169,8 @@ from app.llm.prompt_builder import (  # noqa: F401 -- portas
     montar_system_prompt,
 )
 from app.live.as_run import confirmar_evento, registrar_envio
+from app.live.revisao import registrar as registrar_revisao, substituta
+from app.live.roteamento_revisao import AUTOMATICO, rotear
 from app.models.account import Account
 from app.models.biblioteca_audio import BibliotecaAudioItem
 from app.models.fila_ao_vivo import FilaAoVivo
@@ -2428,6 +2430,28 @@ def _pedido_confirmavel(db: Session, resolucao: ResolucaoBloco, musica: MusicaEn
     return pedido
 
 
+# F12: tipos que não carregam fala revisável (conteúdo fixo ou música).
+_TIPOS_SEM_FALA_REVISAVEL = ("vinheta", "patrocinador", "musica")
+
+
+def _aplicar_revisao(db: Session, account: Account, radialista_id: int, programa_id: int,
+                     resposta: LiveProgramResponse) -> LiveProgramResponse:
+    """F12: fala que o roteamento não deixa ir ao ar sozinha (revisão ou proibida) vira substituta neutra. O
+    original fica em falas_em_revisao aguardando decisão; nunca vai ao ar nesta etapa (ver app.live.revisao)."""
+    if resposta.tipo in _TIPOS_SEM_FALA_REVISAVEL or not resposta.fala.strip():
+        return resposta
+    radialista = _buscar_radialista(db, account, radialista_id)
+    programa = _buscar_programa(db, radialista, programa_id)
+    rota = rotear(resposta.tipo, resposta.fala, programa.topicos_proibidos or [])
+    if rota == AUTOMATICO:
+        return resposta
+    agora = datetime.datetime.now(datetime.timezone.utc)
+    registrar_revisao(db, account.id, programa_id, resposta.tipo, resposta.fala, rota, agora)
+    resposta.fala = substituta(agora.second)
+    resposta.falas = None  # multi-voz traria o texto original de novo
+    return resposta
+
+
 @router.post("/{radialista_id}/programas/{programa_id}/proxima", response_model=LiveProgramResponse)
 def gerar_proxima_fala(
     radialista_id: int,
@@ -2439,6 +2463,7 @@ def gerar_proxima_fala(
     """Entrega o proximo bloco e grava no as-run (F11) como "enviado"; o player confirma depois."""
     resposta = _gerar_proxima_fala(radialista_id=radialista_id, programa_id=programa_id, dados=dados,
                                    account=account, db=db)
+    resposta = _aplicar_revisao(db, account, radialista_id, programa_id, resposta)
     resposta.as_run_evento_id = registrar_envio(
         db, account.id, programa_id, resposta.tipo, resposta.fala, vinheta_id=resposta.vinheta_id,
         patrocinador_id=resposta.patrocinador_id, video_id=resposta.video_id, pedido_id=resposta.pedido_id,
