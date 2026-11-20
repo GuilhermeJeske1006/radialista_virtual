@@ -347,14 +347,16 @@ Next 16); não conta como regressão.
   - **Verificador de oralidade** (`backend/app/live/oralidade.py`): aponta frase longa, mais de uma ideia, sigla sem
     expansão na primeira ocorrência, número longo (dígitos e por extenso) e vocabulário burocrático. Só aponta, não
     reescreve. A métrica `aviso_oralidade` do simulador passa a contar avisos (antes null).
+  - **Reescrita opcional de oralidade** (`settings.oralidade_modo`, padrão `desligado`): `avisar` só registra; `reescrever`
+    põe a instrução de oralidade na reescrita única que já existe (`app/live/geracao.py`), sem chamada extra ao LLM.
+    Teto de duas chamadas por fala preservado (testado). Ligar só com aprovação de custo.
   - **Painel** (`components/PersonaPrograma.tsx`): ativar e remover persona, escalas 1 a 5, exemplos com aviso acima de 5
     e de 280 caracteres.
-- Portão (ver [`f7/portao.md`](f7/portao.md)): suíte completa 2308 passed, 1 failed (teste de simulador, corrigido depois;
-  só o teste corrigido foi rodado de novo); tests focados 69 passed + 29 do simulador; vitest 394; tsc ok; ruff ok;
-  simulador sem persona idêntico à F5.
+- Portão (ver [`f7/portao.md`](f7/portao.md)): rodada final em `73bad8b`: suíte completa **2316 passed, 3 skipped**, 0 falhas,
+  cobertura 89%; ruff ok; vitest 394 e tsc ok (painel sem mudança depois); simulador sem persona idêntico à F5 e à F6.
 - Pendências (aceite do plano, não atendidos):
   - **Juiz de clareza e naturalidade ≥ 4/5**: depende de `--modo llm` com aprovação de custo. Não rodado.
-  - **Redução ≥ 50% de avisos de oralidade**: depende de reescrita com LLM e medição antes/depois. Não medido. O
-    verificador já está pronto; a reescrita opcional não foi implementada.
+  - **Redução ≥ 50% de avisos de oralidade**: depende de medição antes/depois com LLM real (`oralidade_modo=reescrever`),
+    com aprovação de custo. A reescrita está implementada e coberta por testes; não medida com modelo real.
   - **Persona no painel no navegador**: não conferido.
 - Detalhes em [`f7/testes.md`](f7/testes.md).

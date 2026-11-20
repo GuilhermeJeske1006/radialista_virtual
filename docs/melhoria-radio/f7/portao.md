@@ -22,3 +22,15 @@ a suíte inteira não foi repetida depois dela.
 - **Redução ≥ 50% de avisos de oralidade**: exige reescrita com LLM e medição antes/depois. O fake não mede isso. Não medido.
 - **Persona no painel no navegador**: não conferido.
 - **Imitação de apresentador real**: o código não detecta. Fica como aviso no painel e como regra no prompt.
+
+## Rodada final (HEAD `73bad8b`, reescrita opcional incluída)
+
+| Item | Resultado |
+|---|---|
+| `ruff check app tests scripts/simular_hora.py scripts/simulacao` | All checks passed |
+| `pytest -q --cov=app` (suíte completa, 788 s) | **2316 passed, 3 skipped**, 0 falhas, cobertura 89% (EXIT 0) |
+| Painel `vitest run` e `tsc` | rodados antes da reescrita (394 passed, sem mudança no painel desde então) |
+| Validação automática (`avaliar-locucao`, seção 1) | sem reprovação; ver [`validacao.md`](validacao.md) |
+
+Veredito do portão: **parcial**. Persona e verificador de oralidade entregues, com testes. Reescrita opcional entregue,
+desligada por padrão. Juiz (≥ 4/5) e redução (≥ 50 %) continuam pendentes de `--modo llm` com aprovação de custo.
