@@ -341,7 +341,11 @@ def test_metricas_em_as_run_artificial():
     assert m["tempo_fala_s"] == pytest.approx(103.0)
     assert m["tempo_musica_s"] == pytest.approx(482.0)
     assert m["tempo_outros_s"] == pytest.approx(5.0)
-    assert m["aviso_oralidade"] is None
+    # F7: o verificador de oralidade existe; a métrica é a soma dos avisos das falas do as_run (não mais None).
+    from app.live.oralidade import avisos
+
+    falas = [e for e in _as_run_artificial()["eventos"] if e.get("texto")]
+    assert m["aviso_oralidade"] == sum(len(avisos(e["texto"])) for e in falas)
     assert m["repeticao_estrutura"] is None
 
     # Controle negativo: sem as violações, as contagens zeram.
