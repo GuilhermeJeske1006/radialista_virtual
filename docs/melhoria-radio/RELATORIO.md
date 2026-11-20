@@ -415,3 +415,20 @@ Next 16); não conta como regressão.
   - **Item 2** (ramp): conceito ausente no código. Precisa decidir se é fala sobre a introdução com início de vocal medido.
   - **Relatório de loudness no `as_run.json`**: não integrado.
 - Detalhes em [`f10/auditoria.md`](f10/auditoria.md).
+
+### F11 — Produção antes, durante e depois — PARCIAL (relatório pós-programa pronto; itens 1 e 3 aguardam decisão)
+
+- Branch: `melhoria/f11-producao` (a partir de `melhoria/f10-direcao-som`). Sem push.
+- Commit: `5e55978` (relatório, testes e auditoria).
+- Entregas:
+  - **Item 2**: `app/live/relatorio_programa.py::montar_relatorio` sobre o resumo do programa: promessas (cumpridas, vencidas,
+    canceladas), orçamento, avisos de oralidade, pedidos, repetição de estrutura e hard time. Alertas para críticos
+    (anúncio sem confirmação, pedido indevido, dado sem fonte, promessa vencida) e sugestões de continuidade por regra.
+    Sem endpoint nem tela no painel ainda.
+- Portão (ver [`f11/portao.md`](f11/portao.md)): suíte completa **2357 passed, 3 skipped**, 0 falhas, cobertura 89%; ruff ok.
+- Pendências:
+  - **Item 1** (as-run persistente do que foi ao ar): precisa decidir o ponto de confirmação (player ou envio) e aceitar
+    a tabela `as_run_eventos`.
+  - **Item 3** (contingência com peça de reserva aprovada): precisa decidir quem aprova a peça e onde ela fica.
+  - **Relatório no painel**: endpoint e tela não feitos.
+- Detalhes em [`f11/auditoria.md`](f11/auditoria.md).
