@@ -612,7 +612,7 @@ def test_tts_endpoint_com_sucesso(client, account, auth_headers, radialista_e_pr
     monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "neutro")
     monkeypatch.setattr(
         "app.live.router.sintetizar_audio_stream",
-        lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: iter([b"audio-bytes"]),
+        lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None, pronuncias=None: iter([b"audio-bytes"]),
     )
 
     resposta = client.post(
@@ -725,7 +725,7 @@ def test_tts_endpoint_com_programa_id_registra_ultimo_tom(
     monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "energico")
     monkeypatch.setattr(
         "app.live.router.sintetizar_audio_stream",
-        lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: iter([b"audio-bytes"]),
+        lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None, pronuncias=None: iter([b"audio-bytes"]),
     )
 
     resposta = client.post(
@@ -747,7 +747,7 @@ def test_tts_endpoint_sem_programa_id_nao_registra_tom(
     monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "energico")
     monkeypatch.setattr(
         "app.live.router.sintetizar_audio_stream",
-        lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: iter([b"audio-bytes"]),
+        lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None, pronuncias=None: iter([b"audio-bytes"]),
     )
 
     resposta = client.post(
@@ -837,7 +837,7 @@ def test_tts_endpoint_com_perfil_pos_producao(client, account, auth_headers, rad
     monkeypatch.setattr("app.live.router.tts_habilitado", lambda voz_id=None: True)
     monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "neutro")
     monkeypatch.setattr(
-        "app.live.router.sintetizar_audio", lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: b"audio-cru"
+        "app.live.router.sintetizar_audio", lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None, pronuncias=None: b"audio-cru"
     )
     monkeypatch.setattr(
         "app.live.router.processar_audio",
@@ -860,7 +860,7 @@ def test_tts_endpoint_com_perfil_pos_producao_invalido_422(
     monkeypatch.setattr("app.live.router.tts_habilitado", lambda voz_id=None: True)
     monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "neutro")
     monkeypatch.setattr(
-        "app.live.router.sintetizar_audio", lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: b"audio-cru"
+        "app.live.router.sintetizar_audio", lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None, pronuncias=None: b"audio-cru"
     )
 
     resposta = client.post(
@@ -887,7 +887,7 @@ def test_tts_endpoint_usa_streaming_sem_perfil_pos_producao(
     monkeypatch.setattr("app.live.router.sintetizar_audio", _stream_falso)
     monkeypatch.setattr(
         "app.live.router.sintetizar_audio_stream",
-        lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: iter(
+        lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None, pronuncias=None: iter(
             [b"parte1", b"parte2"]
         ),
     )
