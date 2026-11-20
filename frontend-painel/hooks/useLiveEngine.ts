@@ -2,6 +2,7 @@
 
 import { informarBloco } from "../lib/blocosReproduzidos";
 import { confirmarParticipacao } from "../lib/participacoes";
+import { relatarAsRun } from "../lib/asRun";
 import { esperarTransicao, pausaAntesDoBloco, reproduzirGrupoDeFalas } from "../lib/continuidadeAudio";
 import { FilaPreparo } from "../lib/filaPreparo";
 import { RecuperacaoAoVivo } from "../lib/recuperacaoAoVivo";
@@ -1694,7 +1695,13 @@ export function useLiveEngine() {
             duckMusicaFundo,
           );
         } else {
-          duracaoBlocoSegundos += await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala, () => { falaDoBlocoConcluida = true; });
+          duracaoBlocoSegundos += await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala, () => {
+            falaDoBlocoConcluida = true;
+            // F11: fim natural do audio = foi ao ar (o as-run so conta quando o player confirma)
+            if (radialistaIdRef.current && programaIdRef.current) {
+              relatarAsRun(radialistaIdRef.current, programaIdRef.current, novaFala.as_run_evento_id, "confirmado").catch(() => {});
+            }
+          });
         }
         // bloco pode ter mais de uma musica (o agente decidiu emendar) --
         // toca todas seguidas, sem nova fala entre elas, pra manter o embalo

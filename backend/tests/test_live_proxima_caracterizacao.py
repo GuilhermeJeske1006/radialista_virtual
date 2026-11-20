@@ -571,7 +571,9 @@ def _sem_nulos(valor):
 def _resposta(dados: dict) -> dict:
     # Este retrato protege a geração editorial legada. Identidades de reprodução
     # variam a cada preparo e têm seus contratos/callbacks testados em test_whatsapp_canal.
-    transporte = {"criado_em", "bloco_id", "bloco_token", "bloco_programa_id", "assunto_id", "assunto_titulo"}
+    # as_run_evento_id (F11 item 1): id de linha do banco, como bloco_id; o retrato nao o congela.
+    transporte = {"criado_em", "bloco_id", "bloco_token", "bloco_programa_id", "assunto_id", "assunto_titulo",
+                  "as_run_evento_id"}
     dados = {k: v for k, v in dados.items() if k not in transporte}
     if dados.get("pedido_token"):
         dados["pedido_token"] = "<token>"

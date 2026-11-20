@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, ValidationError, ValidatorFunctionWrapHan
 from pydantic_core import PydanticCustomError
 from sqlalchemy.orm import Session
 
+from app.live.relatorio_programa import montar_relatorio
 from app.auth.dependencies import get_current_account
 from app.db.database import get_db
 from app.guardrails.http_rate_limit import limite_atingido, registrar_consumo
@@ -35,6 +36,7 @@ from app.models.noticia_historico import NoticiaHistorico
 from app.models.programa import Programa
 from app.models.programa_radialista import ProgramaRadialista
 from app.models.promessa_no_ar import PromessaNoAr
+from app.models.as_run_evento import AsRunEvento
 from app.models.radio_config import RadioConfig
 from app.models.tema_historico import TemaHistorico
 from app.news.seeds_fontes import criar_seeds_fontes
@@ -1142,6 +1144,9 @@ def excluir_radialista(
         db.query(MusicaHistorico).filter(MusicaHistorico.programa_id.in_(programas_do_radialista)).delete(
             synchronize_session=False
         )
+        db.query(AsRunEvento).filter(AsRunEvento.programa_id.in_(programas_do_radialista)).delete(
+            synchronize_session=False
+        )
         db.query(TemaHistorico).filter(TemaHistorico.programa_id.in_(programas_do_radialista)).delete(
             synchronize_session=False
         )
@@ -1437,6 +1442,19 @@ def obter_programa(
     return _buscar_programa(db, account, programa_id)
 
 
+@router.post("/programas/{programa_id}/relatorio")
+def relatorio_pos_programa(
+    programa_id: int,
+    resumo: dict = Body(...),
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Relatório pós-programa (F11 item 2) a partir do resumo (mesmo formato do simulador). Função pura: não
+    lê o as-run. Quando o as-run persistente (F11 item 1) existir, este endpoint passa a montar o resumo sozinho."""
+    programa = _buscar_programa(db, account, programa_id)
+    return {"programa_id": programa.id, **montar_relatorio(resumo)}
+
+
 @router.put("/programas/{programa_id}", response_model=ProgramaResponse)
 def atualizar_programa(
     programa_id: int,
@@ -1545,6 +1563,7 @@ def excluir_programa(
     db.query(NoticiaHistorico).filter_by(programa_id=programa.id).delete()
     db.query(AssuntoPrograma).filter_by(programa_id=programa.id).delete()
     db.query(PromessaNoAr).filter_by(programa_id=programa.id).delete()  # F4, mesma FK sem cascata
+    db.query(AsRunEvento).filter_by(programa_id=programa.id).delete()  # F11, idem
     excluir_dados_do_programa(db, account.id, programa.id)
     db.delete(programa)
     db.commit()

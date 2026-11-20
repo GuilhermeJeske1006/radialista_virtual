@@ -168,6 +168,7 @@ from app.llm.prompt_builder import (  # noqa: F401 -- portas
     clima_ja_mencionado,
     montar_system_prompt,
 )
+from app.live.as_run import confirmar_evento, registrar_envio
 from app.models.account import Account
 from app.models.biblioteca_audio import BibliotecaAudioItem
 from app.models.fila_ao_vivo import FilaAoVivo
@@ -322,6 +323,15 @@ class PromessasBloco(BaseModel):
     resolvidas: list[PromessaResolvidaResponse] = Field(default_factory=list)
 
 
+class AsRunConfirmacaoRequest(BaseModel):
+    status: str  # "confirmado" | "falhou"
+
+
+class AsRunConfirmacaoResponse(BaseModel):
+    id: int
+    status: str
+
+
 class LiveProgramResponse(BaseModel):
     bloco_id: int | None = None
     bloco_token: str | None = None
@@ -383,6 +393,8 @@ class LiveProgramResponse(BaseModel):
     audio_erro: str | None = None
     pedido_id: int | None = None
     pedido_token: str | None = None
+    # F11 item 1: id da linha do as-run ('enviado'); o player devolve a confirmacao por ele (ver /as-run).
+    as_run_evento_id: int | None = None
     pedido_programa_id: int | None = None
     pedido_radialista_id: int | None = None
     # Duracao estimada do bloco inteiro (fala a CONFIG_RELOGIO.wpm, musicas, vinheta/patrocinador e
@@ -2417,8 +2429,46 @@ def _pedido_confirmavel(db: Session, resolucao: ResolucaoBloco, musica: MusicaEn
 
 
 @router.post("/{radialista_id}/programas/{programa_id}/proxima", response_model=LiveProgramResponse)
-@acompanhar_geracao
 def gerar_proxima_fala(
+    radialista_id: int,
+    programa_id: int,
+    dados: LiveProgramRequest,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Entrega o proximo bloco e grava no as-run (F11) como "enviado"; o player confirma depois."""
+    resposta = _gerar_proxima_fala(radialista_id=radialista_id, programa_id=programa_id, dados=dados,
+                                   account=account, db=db)
+    resposta.as_run_evento_id = registrar_envio(
+        db, account.id, programa_id, resposta.tipo, resposta.fala, vinheta_id=resposta.vinheta_id,
+        patrocinador_id=resposta.patrocinador_id, video_id=resposta.video_id, pedido_id=resposta.pedido_id,
+    )
+    return resposta
+
+
+@router.post("/{radialista_id}/programas/{programa_id}/as-run/{evento_id}", response_model=AsRunConfirmacaoResponse)
+def confirmar_as_run(
+    radialista_id: int,
+    programa_id: int,
+    evento_id: int,
+    dados: AsRunConfirmacaoRequest,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Relato do player: o bloco tocou ate o fim ("confirmado") ou deu erro ("falhou")."""
+    radialista = _buscar_radialista(db, account, radialista_id)
+    _buscar_programa(db, radialista, programa_id)
+    try:
+        evento = confirmar_evento(db, account.id, programa_id, evento_id, dados.status)
+    except ValueError as erro:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(erro))
+    if evento is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evento do as-run nao encontrado")
+    return AsRunConfirmacaoResponse(id=evento.id, status=evento.status)
+
+
+@acompanhar_geracao
+def _gerar_proxima_fala(
     radialista_id: int,
     programa_id: int,
     dados: LiveProgramRequest,

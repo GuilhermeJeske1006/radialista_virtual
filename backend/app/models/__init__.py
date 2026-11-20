@@ -21,6 +21,7 @@ from app.models.patrocinador import Patrocinador
 from app.models.programa import Programa
 from app.models.programa_radialista import ProgramaRadialista
 from app.models.promessa_no_ar import PromessaNoAr
+from app.models.as_run_evento import AsRunEvento
 from app.models.radio_config import RadioConfig
 from app.models.super_admin import SuperAdmin
 from app.models.tema_historico import TemaHistorico
@@ -45,6 +46,7 @@ __all__ = [
     "Programa",
     "ProgramaRadialista",
     "PromessaNoAr",
+    "AsRunEvento",
     "PasswordResetToken",
     "Patrocinador",
     "VozClonada",

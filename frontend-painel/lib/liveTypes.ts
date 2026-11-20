@@ -28,6 +28,8 @@ export type ConfirmacaoPedido = {
   bloco_programa_id?: number | null;
   pedido_id?: number | null;
   pedido_token?: string | null;
+  // F11 item 1: linha do as-run criada pelo /proxima; o player confirma por ela (ver lib/asRun.ts).
+  as_run_evento_id?: number | null;
   pedido_programa_id?: number | null;
   pedido_radialista_id?: number | null;
 };
