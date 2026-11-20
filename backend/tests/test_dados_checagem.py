@@ -236,7 +236,7 @@ def test_benchmark_casos_json():
                         perdidos.append((caso["id"], fala["texto"]))
                 elif achou:
                     falsos.append((caso["id"], regra, fala["texto"]))
-    assert total == 70
+    assert total == 96  # 35 casos da F0 à F5 e 13 da F6, duas falas cada
     assert contagem == {"sem_fonte": [6, 6], "vencido": [1, 1]}, perdidos
     assert falsos == []
 

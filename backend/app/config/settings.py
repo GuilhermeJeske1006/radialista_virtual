@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     redis_socket_timeout_s: float = 1.0
     redis_health_check_s: int = 30
     redis_pausa_apos_falha_s: float = 15.0
+    # Cache global da classificação por LLM de bloco customizado (item 9 da docs/auditoria.md, D18 da F6): TTL
+    # renovado a cada gravação e teto de entradas (passado o teto, o hash recomeça).
+    cache_categoria_bloco_ttl_s: int = 30 * 24 * 60 * 60
+    cache_categoria_bloco_max: int = 5000
 
     # Sem default de proposito: segredo fraco/publico no repo permitiria forjar
     # token de qualquer conta. Gere com: openssl rand -hex 32

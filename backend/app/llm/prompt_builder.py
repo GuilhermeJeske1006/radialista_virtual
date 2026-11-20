@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 
 from app.config.redis_client import redis_sessao as redis_client  # estado de sessão e cache: falha aberta (F3)
 from app.feriados import feriado_nacional_do_dia
+from app.live.formatos import formato_do_programa
 from app.models.account import Account
 from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
@@ -397,7 +398,8 @@ def montar_system_prompt(
 
     if programa.estrutura_blocos:
         sequencia = " -> ".join(rotulo_bloco_prompt(b) for b in programa.estrutura_blocos)
-        if programa.ia_pode_adicionar_blocos and getattr(programa, "perfil_programacao", "padrao") != "musical_companhia":
+        # Só o formato que aceita blocos extras respeita a flag do programa (o musical nunca insere; F6, D23).
+        if programa.ia_pode_adicionar_blocos and formato_do_programa(programa).comportamento.ia_pode_adicionar_blocos:
             partes.append(
                 f"Estrutura de blocos do programa (ordem de referência): {sequencia}. "
                 "Siga essa sequência como guia, mas fique livre pra inserir blocos extras "

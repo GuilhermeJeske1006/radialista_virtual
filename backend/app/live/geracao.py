@@ -255,7 +255,7 @@ def gerar_fala(ctx, prompt: PromptEmissao, portas: PortasEmissao,
     quantidade = 1
     if categoria == "musica":
         fala, quantidade = _extrair_quantidade_musicas(fala)
-        if ctx.formato_musical or ctx.tempo.plano is not None:
+        if ctx.formato.comportamento.uma_faixa_por_bloco or ctx.tempo.plano is not None:
             quantidade = 1
 
     # Momento B (F2): depois da reescrita unica, se a estimativa ainda passa de maximo + tolerancia, encurta

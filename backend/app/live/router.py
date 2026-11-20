@@ -147,7 +147,7 @@ from app.live.roteiro import (  # noqa: F401 -- reexportados
     EntradaEmissao,
     decidir_bloco,
 )
-from app.live.formato import ROTEIRO_MUSICAL, ROTEIRO_PADRAO, musical_companhia, orcamento_fala
+from app.live.formatos import FalaNoAr, Formato, avisos_da_fala, eh_quadro_fixo, formato_do_programa
 from app.live.song_service import dividir_artista_titulo, esquecer_video_catalogado, resolver_musica_catalogada
 from app.live.spotify import buscar_faixas_por_categoria
 from app.llm.client import (
@@ -707,6 +707,12 @@ def _ultima_categoria_bloco(historico: list[str]) -> str | None:
     return _categoria_bloco(tipo_bruto)
 
 
+# Categorias do bloco anterior em que a abertura de uma volta faz sentido (None = largada). Os formatos com
+# abertura_apos_intervalo (D17 da F6) aceitam também a volta do intervalo comercial.
+_ANTES_DA_ABERTURA: tuple[str | None, ...] = (None, "musica", "vinheta")
+_ANTES_DA_ABERTURA_APOS_INTERVALO: tuple[str, ...] = ("patrocinador",)
+
+
 def _tipo_proximo_bloco(programa: Programa, total_falas: int, ultima_categoria: str | None = None) -> str:
     """Decide o tipo do proximo bloco.
 
@@ -722,15 +728,20 @@ def _tipo_proximo_bloco(programa: Programa, total_falas: int, ultima_categoria: 
     "encerramento" nunca sai daqui: so e' liberado quando o programa esta' de fato terminando
     (ver perto_do_fim em gerar_proxima_fala). Se o usuario incluiu "encerramento" no meio da
     estrutura customizada, esse item e' ignorado no loop e a sequencia volta pro inicio.
+
+    O ciclo, o roteiro com a estrutura vazia, a liberdade de inserir blocos e a abertura depois do intervalo vem do
+    formato do programa (app.live.formatos, F6).
     """
-    if musical_companhia(programa):
+    formato = formato_do_programa(programa)
+    comportamento = formato.comportamento
+    if comportamento.ciclo == "musical":
         if total_falas == 0:
             return "abertura"
         roteiro = [
             t.strip() for t in programa.estrutura_blocos
             if t.strip() and _sem_acento(t.strip().lower()) != "abertura"
             and _categoria_bloco(t.strip()) != "encerramento"
-        ] or list(ROTEIRO_MUSICAL)
+        ] or list(formato.roteiro_padrao)
         return roteiro[(total_falas - 1) % len(roteiro)]
 
     roteiro_customizado = [
@@ -739,19 +750,23 @@ def _tipo_proximo_bloco(programa: Programa, total_falas: int, ultima_categoria: 
     if not roteiro_customizado:
         if total_falas == 0:
             return "abertura"
-        return ROTEIRO_PADRAO[(total_falas - 1) % len(ROTEIRO_PADRAO)]
+        return formato.roteiro_padrao[(total_falas - 1) % len(formato.roteiro_padrao)]
 
     tipo = roteiro_customizado[total_falas % len(roteiro_customizado)]
-    if programa.ia_pode_adicionar_blocos and total_falas > 0 and random.random() < 0.15:
+    if programa.ia_pode_adicionar_blocos and comportamento.ia_pode_adicionar_blocos and total_falas > 0 \
+            and random.random() < 0.15:
         # IA fica livre pra emendar um comentario extra fora da sequencia pre-definida de vez em quando.
         return "comentario"
+    antes_da_abertura = _ANTES_DA_ABERTURA + (_ANTES_DA_ABERTURA_APOS_INTERVALO
+                                              if comportamento.abertura_apos_intervalo else ())
     if (
         total_falas > 0
         and _categoria_bloco(tipo) == "abertura"
-        and ultima_categoria not in (None, "musica", "vinheta")
+        and ultima_categoria not in antes_da_abertura
     ):
         return "comentario"
     return tipo
+
 
 
 # TTL generico p/ estado de sessao ao vivo no Redis (historico de musica, historico de temas,
@@ -863,7 +878,8 @@ _TIPOS_COM_COMPORTAMENTO = (
 # cache no Redis (hash, por texto normalizado de bloco) da classificacao via LLM -- so paga a
 # chamada uma vez por bloco customizado distinto, mesmo que o ao vivo gere falas pra ele varias
 # vezes e mesmo entre workers/instancias diferentes do backend (cache em memoria de processo nao
-# seria compartilhado entre eles).
+# seria compartilhado entre eles). TTL e teto em settings (item 9 da docs/auditoria.md): o hash e'
+# global, entao sem eles cresceria pra sempre com os rotulos de todas as contas.
 _CACHE_CATEGORIA_CUSTOMIZADA = "cache:categoria_bloco_customizado"
 
 
@@ -876,7 +892,12 @@ def _classificar_bloco_customizado(tipo_original: str, normalizado: str) -> str:
             logger.warning("Falha ao classificar categoria de bloco customizado: %r", tipo_original, exc_info=True)
             categoria = "outro"
         categoria = categoria if categoria in _TIPOS_COM_COMPORTAMENTO else ""
+        if redis_client.hlen(_CACHE_CATEGORIA_CUSTOMIZADA) >= settings.cache_categoria_bloco_max:
+            # Passou do teto: recomeca (cada rotulo paga uma classificacao de novo) em vez de crescer sem limite.
+            logger.info("live_cache_categoria_recomecou max=%s", settings.cache_categoria_bloco_max)
+            redis_client.delete(_CACHE_CATEGORIA_CUSTOMIZADA)
         redis_client.hset(_CACHE_CATEGORIA_CUSTOMIZADA, normalizado, categoria)
+        redis_client.expire(_CACHE_CATEGORIA_CUSTOMIZADA, settings.cache_categoria_bloco_ttl_s)
     return categoria
 
 
@@ -1862,7 +1883,7 @@ def _instante_do_bloco(programa: Programa, radialista: RadioConfig, dados: LiveP
 
 def _planejar_relogio(
     db: Session, account: Account, radialista: RadioConfig, programa: Programa, dados: LiveProgramRequest, *,
-    formato_musical: bool, ultima_categoria: str | None, ja_encerrou: bool, cfg: ConfigRelogio = CONFIG_RELOGIO,
+    formato: Formato, ultima_categoria: str | None, ja_encerrou: bool, cfg: ConfigRelogio = CONFIG_RELOGIO,
 ) -> tuple[Plano | None, bool, str | None, str]:
     """(plano, inicio_previsto_aceito, preset, origem do instante). Plano None = caminho de sempre
     (estrutura_blocos). `cfg` traz o ritmo calibrado da voz (F2) para as estimativas do backtiming."""
@@ -1877,7 +1898,7 @@ def _planejar_relogio(
     if ocorrencia is None or ja_encerrou:
         return None, aceito, relogio.preset, origem
     plano = planejar(
-        programa, relogio, radialista.timezone, instante, formato_musical=formato_musical,
+        programa, relogio, radialista.timezone, instante, formato=formato,
         ultima_categoria=ultima_categoria, ja_encerrou=ja_encerrou,
         executadas=etapas_executadas(programa.id, ocorrencia), pecas=_pecas_do_relogio(db, account, programa, cfg.wpm),
         cfg=cfg, obrigacoes=promessas_repo.obrigacoes(db, programa.id, ocorrencia.chave),  # F4: promessas abertas
@@ -2090,7 +2111,7 @@ def _musicas_do_bloco(db: Session, ctx: ContextoEmissao, musica: MusicaEncontrad
             # Musica que o locutor citou alem da anunciada tambem toca no bloco -- formato musical e relogio
             # mantem uma faixa so' por bloco.
             citadas, nao_resolvidas, consultas = (
-                ([], [], {}) if ctx.formato_musical or plano is not None
+                ([], [], {}) if ctx.formato.comportamento.uma_faixa_por_bloco or plano is not None
                 else _musicas_citadas_na_fala(db, programa, fala, historico, ja_no_bloco=[musica])
             )
             # Sem relogio todas as citadas resolvidas ficam no bloco: registradas antes de completar a sequencia,
@@ -2167,7 +2188,7 @@ def _sintetizar_voz_unica(db: Session, entrada: EntradaEmissao, ctx: ContextoEmi
     request_id, programa_id = ctx.request_id, ctx.programa.id
     if sintese.falas_bloco or categoria == "patrocinador" or not sintese.fala.strip():
         return
-    sintese.tom = "neutro" if ctx.formato_musical else _tom_sintese_do_bloco(
+    sintese.tom = ctx.formato.comportamento.tom_tts or _tom_sintese_do_bloco(
         tipo, ctx.participacao.pedido_ouvinte.natureza if ctx.participacao.pedido_ouvinte is not None else None
     )
     _registrar_ultimo_tom(programa_id, sintese.tom)
@@ -2424,11 +2445,12 @@ def gerar_proxima_fala(
     voz_programa = voz_efetiva(db, account.id, radialista.voz_id)
     ritmos_voz = carregar_ritmos(db, voz_programa)
     cfg_relogio = replace(CONFIG_RELOGIO, wpm=ritmos_voz.wpm())
+    formato = formato_do_programa(programa)
     entrada = EntradaEmissao(
         request_id=request_id, db=db, account=account, radialista=radialista, programa=programa, dados=dados,
         total_falas=dados.total_falas if dados.total_falas is not None else len(dados.historico),
-        formato_musical=musical_companhia(programa), voz_programa=voz_programa, ritmos_voz=ritmos_voz,
-        cfg_relogio=cfg_relogio,
+        formato_musical=formato.comportamento.ciclo == "musical", voz_programa=voz_programa, ritmos_voz=ritmos_voz,
+        cfg_relogio=cfg_relogio, formato=formato,
     )
     portas = _portas()
 
@@ -2470,6 +2492,8 @@ def gerar_proxima_fala(
         logger.info("live_validacao_fala request_id=%s programa_id=%s tipo=%s acao=%s regras=%s refs=%s", request_id,
                     programa.id, tipo, sintese.acao_validacao, [v.regra for v in sintese.violacoes],
                     [v.ref_id for v in sintese.violacoes])
+    _registrar_coerencia_formato(ctx, fala, sintese.duracao_fala_s if sintese.duracao_fala_s is not None
+                                 else duracao_fala_estimada_s)
     logger.info("live_proxima_pronta request_id=%s programa_id=%s tipo=%s audio_status=%s total_ms=%s", request_id,
                 programa.id, tipo, sintese.audio_status, round((time.perf_counter() - inicio_request) * 1000))
 
@@ -2499,7 +2523,7 @@ def gerar_proxima_fala(
         intervalo_ms=_intervalo_transicao_ms(decisao.ultima_categoria, categoria),
         pausa_antes_ms=_pausa_antes_ms(decisao.ultima_categoria, categoria),
         duracao_alvo_segundos=plano.orcamento_s if plano is not None else (
-            orcamento_fala(tipo, entrada.total_falas == 0)[:2] if ctx.formato_musical else None
+            (orcamento.min_s, orcamento.max_s) if ctx.formato.aplica_orcamento else None
         ),
         audio_base64=sintese.audio_base64,
         audio_status=sintese.audio_status,
@@ -2520,6 +2544,24 @@ def gerar_proxima_fala(
     ), programa.id, plano, decisao.preset_relogio, decisao.inicio_previsto_aceito, cfg=cfg_relogio,
         origem=decisao.origem_instante, duracao_vinheta_fim_s=float(vinheta_fim.duracao_segundos)
         if vinheta_fim and vinheta_fim.audio_path and vinheta_fim.duracao_segundos else None)
+
+
+def _registrar_coerencia_formato(ctx: ContextoEmissao, fala: str, duracao_s: float | None) -> None:
+    """F6 (D21): a coerência da fala com o formato só é medida e registrada (ids e códigos, nunca trecho de fala);
+    nada é reescrito nem removido. Pura (sem Redis nem sorteio): não muda o retrato dos goldens."""
+    if not fala.strip():
+        return
+    plano, programa = ctx.tempo.plano, ctx.programa
+    retorno = ctx.memoria.ultima_categoria == "patrocinador" or (
+        plano is not None and getattr(plano.etapa, "tipo_efetivo", None) == "retorno")
+    avisos = avisos_da_fala(ctx.formato, FalaNoAr(
+        bloco=ctx.tipo, categoria=ctx.categoria, texto=fala, duracao_s=duracao_s or 0.0, primeira=ctx.primeira_fala,
+        quadro=eh_quadro_fixo(programa, ctx.tipo), retorno=retorno,
+        teto_s=plano.orcamento_s[1] if plano is not None and plano.orcamento_s else None,
+    ), nomes=(programa.nome, getattr(ctx.account, "nome_radio", "") or ""))
+    if avisos:
+        logger.info("live_formato_aviso request_id=%s programa_id=%s formato=%s tipo=%s avisos=%s", ctx.request_id,
+                    programa.id, ctx.formato.id, ctx.categoria, sorted({a.codigo for a in avisos}))
 
 
 @router.get("/{radialista_id}/programas/{programa_id}/preparo")

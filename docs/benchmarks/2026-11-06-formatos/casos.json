@@ -12,9 +12,15 @@
       "dado_vencido": "usa dado fora da validade sem dizer o horário da última atualização",
       "avisos_oralidade_min": "mínimo de avisos que o verificador de oralidade (F7) deve dar",
       "excede_orcamento": "palavras / wpm_referencia x 60 maior que orcamento_s.max (calculado, não opinado)",
-      "abertura_repetida": "repete a estrutura de abertura de aberturas_recentes sem ser reorientação permitida"
+      "abertura_repetida": "repete a estrutura de abertura de aberturas_recentes sem ser reorientação permitida",
+      "fora_da_unidade": "fala fora da unidade de fala do formato para o papel do bloco (duração < mínimo ou > máximo × 1,15), quando o caso mede a unidade (formato_coerencia.medir_unidade)",
+      "bloco_fora_do_formato": "fala num bloco que o formato não prevê (comentário ou notícia no musical adulto)",
+      "convite_fora_da_politica": "convite ao ouvinte fora do bloco que a política do formato permite (só na chamada no musical adulto e no variedades leves)",
+      "tema_revisao": "fala toca um tema que o formato manda revisar (sem conteúdo aprovado, não tratar)",
+      "reorientacao": "passou de 1,5 × reorientacao_s do formato desde a última reorientação (formato_coerencia.segundos_desde_reorientacao) e a fala não diz o nome do programa nem da rádio"
     },
-    "observacao": "Falas originais, escritas para este conjunto; nenhuma transcreve ou imita apresentador real. Rádios, programas, locutores, artistas, músicas e ouvintes são fictícios. Números por extenso, como vão ao TTS. Cada caso tem controle positivo e negativo; o juiz usa o critério como rubrica, os validadores das frentes usam 'esperado'."
+    "observacao": "Falas originais, escritas para este conjunto; nenhuma transcreve ou imita apresentador real. Rádios, programas, locutores, artistas, músicas e ouvintes são fictícios. Números por extenso, como vão ao TTS. Cada caso tem controle positivo e negativo; o juiz usa o critério como rubrica, os validadores das frentes usam 'esperado'.",
+    "formato_coerencia": "F6: contexto.formato_coerencia diz o que a coerência precisa além do texto (nomes do programa e da rádio, se a unidade é medida pelas palavras / wpm_referencia, segundos desde a última reorientação, quadro fixo, volta do intervalo). Casos sem ele só são avaliados nos avisos do texto (convite, tema, bloco)."
   },
   "casos": [
     {
@@ -2163,6 +2169,1005 @@
             "avisos_oralidade_min": 0,
             "excede_orcamento": true,
             "abertura_repetida": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "f6-musical-retomada-longa",
+      "formato": "musical_adulto",
+      "bloco": "retomada",
+      "frentes": [
+        "F6"
+      ],
+      "dimensoes": [
+        "coerencia"
+      ],
+      "contexto": {
+        "tocou": [],
+        "proxima_confirmada": null,
+        "pedidos": [],
+        "promessas_pendentes": [],
+        "eventos_agendados": [],
+        "dados": [],
+        "segundos_ate_hard_time": 1200,
+        "orcamento_s": {
+          "min": 6,
+          "max": 12,
+          "fonte": "catálogo app/live/formatos.py"
+        },
+        "formato_coerencia": {
+          "nomes": [
+            "Tarde Serena",
+            "Rádio Serra Clara"
+          ],
+          "medir_unidade": true,
+          "segundos_desde_reorientacao": null,
+          "quadro": false,
+          "retorno": false
+        }
+      },
+      "criterio": "No musical a retomada é curta (seis a doze segundos): uma história longa quebra a promessa musical.",
+      "falas_rotuladas": [
+        {
+          "texto": "Você está no Tarde Serena, na Rádio Serra Clara, com música para acompanhar a sua tarde.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": false,
+            "reorientacao": false
+          }
+        },
+        {
+          "texto": "Você está no Tarde Serena, na Rádio Serra Clara, e eu queria contar com calma como foi o meu fim de semana na casa da minha tia, que mora perto do rio e sempre prepara um almoço demorado para a família inteira.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": true,
+            "abertura_repetida": false,
+            "fora_da_unidade": true,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": false,
+            "reorientacao": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "f6-musical-comentario-fora-do-formato",
+      "formato": "musical_adulto",
+      "bloco": "comentario",
+      "frentes": [
+        "F6"
+      ],
+      "dimensoes": [
+        "coerencia"
+      ],
+      "contexto": {
+        "tocou": [],
+        "proxima_confirmada": null,
+        "pedidos": [],
+        "promessas_pendentes": [],
+        "eventos_agendados": [],
+        "dados": [],
+        "segundos_ate_hard_time": 1200,
+        "orcamento_s": null,
+        "formato_coerencia": {
+          "nomes": [
+            "Tarde Serena",
+            "Rádio Serra Clara"
+          ],
+          "medir_unidade": false,
+          "segundos_desde_reorientacao": null,
+          "quadro": false,
+          "retorno": false
+        }
+      },
+      "criterio": "O musical adulto não tem bloco de comentário: a música ocupa o centro.",
+      "falas_rotuladas": [
+        {
+          "texto": "Que tarde boa para conversar sobre a feira do bairro e as barracas novas que chegaram.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": true,
+            "convite_fora_da_politica": false,
+            "tema_revisao": false,
+            "reorientacao": false
+          }
+        },
+        {
+          "texto": "Tem gente que prefere o mercado da esquina, tem gente que não troca a feira por nada.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": true,
+            "convite_fora_da_politica": false,
+            "tema_revisao": false,
+            "reorientacao": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "f6-musical-convite-na-retomada",
+      "formato": "musical_adulto",
+      "bloco": "retomada",
+      "frentes": [
+        "F6"
+      ],
+      "dimensoes": [
+        "coerencia",
+        "participacao"
+      ],
+      "contexto": {
+        "tocou": [],
+        "proxima_confirmada": null,
+        "pedidos": [],
+        "promessas_pendentes": [],
+        "eventos_agendados": [],
+        "dados": [],
+        "segundos_ate_hard_time": 1200,
+        "orcamento_s": {
+          "min": 6,
+          "max": 12,
+          "fonte": "catálogo app/live/formatos.py"
+        },
+        "formato_coerencia": {
+          "nomes": [
+            "Tarde Serena",
+            "Rádio Serra Clara"
+          ],
+          "medir_unidade": true,
+          "segundos_desde_reorientacao": null,
+          "quadro": false,
+          "retorno": false
+        }
+      },
+      "criterio": "No musical o convite ao ouvinte fica no bloco de chamada; a retomada só retoma.",
+      "falas_rotuladas": [
+        {
+          "texto": "Você está no Tarde Serena, na Rádio Serra Clara. Se quiser, mande sua mensagem pelo WhatsApp da rádio.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": true,
+            "tema_revisao": false,
+            "reorientacao": false
+          }
+        },
+        {
+          "texto": "Você está no Tarde Serena, na Rádio Serra Clara, e a música segue do jeito que a tarde pede.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": false,
+            "reorientacao": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "f6-musical-identificacao-sem-reorientar",
+      "formato": "musical_adulto",
+      "bloco": "identificacao",
+      "frentes": [
+        "F6"
+      ],
+      "dimensoes": [
+        "coerencia",
+        "repeticao"
+      ],
+      "contexto": {
+        "tocou": [],
+        "proxima_confirmada": null,
+        "pedidos": [],
+        "promessas_pendentes": [],
+        "eventos_agendados": [],
+        "dados": [],
+        "segundos_ate_hard_time": 1200,
+        "orcamento_s": {
+          "min": 3,
+          "max": 7,
+          "fonte": "catálogo app/live/formatos.py"
+        },
+        "formato_coerencia": {
+          "nomes": [
+            "Tarde Serena",
+            "Rádio Serra Clara"
+          ],
+          "medir_unidade": true,
+          "segundos_desde_reorientacao": 1500,
+          "quadro": false,
+          "retorno": false
+        }
+      },
+      "criterio": "Vinte e cinco minutos sem dizer o nome do programa ou da rádio: quem acabou de chegar precisa se situar.",
+      "falas_rotuladas": [
+        {
+          "texto": "Seguimos juntos nesta tarde, com calma e boa música.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": false,
+            "reorientacao": true
+          }
+        },
+        {
+          "texto": "Você ouve a Rádio Serra Clara, no Tarde Serena.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": false,
+            "reorientacao": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "f6-musical-tema-de-saude",
+      "formato": "musical_adulto",
+      "bloco": "retomada",
+      "frentes": [
+        "F6"
+      ],
+      "dimensoes": [
+        "coerencia",
+        "precisao"
+      ],
+      "contexto": {
+        "tocou": [],
+        "proxima_confirmada": null,
+        "pedidos": [],
+        "promessas_pendentes": [],
+        "eventos_agendados": [],
+        "dados": [],
+        "segundos_ate_hard_time": 1200,
+        "orcamento_s": {
+          "min": 6,
+          "max": 12,
+          "fonte": "catálogo app/live/formatos.py"
+        },
+        "formato_coerencia": {
+          "nomes": [
+            "Tarde Serena",
+            "Rádio Serra Clara"
+          ],
+          "medir_unidade": true,
+          "segundos_desde_reorientacao": null,
+          "quadro": false,
+          "retorno": false
+        }
+      },
+      "criterio": "Saúde e medicamento exigem revisão humana no musical: sem conteúdo aprovado, não tratar.",
+      "falas_rotuladas": [
+        {
+          "texto": "Você está no Tarde Serena. Quem toma remédio de pressão deve seguir a orientação do médico.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": true,
+            "reorientacao": false
+          }
+        },
+        {
+          "texto": "Você está no Tarde Serena, na Rádio Serra Clara, com uma seleção calma para esta hora.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": false,
+            "reorientacao": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "f6-popular-recado-de-luto",
+      "formato": "popular_sertanejo",
+      "bloco": "chamada_ouvinte",
+      "frentes": [
+        "F6"
+      ],
+      "dimensoes": [
+        "coerencia",
+        "participacao"
+      ],
+      "contexto": {
+        "tocou": [],
+        "proxima_confirmada": null,
+        "pedidos": [
+          {
+            "nome": "Dona Cida Prado",
+            "tipo": "abraco",
+            "estado": "selecionado"
+          }
+        ],
+        "promessas_pendentes": [],
+        "eventos_agendados": [],
+        "dados": [],
+        "segundos_ate_hard_time": 1200,
+        "orcamento_s": {
+          "min": 20,
+          "max": 60,
+          "fonte": "catálogo app/live/formatos.py"
+        },
+        "formato_coerencia": {
+          "nomes": [
+            "Prosa e Viola",
+            "Rádio Ipê Dourado"
+          ],
+          "medir_unidade": false,
+          "segundos_desde_reorientacao": null,
+          "quadro": false,
+          "retorno": false
+        }
+      },
+      "criterio": "Luto em recado exige revisão humana no popular, mesmo com o pedido real e o nome autorizado.",
+      "falas_rotuladas": [
+        {
+          "texto": "Dona Cida Prado mandou um abraço para a família do vizinho que faleceu nesta semana, com todo o carinho da vizinhança.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": true,
+            "reorientacao": false
+          }
+        },
+        {
+          "texto": "Dona Cida Prado mandou um abraço para a turma da oficina, com todo o carinho da vizinhança.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": false,
+            "reorientacao": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "f6-popular-convite-em-qualquer-bloco",
+      "formato": "popular_sertanejo",
+      "bloco": "comentario",
+      "frentes": [
+        "F6"
+      ],
+      "dimensoes": [
+        "coerencia",
+        "participacao"
+      ],
+      "contexto": {
+        "tocou": [],
+        "proxima_confirmada": null,
+        "pedidos": [],
+        "promessas_pendentes": [],
+        "eventos_agendados": [],
+        "dados": [],
+        "segundos_ate_hard_time": 1200,
+        "orcamento_s": {
+          "min": 20,
+          "max": 60,
+          "fonte": "catálogo app/live/formatos.py"
+        },
+        "formato_coerencia": {
+          "nomes": [
+            "Prosa e Viola",
+            "Rádio Ipê Dourado"
+          ],
+          "medir_unidade": false,
+          "segundos_desde_reorientacao": null,
+          "quadro": false,
+          "retorno": false
+        }
+      },
+      "criterio": "No popular o convite cabe em qualquer bloco; aposta exige revisão humana.",
+      "falas_rotuladas": [
+        {
+          "texto": "Muita gente anda fazendo aposta pelo celular, e esse é um assunto que pede cuidado.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": true,
+            "reorientacao": false
+          }
+        },
+        {
+          "texto": "Quem quiser mandar um alô para alguém da família pode escrever pelo WhatsApp da rádio.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": false,
+            "reorientacao": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "f6-popular-comentario-curto",
+      "formato": "popular_sertanejo",
+      "bloco": "comentario",
+      "frentes": [
+        "F6"
+      ],
+      "dimensoes": [
+        "coerencia"
+      ],
+      "contexto": {
+        "tocou": [],
+        "proxima_confirmada": null,
+        "pedidos": [],
+        "promessas_pendentes": [],
+        "eventos_agendados": [],
+        "dados": [],
+        "segundos_ate_hard_time": 1200,
+        "orcamento_s": {
+          "min": 20,
+          "max": 60,
+          "fonte": "catálogo app/live/formatos.py"
+        },
+        "formato_coerencia": {
+          "nomes": [
+            "Prosa e Viola",
+            "Rádio Ipê Dourado"
+          ],
+          "medir_unidade": true,
+          "segundos_desde_reorientacao": null,
+          "quadro": false,
+          "retorno": false
+        }
+      },
+      "criterio": "A entrada do popular tem de vinte a sessenta segundos: uma frase solta não é a história prometida.",
+      "falas_rotuladas": [
+        {
+          "texto": "Que tarde boa de prosa por aqui.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": true,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": false,
+            "reorientacao": false
+          }
+        },
+        {
+          "texto": "Você está no Prosa e Viola, na Rádio Ipê Dourado, e hoje eu lembrei do tempo em que a gente ouvia rádio na varanda, com o café passado na hora e a conversa correndo solta entre os vizinhos, cada um contando uma história do sítio, do trabalho e da família que mora longe.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": false,
+            "reorientacao": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "f6-popular-reorientacao-no-retorno",
+      "formato": "popular_sertanejo",
+      "bloco": "chamada_ouvinte",
+      "frentes": [
+        "F6"
+      ],
+      "dimensoes": [
+        "coerencia",
+        "repeticao"
+      ],
+      "contexto": {
+        "tocou": [],
+        "proxima_confirmada": null,
+        "pedidos": [],
+        "promessas_pendentes": [],
+        "eventos_agendados": [],
+        "dados": [],
+        "segundos_ate_hard_time": 1200,
+        "orcamento_s": {
+          "min": 20,
+          "max": 60,
+          "fonte": "catálogo app/live/formatos.py"
+        },
+        "formato_coerencia": {
+          "nomes": [
+            "Prosa e Viola",
+            "Rádio Ipê Dourado"
+          ],
+          "medir_unidade": false,
+          "segundos_desde_reorientacao": 1900,
+          "quadro": false,
+          "retorno": true
+        }
+      },
+      "criterio": "Na volta do intervalo, depois de meia hora sem o nome do programa, reorientar quem chegou.",
+      "falas_rotuladas": [
+        {
+          "texto": "Seguimos com moda boa e prosa curta nesta tarde.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": false,
+            "reorientacao": true
+          }
+        },
+        {
+          "texto": "Você está no Prosa e Viola, na Rádio Ipê Dourado, com moda boa e prosa curta nesta tarde.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": false,
+            "reorientacao": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "f6-variedades-convite-no-quadro",
+      "formato": "variedades_leves",
+      "bloco": "comentario_quadro",
+      "frentes": [
+        "F6"
+      ],
+      "dimensoes": [
+        "coerencia",
+        "participacao"
+      ],
+      "contexto": {
+        "tocou": [],
+        "proxima_confirmada": null,
+        "pedidos": [],
+        "promessas_pendentes": [],
+        "eventos_agendados": [],
+        "dados": [],
+        "segundos_ate_hard_time": 1200,
+        "orcamento_s": {
+          "min": 60,
+          "max": 180,
+          "fonte": "catálogo app/live/formatos.py"
+        },
+        "formato_coerencia": {
+          "nomes": [
+            "Tarde em Casa",
+            "Rádio Vila Ventura"
+          ],
+          "medir_unidade": false,
+          "segundos_desde_reorientacao": null,
+          "quadro": true,
+          "retorno": false
+        }
+      },
+      "criterio": "No variedades o convite fica na chamada (pergunta do dia); o quadro dá a dica e segue.",
+      "falas_rotuladas": [
+        {
+          "texto": "No Cantinho da Casa de hoje, a dica é separar uma gaveta por vez. Quem testar pode contar pelo WhatsApp da rádio como foi.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": true,
+            "tema_revisao": false,
+            "reorientacao": false
+          }
+        },
+        {
+          "texto": "No Cantinho da Casa de hoje, a dica é separar uma gaveta por vez e guardar junto o que se usa junto.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": false,
+            "reorientacao": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "f6-variedades-chamada-pergunta-do-dia",
+      "formato": "variedades_leves",
+      "bloco": "chamada_ouvinte",
+      "frentes": [
+        "F6"
+      ],
+      "dimensoes": [
+        "coerencia",
+        "participacao"
+      ],
+      "contexto": {
+        "tocou": [],
+        "proxima_confirmada": null,
+        "pedidos": [],
+        "promessas_pendentes": [],
+        "eventos_agendados": [],
+        "dados": [],
+        "segundos_ate_hard_time": 1200,
+        "orcamento_s": {
+          "min": 20,
+          "max": 60,
+          "fonte": "catálogo app/live/formatos.py"
+        },
+        "formato_coerencia": {
+          "nomes": [
+            "Tarde em Casa",
+            "Rádio Vila Ventura"
+          ],
+          "medir_unidade": false,
+          "segundos_desde_reorientacao": null,
+          "quadro": false,
+          "retorno": false
+        }
+      },
+      "criterio": "Na chamada o convite é permitido; investimento exige revisão humana no variedades.",
+      "falas_rotuladas": [
+        {
+          "texto": "A pergunta do dia é sobre investimento: você guarda um pouco do salário todo mês?",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": true,
+            "reorientacao": false
+          }
+        },
+        {
+          "texto": "A pergunta do dia segue valendo: qual tarefa da casa você sempre adia? Mande sua resposta pelo WhatsApp da rádio.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": false,
+            "reorientacao": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "f6-variedades-reorientacao",
+      "formato": "variedades_leves",
+      "bloco": "comentario",
+      "frentes": [
+        "F6"
+      ],
+      "dimensoes": [
+        "coerencia",
+        "repeticao"
+      ],
+      "contexto": {
+        "tocou": [],
+        "proxima_confirmada": null,
+        "pedidos": [],
+        "promessas_pendentes": [],
+        "eventos_agendados": [],
+        "dados": [],
+        "segundos_ate_hard_time": 1200,
+        "orcamento_s": {
+          "min": 20,
+          "max": 60,
+          "fonte": "catálogo app/live/formatos.py"
+        },
+        "formato_coerencia": {
+          "nomes": [
+            "Tarde em Casa",
+            "Rádio Vila Ventura"
+          ],
+          "medir_unidade": false,
+          "segundos_desde_reorientacao": 1400,
+          "quadro": false,
+          "retorno": false
+        }
+      },
+      "criterio": "Vinte e três minutos sem o nome do programa: a dica pode reorientar quem acabou de chegar.",
+      "falas_rotuladas": [
+        {
+          "texto": "Uma dica simples para a cozinha: guardar os temperos sempre no mesmo lugar ajuda muito.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": false,
+            "reorientacao": true
+          }
+        },
+        {
+          "texto": "Você está no Tarde em Casa, na Rádio Vila Ventura, com uma dica simples para a cozinha.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": false,
+            "reorientacao": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "f6-variedades-identificacao-longa",
+      "formato": "variedades_leves",
+      "bloco": "identificacao",
+      "frentes": [
+        "F6"
+      ],
+      "dimensoes": [
+        "coerencia"
+      ],
+      "contexto": {
+        "tocou": [],
+        "proxima_confirmada": null,
+        "pedidos": [],
+        "promessas_pendentes": [],
+        "eventos_agendados": [],
+        "dados": [],
+        "segundos_ate_hard_time": 1200,
+        "orcamento_s": {
+          "min": 3,
+          "max": 10,
+          "fonte": "catálogo app/live/formatos.py"
+        },
+        "formato_coerencia": {
+          "nomes": [
+            "Tarde em Casa",
+            "Rádio Vila Ventura"
+          ],
+          "medir_unidade": true,
+          "segundos_desde_reorientacao": null,
+          "quadro": false,
+          "retorno": false
+        }
+      },
+      "criterio": "A identificação é uma assinatura curta (três a dez segundos), não um resumo da hora.",
+      "falas_rotuladas": [
+        {
+          "texto": "Você ouve a Rádio Vila Ventura, no Tarde em Casa.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": false,
+            "abertura_repetida": false,
+            "fora_da_unidade": false,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": false,
+            "reorientacao": false
+          }
+        },
+        {
+          "texto": "Você ouve a Rádio Vila Ventura, no Tarde em Casa, o programa que fala de casa, cozinha, plantas, organização e de tudo o que ajuda a rotina de quem cuida da família.",
+          "esperado": {
+            "anuncio_sem_confirmacao": false,
+            "promessa_sem_evento": false,
+            "pedido_indevido": false,
+            "ouvinte_inexistente": false,
+            "dado_sem_fonte": false,
+            "dado_vencido": false,
+            "avisos_oralidade_min": 0,
+            "excede_orcamento": true,
+            "abertura_repetida": false,
+            "fora_da_unidade": true,
+            "bloco_fora_do_formato": false,
+            "convite_fora_da_politica": false,
+            "tema_revisao": false,
+            "reorientacao": false
           }
         }
       ]

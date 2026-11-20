@@ -373,5 +373,5 @@ def test_u6_benchmark_promessas():
                 falsos.append((caso["id"], fala["texto"]))
             elif esperado:
                 perdidos.append((caso["id"], fala["texto"]))
-    assert total == 70
+    assert total == 96  # 35 casos da F0 à F5 e 13 da F6, duas falas cada
     assert (acertos, perdidos, falsos) == (7, [], [])

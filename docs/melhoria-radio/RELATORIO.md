@@ -14,7 +14,7 @@ Next 16); não conta como regressão.
 | 4 — rate limit dos endpoints pagos | resolvido; resta sessão de 7 dias não revogada na troca de senha (segurança, fora do plano) | — |
 | 5 — race condition na fila | resolvido (`router.py:1796`) | — |
 | 6 — timeout do Redis | resolvido na F3 (timeouts, disjuntor `redis_sessao`; travas do WhatsApp ainda no cliente cru) | F3 |
-| 9 — TTL do cache de categoria | aberto | F6 |
+| 9 — TTL do cache de categoria | resolvido na F6 (`8222790`: TTL de 30 dias renovado a cada gravação, teto de 5000 entradas, `hlen` no `PADROES_SESSAO`) | F6 |
 
 ## Frentes
 
@@ -235,6 +235,17 @@ Next 16); não conta como regressão.
 - Goldens: idênticos nos commits 1 a 5 e na checagem no ar; regravados uma vez, no commit do bloco de dados, com o diff
   revisado (os 31: regra geral e gancho; 26: texto da segunda; e os de notícia, ouvinte e faixa); 3 novos.
 - Portão local: ruff limpo; pytest **1901 passed**, 3 skipped (+268), cobertura **88%**; vitest **354**; `tsc` ok.
+- Portão independente (testador, 13/11/2026, HEAD `d6bc878`, worktree `locufy-radio`): VERDE. ruff limpo; pytest
+  1901 passed, 3 skipped, 0 failed (645 s); cobertura 88% (`app/dados`: 100/98/98/97%; `news/pauta` 62% → 93%;
+  `llm/prompt_builder` 98% → 97%, única queda, de um ponto); vitest 354/354; `tsc` ok; `npm run lint` com a falha
+  preexistente da F0. Seis simulações fake (3 perfis × com e sem relógio), 0 tentativas de rede: `dado_sem_fonte`,
+  `dado_vencido`, `dado_legitimo_removido`, `sem_integracao.*` e `injecao.no_system` em 0; herdados em 0 (hard time
+  máximo 0,36 s no popular com relógio; `fora_orcamento_pct` 0 nas seis; ≤ 2 LLM por fala; encerramento no ar com
+  relógio). Os `resumo.json` com relógio batem com os gravados em `f5/simulacao/` (só `config.commit` e
+  `tempo_execucao_s` diferem). Nenhuma divergência contra o portão local. Detalhe em [`f5/testes.md`](f5/testes.md).
+- Juiz: não exigido para a F5 (o portão do plano pede juiz em F2–F4, F6–F8 e F13; a dimensão "Precisão" da F5 é
+  medida pelas métricas automáticas de dado acima, como a F1 fez com "Tempo"). A rubrica com texto real continua
+  dependendo de `--modo llm`, pendente de aprovação de custo.
 - Simulação fake ([`f5/simulacao/`](f5/simulacao/)): as 12 rodadas sem dado iguais à linha de base fora o registro novo
   dos dados (três eventos ganham o assunto puxado pela música), critérios herdados número por número iguais. Guardrail
   por perfil: afirmação de temperatura, placar e trânsito inventadas saem, 0 no ar. Cenários dedicados (variedades com
@@ -250,3 +261,74 @@ Next 16); não conta como regressão.
 - Pendências: [`f5/pendencias.md`](f5/pendencias.md) — falsos positivos com texto real não medidos (`--modo llm`);
   cobertura por tipo larga (clima válido cobre qualquer condição); o WhatsApp reaproveita a fala confirmada sem a
   validade dos dados; `gerarFalaLocal` do painel ainda promete conteúdo.
+
+### F6 — Catálogo de formatos e perfis editoriais — CONCLUÍDA (juiz com texto real pendente de custo)
+
+- Branch: `melhoria/f6-formatos` (a partir de `melhoria/f5-fontes`, `3f9ab88`), worktree `locufy-radio`. Três levas,
+  sem push.
+- Commits: `5987eda` (auditoria), `f0ec447` (linha de base); leva 1 `2157e2b` (caracterização C2–C5), `c84afc4`
+  (catálogo sem mudar comportamento), `8222790` (item 9), `2308549` (contrato, `GET /config/formatos`, gerador),
+  `d59dcd9` (registro); leva 2 `8ebecc0` (seção do formato no prompt), `67e4c46` (popular e variedades), `7cb526e`
+  (simulador `--formato` e coerência), `913fc19` (benchmark), `aeeb19d` (registro e rodadas); leva 3 `3ba3ed0`
+  (helpers do painel), `3fb469d` (prévia dos blocos), `f1a05d4` (fala local, D22), `bbe3d9f` (formulário e
+  identidade) e este registro.
+- Linha de base confirmada na ponta da F5 ([`f6/testes.md`](f6/testes.md)): pytest 1901 passed e 3 skipped, vitest
+  354, 12 simulações byte a byte iguais a `f5/simulacao/`.
+- Entregas:
+  - Catálogo declarativo `app/live/formatos.py` (dataclasses congeladas): por formato, promessa, conteúdo, condução,
+    unidade de fala por papel (min/alvo/máx), roteiro e relógio sugeridos, comportamento (ciclo, blocos extras,
+    abertura depois do intervalo, multivoz), participação, temas que exigem revisão, reorientação e limites de
+    coerência. Implementados `padrao` ("Livre"), `musical_adulto` (alias `musical_companhia`, byte a byte igual ao
+    antigo até o commit 5), `popular_sertanejo` e `variedades_leves`; `hits`, `regional`, `noturno`, `religioso`,
+    `morning`, `esportivo` e `jornalistico` só na estrutura (`implementado=False`, 422 na API). `formato.py`,
+    `ORCAMENTOS_POR_FORMATO` e `FORMATOS_APLICADOS` derivados do catálogo, mesmos nomes.
+  - `direcao_musical` → `direcao_formato(formato, tipo, primeira, quadro=)`; seção `_formato(ctx)` no prompt
+    (programa, formato, promessa, público, "a promessa do formato prevalece sobre o perfil do horário",
+    participação, temas que exigem revisão e reorientação nos papéis do catálogo), nunca no `padrao`.
+  - Relógio: unidade do formato limitada pela etapa e pelo espaço quando o formato aplica orçamento (D8); o relógio
+    do formato é só sugestão (D7). Popular e variedades aplicam orçamento sem relógio (D9) e aceitam abertura depois
+    do patrocinador (D17); só o musical ignora `ia_pode_adicionar_blocos` (D23).
+  - Contrato: `perfil_programacao: str` validado na requisição (implementados e aliases) e sem validador na
+    resposta; `GET /config/formatos`; gerador por IA lista os quatro com o uso de cada um e usa `tipo_radio` como
+    dica (`sertaneja`/`popular_mix` → popular; `mpb_variedades`/`regional_flashback` → musical).
+  - Simulador: `--formato {programa,fixture,<id>}` (padrão `programa`, fixtures de linha de base intocadas),
+    referência de orçamento do catálogo, canal lateral do dublê (cabeçalho do formato esperado e de outro formato),
+    injeções `debate_longo`, `convite` e `tema_revisao`, bloco `resumo.json["formato"]` por
+    `app.live.formatos.coerencia`; no `/proxima`, só o log `live_formato_aviso` com códigos, nunca trecho (D21).
+  - Benchmark: 13 casos F6 em `casos.json` e as chaves novas em `regras.esperado` (96 falas).
+  - Painel: `lib/formatoPrograma.ts` (`formatoDe`, `ehMusical`, `roteiroDoFormato`, `formatosImplementados`;
+    espelho estrutural dos quatro, textos só da rota); select com os implementados e "Livre (sem formato)",
+    promessa/conteúdo/condução/unidade/participação/temas do catálogo, "Usar relógio sugerido (A|C)" e "Usar
+    sequência sugerida", blocos extras pela flag do formato; alias exibido como canônico e preservado ao salvar
+    (D2); cartão somente leitura "Identidade da rádio" e seção "Identidade do programa" (D16); prévia dos próximos
+    blocos e fala local pelo formato; `gerarFalaLocal` sem promessa de conteúdo (D22, pendência da F5).
+  - Item 9 de `docs/auditoria.md` fechado (D18).
+- Goldens: idênticos nos commits 1 a 4; regravados uma vez no commit 5 (3 musicais, só as linhas da seção do
+  formato, diff revisado); 6 novos no commit 6; os 31 do `padrao` nunca mudaram. 22 snapshots das instruções
+  (aceite do plano: os três formatos distintos dois a dois no mesmo papel).
+- Portão local (HEAD `bbe3d9f`, 16/11/2026): ruff limpo; pytest **2266 passed**, 3 skipped (+365 sobre a F5; rodado
+  em `aeeb19d`, o backend não mudou na leva 3); vitest **389** (+35); `tsc` ok; `npm run lint` com a falha
+  preexistente da F0. Simulação: 12 rodadas `--formato programa` byte a byte iguais a `f5/simulacao/`; 12 rodadas
+  `--formato fixture` em [`f6/simulacao/`](f6/simulacao/) (3 perfis × relógio, sem relógio, voz 120, painel antigo),
+  0 tentativas de rede, hard time máximo 2,09 s, ≤ 2 LLM por fala, herdados em 0.
+- Coerência medida no fake (`resumo.json["formato"]`, [`f6/testes.md`](f6/testes.md)): instrução do formato em 100%
+  dos blocos de fala e nenhuma de outro formato nas 12; fala dentro da faixa do formato (musical 1,9–2,2%, popular
+  8,0–17,9%, variedades 24,5–30,8%); nenhum bloco fora do formato nem tema de revisão no ar; no musical, maior
+  sequência musical 552–1194 s e 6–8 interrupções por hora. `coerencia_automatica` verdadeira em 4 de 12; os itens
+  fora (uma fala fora da unidade no musical, reorientação no popular voz 120 e no variedades com C, convites do
+  banco do quadro) têm hipótese registrada e valor medido fixado em `test_simulacao_f6.py::MEDIDO_FORA_DO_LIMITE`;
+  quase todos vêm do banco do dublê, não da decisão do backend. Contra a linha de base: popular sem relógio passou
+  de 3600 s para 1197 s sem reorientação (D17).
+- Portão independente: [`f6/portao.md`](f6/portao.md) (2266 passed, 3 skipped; vitest 389; tsc ok).
+- Juiz: o aceite "coerência ≥ 4/5 em cada perfil" é o S7 (`--modo llm`, rubrica da `avaliar-locucao`) e depende de
+  aprovação de custo; no fake, as métricas binárias acima são o proxy (D20: nenhuma nota sintética).
+- Rollback: um backend anterior à F6 falha a leitura de programas com os ids novos. SQL de volta:
+  `UPDATE programas SET perfil_programacao='musical_companhia' WHERE perfil_programacao='musical_adulto';`
+  `UPDATE programas SET perfil_programacao='padrao' WHERE perfil_programacao IN ('popular_sertanejo','variedades_leves');`
+- Decisões D1 a D23 adotadas pelo padrão da auditoria, a confirmar; desvios registrados em
+  [`f6/pendencias.md`](f6/pendencias.md) (validador herdado no pydantic 2, papel `quadro` só pelo quadro fixo, log
+  no commit 7, identidade do programa no topo do formulário em vez de antes de "Persona", D22 em três frases).
+- Pendências: [`f6/pendencias.md`](f6/pendencias.md) — S7 com texto real; dublê obediente ao formato e "primeira"
+  pela meta; teto de palavras na identificação dos formatos novos; `ORCAMENTOS` do musical × link de 10–35 s (D5);
+  reorientação com memória no `/proxima` (F8); `ehMusical` do painel é pelo id (um formato futuro com ciclo musical
+  pede atualização do painel); painel não conferido no navegador.

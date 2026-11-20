@@ -12,6 +12,7 @@ import { sondarAutoplayComSom as sondarAutoplay } from "../lib/autoplay";
 import { apiFetch, apiFetchBlob, apiFetchBlobComTimeout, apiFetchComTimeout, ApiError } from "../lib/api";
 import { setRadialistaAtualId } from "../lib/radialistas";
 import { falaReservaNeutra } from "../lib/reservaNeutra";
+import { ehMusical, roteiroDoFormato } from "../lib/formatoPrograma";
 import { Radialista, Programa, RadioConta } from "../lib/types";
 import {
   AudioFala,
@@ -154,19 +155,22 @@ function _semAcento(texto: string): string {
   return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-// roteiro de EMERGENCIA (TTS/LLM indisponivel), usado so' quando POST /live/.../proxima falha.
-// Atencao: essa ordem e' DIFERENTE do _ROTEIRO_PADRAO real do motor (backend/app/live/router.py),
-// que comeca por "musica" -- nao usar como referencia pra preview de proximos blocos.
-function gerarFalaLocal(
+// Fala de EMERGENCIA (TTS/LLM indisponivel), usada so' quando POST /live/.../proxima falha.
+// O tipo segue o formato do programa (F6, lib/formatoPrograma.ts) com a mesma regra do motor
+// (backend app/live/router.py::_tipo_proximo_bloco): estrutura personalizada em loop ou, vazia,
+// abertura na largada e o roteiro do formato pelo deslocamento (n-1). O texto nao promete conteudo
+// (F5/F6, D22): toda fala termina na reorientacao neutra, nome do programa e da radio.
+export function gerarFalaLocal(
   radialista: Radialista,
   programa: Programa,
-  totalFalas: number
+  totalFalas: number,
+  nomeRadio?: string | null,
 ): Omit<ProgramSegment, "id" | "criado_em" | "origem"> {
-  if (programa.perfil_programacao === "musical_companhia") {
-    return { tipo: "identificacao", fala: `Você está no ${programa.nome}. Obrigado pela companhia.` };
+  const reorientacao = falaReservaNeutra(programa.nome, nomeRadio);
+  if (ehMusical(programa)) {
+    return { tipo: "identificacao", fala: `${reorientacao} Obrigado pela companhia.` };
   }
   const nome = radialista.nome_locutor || "Locutor";
-  const roteiroPadrao = ["abertura", "musica", "comentario", "noticia", "chamada_ouvinte"];
   // "encerramento" fica de fora do round-robin de propósito -- esse fallback local nao
   // sabe quanto tempo falta pro horario_fim (isso e' calculado no backend, ver perto_do_fim
   // em gerar_proxima_fala), entao deixar cair aqui por coincidencia do modulo faz o programa
@@ -175,25 +179,31 @@ function gerarFalaLocal(
   const roteiroCustom = programa.estrutura_blocos
     .map((b) => b.trim())
     .filter((b) => b && _semAcento(b.toLowerCase()) !== "encerramento");
-  const roteiro = roteiroCustom.length > 0 ? roteiroCustom : roteiroPadrao;
-  const tipo = roteiro[totalFalas % roteiro.length];
+  let tipo: string;
+  if (roteiroCustom.length > 0) {
+    tipo = roteiroCustom[totalFalas % roteiroCustom.length];
+  } else if (totalFalas === 0) {
+    tipo = "abertura";
+  } else {
+    const roteiroFormato = roteiroDoFormato(programa);
+    tipo = roteiroFormato[(totalFalas - 1) % roteiroFormato.length];
+  }
   const genero = escolher(programa.generos_musicais, "os sucessos da nossa programacao");
   const musica = escolher(programa.musicas_permitidas, genero);
   const assunto = escolher(
     programa.assuntos_ao_vivo.length ? programa.assuntos_ao_vivo : programa.topicos_permitidos,
     "a rotina da cidade"
   );
-  const noticia = escolher(programa.tipos_noticias, "informacoes locais");
 
   const falas: Record<string, string> = {
-    abertura: `Muito bem, aqui e ${nome} no ${programa.nome}. Bora de ${assunto} e boa musica ate o fim do bloco.`,
-    musica: `Toca ai ${musica}. Ja volto com mais.`,
-    comentario: `Sobre ${assunto}: quem tiver passando por isso, manda mensagem no WhatsApp que eu leio aqui.`,
-    noticia: `${noticia}. Sem numero nem nome cravado agora, mas assim que a fonte confirmar eu trago certinho.`,
-    chamada_ouvinte: `Bora, manda seu recado ou pede sua musica no WhatsApp.`,
+    abertura: `Muito bem, aqui e ${nome}. ${reorientacao} Bora de ${assunto} e boa musica.`,
+    musica: `Toca ai ${musica}. ${reorientacao}`,
+    comentario: `Sobre ${assunto}: fica comigo. ${reorientacao}`,
+    noticia: `${reorientacao} Fica com a gente e boa musica.`,
+    chamada_ouvinte: `Manda seu recado ou pede sua musica no WhatsApp. ${reorientacao}`,
   };
 
-  const falaGenerica = `Seguimos com o bloco de ${tipo.replace(/_/g, " ")} aqui no ${programa.nome}, fica comigo.`;
+  const falaGenerica = `Seguimos com o bloco de ${tipo.replace(/_/g, " ")}. ${reorientacao}`;
   return { tipo, fala: falas[tipo] ?? falaGenerica };
 }
 
@@ -1359,7 +1369,7 @@ export function useLiveEngine() {
       const radialistaAtual = radialistas.find((r) => r.id === contexto.radialistaId);
       const programaAtual = programasTodos.find((p) => p.id === contexto.programaId);
       if (radialistaAtual && programaAtual) {
-        const local = gerarFalaLocal(radialistaAtual, programaAtual, totalFalasAtual);
+        const local = gerarFalaLocal(radialistaAtual, programaAtual, totalFalasAtual, radioConta?.nome_radio);
         segmento = { ...local, criado_em: new Date().toISOString(), origem: "local" };
         if (ativa()) setErro(err instanceof ApiError ? `${err.message}. Usando fala local.` : "IA indisponivel. Usando fala local.");
       } else {

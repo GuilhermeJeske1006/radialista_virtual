@@ -28,7 +28,8 @@ from app.config.settings import settings
 from app.dados.fontes import dados_do_bloco, no_bloco
 from app.dados.texto_externo import nome_seguro
 from app.dados.verificavel import DadoVerificavel
-from app.live.orcamento import OrcamentoFala, formato_do_programa, orcamento_para, palavras_max
+from app.live.formatos import Formato, eh_quadro_fixo, formato_pelo_booleano
+from app.live.orcamento import OrcamentoFala, orcamento_para, palavras_max
 from app.live.portas import PortasEmissao
 from app.live.prompts import (
     _CATEGORIAS_NOTICIA_LIKE,
@@ -54,7 +55,6 @@ from app.live.promessas import (
 from app.live.relogio import CONFIG_PADRAO as CONFIG_RELOGIO, Plano, duracao_musica_s, ocorrencia_em
 from app.live.ritmo_voz import categoria_ritmo
 from app.live.roteiro import _PATROCINADOR_RE, _VINHETA_RE, DecisaoBloco, EntradaEmissao, tipo_na_posicao
-from app.live.formato import ROTEIRO_MUSICAL, ROTEIRO_PADRAO
 from app.numeros import cardinal_feminino, numero_por_extenso
 from app.tts.modelos import MODELOS_COM_TAGS
 
@@ -213,7 +213,7 @@ class ContextoEmissao:
     primeira_fala: bool
     total_falas: int
     passos_roteiro: int
-    formato_musical: bool
+    formato_musical: bool                # derivado do formato (D12 da F6); aceito na construção por compatibilidade
     multi_voz: bool
     roster: tuple
     roteiro: tuple[str, ...]
@@ -234,6 +234,13 @@ class ContextoEmissao:
     dados: tuple[DadoVerificavel, ...] = ()   # F5: dados verificáveis do bloco (app.dados.fontes.dados_do_bloco)
     clima_ja_mencionado: bool = False         # F5: trava de 45 min do clima (só com clima no bloco)
     extensoes: Mapping[str, Any] = dataclasses.field(default_factory=dict)  # F4/F7/F8
+    # F6: formato do catálogo (app.live.formatos); as flags dele decidem o que antes era o booleano musical.
+    formato: Formato | None = None
+
+    def __post_init__(self):
+        formato = self.formato if self.formato is not None else formato_pelo_booleano(self.formato_musical)
+        object.__setattr__(self, "formato", formato)
+        object.__setattr__(self, "formato_musical", formato.comportamento.ciclo == "musical")
 
 
 @dataclasses.dataclass(frozen=True)
@@ -306,7 +313,7 @@ def _agenda(entrada: EntradaEmissao, decisao: DecisaoBloco, roteiro: tuple[str, 
         lambda t: por_tipo.get(t.strip()), posicao=posicao,
         posicoes=max(CONFIG_PROMESSAS.posicoes_curto, len(roteiro)),
         quadros=(programa.quadros_fixos or {}).keys(), tem_fonte_noticia=_tem_fonte_noticia(programa))
-    return agenda, posicao, entrada.formato_musical or "musica" in categorias
+    return agenda, posicao, entrada.formato.comportamento.ciclo == "musical" or "musica" in categorias
 
 
 def _estado_da_fila(entrada: EntradaEmissao, portas: PortasEmissao) -> tuple[list[MusicaRef], list[str]]:
@@ -333,7 +340,7 @@ def teto_musica(plano: Plano) -> Plano:
 def resolver_musica_e_pedidos(entrada: EntradaEmissao, decisao: DecisaoBloco, portas: PortasEmissao) -> ResolucaoBloco:
     db, account, radialista, programa = entrada.db, entrada.account, entrada.radialista, entrada.programa
     tipo, categoria, plano = decisao.tipo, decisao.categoria, decisao.plano
-    formato_musical = entrada.formato_musical
+    comportamento = entrada.formato.comportamento
 
     historico_prompt = "\n".join(entrada.dados.historico[-6:]) or "Programa acabou de entrar no ar."
     # Um so calculo de "agora" por requisicao (efemerides, hora certa, marco de tempo).
@@ -343,7 +350,7 @@ def resolver_musica_e_pedidos(entrada: EntradaEmissao, decisao: DecisaoBloco, po
     )
     # Dialogo multi-voz so pros blocos de fala -- musica continua single-voice, sempre na voz do dono.
     roster = tuple(portas.buscar_roster(db, account, programa))
-    multi_voz = len(roster) > 1 and categoria != "musica" and not formato_musical
+    multi_voz = len(roster) > 1 and categoria != "musica" and comportamento.multivoz
 
     novo_atendimento = account.atendimento_ouvinte_ativo
     pedido_musica = (
@@ -398,7 +405,7 @@ def resolver_musica_e_pedidos(entrada: EntradaEmissao, decisao: DecisaoBloco, po
                  novo_atendimento=novo_atendimento, pedido_musica=pedido_musica,
                  pedido_sem_resultado=pedido_sem_resultado, musica=musica)
     # Com relogio (D2) a janela de musica nao tem fala tambem no formato padrao, exceto pedido real.
-    if (formato_musical or (plano is not None and plano.musica_sem_fala)) and categoria == "musica" \
+    if (comportamento.musica_sem_fala or (plano is not None and plano.musica_sem_fala)) and categoria == "musica" \
             and musica is not None and pedido_musica is None:
         return ResolucaoBloco(so_musica=True, **comum)
 
@@ -574,7 +581,8 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
     """Fase 3. A ordem das chamadas abaixo é a do router antigo (sorteios, rotações e leituras)."""
     account, radialista, programa = entrada.account, entrada.radialista, entrada.programa
     tipo, categoria, plano = decisao.tipo, decisao.categoria, decisao.plano
-    formato_musical, ultima_categoria = entrada.formato_musical, decisao.ultima_categoria
+    formato, ultima_categoria = entrada.formato, decisao.ultima_categoria
+    comportamento = formato.comportamento
     agora_local, multi_voz = resolucao.agora_local, resolucao.multi_voz
     novo = resolucao.novo_atendimento
 
@@ -590,9 +598,7 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
     if quadro is None and categoria in ("comentario", "noticia", "chamada_ouvinte") and programa.assuntos_ao_vivo:
         sugerido = portas.proxima_variacao(programa.id, "assunto_ao_vivo", programa.assuntos_ao_vivo)
 
-    roteiro = tuple(t.strip() for t in programa.estrutura_blocos if t.strip()) or (
-        ROTEIRO_MUSICAL if formato_musical else ROTEIRO_PADRAO
-    )
+    roteiro = tuple(t.strip() for t in programa.estrutura_blocos if t.strip()) or formato.roteiro_padrao
     categorias_roteiro = tuple(
         None if _VINHETA_RE.match(t) or _PATROCINADOR_RE.match(t) or t in ("retomada", "identificacao")
         else portas.categoria_bloco(t)
@@ -607,12 +613,12 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
     ajuste_energia = portas.ajuste_energia_meio_programa(programa, radialista.timezone) \
         if tipo != "encerramento" else None
     expressao_regional = None
-    if categoria not in _CATEGORIAS_NOTICIA_LIKE and not formato_musical:
+    if categoria not in _CATEGORIAS_NOTICIA_LIKE and comportamento.naturalidade_encenada:
         # Gírias/expressões regionais reais (Account.conhecimento_local), girando uma por vez.
         expressoes = (account.conhecimento_local or {}).get("expressoes_regionais") or []
         if expressoes:
             expressao_regional = portas.proxima_variacao(programa.id, "expressao_regional", expressoes)
-    sorteia_estilo = not formato_musical and categoria not in _CATEGORIAS_NOTICIA_LIKE
+    sorteia_estilo = comportamento.naturalidade_encenada and categoria not in _CATEGORIAS_NOTICIA_LIKE
     mudanca_de_ideia = sorteia_estilo and random.random() < _PROB_MUDANCA_DE_IDEIA
     imperfeicao = sorteia_estilo and random.random() < _PROB_IMPERFEICAO_GRAMATICAL
     modelo_com_tags = modelo_efetivo("tts", settings.elevenlabs_model) in MODELOS_COM_TAGS
@@ -625,7 +631,7 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
                              {"quadro": quadro, "assunto": decisao.assunto, "sugerido": sugerido}, portas)
     fio = portas.fio_condutor(programa.id) if categoria == "encerramento" else None
 
-    sorteia_tempo = not formato_musical and tipo != "encerramento"
+    sorteia_tempo = comportamento.hora_e_marco and tipo != "encerramento"
     hora_certa = _hora_certa_por_extenso(agora_local) if sorteia_tempo and random.random() < _PROB_HORA_CERTA else None
     marco = portas.marco_tempo_programa(programa, radialista.timezone) \
         if sorteia_tempo and random.random() < _PROB_MARCO_TEMPO else None
@@ -639,15 +645,17 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
             portas.registrar_callback_musica(programa.id, f"{musica.titulo} - {musica.canal}", contexto_faixa)
 
     convite = None
-    if resolucao.pedido_ouvinte is None and (not formato_musical or categoria == "chamada_ouvinte"):
+    if resolucao.pedido_ouvinte is None and (comportamento.convite == "qualquer_bloco"
+                                              or categoria == "chamada_ouvinte"):
         convite = portas.proxima_variacao(programa.id, "convite_chamada_ouvinte", _VARIACOES_CONVITE_OUVINTE)
 
     # Orcamento de duracao da fala (F2): o do relogio quando ha', senao o do formato. As palavras do prompt e da
     # reescrita saem do ritmo da voz para esta categoria de bloco.
     orcamento = orcamento_para(
-        formato_do_programa(programa), tipo, decisao.primeira_fala,
+        formato, tipo, decisao.primeira_fala,
         teto_relogio_s=plano.orcamento_s[1] if plano is not None and plano.orcamento_s else None,
         minimo_relogio_s=plano.orcamento_s[0] if plano is not None and plano.orcamento_s else None,
+        quadro=eh_quadro_fixo(programa, tipo),  # F6: unidade de quadro nos formatos que a declaram (variedades)
     )
     categoria_voz = categoria_ritmo(tipo)
     wpm_fala = entrada.ritmos_voz.wpm(categoria_voz)
@@ -678,7 +686,7 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
     ctx = ContextoEmissao(
         request_id=entrada.request_id, account=account, radialista=radialista, programa=programa,
         tipo=tipo, categoria=categoria, primeira_fala=decisao.primeira_fala, total_falas=entrada.total_falas,
-        passos_roteiro=decisao.passos_roteiro, formato_musical=formato_musical, multi_voz=multi_voz,
+        passos_roteiro=decisao.passos_roteiro, formato_musical=entrada.formato_musical, multi_voz=multi_voz,
         roster=resolucao.roster, roteiro=roteiro, categorias_roteiro=categorias_roteiro,
         tempo=Tempo(agora_local=agora_local, instante=instante,
                     origem_instante=decisao.origem_instante,
@@ -689,7 +697,7 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
             tocou=tuple(tocou), confirmada=MusicaRef.de(musica) if musica is not None else None,
             citaveis=tuple(citaveis),
             pedido_sem_resultado=resolucao.pedido_sem_resultado,
-            resolve_citadas=not (categoria == "musica" and (formato_musical or plano is not None)),
+            resolve_citadas=not (categoria == "musica" and (comportamento.uma_faixa_por_bloco or plano is not None)),
             contexto_faixa=contexto_faixa,
         ),
         participacao=Participacao(
@@ -719,7 +727,7 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
         jornalismo=jornalismo,
         orcamento=orcamento, wpm_fala=wpm_fala, categoria_voz=categoria_voz, limite_palavras=limite_palavras,
         prompt_base=prompt_base, modelo_com_tags=modelo_com_tags, dados=dados,
-        clima_ja_mencionado=clima_ja_mencionado,
+        clima_ja_mencionado=clima_ja_mencionado, formato=formato,
     )
     # O que este bloco cumpre e as contingências que ele diz (F4), com o contexto completo.
     a_cumprir, contingencias = a_cumprir_e_contingencias(ctx)

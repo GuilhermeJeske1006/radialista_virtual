@@ -74,6 +74,7 @@ class Bloco:
     sinteses_tts: int | None = None
     inicio_bruto_s: float | None = None
     inicio_previsto_s: float | None = None
+    primeira_fala: bool = False
 
 
 class Emissao:
@@ -201,6 +202,7 @@ class Emissao:
             chamadas_llm=delta["gerar_resposta"] + delta["gerar_dialogo_multivoz"],
             revisada=delta["revisoes"] > 0,
             inicio_bruto_s=round(self.inicio_bruto_s, 3), inicio_previsto_s=round(inicio_previsto, 3),
+            primeira_fala=self.ctx["total_falas"] == 0,
         )
         if resposta.status_code != 200:
             self.contagem["erros_http"] += 1
@@ -341,28 +343,26 @@ class Emissao:
             "texto": ((bloco.segmento or {}).get("fala") or "")[:200],
         })
 
-    def _orcamentos(self, segmento: dict, tipo: str, categoria: str) -> tuple[dict, dict]:
+    def _orcamentos(self, segmento: dict, tipo: str, categoria: str, primeira: bool = False) -> tuple[dict, dict]:
+        """(orçamento do evento, referência). A referência é a da fixture, ou a do catálogo de formatos quando a
+        simulação aplica o formato da fixture (F6: FixturePrograma.referencia)."""
         backend = segmento.get("orcamento_fala_s")
         if backend:
-            # F2: o orçamento que o backend aplicou (ou só observou), com a referência da fixture ao lado.
+            # F2: o orçamento que o backend aplicou (ou só observou), com a referência ao lado.
             _, referencia = self._orcamentos({k: v for k, v in segmento.items() if k != "orcamento_fala_s"},
-                                             tipo, categoria)
+                                             tipo, categoria, primeira)
             return {"min": backend["min_s"], "max": backend["max_s"], "alvo": backend["alvo_s"],
                     "fonte": backend["fonte"], "aplicado": backend["aplicado"]}, referencia
+        orcamento = self.fixture.referencia(tipo, categoria, primeira)
+        ref = {"min": orcamento.min, "max": orcamento.max,
+               "fonte": "catalogo" if self.fixture.orcamento_do_catalogo and orcamento.fonte.startswith("catalogo")
+               else "formato"}
         alvo = segmento.get("duracao_alvo_segundos")
         if alvo and segmento.get("relogio"):
-            # Com relógio, o orçamento é o do backend (backtiming) nos dois formatos.
-            orcamento = self.fixture.unidade_fala if self.fixture.formato_musical else \
-                self.fixture.orcamento_para(tipo, categoria)
-            return {"min": alvo[0], "max": alvo[1], "fonte": "relogio"}, \
-                {"min": orcamento.min, "max": orcamento.max, "fonte": "formato"}
+            # Com relógio, o orçamento é o do backend (backtiming) em todo formato.
+            return {"min": alvo[0], "max": alvo[1], "fonte": "relogio"}, ref
         if self.fixture.formato_musical:
-            referencia = self.fixture.unidade_fala
-            ref = {"min": referencia.min, "max": referencia.max, "fonte": "formato"}
-            alvo = segmento.get("duracao_alvo_segundos")
             return ({"min": alvo[0], "max": alvo[1], "fonte": "backend"} if alvo else dict(ref)), ref
-        orcamento = self.fixture.orcamento_para(tipo, categoria)
-        ref = {"min": orcamento.min, "max": orcamento.max, "fonte": "formato"}
         return dict(ref), ref
 
     def _evento(self, bloco: Bloco, plano: dict, inicio: float, fim: float, pausa: float,
@@ -372,7 +372,8 @@ class Emissao:
         categoria = categoria_do_tipo(tipo_bloco)
         texto = plano.get("texto") or ""
         eh_fala = plano["tipo"] == "fala"
-        orcamento, referencia = self._orcamentos(segmento, tipo_bloco, categoria) if eh_fala else (None, None)
+        orcamento, referencia = self._orcamentos(segmento, tipo_bloco, categoria, bloco.primeira_fala) \
+            if eh_fala else (None, None)
         musica = plano.get("musica")
         prevista = self._estimar(texto) if eh_fala else plano["duracao"]
         relogio = segmento.get("relogio")

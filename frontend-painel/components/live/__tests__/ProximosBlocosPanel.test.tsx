@@ -1,11 +1,17 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import ProximosBlocosPanel from "../ProximosBlocosPanel";
 import { PROGRAMA_VAZIO, Programa } from "../../../lib/types";
+import { apiFetch } from "../../../lib/api";
+import { formatosFixture } from "../../../lib/__tests__/formatosFixtures";
 
 vi.mock("../../../lib/api", () => ({
   apiFetch: vi.fn().mockResolvedValue([]),
 }));
+
+afterEach(() => {
+  vi.mocked(apiFetch).mockReset().mockResolvedValue([]);
+});
 
 function programa(overrides: Partial<Programa> = {}): Programa {
   return { ...PROGRAMA_VAZIO, id: 1, radio_config_id: 1, ...overrides };
@@ -90,19 +96,83 @@ describe("ProximosBlocosPanel", () => {
   });
 });
 
-it("prévia musical acompanha o ciclo do backend e não promete comentários extras", async () => {
-  const { rerender } = render(<ProximosBlocosPanel programa={programa({ perfil_programacao: "musical_companhia" })} totalFalas={0} />);
-  await screen.findByText("Próximos blocos");
-  let textos = textosDosBlocos();
-  expect(textos[0]).toContain("Abertura");
-  expect(textos[1]).toContain("Música");
-  expect(textos[2]).toContain("Música");
-  expect(textos[3]).toContain("Identificação curta");
-  expect(screen.queryByText(/A IA pode ocasionalmente/)).not.toBeInTheDocument();
-  rerender(<ProximosBlocosPanel programa={programa({ perfil_programacao: "musical_companhia" })} totalFalas={6} />);
-  textos = textosDosBlocos();
-  expect(textos[0]).toContain("Retomada");
-  expect(textos.some((t) => t.includes("Abertura"))).toBe(false);
+it.each(["musical_companhia", "musical_adulto"])(
+  "prévia musical (%s) acompanha o ciclo do backend e não promete comentários extras",
+  async (perfil_programacao) => {
+    const { rerender } = render(<ProximosBlocosPanel programa={programa({ perfil_programacao })} totalFalas={0} />);
+    await screen.findByText("Próximos blocos");
+    let textos = textosDosBlocos();
+    expect(textos[0]).toContain("Abertura");
+    expect(textos[1]).toContain("Música");
+    expect(textos[2]).toContain("Música");
+    expect(textos[3]).toContain("Identificação curta");
+    expect(screen.queryByText(/A IA pode ocasionalmente/)).not.toBeInTheDocument();
+    rerender(<ProximosBlocosPanel programa={programa({ perfil_programacao })} totalFalas={6} />);
+    textos = textosDosBlocos();
+    expect(textos[0]).toContain("Retomada");
+    expect(textos.some((t) => t.includes("Abertura"))).toBe(false);
+  },
+);
+
+describe("ProximosBlocosPanel com os formatos da F6 (roteiro do formato com a estrutura vazia)", () => {
+  it("popular/sertanejo: abertura na largada e depois o roteiro do formato pelo deslocamento (n-1)", async () => {
+    render(<ProximosBlocosPanel programa={programa({ perfil_programacao: "popular_sertanejo" })} totalFalas={0} />);
+    await screen.findByText("Próximos blocos");
+    const textos = textosDosBlocos();
+    expect(textos[0]).toContain("Abertura");
+    expect(textos[1]).toContain("Música");
+    expect(textos[2]).toContain("Chamada ao ouvinte");
+    expect(textos[3]).toContain("Música");
+    expect(textos[4]).toContain("Comentário");
+    // D23: o popular respeita a flag do programa (PROGRAMA_VAZIO liga os blocos extras).
+    expect(screen.getByText(/A IA pode ocasionalmente/)).toBeInTheDocument();
+  });
+
+  it("variedades leves: roteiro próprio e sem o aviso de blocos extras quando o programa desliga a flag", async () => {
+    render(
+      <ProximosBlocosPanel
+        programa={programa({ perfil_programacao: "variedades_leves", ia_pode_adicionar_blocos: false })}
+        totalFalas={1}
+      />,
+    );
+    await screen.findByText("Próximos blocos");
+    const textos = textosDosBlocos();
+    expect(textos[0]).toContain("Música");
+    expect(textos[1]).toContain("Comentário");
+    expect(textos[2]).toContain("Música");
+    expect(textos[3]).toContain("Chamada ao ouvinte");
+    expect(textos[4]).toContain("Música");
+    expect(screen.queryByText(/A IA pode ocasionalmente/)).not.toBeInTheDocument();
+  });
+
+  it("com estrutura personalizada, o formato novo segue a sequência do programa em loop", async () => {
+    render(
+      <ProximosBlocosPanel
+        programa={programa({ perfil_programacao: "popular_sertanejo", estrutura_blocos: ["musica", "retomada"] })}
+        totalFalas={0}
+      />,
+    );
+    await screen.findByText("Próximos blocos");
+    const textos = textosDosBlocos();
+    expect(textos[0]).toContain("Música");
+    expect(textos[1]).toContain("Retomada");
+    expect(textos[2]).toContain("Música");
+  });
+
+  it("a lista de GET /config/formatos prevalece sobre o espelho local", async () => {
+    const lista = formatosFixture().map((f) =>
+      f.id === "popular_sertanejo" ? { ...f, roteiro_padrao: ["noticia", "musica"] } : f,
+    );
+    vi.mocked(apiFetch).mockImplementation((path: string) =>
+      Promise.resolve(path === "/config/formatos" ? lista : []),
+    );
+    render(<ProximosBlocosPanel programa={programa({ perfil_programacao: "popular_sertanejo" })} totalFalas={1} />);
+    expect((await screen.findAllByText("Notícia")).length).toBeGreaterThan(0);
+    const textos = textosDosBlocos();
+    expect(textos[0]).toContain("Notícia");
+    expect(textos[1]).toContain("Música");
+    expect(textos[2]).toContain("Notícia");
+  });
 });
 
 describe("ProximosBlocosPanel com relógio da hora", () => {

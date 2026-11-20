@@ -1,4 +1,9 @@
-"""Direção editorial do formato musical, independente de fornecedores de IA."""
+"""Constantes do formato musical e compatibilidade com o catálogo de formatos (F6).
+
+Continua dono dos números e roteiros de antes da F6 (`ROTEIRO_PADRAO`, `ROTEIRO_MUSICAL`, `ORCAMENTOS`) e dos
+utilitários de texto; o catálogo (`app.live.formatos`) os lê daqui sem copiar. `musical_companhia` e
+`direcao_musical` delegam ao catálogo com importação tardia (o catálogo importa este módulo).
+"""
 import re
 import unicodedata
 
@@ -20,7 +25,10 @@ ORCAMENTOS = {
 
 
 def musical_companhia(programa) -> bool:
-    return getattr(programa, "perfil_programacao", "padrao") == "musical_companhia"
+    """O programa segue o ciclo musical (`musical_adulto` ou o alias `musical_companhia`)."""
+    from app.live.formatos import formato_do_programa
+
+    return formato_do_programa(programa).comportamento.ciclo == "musical"
 
 
 def orcamento_fala(tipo: str, primeira: bool = False) -> tuple[int, int, int]:
@@ -41,26 +49,8 @@ def _tipo_fala(tipo: str) -> str:
 
 
 def direcao_musical(tipo: str, primeira: bool = False, orcamento: tuple[int, int, int] | None = None) -> str:
-    """`orcamento` (mínimo s, máximo s, palavras) substitui o de ORCAMENTOS quando o relógio da hora
-    (app.live.relogio) calculou o espaço deste bloco."""
-    tipo = _tipo_fala(tipo)
-    minimo, maximo, palavras = orcamento or orcamento_fala(tipo, primeira)
-    funcao = {
-        "abertura": "Receba o ouvinte e apresente o programa uma única vez." if primeira else
-        "Faça uma retomada breve; o programa já está em andamento.",
-        "retomada": "Faça uma retomada breve; o programa já está em andamento.",
-        "identificacao": "Diga apenas o nome da rádio ou do programa e uma assinatura curta.",
-        "musica": "Anuncie brevemente a faixa confirmada e o pedido real, quando fornecido.",
-        "encerramento": "Despeça-se do programa. Não prometa retorno após intervalo.",
-    }.get(tipo, "Cumpra somente a função deste bloco, de forma breve.")
-    return (
-        "FORMATO MUSICAL DE COMPANHIA: a música ocupa o centro do programa. "
-        f"{funcao} Meta de locução: {minimo} a {maximo} segundos, no máximo {palavras} palavras. "
-        "Esta duração substitui a orientação genérica de quatro a seis frases. "
-        "Fale com proximidade e energia moderada; use português coloquial, sem linguagem de publicidade "
-        "genérica, adjetivos em série, hesitações encenadas ou risadas obrigatórias. "
-        "Não acrescente assunto, hora, clima, pergunta, convite ao WhatsApp ou gancho só para preencher. "
-        "Não anuncie cada música da sequência, não peça [BLOCO_MUSICAS:N] e não invente vinhetas. "
-        "Não prometa intervalo, retorno ou conteúdo futuro sem programação confirmada. "
-        "Mantenha as regras factuais e de atendimento dos pedidos reais."
-    )
+    """Direção do formato musical (texto inalterado desde a F2). `orcamento` (mínimo s, máximo s, palavras) substitui
+    o de ORCAMENTOS quando o relógio da hora (app.live.relogio) calculou o espaço deste bloco."""
+    from app.live.formatos import ID_MUSICAL, direcao_formato
+
+    return direcao_formato(ID_MUSICAL, tipo, primeira, orcamento)

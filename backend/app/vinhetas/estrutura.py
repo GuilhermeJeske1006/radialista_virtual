@@ -8,7 +8,7 @@ import re
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 
-from app.live.formato import ROTEIRO_MUSICAL, ROTEIRO_PADRAO, musical_companhia
+from app.live.formatos import formato_do_programa
 from app.models.biblioteca_audio import BibliotecaAudioItem
 from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
@@ -61,8 +61,9 @@ def _posicao_passagem(estrutura: list[str]) -> int:
 
 def roteiro_base(programa: Programa) -> list[str]:
     """Roteiro que o ao vivo usaria com a estrutura vazia -- materializado antes de inserir as
-    vinhetas, senao a estrutura ficaria so' com vinhetas e o programa perderia o roteiro padrao."""
-    return list(ROTEIRO_MUSICAL) if musical_companhia(programa) else list(ROTEIRO_PADRAO)
+    vinhetas, senao a estrutura ficaria so' com vinhetas e o programa perderia o roteiro padrao (o do formato do
+    programa, app.live.formatos)."""
+    return list(formato_do_programa(programa).roteiro_padrao)
 
 
 def inserir_vinhetas_na_estrutura(programa: Programa, vinhetas: list[BibliotecaAudioItem]) -> list[str]:
