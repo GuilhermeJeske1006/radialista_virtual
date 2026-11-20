@@ -102,6 +102,18 @@ class RadioContaRequest(BaseModel):
     tipo_radio: str = ""
     conhecimento_local: ConhecimentoLocal = Field(default_factory=ConhecimentoLocal)
     biblia_radio: BibliaRadio = Field(default_factory=BibliaRadio)
+    # F9 (app.tts.glossario): glossário de pronúncia da rádio. Gravado inteiro pelo PUT, como os demais campos.
+    glossario_pronuncia: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("glossario_pronuncia")
+    @classmethod
+    def _glossario_limpo(cls, valor: dict[str, str]) -> dict[str, str]:
+        from app.tts.glossario import MAX_TERMOS_RADIO, normalizar_glossario
+
+        try:
+            return normalizar_glossario(valor, MAX_TERMOS_RADIO)
+        except ValueError as erro:
+            raise ValueError(f"glossário de pronúncia: {erro}") from erro
 
 
 class RadioContaResponse(RadioContaRequest):

@@ -18,7 +18,8 @@ def test_tipo_real_define_ajustes(db_session, account, monkeypatch, categoria, c
 def test_padrao_do_servidor_tambem_consulta_categoria(db_session, account, monkeypatch):
     monkeypatch.setattr("app.tts.profiles.settings.elevenlabs_voice_id", "padrao-real")
     monkeypatch.setattr("app.tts.profiles.obter_metadados_voz", lambda _: {"categoria": "professional"})
-    assert parametros_sintese(db_session, account.id, None) == {"eh_clonada": False}
+    # F9: o glossário efetivo (vazio sem glossário da rádio) sempre acompanha os parâmetros.
+    assert parametros_sintese(db_session, account.id, None) == {"eh_clonada": False, "pronuncias": {}}
     assert db_session.get(MetadadosVoz, "padrao-real").categoria == "professional"
 
 
