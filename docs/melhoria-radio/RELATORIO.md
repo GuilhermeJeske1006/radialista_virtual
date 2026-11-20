@@ -383,3 +383,19 @@ Next 16); não conta como regressão.
   - **Aceite do plano** (nenhuma abertura igual em 3 seguidas na simulação LLM de 1 h): depende de `--modo llm` com
     aprovação de custo.
 - Detalhes em [`f8/testes.md`](f8/testes.md).
+
+### F9 — Glossário de pronúncia — PARCIAL (glossário da rádio e sugestões prontos; STT e painel pendentes)
+
+- Branch: `melhoria/f9-glossario` (a partir de `melhoria/f8-memoria`). Sem push.
+- Commits: `75358ae` (glossário da rádio, precedência, sugestões), `42f325a` (stubs de síntese aceitam `pronuncias`).
+- Entregas:
+  - **Glossário por rádio** (`Account.glossario_pronuncia`, migração aditiva): mesclado com o da voz em
+    `parametros_sintese`; a voz sobrescreve na mesma chave, sem diferença de caixa.
+  - **Validação na API**: até 100 termos, 60 caracteres cada, sem vazio nem duplicata.
+  - **Sugestões** (`app/tts/glossario.py::sugerir_termos`): siglas e nomes com w/y/k/ph, sem empréstimos comuns.
+- Portão (ver [`f9/portao.md`](f9/portao.md)): suíte completa **2348 passed, 3 skipped**, 0 falhas, cobertura 89%; ruff ok.
+  Painel não rodado (sem mudança).
+- Pendências:
+  - **Passo 3 (STT)**: não feito. Exige créditos de STT e aprovação.
+  - **Painel (CRUD do glossário da rádio)**: não feito. O backend já aceita e devolve o campo.
+- Detalhes em [`f9/testes.md`](f9/testes.md).
