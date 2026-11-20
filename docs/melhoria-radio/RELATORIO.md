@@ -210,7 +210,7 @@ Next 16); não conta como regressão.
   estado marcado na geração, não na reprodução (F11); pedido legado selecionado sem confirmação fica preso até a
   equipe reenfileirar; fallback do painel em `useLiveEngine.ts` ainda diz "já volto com mais uma novidade".
 
-### F5 — Fontes, validade e dados verificáveis — IMPLEMENTADA (portão local verde; portão independente e juiz pendentes)
+### F5 — Fontes, validade e dados verificáveis — CONCLUÍDA (portão local e independente verdes; rubrica do juiz e S4 pendentes de custo)
 
 - Branch: `melhoria/f5-fontes` (a partir de `integracao/whatsapp-pos-f4`, `6ca7049`), worktree `locufy-radio`.
 - Integração solicitada pelo usuário: o merge com `f1efbba` incorpora também o fechamento documental da integração pós-F4; todo o código de WhatsApp, conversas, contexto e demais frentes já está nesta F5. Histórico e validação em [árvore de commits](../arvore-commits.md).
@@ -246,6 +246,7 @@ Next 16); não conta como regressão.
   chave eram o dobro (ex.: `promessa_sem_evento: 2` → 1).
 - Decisões D1 a D18 adotadas pelo padrão da auditoria, a confirmar; uma escolha minha fora do texto: o contexto da faixa
   conta como cobertura extra (D17), a mensagem do ouvinte não.
+- Portão independente: [`f5/portao.md`](f5/portao.md) (1901 passed, 3 skipped, 88%; vitest 354; tsc ok; reprodução do musical idêntica).
 - Pendências: [`f5/pendencias.md`](f5/pendencias.md) — falsos positivos com texto real não medidos (`--modo llm`);
   cobertura por tipo larga (clima válido cobre qualquer condição); o WhatsApp reaproveita a fala confirmada sem a
   validade dos dados; `gerarFalaLocal` do painel ainda promete conteúdo.
