@@ -332,3 +332,29 @@ Next 16); não conta como regressão.
   pela meta; teto de palavras na identificação dos formatos novos; `ORCAMENTOS` do musical × link de 10–35 s (D5);
   reorientação com memória no `/proxima` (F8); `ehMusical` do painel é pelo id (um formato futuro com ciclo musical
   pede atualização do painel); painel não conferido no navegador.
+
+### F7 — Persona e oralidade — PARCIAL (persona e verificador prontos; juiz e redução pendentes de custo)
+
+- Branch: `melhoria/f7-persona` (a partir de `integracao/whatsapp-pos-f4`, com o merge da F6). Sem push.
+- Commits: `6d24193` (verificador de oralidade), `d45cced` (persona no prompt e no contrato), `edaa3b2` (painel),
+  `db3b283` (portão, testes e correção da expectativa de oralidade no simulador).
+- Entregas:
+  - **Persona por programa** (`backend/app/live/persona.py`): escalas proximidade, formalidade, energia, humor e ritmo
+    de 1 a 5, e até 5 exemplos de até 280 caracteres. Coluna JSON nula em `programas` (migração aditiva). Sem persona,
+    nenhuma linha vai ao prompt; goldens e simulações sem persona não mudam.
+  - **Regra de não imitar apresentador real**: no prompt (repetida em cada persona) e como aviso no painel. O código não
+    detecta imitação; a responsabilidade é do operador e da revisão.
+  - **Verificador de oralidade** (`backend/app/live/oralidade.py`): aponta frase longa, mais de uma ideia, sigla sem
+    expansão na primeira ocorrência, número longo (dígitos e por extenso) e vocabulário burocrático. Só aponta, não
+    reescreve. A métrica `aviso_oralidade` do simulador passa a contar avisos (antes null).
+  - **Painel** (`components/PersonaPrograma.tsx`): ativar e remover persona, escalas 1 a 5, exemplos com aviso acima de 5
+    e de 280 caracteres.
+- Portão (ver [`f7/portao.md`](f7/portao.md)): suíte completa 2308 passed, 1 failed (teste de simulador, corrigido depois;
+  só o teste corrigido foi rodado de novo); tests focados 69 passed + 29 do simulador; vitest 394; tsc ok; ruff ok;
+  simulador sem persona idêntico à F5.
+- Pendências (aceite do plano, não atendidos):
+  - **Juiz de clareza e naturalidade ≥ 4/5**: depende de `--modo llm` com aprovação de custo. Não rodado.
+  - **Redução ≥ 50% de avisos de oralidade**: depende de reescrita com LLM e medição antes/depois. Não medido. O
+    verificador já está pronto; a reescrita opcional não foi implementada.
+  - **Persona no painel no navegador**: não conferido.
+- Detalhes em [`f7/testes.md`](f7/testes.md).
