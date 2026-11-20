@@ -346,7 +346,10 @@ def test_metricas_em_as_run_artificial():
 
     falas = [e for e in _as_run_artificial()["eventos"] if e.get("texto")]
     assert m["aviso_oralidade"] == sum(len(avisos(e["texto"])) for e in falas)
-    assert m["repeticao_estrutura"] is None
+    # F8: repetição por estrutura sobre as mesmas falas (não mais None).
+    from app.live.memoria import repeticao_estrutura
+
+    assert m["repeticao_estrutura"] == repeticao_estrutura([e["texto"] for e in falas], 3)
 
     # Controle negativo: sem as violações, as contagens zeram.
     limpo = _as_run_artificial()

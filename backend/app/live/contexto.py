@@ -450,54 +450,9 @@ def _hora_certa_por_extenso(agora: datetime.datetime) -> str:
     return f"{hora_extenso} e {numero_por_extenso(agora.minute)}"
 
 
-_FRASE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
-
-
-# tag de direcao vocal do eleven_v3 que o LLM pode inserir inline na fala (ver instrucao
-# condicional em gerar_proxima_fala) -- removida antes de citar a frase de volta no prompt, pra
-# nao confundir o LLM com uma tag que nao faz parte do texto falado de verdade.
-_TAG_V3_DISPLAY_RE = re.compile(r"\[[a-zA-Z_]+\]\s*")
-_MAX_CHARS_FRASE_HISTORICO = 80
-
-
-def _frases(texto: str) -> list[str]:
-    texto_limpo = _TAG_V3_DISPLAY_RE.sub("", texto).strip()
-    return [f.strip() for f in _FRASE_SPLIT_RE.split(texto_limpo) if f.strip()]
-
-
-def _primeira_frase(texto: str) -> str:
-    frases = _frases(texto)
-    return frases[0][:_MAX_CHARS_FRASE_HISTORICO] if frases else ""
-
-
-def _ultima_frase(texto: str) -> str:
-    frases = _frases(texto)
-    return frases[-1][:_MAX_CHARS_FRASE_HISTORICO] if frases else ""
-
-
-# Quantas falas recentes (do mesmo tipo de bloco) considerar pro aviso de nao repetir
-# abertura/fechamento no prompt -- nao precisa cobrir toda a janela de _historico_falas, so as
-# poucas mais recentes bastam pra pegar o padrao mais obvio de repeticao.
-_MAX_ABERTURAS_FECHAMENTOS_NO_PROMPT = 5
-
-
-def _aberturas_e_fechamentos(historico_falas: list[str]) -> tuple[list[str], list[str]]:
-    """Primeira e ultima frase das falas recentes do mesmo tipo de bloco (ver _historico_falas) --
-    usado pro prompt avisar o LLM a nao repetir o mesmo padrao de abertura/fechamento entre voltas
-    do roteiro (ex: sempre comecar com "e ai galera" ou sempre fechar com "fica com a gente"),
-    problema que o aviso generico de "nao repita a mesma abertura" (ver introducao_ao_vivo) sozinho
-    nao resolve sem exemplos concretos do que ja foi usado.
-    """
-    aberturas: list[str] = []
-    fechamentos: list[str] = []
-    for fala_anterior in historico_falas[:_MAX_ABERTURAS_FECHAMENTOS_NO_PROMPT]:
-        primeira = _primeira_frase(fala_anterior)
-        ultima = _ultima_frase(fala_anterior)
-        if primeira:
-            aberturas.append(primeira)
-        if ultima and ultima != primeira:
-            fechamentos.append(ultima)
-    return aberturas, fechamentos
+from app.live.memoria import aberturas_e_fechamentos as _aberturas_e_fechamentos  # noqa: E402
+from app.live.memoria import primeira_frase as _primeira_frase  # noqa: E402,F401 -- reexportado (router e testes)
+from app.live.memoria import ultima_frase as _ultima_frase  # noqa: E402,F401 -- reexportado (router e testes)
 
 
 def _temas(entrada: EntradaEmissao, categoria: str, portas: PortasEmissao) -> tuple[list[str], str | None]:

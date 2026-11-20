@@ -26,6 +26,8 @@ CONFIG_METRICAS = {
     # Construções que o banco de falas do dublê só usa com pedido real (tests/test_simular_hora.py).
     "pedido_indevido": {"padroes": ["toca agora", "pediu"]},
     "abertura_repetida": {"palavras": 3, "seguidas": 3},
+    # F8 (passo 2): mesma construção de abertura (app.live.memoria.abertura_da_fala) em N falas seguidas.
+    "repeticao_estrutura": {"seguidas": 3},
     "hard_time": {"tolerancia_s": 5.0},
     # F2: teto do orçamento (app.config.settings.fala_teto_orcamento) e quantas falas medidas contam como
     # "antes da calibração" (fala_calibracao_min_amostras). Repetidos aqui para o módulo não importar app.*.
@@ -309,6 +311,15 @@ def _abertura_repetida(falas: list[dict], config: dict) -> int:
     )
 
 
+def _repeticao_estrutura(falas: list[dict], config: dict) -> int | None:
+    """F8: janelas de falas seguidas com a mesma abertura reconhecida. None quando o módulo da F8 não existe."""
+    try:
+        from app.live.memoria import repeticao_estrutura  # type: ignore[attr-defined]
+    except ImportError:
+        return None
+    return repeticao_estrutura([f["texto"] for f in falas], config["repeticao_estrutura"]["seguidas"])
+
+
 def _aviso_oralidade(falas: list[dict]) -> int | None:
     """Contagem do verificador de oralidade da F7, quando app/live/oralidade.py existir."""
     try:
@@ -492,7 +503,7 @@ def calcular_metricas(as_run: dict, config: dict | None = None) -> dict:
         "silencio_s": silencio,
         "silencio_editorial_s": silencio_editorial,
         "aviso_oralidade": _aviso_oralidade(falas),
-        "repeticao_estrutura": None,
+        "repeticao_estrutura": _repeticao_estrutura(falas, config),
         "tempo_fala_s": soma({"fala"}),
         "tempo_musica_s": soma({"musica"}),
         "tempo_outros_s": soma({e["tipo"] for e in eventos} - tipos_conhecidos),

@@ -79,44 +79,7 @@ def _limpar_fala(fala: str) -> str:
     return texto
 
 
-# Sobreposicao de palavras (Jaccard) a partir da qual duas falas do mesmo tipo de bloco sao
-# tratadas como repeticao. Falas muito curtas (menos que isso de palavras) nao entram na
-# checagem -- sobreposicao alta em frase curta e normal, nao indica repeticao.
-_LIMIAR_SIMILARIDADE_REPETICAO = 0.6
-_MIN_PALAVRAS_SIMILARIDADE = 5
-
-_PONTUACAO_RE = re.compile(r"[^\w\s]")
-
-
-def _palavras_normalizadas(texto: str) -> set[str]:
-    sem_acento = _sem_acento(texto.lower())
-    sem_pontuacao = _PONTUACAO_RE.sub(" ", sem_acento)
-    return {p for p in sem_pontuacao.split() if p}
-
-
-def _fala_semelhante_no_historico(fala: str, historico_falas: list[str]) -> str | None:
-    """Rede de seguranca em runtime: mesmo com as instrucoes de variacao no prompt, o LLM as
-    vezes ainda produz uma fala quase igual a uma de varios blocos atras (janela enviada ao
-    prompt so cobre as ultimas falas). Compara por sobreposicao de palavras contra o historico
-    da sessao pro mesmo tipo de bloco; devolve a fala anterior que colidiu (pra citar no retry),
-    ou None se nao achou repeticao.
-    """
-    palavras_fala = _palavras_normalizadas(fala)
-    if len(palavras_fala) < _MIN_PALAVRAS_SIMILARIDADE:
-        return None
-    for anterior in historico_falas:
-        palavras_anterior = _palavras_normalizadas(anterior)
-        if len(palavras_anterior) < _MIN_PALAVRAS_SIMILARIDADE:
-            continue
-        uniao = palavras_fala | palavras_anterior
-        if not uniao:
-            continue
-        similaridade = len(palavras_fala & palavras_anterior) / len(uniao)
-        if similaridade >= _LIMIAR_SIMILARIDADE_REPETICAO:
-            return anterior
-    return None
-
-
+from app.live.memoria import fala_semelhante_no_historico as _fala_semelhante_no_historico  # noqa: E402
 _TAG_BLOCO_MUSICAS = re.compile(r"\[BLOCO_MUSICAS:\s*(\d)\]\s*$")
 
 
