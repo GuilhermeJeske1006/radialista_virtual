@@ -399,3 +399,19 @@ Next 16); não conta como regressão.
   - **Passo 3 (STT)**: não feito. Exige créditos de STT e aprovação.
   - **Painel (CRUD do glossário da rádio)**: não feito. O backend já aceita e devolve o campo.
 - Detalhes em [`f9/testes.md`](f9/testes.md).
+
+### F10 — Direção de som — PARCIAL (loudness por segmento pronta; itens 1 e 2 aguardam decisão)
+
+- Branch: `melhoria/f10-direcao-som` (a partir de `melhoria/f9-glossario`). Sem push.
+- Commit: `a9faee3` (módulo de loudness, testes e auditoria).
+- Entregas:
+  - **Item 3**: `app/postprod/loudness.py` mede a loudness integrada (LUFS, ffmpeg `ebur128`) e calcula a diferença de
+    cada segmento para a fala. Sem alvo universal. Testes: 6 dB de ganho viram 6 LUFS de diferença; arquivo inexistente
+    devolve None.
+- Portão (ver [`f10/portao.md`](f10/portao.md)): suíte completa **2353 passed, 3 skipped**, 0 falhas, cobertura 89%; ruff ok.
+- Pendências:
+  - **Item 1** (notícia grave sem sweeper de promoção): precisa decidir quais vinhetas são promoção e se a regra proíbe
+    adjacência ou só o sweeper. A inserção em `app/vinhetas/estrutura.py` é por índice.
+  - **Item 2** (ramp): conceito ausente no código. Precisa decidir se é fala sobre a introdução com início de vocal medido.
+  - **Relatório de loudness no `as_run.json`**: não integrado.
+- Detalhes em [`f10/auditoria.md`](f10/auditoria.md).
