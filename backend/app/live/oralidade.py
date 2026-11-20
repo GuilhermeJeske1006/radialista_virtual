@@ -164,3 +164,27 @@ def avisos(texto: str) -> list[Aviso]:
 
 
 verificar = avisos
+
+
+_INSTRUCAO_POR_REGRA = {
+    "frase_longa": "Quebre as frases longas em duas, com uma ideia em cada.",
+    "mais_de_uma_ideia": "Separe as ideias em frases curtas, uma ideia por frase.",
+    "sigla_sem_expansao": "Diga por extenso a sigla {trecho} na primeira vez que ela aparecer.",
+    "numero_longo": "Diga os números em partes curtas, sem sequência longa de números por extenso ou em dígitos.",
+    "burocratico": "Troque '{trecho}' por palavra do dia a dia.",
+}
+
+
+def instrucao_de_oralidade(lista: list[Aviso]) -> str:
+    """Texto para a reescrita única, uma linha por tipo de aviso (sem repetir). Vazio quando não há avisos."""
+    linhas: list[str] = []
+    for aviso in lista:
+        modelo = _INSTRUCAO_POR_REGRA.get(aviso.regra)
+        if modelo is None:
+            continue
+        linha = modelo.format(trecho=aviso.trecho)
+        if linha not in linhas:
+            linhas.append(linha)
+    if not linhas:
+        return ""
+    return "Oralidade: " + " ".join(linhas)

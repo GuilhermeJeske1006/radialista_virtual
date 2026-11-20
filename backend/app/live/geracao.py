@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from app.config.settings import settings
 from app.live.formato import contar_palavras
+from app.live.oralidade import instrucao_de_oralidade
 from app.live.orcamento import (
     OrcamentoFala,
     acima_da_tolerancia,
@@ -195,6 +196,22 @@ def _gerar_falas_bloco(ctx, mensagem: str, system: str, portas: PortasEmissao) -
     return [], fala_reserva_neutra(ctx)
 
 
+def _avisos_oralidade(fala: str, ctx) -> list:
+    """F7: avisos do verificador de oralidade da fala. Vazio quando `oralidade_modo` é "desligado"; em "avisar" só
+    registra; em "reescrever" devolve os avisos para entrar na reescrita única."""
+    modo = settings.oralidade_modo
+    if modo == "desligado" or not fala.strip():
+        return []
+    from app.live.oralidade import avisos
+
+    encontrados = avisos(fala)
+    if encontrados:
+        logger.info("live_oralidade_aviso request_id=%s programa_id=%s tipo=%s modo=%s regras=%s",
+                    ctx.request_id, ctx.programa.id, ctx.tipo, modo,
+                    ",".join(sorted({a.regra for a in encontrados})))
+    return encontrados if modo == "reescrever" else []
+
+
 def gerar_fala(ctx, prompt: PromptEmissao, portas: PortasEmissao,
                checar_pre: Callable[[str], list] | None = None) -> FalaGerada:
     """Gera a fala do bloco. `checar_pre(fala)` devolve as violações da fase "pre" do validador
@@ -210,6 +227,9 @@ def gerar_fala(ctx, prompt: PromptEmissao, portas: PortasEmissao,
     excedeu_duracao = acima_da_tolerancia(estimada_inicial, orcamento)
     pauta, pesquisa = ctx.jornalismo.pauta, ctx.jornalismo.pesquisa
     violacoes_pre = list(checar_pre(fala)) if checar_pre is not None else []
+    # F7: avisos de oralidade entram na MESMA reescrita única, só com `oralidade_modo == "reescrever"`.
+    avisos_oralidade = _avisos_oralidade(fala, ctx)
+    instrucao_oralidade = instrucao_de_oralidade(avisos_oralidade)
     # Atribuição só é checada quando há UM fato central na pauta -- escalada lista várias manchetes.
     falta_atribuicao = (
         categoria in _CATEGORIAS_NOTICIA_LIKE
@@ -226,7 +246,10 @@ def gerar_fala(ctx, prompt: PromptEmissao, portas: PortasEmissao,
         # Locutor narrando a propria regra ("sem especular") em vez de noticiar.
         frase_proibida=frase_proibida_em(fala) if categoria in _CATEGORIAS_NOTICIA_LIKE else None,
         falta_atribuicao=falta_atribuicao,
-        instrucoes_extras=tuple(dict.fromkeys(v.instrucao_retry for v in violacoes_pre if v.instrucao_retry)),
+        instrucoes_extras=tuple(dict.fromkeys(
+            [v.instrucao_retry for v in violacoes_pre if v.instrucao_retry]
+            + ([instrucao_oralidade] if instrucao_oralidade else [])
+        )),
     )
     fala_ajuste = "nenhum"
     if motivos.algum:

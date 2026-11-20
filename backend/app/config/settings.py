@@ -147,6 +147,10 @@ class Settings(BaseSettings):
     # F5 (D7): afirmação de dado sem fonte ou vencido (app.dados.checagem: temperatura, tempo, trânsito, placar,
     # promoção). Um campo para as duas regras, "avisar" se o detector der falso positivo com LLM real.
     validacao_dados_modo: Literal["corrigir", "avisar"] = "corrigir"
+    # F7 (reescrita opcional de oralidade, app.live.oralidade): "desligado" (padrão, nada muda); "avisar" só registra
+    # no log; "reescrever" põe o aviso nas instruções da reescrita única que já existe. Não cria chamada ao LLM:
+    # continua no máximo de duas por fala. Ligar só com aprovação, porque a reescrita aumenta o custo.
+    oralidade_modo: Literal["desligado", "avisar", "reescrever"] = "desligado"
     # Fala que o encurtamento ou o validador deixaram abaixo de (fração x mínimo do orçamento) não vai ao ar: vira só
     # música ou a reorientação neutra. 0 desliga.
     validacao_fala_minimo_fracao: float = 1.0
