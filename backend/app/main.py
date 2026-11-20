@@ -373,6 +373,7 @@ def garantir_colunas_programa():
         "ia_pode_adicionar_blocos": "BOOLEAN DEFAULT TRUE NOT NULL",
         "descricao": "VARCHAR DEFAULT '' NOT NULL",
         "quadros_fixos": "JSON DEFAULT '{}' NOT NULL",
+        "pecas_reserva": "JSON DEFAULT '[]' NOT NULL",
         "feriados_municipais": "JSON DEFAULT '[]' NOT NULL",
         "perfil": "VARCHAR DEFAULT 'musical' NOT NULL",
         "dose_noticia": "VARCHAR DEFAULT 'jornalistica' NOT NULL",

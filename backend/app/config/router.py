@@ -6,7 +6,9 @@ from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, st
 from pydantic import BaseModel, Field, ValidationError, ValidatorFunctionWrapHandler, field_validator
 from pydantic_core import PydanticCustomError
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 
+from app.live.pecas_reserva import aprovar, normalizar_pecas
 from app.live.relatorio_programa import montar_relatorio
 from app.auth.dependencies import get_current_account
 from app.db.database import get_db
@@ -1453,6 +1455,51 @@ def relatorio_pos_programa(
     lê o as-run. Quando o as-run persistente (F11 item 1) existir, este endpoint passa a montar o resumo sozinho."""
     programa = _buscar_programa(db, account, programa_id)
     return {"programa_id": programa.id, **montar_relatorio(resumo)}
+
+
+@router.get("/programas/{programa_id}/pecas-reserva")
+def listar_pecas_reserva(
+    programa_id: int,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Peças de reserva do programa (F11 item 3). Só as aprovadas entram no ar."""
+    return _buscar_programa(db, account, programa_id).pecas_reserva or []
+
+
+@router.put("/programas/{programa_id}/pecas-reserva")
+def salvar_pecas_reserva(
+    programa_id: int,
+    dados: list[dict] = Body(...),
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Substitui a lista. Texto ou tipo alterado volta a "aprovada": false."""
+    programa = _buscar_programa(db, account, programa_id)
+    try:
+        programa.pecas_reserva = normalizar_pecas(dados, atuais=programa.pecas_reserva or [])
+    except ValueError as erro:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(erro))
+    db.commit()
+    return programa.pecas_reserva
+
+
+@router.post("/programas/{programa_id}/pecas-reserva/{peca_id}/aprovar")
+def aprovar_peca_reserva(
+    programa_id: int,
+    peca_id: int,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    programa = _buscar_programa(db, account, programa_id)
+    pecas = [dict(p) for p in (programa.pecas_reserva or [])]
+    peca = aprovar(pecas, peca_id)
+    if peca is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Peça de reserva não encontrada")
+    programa.pecas_reserva = pecas
+    flag_modified(programa, "pecas_reserva")
+    db.commit()
+    return peca
 
 
 @router.put("/programas/{programa_id}", response_model=ProgramaResponse)

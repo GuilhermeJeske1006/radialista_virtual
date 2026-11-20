@@ -73,6 +73,10 @@ class Programa(Base):
     # app.live.router) -- da identidade fixa e reconhecivel ao quadro, com conteudo sempre novo.
     quadros_fixos: Mapped[dict[str, list[str]]] = mapped_column(JSON, default=dict)
 
+    # Peças de reserva (F11 item 3, app.live.pecas_reserva): [{id, tipo, texto, aprovada}]. Só as aprovadas pelo
+    # operador entram quando convidado/fonte/pedido/áudio/estouro falham. Separado de quadros_fixos de propósito.
+    pecas_reserva: Mapped[list[dict]] = mapped_column(JSON, default=list)
+
     # Feriados municipais (cadastro manual: [{"data": "MM-DD", "nome": "..."}]) -- ao contrario
     # do feriado nacional (calculado por formula, ver app.feriados), nao da pra calcular nem
     # existe fonte gratuita confiavel pras ~5000 cidades brasileiras, entao e' o usuario quem
