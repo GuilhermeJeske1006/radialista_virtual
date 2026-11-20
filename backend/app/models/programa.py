@@ -111,6 +111,10 @@ class Programa(Base):
     # plano-assuntos.md -- mesmo espirito de dose_noticia, mas pro banco de assuntos.
     densidade_assunto: Mapped[str] = mapped_column(String, default="leve")
 
+    # Persona do programa (F7, app.live.persona): cinco escalas 1-5 e até 5 exemplos de fala. Nulo = sem persona, e o
+    # prompt do ao vivo fica como antes. Gravada inteira pelo PUT do programa.
+    persona: Mapped[dict | None] = mapped_column(JSON, nullable=True, default=None)
+
     # Relogio da hora (ver app.live.relogio.RelogioHora e F1 do plano de melhoria de radio): eventos
     # com inicio, duracao, natureza e hard time. Nulo = sem relogio, o ao vivo segue estrutura_blocos
     # como sempre. Sempre substituido inteiro (PUT /config/programas/{id}/relogio), fora de

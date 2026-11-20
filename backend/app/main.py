@@ -377,6 +377,7 @@ def garantir_colunas_programa():
         "dose_noticia": "VARCHAR DEFAULT 'jornalistica' NOT NULL",
         "publico_alvo": "VARCHAR DEFAULT '' NOT NULL",
         "densidade_assunto": "VARCHAR DEFAULT 'leve' NOT NULL",
+        "persona": "JSON NULL",
     }
 
     with engine.begin() as conn:

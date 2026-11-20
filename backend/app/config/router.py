@@ -22,6 +22,7 @@ from app.llm.config_generator import (
 )
 from app.llm.tipos_radio import TIPOS_RADIO, tipo_radio_valido
 from app.live.formatos import FORMATOS, ids_aceitos
+from app.live.persona import Persona, persona_ou_none
 from app.live.relogio import PRESETS_INFO, RelogioHora, TotaisRelogio, mensagens_de_erro, totais
 from app.models.account import Account
 from app.models.assunto_programa import AssuntoPrograma
@@ -170,6 +171,9 @@ class ProgramaRequest(BaseModel):
     publico_alvo: str = ""
     densidade_assunto: Literal["leve", "equilibrada", "informado"] = "leve"
 
+    # Persona (F7, app.live.persona): None = sem persona. O PUT grava inteira, como os demais campos do programa.
+    persona: Persona | None = None
+
     @field_validator("perfil_programacao")
     @classmethod
     def _formato_do_catalogo(cls, valor: str) -> str:
@@ -203,6 +207,13 @@ class ProgramaResponse(ProgramaRequest):
         except ValidationError as erro:
             logger.warning("relogio_hora_invalido_na_leitura erros=%s", mensagens_de_erro(erro))
             return None
+
+    @field_validator("persona", mode="before")
+    @classmethod
+    def _persona_tolerante(cls, valor):
+        """Persona inválida no banco aparece como null (com log), em vez de derrubar a leitura (F7)."""
+        p = persona_ou_none(valor)
+        return p.model_dump() if p is not None else None
 
     @field_validator("perfil_programacao")
     @classmethod
