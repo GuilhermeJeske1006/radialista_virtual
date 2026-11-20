@@ -360,3 +360,26 @@ Next 16); não conta como regressão.
     com aprovação de custo. A reescrita está implementada e coberta por testes; não medida com modelo real.
   - **Persona no painel no navegador**: não conferido.
 - Detalhes em [`f7/testes.md`](f7/testes.md).
+
+### F8 — Memória e controle de repetição — PARCIAL (memória consolidada e métrica prontas; repetição e correções pendentes)
+
+- Branch: `melhoria/f8-memoria` (a partir de `melhoria/f7-persona`, `cc0d692`). Sem push.
+- Commits: `47e98ff` (consolidação e métrica), `be87dd0` (registro dos testes da F7 que estavam fora do commit).
+- Entregas:
+  - **Passo 1**: helpers do histórico (frases, aberturas e fechamentos, similaridade) em `app/live/memoria.py`, sem mudar
+    comportamento. Os nomes privados antigos seguem reexportados por `contexto.py` e `geracao.py`.
+  - **Passo 2a e 2b**: classificação de abertura (saudação, identificação, retomada, agradecimento, chamada, pergunta) e
+    de fechamento (pergunta, despedida, convite). Métrica `repeticao_estrutura` no `resumo.json`: janelas de três falas
+    com a mesma abertura reconhecida.
+- Portão (ver [`f8/portao.md`](f8/portao.md)): suíte completa **2335 passed, 3 skipped**, 0 falhas, cobertura 89%; ruff ok;
+  `as_run.json` dos três perfis iguais aos da F5.
+- Medição fake: `repeticao_estrutura` = 0 nos três perfis. Cobertura baixa: 24 de 35 falas em "outra", que não conta.
+- Pendências:
+  - **Passo 2c** (evitar a mesma estrutura em N falas, no prompt ou na reescrita): não feito. Plano: flag desligada por
+    padrão, na reescrita única, como a oralidade.
+  - **Passo 3** (reorientação periódica por formato contada como exceção): não feito. `reorientacao_s` já existe no
+    catálogo, sem a contagem com memória.
+  - **Passo 4** (persistir correções): não encontrei persistência; promessas já persistidas desde a F4.
+  - **Aceite do plano** (nenhuma abertura igual em 3 seguidas na simulação LLM de 1 h): depende de `--modo llm` com
+    aprovação de custo.
+- Detalhes em [`f8/testes.md`](f8/testes.md).
