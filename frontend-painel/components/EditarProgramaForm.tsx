@@ -13,6 +13,7 @@ import DescobertaFontesPrograma from "./DescobertaFontesPrograma";
 import PautaDoDiaSection from "./PautaDoDiaSection";
 import VinhetasProgramaSection, { marcarVinhetasCriadas } from "./VinhetasProgramaSection";
 import RelogioHoraEditor from "./RelogioHoraEditor";
+import PersonaPrograma from "./PersonaPrograma";
 import { apiFetch, ApiError } from "../lib/api";
 import {
   CategoriaVinheta,
@@ -857,6 +858,10 @@ export default function EditarProgramaForm({
             onChange={(e) => setPrograma({ ...programa, tom: e.target.value })}
           />
         </div>
+        <PersonaPrograma
+          persona={programa.persona ?? null}
+          onChange={(persona) => setPrograma({ ...programa, persona })}
+        />
         <TagInput
           label="Tópicos permitidos"
           tags={programa.topicos_permitidos}

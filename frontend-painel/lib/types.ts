@@ -138,6 +138,28 @@ export type ConfiguracaoVoz = {
   requer_verificacao: boolean;
 };
 
+// Persona do programa (F7). Escalas 1 a 5; exemplos: no máximo 5, até 280 caracteres cada.
+export type Persona = {
+  proximidade: number;
+  formalidade: number;
+  energia: number;
+  humor: number;
+  ritmo: number;
+  exemplos: string[];
+};
+
+export const PERSONA_MAX_EXEMPLOS = 5;
+export const PERSONA_MAX_CARACTERES_EXEMPLO = 280;
+
+export const PERSONA_PADRAO: Persona = {
+  proximidade: 3,
+  formalidade: 3,
+  energia: 3,
+  humor: 3,
+  ritmo: 3,
+  exemplos: [],
+};
+
 export type Programa = {
   id: number;
   radio_config_id: number;
@@ -190,6 +212,10 @@ export type Programa = {
   // deriva um briefing observado (horário, gênero, cidade, pedido do público) em vez de travar.
   publico_alvo?: string;
   densidade_assunto?: "leve" | "equilibrada" | "informado";
+
+  // Persona do programa (F7, backend app/live/persona.py): cinco escalas 1-5 e até 5 exemplos
+  // aprovados de fala. null = sem persona: o ao vivo segue como antes.
+  persona?: Persona | null;
 
   // Relógio da hora (F1 do plano de melhoria de rádio, backend app/live/relogio.py). null = sem
   // relógio: o ao vivo segue a estrutura_blocos. Gravado por rota própria (PUT/DELETE
@@ -314,6 +340,7 @@ export const PROGRAMA_VAZIO: Omit<Programa, "id" | "radio_config_id"> = {
   dose_noticia: "jornalistica",
   publico_alvo: "",
   densidade_assunto: "leve",
+  persona: null,
 };
 
 // Proposta de radialista+programa gerada via IA, ainda NAO gravada -- ver backend
@@ -372,6 +399,7 @@ export function normalizarPrograma(p: Programa): Programa {
     dose_noticia: p.dose_noticia ?? "jornalistica",
     publico_alvo: p.publico_alvo ?? "",
     densidade_assunto: p.densidade_assunto ?? "leve",
+    persona: p.persona ?? null,
     relogio_hora: p.relogio_hora ?? null,
   };
 }
