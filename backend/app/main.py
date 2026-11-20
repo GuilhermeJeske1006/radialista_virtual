@@ -613,6 +613,7 @@ def garantir_colunas_biblioteca_audio():
         "status": "VARCHAR DEFAULT 'pronta' NOT NULL",
         "erro_msg": "VARCHAR NULL",
         "origem": "VARCHAR DEFAULT 'manual' NOT NULL",
+        "uso": "VARCHAR DEFAULT 'generica' NOT NULL",
     }
 
     with engine.begin() as conn:

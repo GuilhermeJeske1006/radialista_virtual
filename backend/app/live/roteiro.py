@@ -94,6 +94,12 @@ def tipo_na_posicao(programa, posicao: int, categoria_de) -> str:
     return customizado[posicao % len(customizado)]
 
 
+def vinheta_bloqueada_pela_natureza(vinheta: Any, ultima_categoria: str | None) -> bool:
+    """Promocao (F10) nunca entra colada a bloco de noticia: se o bloco anterior e' de noticia, a vinheta de
+    promocao e' pulada e o roteiro segue. Vinheta generica nao e' afetada."""
+    return getattr(vinheta, "uso", "generica") == "promocao" and ultima_categoria in _CATEGORIAS_NOTICIA_LIKE
+
+
 def decidir_bloco(entrada: EntradaEmissao, portas: PortasEmissao) -> DecisaoBloco:
     db, account, radialista, programa = entrada.db, entrada.account, entrada.radialista, entrada.programa
     historico = entrada.dados.historico
@@ -130,7 +136,8 @@ def decidir_bloco(entrada: EntradaEmissao, portas: PortasEmissao) -> DecisaoBloc
     while _VINHETA_RE.match(tipo):
         vinheta = portas.buscar_vinheta_ativa(db, account, tipo)
         texto_vinheta = ((vinheta.texto or "").strip() if vinheta is not None else "")
-        if vinheta is not None and (vinheta.audio_path or texto_vinheta):
+        if (vinheta is not None and (vinheta.audio_path or texto_vinheta)
+                and not vinheta_bloqueada_pela_natureza(vinheta, ultima_categoria)):
             return DecisaoBloco(tipo="vinheta", categoria="vinheta", passos_roteiro=passos_roteiro, vinheta=vinheta,
                                 **comum)
         if plano is not None:

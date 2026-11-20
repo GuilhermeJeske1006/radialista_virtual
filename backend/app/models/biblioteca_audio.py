@@ -69,6 +69,10 @@ class BibliotecaAudioItem(Base):
     # "auto" (criada junto com o programa) | "manual" (upload do usuario).
     origem: Mapped[str] = mapped_column(String, default="manual")
 
+    # "generica" | "promocao" (F10). Vinheta de promocao nunca toca colada a bloco de noticia
+    # (ver app/live/roteiro.py::vinheta_bloqueada_pela_natureza).
+    uso: Mapped[str] = mapped_column(String, default="generica")
+
     criado_em: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.datetime.now(datetime.timezone.utc)
     )

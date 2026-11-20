@@ -3244,3 +3244,27 @@ def test_bloco_musica_nao_repete_mesma_musica_citada_em_outra_versao(
     assert resposta.status_code == 200
     assert [m["video_id"] for m in resposta.json()["musicas"]] == ["abc123"]
     assert not any("Evidencias" in q and q != buscas[0] for q in buscas[1:])
+
+
+@freeze_time(AGORA_UTC)
+def test_vinheta_de_promocao_nao_toca_logo_depois_de_noticia(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    radio_config, programa = radialista_e_programa
+    promo = BibliotecaAudioItem(
+        account_id=account.id, nome="Promo", audio_path="biblioteca_audio/1/p.mp3", audio_nome_original="p.mp3",
+        uso="promocao",
+    )
+    db_session.add(promo)
+    db_session.flush()
+    programa.estrutura_blocos = [f"vinheta:{promo.id}"]
+    db_session.commit()
+    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: "comentario generico")
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": ["noticia: Chuva forte na cidade."], "total_falas": 1},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["tipo"] != "vinheta"
