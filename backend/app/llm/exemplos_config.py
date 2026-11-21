@@ -20,7 +20,7 @@ _EXEMPLOS = [
             "topicos_permitidos": ["vida no campo", "trabalho", "familia", "futebol de fim de semana"],
             "topicos_proibidos": ["politica", "religiao"],
             "estrutura_blocos": ["abertura", "musica", "musica", "chamada_ouvinte", "musica", "comentario", "musica"],
-            "perfil_programacao": "padrao",
+            "perfil_programacao": "popular_sertanejo",
             "generos_musicais": ["sertanejo raiz", "sertanejo universitario", "modao"],
             "musicas_permitidas": [],
             "musicas_bloqueadas": [],

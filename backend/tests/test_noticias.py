@@ -14,7 +14,7 @@ URL = "https://jornal.example.com/cidade/obra"
 
 def _resposta(url=URL, citado=True):
     citacoes = [NS(type="web_search_result_location", url=url, title="Jornal da Cidade")] if citado else []
-    return NS(stop_reason="end_turn", content=[
+    return NS(stop_reason="end_turn", usage=NS(input_tokens=100, output_tokens=50), content=[
         NS(type="text", text="Vou pesquisar agora.", citations=[]),
         NS(type="web_search_tool_result", content=[NS(url=url)]),
         NS(type="text", text="Em 10/09/2026, a prefeitura anunciou uma nova escola.", citations=citacoes),
@@ -198,3 +198,16 @@ def test_editoria_esportiva_sem_assunto_especifico(configuracao, monkeypatch):
     pesquisa = noticias.pesquisar_noticias(*configuracao, agora=AGORA, assunto="noticia")
     assert pesquisa.esportiva
     assert chamada.call_count == 1
+
+
+def test_perfil_esportivo_apura_automaticamente_mesmo_sem_tags_ou_assunto_esportivo(configuracao, monkeypatch):
+    programa, _ = configuracao
+    programa.perfil = "esportivo"
+    programa.tipos_noticias = []
+    programa.topicos_permitidos = []
+    chamada = Mock(return_value=_resposta())
+    monkeypatch.setattr(noticias._client.messages, "create", chamada)
+    pesquisa = noticias.pesquisar_noticias(*configuracao, agora=AGORA, assunto="Giro da Rodada")
+    assert pesquisa.status == "ok"
+    assert pesquisa.esportiva
+    assert json.loads(chamada.call_args.kwargs["messages"][0]["content"])["apuracao_esportiva"] is True

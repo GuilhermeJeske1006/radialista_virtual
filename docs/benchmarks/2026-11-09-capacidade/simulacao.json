@@ -1,0 +1,52 @@
+{
+  "tipo": "simulacao_local_sem_apis",
+  "limite": 3,
+  "duracao_geracao_simulada_s": 0.03,
+  "resultados": [
+    {
+      "radios": 1,
+      "geracoes": 2,
+      "pico_simultaneo": 1,
+      "duracao_s": 0.08,
+      "ativos_apos": 0,
+      "fila_apos": 0,
+      "rejeicoes": 0
+    },
+    {
+      "radios": 5,
+      "geracoes": 10,
+      "pico_simultaneo": 3,
+      "duracao_s": 0.642,
+      "ativos_apos": 0,
+      "fila_apos": 0,
+      "rejeicoes": 0
+    },
+    {
+      "radios": 10,
+      "geracoes": 20,
+      "pico_simultaneo": 3,
+      "duracao_s": 0.96,
+      "ativos_apos": 0,
+      "fila_apos": 0,
+      "rejeicoes": 0
+    },
+    {
+      "radios": 25,
+      "geracoes": 50,
+      "pico_simultaneo": 3,
+      "duracao_s": 3.59,
+      "ativos_apos": 0,
+      "fila_apos": 0,
+      "rejeicoes": 0
+    },
+    {
+      "radios": 50,
+      "geracoes": 100,
+      "pico_simultaneo": 3,
+      "duracao_s": 6.756,
+      "ativos_apos": 0,
+      "fila_apos": 0,
+      "rejeicoes": 0
+    }
+  ]
+}

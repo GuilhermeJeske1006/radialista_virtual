@@ -1,0 +1,155 @@
+{
+  "id": "A",
+  "nome": "Musical com companhia",
+  "fonte": "docs/pesquisa-radio-locufy.md §9.A",
+  "hipotese": true,
+  "nota": "Hipótese de projeto: os intervalos da §9 são reservas ilustrativas, não recomendação comercial. hard_time marca o que não pode atrasar (tolerância de 5 s, critério da F1). A fonte de verdade é backend/app/live/relogios/ (teste de paridade em tests/test_live_relogio.py); este arquivo só mede.",
+  "eventos": [
+    {
+      "inicio_s": 0,
+      "duracao_s": 40,
+      "tipo": "abertura",
+      "grupo": "fala",
+      "rotulo": "Identidade e abertura",
+      "natureza": "obrigatorio",
+      "hard_time": true,
+      "corresponde_a": [
+        "abertura"
+      ]
+    },
+    {
+      "inicio_s": 40,
+      "duracao_s": 680,
+      "tipo": "musica",
+      "grupo": "musica",
+      "rotulo": "Sequência musical A",
+      "natureza": "ajustavel",
+      "hard_time": false,
+      "corresponde_a": [
+        "musica"
+      ]
+    },
+    {
+      "inicio_s": 720,
+      "duracao_s": 35,
+      "tipo": "link",
+      "grupo": "fala",
+      "rotulo": "Link com um assunto",
+      "natureza": "ajustavel",
+      "hard_time": false,
+      "corresponde_a": [
+        "abertura",
+        "comentario"
+      ]
+    },
+    {
+      "inicio_s": 755,
+      "duracao_s": 685,
+      "tipo": "musica",
+      "grupo": "musica",
+      "rotulo": "Sequência musical B",
+      "natureza": "ajustavel",
+      "hard_time": false,
+      "corresponde_a": [
+        "musica"
+      ]
+    },
+    {
+      "inicio_s": 1440,
+      "duracao_s": 180,
+      "tipo": "intervalo",
+      "grupo": "intervalo",
+      "rotulo": "Intervalo",
+      "natureza": "obrigatorio",
+      "hard_time": true,
+      "corresponde_a": [
+        "intervalo"
+      ]
+    },
+    {
+      "inicio_s": 1620,
+      "duracao_s": 60,
+      "tipo": "retorno",
+      "grupo": "fala",
+      "rotulo": "Retorno e participação",
+      "natureza": "ajustavel",
+      "hard_time": false,
+      "corresponde_a": [
+        "abertura",
+        "chamada_ouvinte"
+      ]
+    },
+    {
+      "inicio_s": 1680,
+      "duracao_s": 720,
+      "tipo": "musica",
+      "grupo": "musica",
+      "rotulo": "Sequência musical C",
+      "natureza": "ajustavel",
+      "hard_time": false,
+      "corresponde_a": [
+        "musica"
+      ]
+    },
+    {
+      "inicio_s": 2400,
+      "duracao_s": 60,
+      "tipo": "curadoria",
+      "grupo": "fala",
+      "rotulo": "Agenda ou curadoria",
+      "natureza": "ajustavel",
+      "hard_time": false,
+      "corresponde_a": [
+        "comentario"
+      ]
+    },
+    {
+      "inicio_s": 2460,
+      "duracao_s": 720,
+      "tipo": "musica",
+      "grupo": "musica",
+      "rotulo": "Sequência musical D",
+      "natureza": "ajustavel",
+      "hard_time": false,
+      "corresponde_a": [
+        "musica"
+      ]
+    },
+    {
+      "inicio_s": 3180,
+      "duracao_s": 180,
+      "tipo": "intervalo",
+      "grupo": "intervalo",
+      "rotulo": "Intervalo",
+      "natureza": "obrigatorio",
+      "hard_time": true,
+      "corresponde_a": [
+        "intervalo"
+      ]
+    },
+    {
+      "inicio_s": 3360,
+      "duracao_s": 210,
+      "tipo": "musica",
+      "grupo": "musica",
+      "rotulo": "Música de fechamento",
+      "natureza": "ajustavel",
+      "hard_time": false,
+      "corresponde_a": [
+        "musica"
+      ]
+    },
+    {
+      "inicio_s": 3570,
+      "duracao_s": 30,
+      "tipo": "passagem",
+      "grupo": "fala",
+      "rotulo": "Passagem de hora",
+      "natureza": "obrigatorio",
+      "hard_time": true,
+      "corresponde_a": [
+        "encerramento"
+      ]
+    }
+  ]
+}

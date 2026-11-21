@@ -20,10 +20,12 @@ import itertools
 
 from sqlalchemy.orm import Session
 
+from app.dados.verificavel import valido_ate_da_noticia
 from app.models.account import Account
 from app.models.noticia import Noticia
 from app.models.noticia_historico import NoticiaHistorico
 from app.models.programa import Programa
+from app.models.radio_config import RadioConfig
 from app.util.texto import sem_acento as _sem_acento
 
 # Ângulo padrão de toda notícia comum (única aparição, ver docstring do módulo).
@@ -44,18 +46,8 @@ LIMIAR_SCORE_PLANTAO = 85.0
 _CATEGORIAS_LEVES = {"servico_publico", "agenda_cultura", "clima_defesa_civil"}
 _BONUS_DOSE_PITADA = 20.0
 
-# Janela de validade por categoria (ver app.news.curadoria.CATEGORIAS_NOTICIA) -- hard news
-# envelhece rápido, serviço aguenta um pouco mais, agenda/cultura dura a semana.
-_JANELA_VALIDADE_HORAS = {
-    "seguranca": 24,
-    "transito": 24,
-    "clima_defesa_civil": 24,
-    "saude": 24,
-    "economia": 48,
-    "servico_publico": 48,
-    "geral": 48,
-    "agenda_cultura": 24 * 7,
-}
+# Janela de validade por categoria (ver app.news.curadoria.CATEGORIAS_NOTICIA): desde a F5 é a regra única de
+# app.dados.verificavel (ConfigDados.janela_noticia_h), a mesma do bloco de dados e do assunto derivado.
 
 _MAX_CANDIDATOS = 200
 
@@ -124,6 +116,8 @@ def _candidatos(
     ver docstring do módulo). Base comum de `proxima_noticia` (notícia comum), `proximas_noticias`
     (escalada) e `proxima_para_plantao` (score mínimo)."""
     agora = datetime.datetime.now(datetime.timezone.utc)
+    radialista = db.get(RadioConfig, programa.radio_config_id)
+    tz = getattr(radialista, "timezone", None) or "America/Sao_Paulo"
     tipos_noticias = programa.tipos_noticias or []
     topicos_proibidos = programa.topicos_proibidos or []
     dose = getattr(programa, "dose_noticia", "jornalistica") or "jornalistica"
@@ -139,8 +133,8 @@ def _candidatos(
         publicado_em = noticia.publicado_em
         if publicado_em.tzinfo is None:
             publicado_em = publicado_em.replace(tzinfo=datetime.timezone.utc)
-        janela_horas = _JANELA_VALIDADE_HORAS.get(noticia.categoria, 48)
-        if publicado_em < agora - datetime.timedelta(hours=janela_horas):
+        # Regra única de validade (app.dados.verificavel): janela da categoria, ou o fim do evento na agenda com data.
+        if agora > valido_ate_da_noticia(noticia.categoria, publicado_em, noticia.detalhes, tz):
             continue
         if not _categoria_permitida(noticia.categoria, tipos_noticias):
             continue
@@ -230,45 +224,34 @@ def correcao_pendente(db: Session, programa: Programa) -> NoticiaPauta | None:
     return None
 
 
+def id_do_dado(pauta: NoticiaPauta) -> str:
+    """Id da pauta no bloco de dados da mensagem (app.dados.fontes.de_pauta / de_correcao)."""
+    return f"noticia:{pauta.noticia_id}"
+
+
 def montar_lauda(pauta: NoticiaPauta) -> str:
-    """Monta o bloco 'PAUTA DESTE BLOCO' injetado no prompt (ver Fase 2 do plano) -- o espelho
-    de fato apurado que substitui a regra vazia de antes. Só entram campos com conteúdo real:
-    campo vazio na curadoria (ver app.news.curadoria) simplesmente não aparece, em vez de
-    aparecer como 'não informado' e virar munição pro locutor comentar a própria lacuna."""
+    """Monta a instrução 'PAUTA DESTE BLOCO' do prompt (ver Fase 2 do plano). Desde a F5 o fato apurado (título,
+    resumo e os campos da curadoria) não entra aqui: vai como dado `noticia:<id>` no bloco de dados da mensagem
+    (app.dados.fontes), e esta instrução só aponta para ele, com o ângulo e as aberturas já usadas. Campo vazio na
+    curadoria não aparece no dado, em vez de virar munição pro locutor comentar a própria lacuna."""
+    dado = id_do_dado(pauta)
     if pauta.angulo == ANGULO_CORRECAO:
         return (
             "CORREÇÃO PENDENTE -- prioridade sobre qualquer outro assunto deste bloco: a fonte "
-            f"retificou uma informação já dada no ar. Fato original: {pauta.titulo}. Correção: "
-            f"{pauta.resumo}. Anuncie explicitamente que está corrigindo uma informação dada antes "
+            f"retificou uma informação já dada no ar. O fato original e a correção estão no dado {dado} dos dados "
+            "de referência (campo 'correcao'). Anuncie explicitamente que está corrigindo uma informação dada antes "
             "(ex.: 'corrigindo uma informação que a gente deu há pouco...'), sem se desculpar de "
             "forma exagerada nem esconder que houve mudança."
         )
 
-    detalhes = pauta.detalhes or {}
     linhas = [
-        "PAUTA DESTE BLOCO (fato apurado -- use só o que está aqui, não acrescente nada):",
-        f"- Fato: {pauta.titulo}",
-        f"- Quando: {detalhes.get('quando') or pauta.publicado_em.strftime('%d/%m/%Y %H:%M')}",
+        f"PAUTA DESTE BLOCO: o fato apurado é o dado {dado} dos dados de referência -- use só o que está lá, não "
+        "acrescente nada.",
     ]
-    if detalhes.get("onde"):
-        linhas.append(f"- Onde: {detalhes['onde']}")
-    if pauta.resumo:
-        linhas.append(f"- Detalhe: {pauta.resumo}")
-    if detalhes.get("numeros"):
-        linhas.append(f"- Números: {detalhes['numeros']}")
-    if detalhes.get("pessoas"):
-        linhas.append(f"- Pessoas: {detalhes['pessoas']}")
-    if detalhes.get("impacto"):
-        linhas.append(f"- Impacto pro ouvinte: {detalhes['impacto']}")
-    if detalhes.get("servico"):
-        linhas.append(f"- Serviço: {detalhes['servico']}")
-    if detalhes.get("proximo_passo"):
-        linhas.append(f"- Próximo passo: {detalhes['proximo_passo']}")
-    if detalhes.get("ainda_nao_divulgado"):
+    if (pauta.detalhes or {}).get("ainda_nao_divulgado"):
         linhas.append(
-            f"- Ainda não divulgado: {detalhes['ainda_nao_divulgado']} -- relate isso como estado da "
-            "apuração (ex.: 'a perícia ainda trabalha no local'), nunca como disclaimer sobre o que "
-            "você pode ou não afirmar."
+            "- O campo 'ainda_nao_divulgado' do dado é estado da apuração: relate assim (ex.: 'a perícia ainda "
+            "trabalha no local'), nunca como disclaimer sobre o que você pode ou não afirmar."
         )
     linhas.append(f"- ÂNGULO DESTE BLOCO: {pauta.angulo.upper()}")
     if pauta.aberturas_usadas:
@@ -281,8 +264,8 @@ def montar_lauda(pauta: NoticiaPauta) -> str:
 
 
 def montar_escalada(pautas: list[NoticiaPauta]) -> str:
-    """Bloco 'PAUTA DESTA ESCALADA' com várias manchetes de uma vez (ver Fase 4 do plano)."""
-    linhas = ["PAUTA DESTA ESCALADA (fatos apurados -- uma manchete de uma frase pra cada, nessa ordem):"]
-    for i, pauta in enumerate(pautas, start=1):
-        linhas.append(f"{i}. {pauta.titulo}")
-    return "\n".join(linhas)
+    """Instrução 'PAUTA DESTA ESCALADA' com várias manchetes de uma vez (ver Fase 4 do plano): os fatos vão como
+    dados no bloco da mensagem (F5); aqui só a ordem."""
+    ids = ", ".join(id_do_dado(p) for p in pautas)
+    return ("PAUTA DESTA ESCALADA: os fatos apurados são os dados de referência "
+            f"{ids}, nessa ordem -- uma manchete de uma frase pra cada.")

@@ -1,0 +1,103 @@
+{
+  "id": "C",
+  "nome": "Morning/variedades",
+  "descricao": "Abertura com pergunta do dia, conversa, serviço, participação e quadro recorrente.",
+  "fonte": "docs/pesquisa-radio-locufy.md §9.C",
+  "hipotese": true,
+  "nota": "Hipótese de projeto (docs/pesquisa-radio-locufy.md §9 e skill referencia-radio): os intervalos são reservas ilustrativas, não recomendação comercial. hard_time marca o início que não pode atrasar (tolerância de 5 s). Ajuste os tempos à sua operação.",
+  "relogio": {
+    "versao": 1,
+    "preset": "C",
+    "em_feriado": "mesmo",
+    "eventos": [
+      {
+        "inicio_s": 0,
+        "tipo": "abertura",
+        "duracao_s": 120,
+        "rotulo": "Abertura e pergunta do dia",
+        "natureza": "obrigatorio",
+        "hard_time": true
+      },
+      {
+        "inicio_s": 120,
+        "tipo": "musica",
+        "duracao_s": 480,
+        "rotulo": "Música",
+        "natureza": "ajustavel",
+        "hard_time": false
+      },
+      {
+        "inicio_s": 600,
+        "tipo": "conversa",
+        "duracao_s": 360,
+        "rotulo": "Conversa de bancada",
+        "natureza": "ajustavel",
+        "hard_time": false
+      },
+      {
+        "inicio_s": 960,
+        "tipo": "intervalo",
+        "duracao_s": 180,
+        "rotulo": "Intervalo",
+        "natureza": "obrigatorio",
+        "hard_time": true
+      },
+      {
+        "inicio_s": 1140,
+        "tipo": "servico",
+        "duracao_s": 360,
+        "rotulo": "Serviço e pauta do dia",
+        "natureza": "ajustavel",
+        "hard_time": false
+      },
+      {
+        "inicio_s": 1500,
+        "tipo": "musica",
+        "duracao_s": 540,
+        "rotulo": "Música",
+        "natureza": "ajustavel",
+        "hard_time": false
+      },
+      {
+        "inicio_s": 2040,
+        "tipo": "participacao",
+        "duracao_s": 420,
+        "rotulo": "Participação ou jogo",
+        "natureza": "ajustavel",
+        "hard_time": false
+      },
+      {
+        "inicio_s": 2460,
+        "tipo": "intervalo",
+        "duracao_s": 180,
+        "rotulo": "Intervalo",
+        "natureza": "obrigatorio",
+        "hard_time": true
+      },
+      {
+        "inicio_s": 2640,
+        "tipo": "quadro",
+        "duracao_s": 360,
+        "rotulo": "Quadro recorrente",
+        "natureza": "ajustavel",
+        "hard_time": false
+      },
+      {
+        "inicio_s": 3000,
+        "tipo": "musica",
+        "duracao_s": 480,
+        "rotulo": "Música",
+        "natureza": "ajustavel",
+        "hard_time": false
+      },
+      {
+        "inicio_s": 3480,
+        "tipo": "fechamento",
+        "duracao_s": 120,
+        "rotulo": "Fechamento e próxima edição",
+        "natureza": "obrigatorio",
+        "hard_time": true
+      }
+    ]
+  }
+}

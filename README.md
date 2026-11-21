@@ -16,6 +16,9 @@
 | Painel | Next.js 16 + React 19 + Tailwind |
 | Deploy | Docker Compose |
 
+Controle global das APIs, recuperação de falhas, monitoramento e simulação de várias rádios:
+[Capacidade e continuidade do ao vivo](docs/capacidade-ao-vivo.md).
+
 ## Estrutura
 
 ```
@@ -85,5 +88,11 @@ Detalhes do servidor, do deploy e do rollback em `deploy/ovh/README.md`.
 ## Docs
 
 Plano técnico completo em [docs/plano.md](docs/plano.md).
+
+Árvore local e integração com as frentes do Claude Code: [docs/arvore-commits.md](docs/arvore-commits.md).
+
+WhatsApp, central de conversas, worker e contexto do Ao Vivo: [operação e validação](docs/whatsapp-operacao.md).
+
+Piloto editorial do Locufy Esportes, operação e limites: [docs/locufy-esportes.md](docs/locufy-esportes.md).
 
 Skills de agente disponíveis no repo (e como instalar/ativar) em [docs/skills.md](docs/skills.md).

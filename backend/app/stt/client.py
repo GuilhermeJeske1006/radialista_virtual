@@ -5,6 +5,7 @@ import httpx
 
 from app.config.settings import settings
 from app.billing.consumo_ia import reservar, concluir, falhar
+from app.guardrails.provedores import executar
 from pydub import AudioSegment
 
 _ELEVENLABS_STT_URL = "https://api.elevenlabs.io/v1/speech-to-text"
@@ -37,7 +38,9 @@ def transcrever_audio(audio_base64: str, mime_type: str = "audio/ogg") -> str:
 
     try:
         with httpx.Client(timeout=30.0) as client:
-            response = client.post(_ELEVENLABS_STT_URL, headers=headers, files=files, data=data)
+            response = executar("stt", "scribe_v1",
+                lambda restante: client.post(_ELEVENLABS_STT_URL, headers=headers, files=files, data=data, timeout=restante),
+                timeout_s=30.0)
             response.raise_for_status()
             texto = str(response.json().get("text") or "").strip()
             if custo_usd is not None:

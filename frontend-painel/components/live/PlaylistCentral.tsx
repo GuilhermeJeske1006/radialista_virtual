@@ -117,7 +117,12 @@ export default function PlaylistCentral({
 
         {programa && (
           <div className="mt-5 border-t border-border pt-4">
-            <ProximosBlocosPanel programa={programa} totalFalas={totalFalas} variant="strip" />
+            <ProximosBlocosPanel
+              programa={programa}
+              totalFalas={totalFalas}
+              variant="strip"
+              relogioAoVivo={falasPrograma.find((f) => f.relogio)?.relogio ?? null}
+            />
           </div>
         )}
       </section>

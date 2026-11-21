@@ -53,6 +53,41 @@ def _url_proxima(radialista_id, programa_id):
     return f"/live/{radialista_id}/programas/{programa_id}/proxima"
 
 
+def test_reserva_so_serve_identificacao_pronta_do_programa(client, account, auth_headers, db_session,
+                                                        radialista_e_programa, monkeypatch, tmp_path):
+    import base64
+    from app.config.settings import settings
+    from app.storage import get_storage
+    radio, programa = radialista_e_programa
+    monkeypatch.setattr(settings, "upload_dir", str(tmp_path))
+    get_storage().save("reserva.mp3", b"identificacao-gravada")
+    db_session.add_all([
+        BibliotecaAudioItem(account_id=account.id, programa_id=programa.id, nome="Passagem", papel="passagem",
+                            origem="auto", status="pronta", texto="Você está ouvindo nossa rádio.", audio_path="reserva.mp3"),
+        BibliotecaAudioItem(account_id=account.id, programa_id=programa.id, nome="Notícia", papel="noticia",
+                            origem="auto", status="pronta", texto="Notícia antiga", audio_path="noticia.mp3"),
+    ])
+    db_session.commit()
+    resposta = client.get(f"/live/{radio.id}/programas/{programa.id}/reserva", headers=auth_headers(account.id))
+    assert resposta.status_code == 200
+    assert base64.b64decode(resposta.json()["audio_base64"]) == b"identificacao-gravada"
+    assert resposta.json()["texto"] == "Você está ouvindo nossa rádio."
+
+
+def test_reserva_ausente_nao_gera_audio_novo(client, account, auth_headers, radialista_e_programa, monkeypatch):
+    radio, programa = radialista_e_programa
+    monkeypatch.setattr("app.live.router.sintetizar_audio", lambda *a, **k: pytest.fail("não deve sintetizar"))
+    resposta = client.get(f"/live/{radio.id}/programas/{programa.id}/reserva", headers=auth_headers(account.id))
+    assert resposta.json() == {"disponivel": False}
+
+
+def test_reserva_isola_contas(client, account_factory, auth_headers, radialista_e_programa):
+    outro = account_factory(email="outra-radio@teste.com")
+    radio, programa = radialista_e_programa
+    resposta = client.get(f"/live/{radio.id}/programas/{programa.id}/reserva", headers=auth_headers(outro.id))
+    assert resposta.status_code == 404
+
+
 @pytest.mark.parametrize("bloco", [
     "noticia_local", "noticia_brasil", "Notícia regional", "agenda cultural", "boletim regional",
 ])
@@ -138,12 +173,13 @@ def test_noticia_pesquisada_chega_a_locucao_e_retorna_fontes(
         consultas.append((p.id, a.id, kwargs))
         return apuracao
     monkeypatch.setattr("app.live.router.pesquisar_noticias", pesquisar)
-    prompts = []
+    prompts, mensagens = [], []
     fala = "Segundo o Jornal da Cidade, a prefeitura anunciou uma nova escola."
-    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or fala)
+    monkeypatch.setattr("app.live.router.gerar_resposta",
+                        lambda system, msg: prompts.append(system) or mensagens.append(msg) or fala)
     monkeypatch.setattr(
         "app.live.router.gerar_dialogo_multivoz",
-        lambda system, msg: prompts.append(system) or json.dumps({"linhas": [
+        lambda system, msg: prompts.append(system) or mensagens.append(msg) or json.dumps({"linhas": [
             {"locutor": radialista.nome_locutor, "texto": fala},
             {"locutor": "Maria", "texto": "A medida amplia o acesso à educação."},
         ]}),
@@ -157,7 +193,8 @@ def test_noticia_pesquisada_chega_a_locucao_e_retorna_fontes(
     assert len(consultas) == 1
     assert consultas[0][:2] == (programa.id, account.id)
     assert "APURAÇÃO JORNALÍSTICA" in prompts[0]
-    assert apuracao.texto in prompts[0]
+    # F5: a apuração vai no bloco de dados da mensagem; o system só tem as instruções.
+    assert apuracao.texto in mensagens[0] and apuracao.texto not in prompts[0]
     assert "em vez de forçar a notícia pesada" not in prompts[0]
     assert resposta.json()["pesquisa_noticias"]["fontes"][0]["url"] == apuracao.fontes[0].url
     assert bool(resposta.json()["falas"]) == dupla
@@ -575,7 +612,7 @@ def test_tts_endpoint_com_sucesso(client, account, auth_headers, radialista_e_pr
     monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "neutro")
     monkeypatch.setattr(
         "app.live.router.sintetizar_audio_stream",
-        lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: iter([b"audio-bytes"]),
+        lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None, pronuncias=None: iter([b"audio-bytes"]),
     )
 
     resposta = client.post(
@@ -688,7 +725,7 @@ def test_tts_endpoint_com_programa_id_registra_ultimo_tom(
     monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "energico")
     monkeypatch.setattr(
         "app.live.router.sintetizar_audio_stream",
-        lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: iter([b"audio-bytes"]),
+        lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None, pronuncias=None: iter([b"audio-bytes"]),
     )
 
     resposta = client.post(
@@ -710,7 +747,7 @@ def test_tts_endpoint_sem_programa_id_nao_registra_tom(
     monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "energico")
     monkeypatch.setattr(
         "app.live.router.sintetizar_audio_stream",
-        lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: iter([b"audio-bytes"]),
+        lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None, pronuncias=None: iter([b"audio-bytes"]),
     )
 
     resposta = client.post(
@@ -800,7 +837,7 @@ def test_tts_endpoint_com_perfil_pos_producao(client, account, auth_headers, rad
     monkeypatch.setattr("app.live.router.tts_habilitado", lambda voz_id=None: True)
     monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "neutro")
     monkeypatch.setattr(
-        "app.live.router.sintetizar_audio", lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: b"audio-cru"
+        "app.live.router.sintetizar_audio", lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None, pronuncias=None: b"audio-cru"
     )
     monkeypatch.setattr(
         "app.live.router.processar_audio",
@@ -823,7 +860,7 @@ def test_tts_endpoint_com_perfil_pos_producao_invalido_422(
     monkeypatch.setattr("app.live.router.tts_habilitado", lambda voz_id=None: True)
     monkeypatch.setattr("app.live.router.classificar_tom_fala", lambda texto, tipo: "neutro")
     monkeypatch.setattr(
-        "app.live.router.sintetizar_audio", lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: b"audio-cru"
+        "app.live.router.sintetizar_audio", lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None, pronuncias=None: b"audio-cru"
     )
 
     resposta = client.post(
@@ -850,7 +887,7 @@ def test_tts_endpoint_usa_streaming_sem_perfil_pos_producao(
     monkeypatch.setattr("app.live.router.sintetizar_audio", _stream_falso)
     monkeypatch.setattr(
         "app.live.router.sintetizar_audio_stream",
-        lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None: iter(
+        lambda texto, voz_id, tipo_bloco=None, tom=None, eh_clonada=False, texto_anterior=None, pronuncias=None: iter(
             [b"parte1", b"parte2"]
         ),
     )
@@ -1158,10 +1195,11 @@ def test_pedido_musica_sem_resultado_cai_para_escolha_automatica(
     assert corpo["video_id"] == "id-auto"
     assert corpo["titulo_musica"] == "Musica Automatica"
 
-    # pedido segue marcado como atendido (nao entra em loop tentando pra sempre uma busca que
-    # nunca vai achar nada), mas nao fica registrado como pedido_ouvinte bem-sucedido.
+    # pedido sai da fila (nao entra em loop tentando pra sempre uma busca que nunca vai achar nada) como
+    # "nao_atendido" (F4, D2: o nome nao vai ao ar), e nao fica registrado como pedido_ouvinte bem-sucedido.
     db_session.refresh(pedido)
-    assert pedido.atendido is True
+    assert pedido.atendido is False  # F4 (D1): a seleção do legado não marca mais atendido
+    assert (pedido.estado, pedido.motivo) == ("nao_atendido", "Música indisponível")
     assert db_session.query(MusicaHistorico).filter_by(programa_id=programa.id, origem="pedido_ouvinte").count() == 0
 
 
@@ -1756,10 +1794,11 @@ def test_bloco_musica_injeta_contexto_real_no_prompt(
         lambda titulo, canal, descricao, tags, ano: "Fala sobre a vida no interior, de 1998.",
     )
 
-    prompts = []
+    prompts, mensagens = [], []
 
     def _fake_gerar_resposta(system, msg):
         prompts.append(system)
+        mensagens.append(msg)
         return "Vamos ouvir essa!"
 
     monkeypatch.setattr("app.live.router.gerar_resposta", _fake_gerar_resposta)
@@ -1771,7 +1810,9 @@ def test_bloco_musica_injeta_contexto_real_no_prompt(
     )
     assert resposta.status_code == 200
     assert resposta.json()["tipo"] == "musica"
-    assert "Fala sobre a vida no interior, de 1998." in prompts[0]
+    # F5: o contexto da faixa vai no bloco de dados da mensagem (dado "faixa"); o system aponta para ele.
+    assert "Fala sobre a vida no interior, de 1998." in mensagens[0]
+    assert "dado faixa" in prompts[0]
 
 
 @freeze_time(AGORA_UTC)
@@ -2470,7 +2511,9 @@ def test_pedido_de_sorteio_nao_confirma_inscricao_sem_registro(
     assert "Não confirme inscrição" in prompts[0]
 
     pedido_atualizado = db_session.query(FilaAoVivo).filter_by(id=pedido.id).first()
-    assert pedido_atualizado.atendido is True
+    # F4 (D1): o legado é selecionado com token e só fica atendido quando o player confirma a reprodução.
+    assert (pedido_atualizado.estado, pedido_atualizado.atendido) == ("selecionado", False)
+    assert resposta.json()["pedido_id"] == pedido.id and resposta.json()["pedido_token"]
 
 
 @freeze_time(AGORA_UTC)
@@ -3201,3 +3244,27 @@ def test_bloco_musica_nao_repete_mesma_musica_citada_em_outra_versao(
     assert resposta.status_code == 200
     assert [m["video_id"] for m in resposta.json()["musicas"]] == ["abc123"]
     assert not any("Evidencias" in q and q != buscas[0] for q in buscas[1:])
+
+
+@freeze_time(AGORA_UTC)
+def test_vinheta_de_promocao_nao_toca_logo_depois_de_noticia(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
+):
+    radio_config, programa = radialista_e_programa
+    promo = BibliotecaAudioItem(
+        account_id=account.id, nome="Promo", audio_path="biblioteca_audio/1/p.mp3", audio_nome_original="p.mp3",
+        uso="promocao",
+    )
+    db_session.add(promo)
+    db_session.flush()
+    programa.estrutura_blocos = [f"vinheta:{promo.id}"]
+    db_session.commit()
+    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: "comentario generico")
+
+    resposta = client.post(
+        _url_proxima(radio_config.id, programa.id),
+        json={"historico": ["noticia: Chuva forte na cidade."], "total_falas": 1},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["tipo"] != "vinheta"

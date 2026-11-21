@@ -1,0 +1,338 @@
+{
+  "id": "variedades_leves",
+  "descricao": "Pop brasileiro leve fictício para o perfil de variedades. Nomes inventados.",
+  "faixas": [
+    {
+      "video_id": "sim-vle-01",
+      "titulo": "Bom Dia Vizinhança",
+      "artista": "Banda Ventilador",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 217
+    },
+    {
+      "video_id": "sim-vle-02",
+      "titulo": "Bairro em Festa",
+      "artista": "Lola Carambola",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 274,
+      "contexto": "Gravada em uma garagem com instrumentos emprestados, segundo o encarte fictício."
+    },
+    {
+      "video_id": "sim-vle-03",
+      "titulo": "Feira de Sábado",
+      "artista": "Trio Pé na Rua",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 271
+    },
+    {
+      "video_id": "sim-vle-04",
+      "titulo": "Pipoca na Praça",
+      "artista": "Os Vizinhos do Sexto",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 266,
+      "fim_s": 262
+    },
+    {
+      "video_id": "sim-vle-05",
+      "titulo": "Patins Amarelos",
+      "artista": "Tati Pirilampo",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 263
+    },
+    {
+      "video_id": "sim-vle-06",
+      "titulo": "Bloco da Esquina",
+      "artista": "Gui Marmelada",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 225,
+      "contexto": "Nasceu de uma brincadeira de roda, conta o encarte fictício."
+    },
+    {
+      "video_id": "sim-vle-07",
+      "titulo": "Pilha Fraca",
+      "artista": "Coletivo Laranjeira",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 241
+    },
+    {
+      "video_id": "sim-vle-08",
+      "titulo": "Sorvete de Coco",
+      "artista": "Duda Azulejo",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 225
+    },
+    {
+      "video_id": "sim-vle-09",
+      "titulo": "Varanda Colorida",
+      "artista": "Mestre Zé Pandeiro",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 264,
+      "fim_s": 257
+    },
+    {
+      "video_id": "sim-vle-10",
+      "titulo": "Calçada Florida",
+      "artista": "Bia Cata-Vento",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 226,
+      "contexto": "Gravada em uma garagem com instrumentos emprestados, segundo o encarte fictício."
+    },
+    {
+      "video_id": "sim-vle-11",
+      "titulo": "Ciranda do Prédio",
+      "artista": "Banda Ventilador",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 239
+    },
+    {
+      "video_id": "sim-vle-12",
+      "titulo": "Samba da Lavanderia",
+      "artista": "Lola Carambola",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 246
+    },
+    {
+      "video_id": "sim-vle-indisponivel",
+      "titulo": "Coco de Roda Elétrico",
+      "artista": "Mestre Zé Pandeiro",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 230,
+      "indisponivel": true
+    },
+    {
+      "video_id": "sim-vle-13",
+      "titulo": "Escada Rolante",
+      "artista": "Trio Pé na Rua",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 198
+    },
+    {
+      "video_id": "sim-vle-14",
+      "titulo": "Mochila Cheia",
+      "artista": "Os Vizinhos do Sexto",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 259,
+      "fim_s": 255,
+      "contexto": "Nasceu de uma brincadeira de roda, conta o encarte fictício."
+    },
+    {
+      "video_id": "sim-vle-15",
+      "titulo": "Domingo de Piquenique",
+      "artista": "Tati Pirilampo",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 230
+    },
+    {
+      "video_id": "sim-vle-16",
+      "titulo": "Guarda-Chuva Vermelho",
+      "artista": "Gui Marmelada",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 229
+    },
+    {
+      "video_id": "sim-vle-17",
+      "titulo": "Ônibus Lotado",
+      "artista": "Coletivo Laranjeira",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 270
+    },
+    {
+      "video_id": "sim-vle-18",
+      "titulo": "Caderno de Receitas",
+      "artista": "Duda Azulejo",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 283,
+      "contexto": "Gravada em uma garagem com instrumentos emprestados, segundo o encarte fictício."
+    },
+    {
+      "video_id": "sim-vle-19",
+      "titulo": "Telefone de Lata",
+      "artista": "Mestre Zé Pandeiro",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 210,
+      "fim_s": 204
+    },
+    {
+      "video_id": "sim-vle-20",
+      "titulo": "Quintal da Vó Zefa",
+      "artista": "Bia Cata-Vento",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 229
+    },
+    {
+      "video_id": "sim-vle-21",
+      "titulo": "Pastel de Feira",
+      "artista": "Banda Ventilador",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 210
+    },
+    {
+      "video_id": "sim-vle-22",
+      "titulo": "Bicicletário",
+      "artista": "Lola Carambola",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 211,
+      "contexto": "Nasceu de uma brincadeira de roda, conta o encarte fictício."
+    },
+    {
+      "video_id": "sim-vle-23",
+      "titulo": "Dança na Cozinha",
+      "artista": "Trio Pé na Rua",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 221
+    },
+    {
+      "video_id": "sim-vle-24",
+      "titulo": "Varal Florido",
+      "artista": "Os Vizinhos do Sexto",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 212,
+      "fim_s": 204
+    },
+    {
+      "video_id": "sim-vle-25",
+      "titulo": "Moleque Sapeca",
+      "artista": "Tati Pirilampo",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 270
+    },
+    {
+      "video_id": "sim-vle-26",
+      "titulo": "Carnaval Fora de Época",
+      "artista": "Gui Marmelada",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 196,
+      "contexto": "Gravada em uma garagem com instrumentos emprestados, segundo o encarte fictício."
+    },
+    {
+      "video_id": "sim-vle-27",
+      "titulo": "Recado na Geladeira",
+      "artista": "Coletivo Laranjeira",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 218
+    },
+    {
+      "video_id": "sim-vle-28",
+      "titulo": "Abajur de Papel",
+      "artista": "Duda Azulejo",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 203
+    },
+    {
+      "video_id": "sim-vle-29",
+      "titulo": "Elevador Social",
+      "artista": "Mestre Zé Pandeiro",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 223,
+      "fim_s": 215
+    },
+    {
+      "video_id": "sim-vle-30",
+      "titulo": "Praça da Matriz",
+      "artista": "Bia Cata-Vento",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 208,
+      "contexto": "Nasceu de uma brincadeira de roda, conta o encarte fictício."
+    },
+    {
+      "video_id": "sim-vle-31",
+      "titulo": "Pirulito de Morango",
+      "artista": "Banda Ventilador",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 200
+    },
+    {
+      "video_id": "sim-vle-32",
+      "titulo": "Festa no Terraço",
+      "artista": "Lola Carambola",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 280
+    },
+    {
+      "video_id": "sim-vle-33",
+      "titulo": "Bilhete Dobrado",
+      "artista": "Trio Pé na Rua",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 213
+    },
+    {
+      "video_id": "sim-vle-34",
+      "titulo": "Tênis Furado",
+      "artista": "Os Vizinhos do Sexto",
+      "generos": [
+        "pop brasileiro"
+      ],
+      "duracao_s": 266,
+      "fim_s": 261,
+      "contexto": "Gravada em uma garagem com instrumentos emprestados, segundo o encarte fictício."
+    }
+  ]
+}

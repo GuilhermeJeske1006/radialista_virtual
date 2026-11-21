@@ -1,0 +1,103 @@
+{
+  "id": "B",
+  "nome": "Jornal/revista informativa",
+  "descricao": "Manchetes, cobertura, serviço, entrevista e reportagem. Depende de fontes de notícia (F5).",
+  "fonte": "docs/pesquisa-radio-locufy.md §9.B",
+  "hipotese": true,
+  "nota": "Hipótese de projeto (docs/pesquisa-radio-locufy.md §9 e skill referencia-radio): os intervalos são reservas ilustrativas, não recomendação comercial. hard_time marca o início que não pode atrasar (tolerância de 5 s). Ajuste os tempos à sua operação.",
+  "relogio": {
+    "versao": 1,
+    "preset": "B",
+    "em_feriado": "mesmo",
+    "eventos": [
+      {
+        "inicio_s": 0,
+        "tipo": "manchetes",
+        "duracao_s": 180,
+        "rotulo": "Abertura e manchetes",
+        "natureza": "obrigatorio",
+        "hard_time": true
+      },
+      {
+        "inicio_s": 180,
+        "tipo": "noticia",
+        "duracao_s": 480,
+        "rotulo": "Principal cobertura",
+        "natureza": "ajustavel",
+        "hard_time": false
+      },
+      {
+        "inicio_s": 660,
+        "tipo": "servico",
+        "duracao_s": 240,
+        "rotulo": "Serviço local",
+        "natureza": "ajustavel",
+        "hard_time": false
+      },
+      {
+        "inicio_s": 900,
+        "tipo": "intervalo",
+        "duracao_s": 180,
+        "rotulo": "Intervalo",
+        "natureza": "obrigatorio",
+        "hard_time": true
+      },
+      {
+        "inicio_s": 1080,
+        "tipo": "entrevista",
+        "duracao_s": 720,
+        "rotulo": "Entrevista",
+        "natureza": "obrigatorio",
+        "hard_time": true
+      },
+      {
+        "inicio_s": 1800,
+        "tipo": "atualizacao",
+        "duracao_s": 180,
+        "rotulo": "Atualização dos destaques",
+        "natureza": "ajustavel",
+        "hard_time": false
+      },
+      {
+        "inicio_s": 1980,
+        "tipo": "noticia",
+        "duracao_s": 480,
+        "rotulo": "Economia ou cotidiano",
+        "natureza": "ajustavel",
+        "hard_time": false
+      },
+      {
+        "inicio_s": 2460,
+        "tipo": "intervalo",
+        "duracao_s": 180,
+        "rotulo": "Intervalo",
+        "natureza": "obrigatorio",
+        "hard_time": true
+      },
+      {
+        "inicio_s": 2640,
+        "tipo": "reportagem",
+        "duracao_s": 540,
+        "rotulo": "Reportagem e contexto",
+        "natureza": "ajustavel",
+        "hard_time": false
+      },
+      {
+        "inicio_s": 3180,
+        "tipo": "participacao",
+        "duracao_s": 300,
+        "rotulo": "Participação e serviço",
+        "natureza": "ajustavel",
+        "hard_time": false
+      },
+      {
+        "inicio_s": 3480,
+        "tipo": "passagem",
+        "duracao_s": 120,
+        "rotulo": "Resumo e passagem",
+        "natureza": "obrigatorio",
+        "hard_time": true
+      }
+    ]
+  }
+}

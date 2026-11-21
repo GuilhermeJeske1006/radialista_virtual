@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useEventosOuvintes } from "../../hooks/useEventosOuvintes";
 import { apiFetch } from "../../lib/api";
 import { formatarTelefone } from "../../lib/telefone";
 
@@ -55,6 +56,7 @@ function RevisarPedido({pedido, programas, atualizar}: {pedido: Pedido; programa
 
 export default function AtendimentoOuvintesPanel() {
   const [ativo, setAtivo] = useState(false);
+  const [notificar, setNotificar] = useState(false);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [conversas, setConversas] = useState<Conversa[]>([]);
   const [envios, setEnvios] = useState<Envio[]>([]);
@@ -65,19 +67,20 @@ export default function AtendimentoOuvintesPanel() {
   const [ocupado, setOcupado] = useState(false);
   const carregar = useCallback(async () => {
     const [config, fila, chats, grade, indicadores, pendentes] = await Promise.all([
-      apiFetch<{ativo: boolean}>("/ouvintes/config"), apiFetch<Pedido[]>("/ouvintes/pedidos"),
+      apiFetch<{ativo: boolean; notificar_resultado?: boolean}>("/ouvintes/config"), apiFetch<Pedido[]>("/ouvintes/pedidos"),
       apiFetch<Conversa[]>("/ouvintes/conversas"), apiFetch<Programa[]>("/ouvintes/programas"),
       apiFetch<{pedidos_por_estado: Record<string, number>}>("/ouvintes/indicadores"),
       apiFetch<Envio[]>("/ouvintes/envios-pendentes"),
     ]);
-    setEnvios(pendentes); setAtivo(config.ativo); setPedidos(fila); setConversas(chats); setProgramas(grade); setContagens(indicadores.pedidos_por_estado);
+    setEnvios(pendentes); setAtivo(config.ativo); setNotificar(!!config.notificar_resultado); setPedidos(fila); setConversas(chats); setProgramas(grade); setContagens(indicadores.pedidos_por_estado);
   }, []);
+  const conexao = useEventosOuvintes(() => { carregar().catch(e => setErro(e.message)); });
   useEffect(() => {
     let montado = true;
     const atualizar = () => { if (montado) carregar().catch(e => { if (montado) setErro(e instanceof Error ? e.message : "Falha ao carregar atendimento."); }); };
-    atualizar(); const timer = setInterval(atualizar, 15000);
+    atualizar(); const timer = setInterval(() => { if (conexao !== "conectado") atualizar(); }, 15000);
     return () => { montado = false; clearInterval(timer); };
-  }, [carregar]);
+  }, [carregar, conexao]);
   async function alterar(url: string, method: string, dados: object) {
     setOcupado(true); setErro("");
     try { await apiFetch(url, {method, body: JSON.stringify(dados)}); await carregar(); }
@@ -89,6 +92,7 @@ export default function AtendimentoOuvintesPanel() {
     <p className="text-xs text-fg/65">O novo atendimento mantém a conversa e exige revisão antes de levar pedidos ao ar. A configuração de resposta automática de cada radialista continua sendo respeitada.</p>
     <button className={botao} disabled={ocupado} onClick={() => alterar("/ouvintes/config", "PUT", {ativo: !ativo})}>{ativo ? "Desativar novo atendimento" : "Ativar novo atendimento nesta rádio"}</button>
     {erro && <p role="alert" className="text-sm text-laranja">{erro}</p>}
+    <label className="flex gap-2 text-xs"><input type="checkbox" checked={notificar} disabled={ocupado} onChange={e => alterar("/ouvintes/config", "PUT", {ativo, notificar_resultado: e.target.checked})} />Avisar o ouvinte quando a participação tiver reprodução confirmada.</label>
     <p className="text-xs text-fg/65">Últimos 30 dias: {Object.entries(contagens).map(([estado, n]) => `${ESTADOS[estado] || estado}: ${n}`).join(" · ") || "Sem pedidos"}</p>
     {envios.length > 0 && <details><summary className="text-sm cursor-pointer">Respostas sem confirmação de envio ({envios.length})</summary>{envios.map(e => <div key={e.id} className="space-y-2 border border-border p-3 rounded mt-2">
       <p className="text-sm">{e.nome || formatarTelefone(e.telefone)}: {e.texto}</p>

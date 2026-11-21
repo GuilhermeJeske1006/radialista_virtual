@@ -985,3 +985,6 @@ def test_perfil_musical_persiste_e_rejeita_valor_desconhecido(client, account, a
     assert client.get(url, headers=headers).json()["perfil_programacao"] == "musical_companhia"
     padrao = client.put(url, json=_programa_payload(perfil_programacao="padrao"), headers=headers)
     assert padrao.json()["perfil_programacao"] == "padrao"
+    # F6: o id canônico do catálogo também é aceito e ecoado; o alias musical_companhia continua valendo.
+    canonico = client.put(url, json=_programa_payload(perfil_programacao="musical_adulto"), headers=headers)
+    assert canonico.json()["perfil_programacao"] == "musical_adulto"

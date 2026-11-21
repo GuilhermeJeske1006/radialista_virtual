@@ -50,6 +50,9 @@ class Account(Base):
     # manualmente, nunca gerado -- inventar historia da radio destroi credibilidade.
     biblia_radio: Mapped[dict] = mapped_column(JSON, default=dict)
 
+    # Glossário de pronúncia da rádio (F9, app.tts.glossario): vale para todas as vozes; o da voz sobrescreve.
+    glossario_pronuncia: Mapped[dict] = mapped_column(JSON, default=dict)
+
     # trial | ativo | inadimplente | cancelado
     plano_status: Mapped[str] = mapped_column(String, default="trial")
 

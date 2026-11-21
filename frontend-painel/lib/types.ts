@@ -138,6 +138,28 @@ export type ConfiguracaoVoz = {
   requer_verificacao: boolean;
 };
 
+// Persona do programa (F7). Escalas 1 a 5; exemplos: no máximo 5, até 280 caracteres cada.
+export type Persona = {
+  proximidade: number;
+  formalidade: number;
+  energia: number;
+  humor: number;
+  ritmo: number;
+  exemplos: string[];
+};
+
+export const PERSONA_MAX_EXEMPLOS = 5;
+export const PERSONA_MAX_CARACTERES_EXEMPLO = 280;
+
+export const PERSONA_PADRAO: Persona = {
+  proximidade: 3,
+  formalidade: 3,
+  energia: 3,
+  humor: 3,
+  ritmo: 3,
+  exemplos: [],
+};
+
 export type Programa = {
   id: number;
   radio_config_id: number;
@@ -157,7 +179,10 @@ export type Programa = {
   limite_mensagens_hora: number;
 
   estrutura_blocos: string[];
-  perfil_programacao?: "padrao" | "musical_companhia";
+  // Id do formato do catálogo (F6, backend app/live/formatos.py; lista em GET /config/formatos). O backend
+  // aceita só os implementados e os aliases (`musical_companhia` → `musical_adulto`) e ecoa o valor gravado;
+  // o painel exibe o canônico (lib/formatoPrograma.ts) e só grava o canônico quando o usuário troca.
+  perfil_programacao?: string;
   ia_pode_adicionar_blocos: boolean;
 
   generos_musicais: string[];
@@ -187,6 +212,66 @@ export type Programa = {
   // deriva um briefing observado (horário, gênero, cidade, pedido do público) em vez de travar.
   publico_alvo?: string;
   densidade_assunto?: "leve" | "equilibrada" | "informado";
+
+  // Persona do programa (F7, backend app/live/persona.py): cinco escalas 1-5 e até 5 exemplos
+  // aprovados de fala. null = sem persona: o ao vivo segue como antes.
+  persona?: Persona | null;
+
+  // Relógio da hora (F1 do plano de melhoria de rádio, backend app/live/relogio.py). null = sem
+  // relógio: o ao vivo segue a estrutura_blocos. Gravado por rota própria (PUT/DELETE
+  // /config/programas/{id}/relogio); o PUT do programa ignora este campo.
+  relogio_hora?: RelogioHora | null;
+};
+
+export type NaturezaEventoRelogio = "obrigatorio" | "ajustavel" | "reserva";
+
+export type EventoRelogio = {
+  inicio_s: number;
+  duracao_s: number;
+  tipo: string;
+  rotulo: string;
+  natureza: NaturezaEventoRelogio;
+  hard_time: boolean;
+};
+
+export type RelogioHora = {
+  versao: 1;
+  preset: "A" | "B" | "C" | null;
+  eventos: EventoRelogio[];
+  em_feriado: "mesmo" | "sem_intervalos" | "sem_relogio";
+};
+
+export type TotaisRelogio = { musica_s: number; fala_s: number; intervalo_s: number };
+
+// GET /config/relogios/presets (hipóteses de projeto da pesquisa §9).
+export type PresetRelogio = {
+  id: "A" | "B" | "C";
+  nome: string;
+  descricao: string;
+  fonte: string;
+  nota?: string;
+  relogio: RelogioHora;
+  totais: TotaisRelogio;
+};
+
+// GET /config/formatos (F6): catálogo de formatos radiofônicos, inclusive os ainda não implementados
+// (`implementado: false`, fora do select). Fonte da verdade: backend app/live/formatos.py.
+export type FormatoPrograma = {
+  id: string;
+  nome: string;
+  promessa: string;
+  conteudo: string;
+  conducao: string;
+  unidade_principal: string;
+  roteiro_padrao: string[];
+  relogio_padrao: "A" | "B" | "C" | null;
+  ia_pode_adicionar_blocos: boolean;
+  participacao: string;
+  temas_revisao: string[];
+  reorientacao_s: number | null;
+  aliases: string[];
+  implementado: boolean;
+  requer: string;
 };
 
 // Um gancho de conversa ja' casado com este programa (ver backend app/topics/router.py) --
@@ -255,6 +340,7 @@ export const PROGRAMA_VAZIO: Omit<Programa, "id" | "radio_config_id"> = {
   dose_noticia: "jornalistica",
   publico_alvo: "",
   densidade_assunto: "leve",
+  persona: null,
 };
 
 // Proposta de radialista+programa gerada via IA, ainda NAO gravada -- ver backend
@@ -313,6 +399,8 @@ export function normalizarPrograma(p: Programa): Programa {
     dose_noticia: p.dose_noticia ?? "jornalistica",
     publico_alvo: p.publico_alvo ?? "",
     densidade_assunto: p.densidade_assunto ?? "leve",
+    persona: p.persona ?? null,
+    relogio_hora: p.relogio_hora ?? null,
   };
 }
 

@@ -398,6 +398,21 @@ def test_sintetizar_audio_stream_faz_retry_em_429(monkeypatch):
     assert len(fake.chamadas) == 2
 
 
+def test_stream_interrompido_libera_vaga_sem_repetir_geracao(monkeypatch):
+    import json
+    from app.guardrails import provedores
+    _habilitar_elevenlabs(monkeypatch)
+    fake = _FakeStreamClient([_FakeStreamResponse(chunks=[b"inicio", b"fim"])])
+    monkeypatch.setattr(tts_client.httpx, "Client", lambda **kwargs: fake)
+    stream = tts_client.sintetizar_audio_stream("Não duplicar esta fala.")
+    assert next(stream) == b"inicio"
+    chave = provedores._chave("tts")
+    assert len(json.loads(provedores.redis_client.get(chave))["ativos"]) == 1
+    stream.close()
+    assert json.loads(provedores.redis_client.get(chave))["ativos"] == {}
+    assert len(fake.chamadas) == 1
+
+
 def test_sintetizar_audio_stream_levanta_erro_em_falha_definitiva(monkeypatch):
     """Erro precisa subir ANTES do primeiro yield -- e' o que deixa o endpoint /tts ainda
     converter pra HTTPException normal em vez de truncar uma StreamingResponse ja iniciada

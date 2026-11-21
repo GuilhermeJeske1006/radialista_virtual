@@ -27,6 +27,7 @@ from app.config.settings import settings
 from app.billing.contexto_ia import ContextoIAMiddleware
 from app.db.database import Base, SessionLocal, engine
 from app.equipe.router import router as equipe_router
+from app.esportes.router import router as esportes_router
 from app.live.prewarm import executar_tick as preparar_falas_antecipadas
 from app.live.router import router as live_router
 from app.metrics.router import router as metrics_router
@@ -64,6 +65,8 @@ from app.topics.router import router as topics_router
 from app.tts.router import router as tts_router
 from app.whatsapp.webhook import router as whatsapp_router
 from app.whatsapp.gestao import router as ouvintes_router
+from app.whatsapp.central import router as central_router
+from app.whatsapp.transmissao import router as transmissao_router
 
 _LOG_DIR = pathlib.Path("logs")
 _LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -113,6 +116,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Duracao medida da fala no /tts com pos-producao (F2), legivel pelo painel.
+    expose_headers=["X-Duracao-Fala-S"],
 )
 
 
@@ -128,9 +133,12 @@ async def _security_headers(request, call_next):
 
 app.include_router(whatsapp_router)
 app.include_router(ouvintes_router)
+app.include_router(central_router)
+app.include_router(transmissao_router)
 app.include_router(auth_router)
 app.include_router(funnel_router)
 app.include_router(equipe_router)
+app.include_router(esportes_router)
 app.include_router(config_router)
 app.include_router(onboarding_router)
 app.include_router(metrics_router)
@@ -153,10 +161,22 @@ app.include_router(admin_sistema_auth_router)
 async def criar_tabelas():
     from app.db.migrations.consumo_20260925 import aplicar
     aplicar(engine)
+    from app.db.migrations.ritmo_voz_20261109 import aplicar as aplicar_ritmo_voz
+    aplicar_ritmo_voz(engine)
+    # Cria também as dependências das migrações em bancos novos (ex.: programas).
     Base.metadata.create_all(bind=engine)
+    from app.db.migrations.promessas_20261112 import aplicar as aplicar_promessas
+    aplicar_promessas(engine)
+    from app.db.migrations.canal_whatsapp_20261112 import aplicar as aplicar_canal_whatsapp
+    aplicar_canal_whatsapp(engine)
+    from app.db.migrations.fontes_esportivas_20261111 import aplicar as aplicar_fontes_esportivas
+    aplicar_fontes_esportivas(engine)
     garantir_colunas_radio_config()
     garantir_colunas_account()
     garantir_colunas_programa()
+    garantir_colunas_programa_radialistas()
+    from app.db.migrations.relogio_20261107 import aplicar as aplicar_relogio
+    aplicar_relogio(engine)
     garantir_colunas_interaction_log()
     garantir_colunas_fila_ao_vivo()
     garantir_colunas_musica_historico()
@@ -325,6 +345,7 @@ def garantir_colunas_account():
         "upsell_alerta_tipo": "VARCHAR NULL",
         "upsell_alerta_mes": "VARCHAR NULL",
         "conhecimento_local": "JSON DEFAULT '{}' NOT NULL",
+        "glossario_pronuncia": "JSON DEFAULT '{}' NOT NULL",
         "biblia_radio": "JSON DEFAULT '{}' NOT NULL",
         "cobranca_isenta": "BOOLEAN DEFAULT false NOT NULL",
     }
@@ -341,6 +362,17 @@ def garantir_colunas_account():
             )
 
 
+def garantir_colunas_programa_radialistas():
+    """papel_bancada (F13): coluna aditiva em programa_radialistas. Nula = sem papel na bancada."""
+    inspector = inspect(engine)
+    if "programa_radialistas" not in inspector.get_table_names():
+        return
+    colunas = {coluna["name"] for coluna in inspector.get_columns("programa_radialistas")}
+    with engine.begin() as conn:
+        if "papel_bancada" not in colunas:
+            conn.execute(text("ALTER TABLE programa_radialistas ADD COLUMN papel_bancada VARCHAR NULL"))
+
+
 def garantir_colunas_programa():
     inspector = inspect(engine)
     if "programas" not in inspector.get_table_names():
@@ -354,11 +386,13 @@ def garantir_colunas_programa():
         "ia_pode_adicionar_blocos": "BOOLEAN DEFAULT TRUE NOT NULL",
         "descricao": "VARCHAR DEFAULT '' NOT NULL",
         "quadros_fixos": "JSON DEFAULT '{}' NOT NULL",
+        "pecas_reserva": "JSON DEFAULT '[]' NOT NULL",
         "feriados_municipais": "JSON DEFAULT '[]' NOT NULL",
         "perfil": "VARCHAR DEFAULT 'musical' NOT NULL",
         "dose_noticia": "VARCHAR DEFAULT 'jornalistica' NOT NULL",
         "publico_alvo": "VARCHAR DEFAULT '' NOT NULL",
         "densidade_assunto": "VARCHAR DEFAULT 'leve' NOT NULL",
+        "persona": "JSON NULL",
     }
 
     with engine.begin() as conn:
@@ -593,6 +627,7 @@ def garantir_colunas_biblioteca_audio():
         "status": "VARCHAR DEFAULT 'pronta' NOT NULL",
         "erro_msg": "VARCHAR NULL",
         "origem": "VARCHAR DEFAULT 'manual' NOT NULL",
+        "uso": "VARCHAR DEFAULT 'generica' NOT NULL",
     }
 
     with engine.begin() as conn:

@@ -19,6 +19,12 @@ from app.planos import PLANOS, PRECO_AGENTE_ADICIONAL, PRECO_POR_PLANO
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
+
+@router.get("/ia/capacidade", dependencies=[Depends(get_current_super_admin)])
+def capacidade_ia():
+    from app.guardrails.provedores import estado_provedores
+    return estado_provedores()
+
 _PLANO_STATUS_VALIDOS = {"trial", "ativo", "inadimplente", "cancelado"}
 
 

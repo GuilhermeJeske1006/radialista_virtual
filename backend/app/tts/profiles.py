@@ -6,8 +6,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config.settings import settings
+from app.models.account import Account
 from app.models.perfil_voz import ConfiguracaoVoz, MetadadosVoz
 from app.tts.client import obter_metadados_voz
+from app.tts.glossario import mesclar_glossarios
 
 
 def consultar_metadados(db: Session, voz_id: str, atualizar: bool = False) -> MetadadosVoz:
@@ -46,10 +48,25 @@ def parametros_sintese(db: Session, account_id: int, voz_id: str | None) -> dict
     # recebem os deltas específicos de amostras instantâneas.
     parametros = {"eh_clonada": meta.categoria == "cloned"}
     config = db.query(ConfiguracaoVoz).filter_by(account_id=account_id, voz_id=efetiva).first()
+    # F9: o glossário da rádio vale para toda voz; o da voz sobrescreve (app.tts.glossario).
+    conta_radio = db.get(Account, account_id)
+    da_radio = (conta_radio.glossario_pronuncia if conta_radio else None) or {}
+    parametros["pronuncias"] = mesclar_glossarios(da_radio, config.pronuncias if config else None)
     if config:
-        parametros.update(modelo=config.modelo, perfil=config.perfil, formato=config.formato, pronuncias=config.pronuncias)
+        parametros.update(modelo=config.modelo, perfil=config.perfil, formato=config.formato)
     from app.billing.contexto_ia import atual
     conta = atual.get()
     if conta and conta.modelo_voz:
         parametros["modelo"] = conta.modelo_voz
     return parametros
+
+
+def modelo_e_perfil(db: Session, account_id: int, voz_id: str | None) -> tuple[str, str, str]:
+    """(voz, modelo, perfil) efetivos da sintese, so' com o banco: mesma precedencia de
+    parametros_sintese + sintetizar_audio (ConfiguracaoVoz, combinacao da conta, modelo do servidor),
+    sem consultar_metadados (que pode ir a rede). Usado pela estimativa de duracao antes do TTS (F2)."""
+    efetiva = voz_id or settings.elevenlabs_voice_id or ""
+    config = db.query(ConfiguracaoVoz).filter_by(account_id=account_id, voz_id=efetiva).first() if efetiva else None
+    from app.billing.contexto_ia import modelo_efetivo
+    modelo = modelo_efetivo("tts", (config.modelo if config else None) or settings.elevenlabs_model)
+    return efetiva, modelo, (config.perfil if config else None) or "atual"

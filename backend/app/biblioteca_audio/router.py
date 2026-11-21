@@ -47,8 +47,12 @@ class BibliotecaAudioItemResponse(BaseModel):
     texto: str | None = None
     status: str = "pronta"
     origem: str = "manual"
+    uso: str = "generica"
 
     model_config = {"from_attributes": True}
+
+
+USOS_VALIDOS = ("generica", "promocao")
 
 
 def _buscar_item(db: Session, account: Account, item_id: int) -> BibliotecaAudioItem:
@@ -163,17 +167,21 @@ async def atualizar_item(
     cor: str | None = Form(None),
     ordem: int = Form(0),
     ativo: bool = Form(True),
+    uso: str = Form("generica"),
     arquivo: UploadFile | None = File(None),
     account: Account = Depends(get_current_account),
     db: Session = Depends(get_db),
 ):
     item = _buscar_item(db, account, item_id)
+    if uso not in USOS_VALIDOS:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uso invalido")
 
     item.nome = nome
     item.categoria_id = _validar_categoria(db, account, categoria_id)
     item.cor = cor or None
     item.ordem = ordem
     item.ativo = ativo
+    item.uso = uso
 
     if arquivo is not None:
         _remover_audio(item.audio_path)

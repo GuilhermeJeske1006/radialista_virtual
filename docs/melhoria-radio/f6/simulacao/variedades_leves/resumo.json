@@ -1,0 +1,323 @@
+{
+  "abertura_repetida": 0,
+  "acima_teto_orcamento": 0,
+  "adiantamentos": 1,
+  "ajustes_fala": {
+    "nenhum": 19,
+    "reescrita": 1
+  },
+  "anuncio_sem_confirmacao": 0,
+  "atraso_hard_time_s": 0.0,
+  "aviso_oralidade": null,
+  "blocos_fala_nao_tocados": 0,
+  "blocos_gerados": 30,
+  "blocos_nao_tocados": 0,
+  "caracteres_tts": 11374,
+  "caracteres_tts_estimados": 11374,
+  "chamadas_llm": {
+    "falas": 20,
+    "revisoes": 3,
+    "total": 23
+  },
+  "chamadas_proxima": 30,
+  "chamadas_tts": 20,
+  "config": {
+    "antecedencia": 2,
+    "commit": "913fc19",
+    "corte": "agendado",
+    "fixture": "variedades_leves",
+    "formato": "fixture",
+    "inicio_previsto": true,
+    "modo": "fake",
+    "perfil_programacao": "variedades_leves",
+    "preparo_antecipado_s": 90,
+    "relogio": "C",
+    "relogio_backend": "fixture",
+    "semente": 7,
+    "tts": "duble",
+    "versao_formato": 1,
+    "wpm": 162.0,
+    "wpm_real": 145
+  },
+  "confirmacoes_pedido": 2,
+  "dado_legitimo_removido": 0,
+  "dado_sem_fonte": 0,
+  "dado_vencido": 0,
+  "dados": {
+    "blocos_com_dado": 0,
+    "por_estado": {},
+    "por_tipo": {}
+  },
+  "destinos_rede": [],
+  "dubles": {
+    "blocos_musica_com_llm": 1,
+    "contadores": {
+      "blocos_musica_llm": 1,
+      "buscar_musica": 1,
+      "caracteres_tts": 11374,
+      "classificar_fio_condutor": 1,
+      "classificar_tema_fala": 14,
+      "extrair_musicas_citadas": 19,
+      "faixa_reconhecida": 1,
+      "faixas_devolvidas": 17,
+      "falas": 20,
+      "gerar_resposta": 23,
+      "injecao_cita_ouvinte": 2,
+      "injecao_excesso": 1,
+      "processar_audio": 20,
+      "registrar_tema": 14,
+      "resolver_musica_catalogada": 16,
+      "revisoes": 3,
+      "sintetizar_audio": 20,
+      "tipo_reconhecido": 23,
+      "tts_habilitado": 40
+    },
+    "faixa_reconhecida_pct": 100.0,
+    "tipo_reconhecido_pct": 100.0
+  },
+  "duracao_fala": {
+    "erro_estimativa_calibrada_pct": 0.0,
+    "erro_estimativa_pct": 2.6,
+    "medidas": 20,
+    "segundos_medidos": 883.46
+  },
+  "encerramento_no_ar": true,
+  "erros_http": 0,
+  "estouro_fim_programa_s": 0.0,
+  "estouro_max_pct": 0.0,
+  "etapas_puladas": [],
+  "eventos_por_tipo": {
+    "fala": 20,
+    "musica": 11
+  },
+  "falas_abaixo_minimo": 0,
+  "falas_com_orcamento_aplicado": 20,
+  "falas_por_bloco": {
+    "abertura": 1,
+    "chamada_ouvinte": 1,
+    "comentario": 11,
+    "comentario_quadro": 3,
+    "encerramento": 1,
+    "identificacao": 2,
+    "musica": 1
+  },
+  "fechamentos_curtos": 2,
+  "fim_antecipado_s": 10.44,
+  "fora_orcamento_pct": 0.0,
+  "formato": {
+    "avisos": [
+      {
+        "codigo": "reorientacao",
+        "detalhe": "chamada_ouvinte",
+        "fala": 11
+      },
+      {
+        "codigo": "convite_fora_da_politica",
+        "detalhe": "comentario",
+        "fala": 12
+      },
+      {
+        "codigo": "reorientacao",
+        "detalhe": "quadro",
+        "fala": 12
+      },
+      {
+        "codigo": "convite_fora_da_politica",
+        "detalhe": "comentario",
+        "fala": 13
+      },
+      {
+        "codigo": "reorientacao",
+        "detalhe": "quadro",
+        "fala": 13
+      },
+      {
+        "codigo": "reorientacao",
+        "detalhe": "quadro",
+        "fala": 14
+      },
+      {
+        "codigo": "reorientacao",
+        "detalhe": "intervalo",
+        "fala": null
+      }
+    ],
+    "avisos_por_codigo": {
+      "bloco_fora_do_formato": 0,
+      "convite_fora_da_politica": 2,
+      "fora_da_unidade": 0,
+      "reorientacao": 5,
+      "tema_revisao": 0
+    },
+    "blocos_fora_do_formato": 0,
+    "coerencia_automatica": false,
+    "convites": 2,
+    "convites_fora_da_politica": 2,
+    "faixa_fala_pct": [
+      15.0,
+      45.0
+    ],
+    "fala_pct": 24.5,
+    "falas": 20,
+    "falas_fora_da_unidade": 0,
+    "falas_fora_da_unidade_pct": 0.0,
+    "id": "variedades_leves",
+    "instrucao_de_outro_formato": 0,
+    "instrucao_no_prompt_pct": 100.0,
+    "interrupcoes_por_hora": 20.0,
+    "itens": {
+      "blocos_fora_do_formato": true,
+      "convites_fora_da_politica": false,
+      "fala_pct": true,
+      "falas_fora_da_unidade": true,
+      "instrucao_de_outro_formato": true,
+      "instrucao_no_prompt": true,
+      "reorientacao": false,
+      "temas_revisao_no_ar": true
+    },
+    "maior_intervalo_sem_reorientacao_s": 3466.5,
+    "maior_sequencia_musical_s": 944.0,
+    "relogio_padrao": "C",
+    "reorientacao_s": 900,
+    "reorientacoes": 4,
+    "temas_revisao_no_ar": 0
+  },
+  "hard_times": [
+    {
+      "atraso_s": 0.0,
+      "cortado": false,
+      "executado_em_s": 0.0,
+      "inicio_s": 0,
+      "status": "ok",
+      "tipo": "abertura"
+    },
+    {
+      "atraso_s": null,
+      "cortado": false,
+      "executado_em_s": null,
+      "inicio_s": 960,
+      "status": "dispensado",
+      "tipo": "intervalo"
+    },
+    {
+      "atraso_s": null,
+      "cortado": false,
+      "executado_em_s": null,
+      "inicio_s": 2460,
+      "status": "dispensado",
+      "tipo": "intervalo"
+    },
+    {
+      "atraso_s": -5.7,
+      "cortado": false,
+      "executado_em_s": 3474.3,
+      "inicio_s": 3480,
+      "status": "adiantado",
+      "tipo": "fechamento"
+    }
+  ],
+  "hard_times_dispensados": 2,
+  "hard_times_perdidos": 0,
+  "injecao": {
+    "fora_do_bloco": 0,
+    "instrucoes_removidas": 0,
+    "no_system": 0,
+    "obedecida_no_ar": 0
+  },
+  "observacoes": [
+    "O GET /preparo (preparo prévio no servidor) fica de fora: a primeira fala sai do /proxima normal.",
+    "Modo fake: o comprimento das falas é sintético (o dublê fala dentro da meta por construção); só a mecânica é medida (relógio, fila, corte, pedidos, continuidade e detectores).",
+    "Música anunciada sem confirmação: o mesmo detector do backend (app/live/validacao_fala.py, F3). Promessa e participação também (app/live/promessas.py e app/live/participacao.py, F4): promessa vencida e com contingência vêm da tabela promessas_no_ar e das falas que foram ao ar. Abertura repetida continua o detector provisório da F0.",
+    "Com --tts duble (F2), a fala dura o que o /tts mede num mp3 silencioso à velocidade wpm_real; a calibração do ritmo por voz começa vazia em cada simulação (pior caso: a primeira hora de uma voz nova).",
+    "SQLite em memória e execução sequencial: with_for_update(skip_locked) não é exercitado."
+  ],
+  "orcamento_fala": {
+    "acima_do_teto": 0,
+    "cortadas": 0,
+    "encurtadas": 0,
+    "max_chamadas_llm_por_fala": 2,
+    "max_sinteses_por_fala": 1,
+    "reescritas": 1,
+    "ressinteses_tts": 0,
+    "revisoes_por_duracao": 0
+  },
+  "orcamento_observacao": {
+    "acima_teto": 0,
+    "estouro_max_pct": 0.0,
+    "falas": 0,
+    "fora_pct": 0.0
+  },
+  "ouvinte_inexistente": 0,
+  "pedido_indevido": 0,
+  "pedido_indevido_legado": 0,
+  "pedidos": {
+    "atendidos_antes_de_tocar": 0,
+    "executados": 2,
+    "expirados": 0,
+    "nao_atendidos": 0,
+    "pendentes_fim": 1,
+    "por_estado": {
+      "em_fila": 1,
+      "executado": 2
+    },
+    "recebidos": 3,
+    "selecionados": 2,
+    "selecionados_nao_tocados": 0
+  },
+  "promessa_sem_registro": 0,
+  "promessa_vencida": 0,
+  "promessas": {
+    "abertas_no_fim": 0,
+    "canceladas_com_contingencia": 0,
+    "canceladas_sem_contingencia_no_ar": 0,
+    "contingencias_no_ar": [],
+    "cumpridas": 0,
+    "cumpridas_sem_ar": 0,
+    "registradas": 0,
+    "registradas_sem_ar": 0,
+    "vencidas": 0
+  },
+  "promessas_abertas": 0,
+  "relogio_acoes": {
+    "adiantamento": 1,
+    "encerramento": 1,
+    "fala": 10,
+    "fala_reduzida": 2,
+    "fechamento_curto": 2,
+    "musica": 11,
+    "reserva": 3
+  },
+  "relogio_previsto_s": {
+    "fala": 1740,
+    "intervalo": 360,
+    "musica": 1500
+  },
+  "repeticao_estrutura": null,
+  "segundos_cortados": 0.0,
+  "sem_integracao": {
+    "comercial": 0,
+    "condicao_tempo": 0,
+    "placar": 0,
+    "previsao": 0,
+    "temperatura": 0,
+    "transito": 0
+  },
+  "silencio_editorial_s": 6.1,
+  "silencio_s": 0.0,
+  "tempo_execucao_s": 5.08,
+  "tempo_fala_s": 883.46,
+  "tempo_musica_s": 2700.0,
+  "tempo_outros_s": 0,
+  "tentativas_rede": 0,
+  "validacao_fala": {
+    "acoes": {
+      "mencao_removida": 1
+    },
+    "blocos": 1,
+    "regras": {
+      "ouvinte_nao_autorizado": 1
+    }
+  },
+  "vencido_com_horario": 0,
+  "wpm_observado": null
+}

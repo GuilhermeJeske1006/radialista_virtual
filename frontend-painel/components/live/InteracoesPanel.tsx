@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useEventosOuvintes } from "../../hooks/useEventosOuvintes";
 import { apiFetch, ApiError } from "../../lib/api";
 import { STATUS_STYLE, STATUS_LABEL } from "../../lib/statusInteracao";
 import { LocufyLed, LocufySpin } from "../LocufyLogo";
@@ -33,6 +34,10 @@ export default function InteracoesPanel({ radialistaId, nomeLocutor, pulso, onNo
   const [interacoes, setInteracoes] = useState<Interaction[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
+  const buscarRef = useRef<() => void>(() => {});
+  const conexao = useEventosOuvintes(() => buscarRef.current());
+  const conexaoRef = useRef(conexao);
+  conexaoRef.current = conexao;
   const ultimoIdRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -59,10 +64,12 @@ export default function InteracoesPanel({ radialistaId, nomeLocutor, pulso, onNo
       }
     }
 
+    buscarRef.current = buscar;
     buscar();
-    const intervalo = setInterval(buscar, POLL_MS);
+    const intervalo = setInterval(() => { if (conexaoRef.current !== "conectado") buscar(); }, POLL_MS);
     return () => {
       ativo = false;
+      buscarRef.current = () => {};
       clearInterval(intervalo);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -75,7 +82,7 @@ export default function InteracoesPanel({ radialistaId, nomeLocutor, pulso, onNo
           Conversas
           <LocufyLed color="laranja" pulse={Boolean(pulso)} />
         </h2>
-        <span className="font-mono text-xs font-medium text-fg/65">Atualiza a cada 4s</span>
+        <span className="font-mono text-xs font-medium text-fg/65">{conexao === "conectado" ? "Tempo real" : "Reconectando atualizações"}</span>
       </div>
 
       {erro && <p className="text-sm text-laranja mb-3">{erro}</p>}

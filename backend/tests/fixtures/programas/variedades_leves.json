@@ -1,0 +1,154 @@
+{
+  "id": "variedades_leves",
+  "formato": "variedades_leves",
+  "descricao": "Variedades leves no formato padrão, relógio C. Quadro fixo e assuntos ao vivo. Fluxo de atendimento legado (padrão da conta). Injeções: excesso na fala 2 (o formato padrão não tem orçamento no backend) e cita_ouvinte na fala 4.",
+  "relogio": "C",
+  "timezone": "America/Sao_Paulo",
+  "inicio": "2026-11-10T14:00:00-03:00",
+  "unidade_fala": {
+    "min": 120,
+    "max": 480,
+    "fonte": "skill referencia-radio, tabela 'Unidades de fala iniciais por formato' (hipótese de projeto): variedades/serviço, quadro"
+  },
+  "orcamento_ref_s": {
+    "padrao": {
+      "min": 20,
+      "max": 60,
+      "alvo": 35,
+      "fonte": "skill referencia-radio, tabela 'Unidades de fala iniciais por formato' (hipótese de projeto): entrada (demais blocos)"
+    },
+    "comentario": {
+      "min": 20,
+      "max": 60,
+      "alvo": 45,
+      "fonte": "skill referencia-radio, tabela 'Unidades de fala iniciais por formato' (hipótese de projeto): entrada (demais blocos)"
+    },
+    "musica": {
+      "min": 20,
+      "max": 60,
+      "alvo": 25,
+      "fonte": "skill referencia-radio, tabela 'Unidades de fala iniciais por formato' (hipótese de projeto): entrada (demais blocos)"
+    },
+    "comentario_quadro": {
+      "min": 120,
+      "max": 480,
+      "alvo": 150,
+      "fonte": "skill referencia-radio, tabela 'Unidades de fala iniciais por formato' (hipótese de projeto): variedades/serviço, quadro 2-8 min"
+    }
+  },
+  "conta": {
+    "nome_radio": "Rádio Vila Ventura",
+    "slogan": "Companhia para o seu dia",
+    "frequencia": "",
+    "cidade": "",
+    "atendimento_ouvinte_ativo": false
+  },
+  "radialista": {
+    "nome_locutor": "Marta Girassol",
+    "personalidade": "Bem-humorada, prática, curiosa.",
+    "timezone": "America/Sao_Paulo"
+  },
+  "programa": {
+    "dias_semana": [],
+    "horario_inicio": "14:00",
+    "horario_fim": "15:00",
+    "ativo": true,
+    "ia_pode_adicionar_blocos": false,
+    "dose_noticia": "nenhuma",
+    "pode_pesquisar": false,
+    "tipos_noticias": [],
+    "fontes_noticias": [],
+    "musicas_bloqueadas": [],
+    "nome": "Tarde em Casa",
+    "descricao": "Variedades leves: conversa, dica do quadro fixo, recado de ouvinte e música.",
+    "tom": "leve e bem-humorado, conversa de vizinha, sem pressa",
+    "estrutura_blocos": [
+      "abertura",
+      "comentario",
+      "musica",
+      "chamada_ouvinte",
+      "musica",
+      "comentario_quadro",
+      "musica"
+    ],
+    "perfil_programacao": "padrao",
+    "perfil": "variedades",
+    "generos_musicais": [
+      "pop brasileiro"
+    ],
+    "musicas_permitidas": [
+      "Banda Ventilador - Bom Dia Vizinhança",
+      "Lola Carambola - Bairro em Festa",
+      "Trio Pé na Rua - Feira de Sábado",
+      "Os Vizinhos do Sexto - Pipoca na Praça",
+      "Tati Pirilampo - Patins Amarelos",
+      "Gui Marmelada - Bloco da Esquina",
+      "Coletivo Laranjeira - Pilha Fraca",
+      "Duda Azulejo - Sorvete de Coco",
+      "Mestre Zé Pandeiro - Varanda Colorida",
+      "Bia Cata-Vento - Calçada Florida",
+      "Banda Ventilador - Ciranda do Prédio",
+      "Lola Carambola - Samba da Lavanderia"
+    ],
+    "assuntos_ao_vivo": [
+      "pequenos hábitos que melhoram o dia",
+      "lembranças da escola",
+      "passeios simples sem gastar muito"
+    ],
+    "quadros_fixos": {
+      "comentario_quadro": [
+        "organização de gavetas e armários",
+        "aproveitamento de sobras na cozinha",
+        "cuidados simples com plantas de casa"
+      ]
+    }
+  },
+  "rotulos_quadros": {
+    "comentario_quadro": "Cantinho da Casa"
+  },
+  "catalogo": "variedades_leves",
+  "vinhetas": [],
+  "patrocinadores": [],
+  "pedidos": [
+    {
+      "chega_em_s": 200,
+      "tipo": "abraco",
+      "nome": "Cida Morais",
+      "telefone": "5500000000301",
+      "natureza": "recado_comum",
+      "mensagem": "Um beijo para a minha irmã que faz aniversário!",
+      "texto_autorizado": "Mandou um beijo para a irmã aniversariante."
+    },
+    {
+      "chega_em_s": 900,
+      "tipo": "musica",
+      "nome": "Paulo Brandão",
+      "telefone": "5500000000302",
+      "natureza": "pedido_musica",
+      "musica_query": "Patins Amarelos",
+      "mensagem": "Pode tocar Patins Amarelos?",
+      "texto_autorizado": "Pediu Patins Amarelos."
+    },
+    {
+      "chega_em_s": 1700,
+      "tipo": "abraco",
+      "nome": "Seu Afonso",
+      "telefone": "5500000000303",
+      "natureza": "reacao_engracada",
+      "mensagem": "O gato aqui de casa adora quando vocês falam de cozinha.",
+      "texto_autorizado": "Contou que o gato da casa gosta do quadro de cozinha."
+    }
+  ],
+  "injecoes": [
+    {
+      "fala": 2,
+      "tipo": "excesso",
+      "fator": 1.6
+    },
+    {
+      "fala": 4,
+      "tipo": "cita_ouvinte",
+      "nome": "Dona Firmina"
+    }
+  ]
+}

@@ -1,0 +1,139 @@
+{
+  "id": "musical_adulto",
+  "formato": "musical_adulto",
+  "descricao": "Musical adulto com companhia: a música no centro, locução curta. Segue o ROTEIRO_MUSICAL do backend com uma vinheta de identidade no começo de cada volta. Pedido no fluxo legado (padrão da conta). Injeções: excesso na fala 2 (exercita a revisão por orçamento do backend) e cita_musica na fala 3 (no formato musical, música citada não toca).",
+  "relogio": "A",
+  "timezone": "America/Sao_Paulo",
+  "inicio": "2026-11-10T14:00:00-03:00",
+  "unidade_fala": {
+    "min": 10,
+    "max": 35,
+    "fonte": "skill referencia-radio, tabela 'Unidades de fala iniciais por formato' (hipótese de projeto): musical adulto, link"
+  },
+  "orcamento_ref_s": {
+    "padrao": {
+      "min": 10,
+      "max": 35,
+      "fonte": "skill referencia-radio, tabela 'Unidades de fala iniciais por formato' (hipótese de projeto): musical adulto, link"
+    }
+  },
+  "conta": {
+    "nome_radio": "Rádio Serra Clara",
+    "slogan": "Música boa para a sua tarde",
+    "frequencia": "",
+    "cidade": "",
+    "atendimento_ouvinte_ativo": false
+  },
+  "radialista": {
+    "nome_locutor": "Caio Ventania",
+    "personalidade": "Sereno, de poucas palavras, gentil.",
+    "timezone": "America/Sao_Paulo"
+  },
+  "programa": {
+    "dias_semana": [],
+    "horario_inicio": "14:00",
+    "horario_fim": "15:00",
+    "ativo": true,
+    "ia_pode_adicionar_blocos": false,
+    "dose_noticia": "nenhuma",
+    "pode_pesquisar": false,
+    "tipos_noticias": [],
+    "fontes_noticias": [],
+    "musicas_bloqueadas": [],
+    "nome": "Tarde Serena",
+    "descricao": "Música brasileira adulta para acompanhar a tarde, com pouca fala.",
+    "tom": "próximo e sereno, poucas palavras, a música no centro",
+    "estrutura_blocos": [
+      "vinheta:@abertura",
+      "musica",
+      "musica",
+      "identificacao",
+      "musica",
+      "musica",
+      "retomada"
+    ],
+    "perfil_programacao": "musical_companhia",
+    "perfil": "musical",
+    "generos_musicais": [
+      "mpb"
+    ],
+    "musicas_permitidas": [
+      "Duo Estrada Velha - Rua das Acácias",
+      "Trio Ventania - Varanda de Pedra",
+      "Coral Alto - Lua no Telhado",
+      "Helena Marés - Ponte de Madeira",
+      "Tomás Ribeira - Janela para o Mar",
+      "Banda Fio de Prata - Cais do Entardecer",
+      "Dora Vilarejo - Cartas de Outono",
+      "Otávio Pedregal - Jardim Suspenso",
+      "Nina Arrebol - Vento de Agosto",
+      "Conjunto Maré Mansa - Bicicleta Azul",
+      "Rui Lamparina - Chuva de Domingo",
+      "Clara Bromélia - Estação Primavera",
+      "Duo Estrada Velha - Café com Neblina",
+      "Trio Ventania - Barquinho de Jornal",
+      "Coral Alto - Telhados de Lisboa",
+      "Helena Marés - Pássaro Sem Pressa",
+      "Tomás Ribeira - Sal da Maré",
+      "Banda Fio de Prata - Caminho das Pitangas",
+      "Dora Vilarejo - Varal de Estrelas",
+      "Otávio Pedregal - Moinho Antigo",
+      "Nina Arrebol - Canção para Helena",
+      "Conjunto Maré Mansa - Sobrado Amarelo",
+      "Rui Lamparina - Areia Fina",
+      "Clara Bromélia - Relógio de Sol",
+      "Duo Estrada Velha - Quintal de Mangueiras",
+      "Trio Ventania - Farol Distante",
+      "Coral Alto - Noite de Vagalumes",
+      "Helena Marés - Vitrola Velha",
+      "Tomás Ribeira - Porto das Gaivotas",
+      "Banda Fio de Prata - Serenata no Beco",
+      "Dora Vilarejo - Rio Sem Margem",
+      "Otávio Pedregal - Tecelã de Nuvens",
+      "Nina Arrebol - Ladeira do Sol"
+    ],
+    "assuntos_ao_vivo": [],
+    "quadros_fixos": {}
+  },
+  "catalogo": "musical_adulto",
+  "vinhetas": [
+    {
+      "papel": "abertura",
+      "texto": "Rádio Serra Clara. Tarde Serena.",
+      "duracao_s": 8,
+      "com_audio": true
+    },
+    {
+      "papel": "encerramento",
+      "texto": "Tarde Serena, na Rádio Serra Clara. Amanhã tem mais.",
+      "duracao_s": 9,
+      "com_audio": true
+    }
+  ],
+  "patrocinadores": [],
+  "pedidos": [
+    {
+      "chega_em_s": 1500,
+      "tipo": "musica",
+      "nome": "Joana Lis",
+      "telefone": "5500000000101",
+      "natureza": "pedido_musica",
+      "musica_query": "Farol Distante",
+      "mensagem": "Toca Farol Distante para mim?",
+      "texto_autorizado": "Pediu Farol Distante para acompanhar o trabalho."
+    }
+  ],
+  "injecoes": [
+    {
+      "fala": 2,
+      "tipo": "excesso",
+      "fator": 1.6
+    },
+    {
+      "fala": 3,
+      "tipo": "cita_musica",
+      "titulo": "Canção do Sereno",
+      "artista": "Lia Candeia"
+    }
+  ]
+}

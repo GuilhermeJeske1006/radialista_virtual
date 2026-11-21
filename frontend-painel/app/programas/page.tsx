@@ -204,7 +204,8 @@ export default function ProgramasPage() {
           <EditarProgramaForm
             programaId={modal.programaId}
             radioConfigId={modal.radialistaId}
-            onSalvo={() => {
+            onSalvo={(programa) => {
+              setModal({ radialistaId: programa.radio_config_id, programaId: programa.id });
               invalidarConfiguracaoInicial();
               carregar();
             }}

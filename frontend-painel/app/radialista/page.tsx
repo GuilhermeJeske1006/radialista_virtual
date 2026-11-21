@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import AppShell from "../../components/AppShell";
 import { AvisoPagamento, useExigirAssinatura } from "../../components/AssinaturaGate";
@@ -21,6 +21,7 @@ import { setRadialistaAtualId } from "../../lib/radialistas";
 import { marcarVinhetasCriadas } from "../../components/VinhetasProgramaSection";
 import { LocufySpin } from "../../components/LocufyLogo";
 import CombinacaoSelect from "../../components/CombinacaoSelect";
+import DescobertaFontesPrograma from "../../components/DescobertaFontesPrograma";
 import { Combinacao, reaisPreciso } from "../../lib/combinacoes";
 
 type RadialistaProposto = ConfiguracaoIAPreview["radialista"];
@@ -59,6 +60,11 @@ export default function RadialistasPage() {
   const [proposta, setProposta] = useState<ConfiguracaoIAPreview | null>(null);
   const [radialistaEdit, setRadialistaEdit] = useState<RadialistaProposto | null>(null);
   const [programaEdit, setProgramaEdit] = useState<ProgramaProposto | null>(null);
+  const [buscandoFontes, setBuscandoFontes] = useState(false);
+  const aplicarFontes = useCallback((noticias: string[], pesquisa: string[], habilitarPesquisa: boolean) => {
+    setProgramaEdit((atual) => atual ? { ...atual, fontes_noticias: noticias, fontes_pesquisa: pesquisa,
+      pode_pesquisar: habilitarPesquisa || atual.pode_pesquisar } : atual);
+  }, []);
   const [geracaoId, setGeracaoId] = useState<number | null>(null);
   const [criandoFinal, setCriandoFinal] = useState(false);
   const [processandoRefinamento, setProcessandoRefinamento] = useState(false);
@@ -513,6 +519,11 @@ export default function RadialistasPage() {
             )}
 
             <hr className="border-border mb-4" />
+            <div className="mb-4">
+              <DescobertaFontesPrograma programa={programaEdit} criando nomeRadio={radioPerfil?.nome_radio}
+                suspenso={criandoFinal || processandoRefinamento}
+                onAplicar={aplicarFontes} onBusy={setBuscandoFontes} />
+            </div>
             <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro mb-2">Modelos e valor</h3>
             {proposta.custo_geracao_brl != null && (
               <p className="text-xs text-fg/65 mb-2">
@@ -595,10 +606,10 @@ export default function RadialistasPage() {
               <button
                 type="button"
                 onClick={confirmarCriacao}
-                disabled={criandoFinal || gerandoIA || processandoRefinamento}
+                disabled={criandoFinal || gerandoIA || processandoRefinamento || buscandoFontes}
                 className="rounded-xl bg-acento px-4 py-2.5 text-sm font-medium text-on-brand hover:bg-acento/90 disabled:opacity-60"
               >
-                {criandoFinal ? "Criando…" : "Criar radialista e programa"}
+                {criandoFinal ? "Criando…" : buscandoFontes ? "Buscando fontes…" : "Criar radialista e programa"}
               </button>
             </div>
           </div>

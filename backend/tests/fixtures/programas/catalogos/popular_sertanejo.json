@@ -1,0 +1,327 @@
+{
+  "id": "popular_sertanejo",
+  "descricao": "Sertanejo fictício para o perfil popular. Nomes inventados.",
+  "faixas": [
+    {
+      "video_id": "sim-pse-01",
+      "titulo": "Estrada de Chão Batido",
+      "artista": "Irmãos Taquara",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 259
+    },
+    {
+      "video_id": "sim-pse-02",
+      "titulo": "Poeira na Botina",
+      "artista": "Zé Ribeirão e Tião",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 251,
+      "contexto": "Moda gravada com viola caipira e sanfona, segundo o encarte fictício."
+    },
+    {
+      "video_id": "sim-pse-03",
+      "titulo": "Rancho da Serra Fria",
+      "artista": "Dupla Lua e Laço",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 265
+    },
+    {
+      "video_id": "sim-pse-04",
+      "titulo": "Laço de Fita Amarela",
+      "artista": "Neném do Cerrado",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 244,
+      "fim_s": 236
+    },
+    {
+      "video_id": "sim-pse-05",
+      "titulo": "Boiadeiro de Domingo",
+      "artista": "Ciro Mangabeira",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 214
+    },
+    {
+      "video_id": "sim-pse-06",
+      "titulo": "Viola no Alpendre",
+      "artista": "Os Filhos da Serra",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 244,
+      "contexto": "Primeira canção da dupla a tocar em festa de peão, conta o encarte fictício."
+    },
+    {
+      "video_id": "sim-pse-07",
+      "titulo": "Café de Coador",
+      "artista": "Tonho Varjão",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 205
+    },
+    {
+      "video_id": "sim-pse-08",
+      "titulo": "Cancela do Retiro",
+      "artista": "Duo Lajeado",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 244
+    },
+    {
+      "video_id": "sim-pse-09",
+      "titulo": "Ipê na Beira da Estrada",
+      "artista": "Mariana Arreio",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 266,
+      "fim_s": 257
+    },
+    {
+      "video_id": "sim-pse-10",
+      "titulo": "Carro de Boi Cantador",
+      "artista": "Jessé Porteira",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 220,
+      "contexto": "Moda gravada com viola caipira e sanfona, segundo o encarte fictício."
+    },
+    {
+      "video_id": "sim-pse-11",
+      "titulo": "Chapéu de Palha Novo",
+      "artista": "Irmãos Taquara",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 201
+    },
+    {
+      "video_id": "sim-pse-12",
+      "titulo": "Rodeio de Inverno",
+      "artista": "Zé Ribeirão e Tião",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 200
+    },
+    {
+      "video_id": "sim-pse-indisponivel",
+      "titulo": "Moda da Ponte Caída",
+      "artista": "Tonho Varjão",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 230,
+      "indisponivel": true
+    },
+    {
+      "video_id": "sim-pse-13",
+      "titulo": "Paixão de Peão",
+      "artista": "Dupla Lua e Laço",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 226
+    },
+    {
+      "video_id": "sim-pse-14",
+      "titulo": "Sanfona e Lamparina",
+      "artista": "Neném do Cerrado",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 283,
+      "fim_s": 276,
+      "contexto": "Primeira canção da dupla a tocar em festa de peão, conta o encarte fictício."
+    },
+    {
+      "video_id": "sim-pse-15",
+      "titulo": "Moreninha do Sítio",
+      "artista": "Ciro Mangabeira",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 205
+    },
+    {
+      "video_id": "sim-pse-16",
+      "titulo": "Trem da Madrugada",
+      "artista": "Os Filhos da Serra",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 282
+    },
+    {
+      "video_id": "sim-pse-17",
+      "titulo": "Galope na Invernada",
+      "artista": "Tonho Varjão",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 223
+    },
+    {
+      "video_id": "sim-pse-18",
+      "titulo": "Prosa de Varanda",
+      "artista": "Duo Lajeado",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 277,
+      "contexto": "Moda gravada com viola caipira e sanfona, segundo o encarte fictício."
+    },
+    {
+      "video_id": "sim-pse-19",
+      "titulo": "Chuva no Cafezal",
+      "artista": "Mariana Arreio",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 246,
+      "fim_s": 240
+    },
+    {
+      "video_id": "sim-pse-20",
+      "titulo": "Bilhete no Retrovisor",
+      "artista": "Jessé Porteira",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 208
+    },
+    {
+      "video_id": "sim-pse-21",
+      "titulo": "Fogueira de Junho",
+      "artista": "Irmãos Taquara",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 213
+    },
+    {
+      "video_id": "sim-pse-22",
+      "titulo": "Pasto Molhado",
+      "artista": "Zé Ribeirão e Tião",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 218,
+      "contexto": "Primeira canção da dupla a tocar em festa de peão, conta o encarte fictício."
+    },
+    {
+      "video_id": "sim-pse-23",
+      "titulo": "Duas Vozes no Galpão",
+      "artista": "Dupla Lua e Laço",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 229
+    },
+    {
+      "video_id": "sim-pse-24",
+      "titulo": "Riacho do Engenho",
+      "artista": "Neném do Cerrado",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 220,
+      "fim_s": 214
+    },
+    {
+      "video_id": "sim-pse-25",
+      "titulo": "Potro Alazão Fujão",
+      "artista": "Ciro Mangabeira",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 271
+    },
+    {
+      "video_id": "sim-pse-26",
+      "titulo": "Noite de Quermesse",
+      "artista": "Os Filhos da Serra",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 217,
+      "contexto": "Moda gravada com viola caipira e sanfona, segundo o encarte fictício."
+    },
+    {
+      "video_id": "sim-pse-27",
+      "titulo": "Mala de Garupa",
+      "artista": "Tonho Varjão",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 209
+    },
+    {
+      "video_id": "sim-pse-28",
+      "titulo": "Amor de Estrada Longa",
+      "artista": "Duo Lajeado",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 229
+    },
+    {
+      "video_id": "sim-pse-29",
+      "titulo": "Lenço no Portão",
+      "artista": "Mariana Arreio",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 195,
+      "fim_s": 187
+    },
+    {
+      "video_id": "sim-pse-30",
+      "titulo": "Sereno no Telhado",
+      "artista": "Jessé Porteira",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 221,
+      "contexto": "Primeira canção da dupla a tocar em festa de peão, conta o encarte fictício."
+    },
+    {
+      "video_id": "sim-pse-31",
+      "titulo": "Pé de Ipê Florido",
+      "artista": "Irmãos Taquara",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 282
+    },
+    {
+      "video_id": "sim-pse-32",
+      "titulo": "Berrante ao Longe",
+      "artista": "Zé Ribeirão e Tião",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 245
+    },
+    {
+      "video_id": "sim-pse-33",
+      "titulo": "Lua de Pescador",
+      "artista": "Dupla Lua e Laço",
+      "generos": [
+        "sertanejo"
+      ],
+      "duracao_s": 195
+    }
+  ]
+}

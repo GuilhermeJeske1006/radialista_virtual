@@ -10,8 +10,27 @@ from app.billing.consumo_ia import concluir, reservar, falhar
 from app.billing.contexto_ia import atual
 from app.config.redis_client import redis_client
 from app.config.settings import settings
+from app.guardrails.provedores import executar
 
 logger = logging.getLogger("radialista.llm.custos")
+
+
+def _entrada_para_capacidade(dados):
+    imagens = 0
+    def sem_binarios(valor):
+        nonlocal imagens
+        if isinstance(valor, list):
+            return [sem_binarios(v) for v in valor]
+        if isinstance(valor, dict):
+            if valor.get("type") == "image":
+                imagens += 1
+                return {"type": "image"}
+            return {k: sem_binarios(v) for k, v in valor.items()}
+        return valor
+    texto = json.dumps(sem_binarios(dados), ensure_ascii=False, default=str).encode()
+    # Base64 não corresponde aos tokens visuais cobrados. Reservar margem por
+    # imagem e reconciliar o uso, sem alterar o payload enviado ao modelo.
+    return len(texto) + imagens * settings.ia_imagem_reserva_tokens
 
 
 def chave_classificacao(system, user, max_tokens):
@@ -69,7 +88,14 @@ def criar_mensagem(client, **kwargs):
         "entrada": tokens_max, "saida": kwargs["max_tokens"],
         "cache_write": tokens_max, "cache_read": tokens_max, "buscas": buscas_max})
     try:
-        resposta = client.messages.create(**kwargs)
+        # Reserva conservadora do texto conhecido. O uso real reconcilia os buckets;
+        # ferramentas precisam de margem para contexto obtido durante a requisição.
+        estimativa = _entrada_para_capacidade({k: kwargs.get(k) for k in ("system", "messages", "tools")})
+        estimativa += settings.ia_busca_reserva_tokens if buscas_max else 0
+        timeout = kwargs.pop("timeout", settings.ia_llm_timeout_s)
+        resposta = executar("llm", model,
+            lambda restante: client.messages.create(**kwargs, timeout=min(float(timeout), restante)),
+            timeout_s=float(timeout), entrada=estimativa, saida=kwargs["max_tokens"])
     except Exception:
         falhar(reserva)
         raise

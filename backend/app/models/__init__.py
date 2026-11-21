@@ -1,4 +1,6 @@
 from app.models.account import Account
+from app.models import canal_whatsapp  # noqa: F401 -- registra tabelas do canal
+from app.models.esportes import EdicaoEsportiva, FonteEsportiva, PerfilEsportivo
 from app.models.assunto import Assunto
 from app.models.assunto_programa import AssuntoPrograma
 from app.models.biblioteca_audio import BibliotecaAudioItem
@@ -18,16 +20,22 @@ from app.models.password_reset_token import PasswordResetToken
 from app.models.patrocinador import Patrocinador
 from app.models.programa import Programa
 from app.models.programa_radialista import ProgramaRadialista
+from app.models.promessa_no_ar import PromessaNoAr
+from app.models.as_run_evento import AsRunEvento
+from app.models.fala_em_revisao import FalaEmRevisao
 from app.models.radio_config import RadioConfig
 from app.models.super_admin import SuperAdmin
 from app.models.tema_historico import TemaHistorico
 from app.models.trilha_vinheta import TrilhaVinheta
 from app.models.usuario import Usuario
 from app.models.voz_clonada import VozClonada
-from app.models.perfil_voz import ConfiguracaoVoz, MetadadosVoz
+from app.models.perfil_voz import ConfiguracaoVoz, MetadadosVoz, RitmoVoz
 
 __all__ = [
     "Account",
+    "EdicaoEsportiva",
+    "FonteEsportiva",
+    "PerfilEsportivo",
     "Usuario",
     "ConviteUsuario",
     "RadioConfig",
@@ -38,11 +46,15 @@ __all__ = [
     "FilaAoVivo",
     "Programa",
     "ProgramaRadialista",
+    "PromessaNoAr",
+    "AsRunEvento",
+    "FalaEmRevisao",
     "PasswordResetToken",
     "Patrocinador",
     "VozClonada",
     "ConfiguracaoVoz",
     "MetadadosVoz",
+    "RitmoVoz",
     "CompraExcedente",
     "BibliotecaAudioItem",
     "CategoriaVinheta",

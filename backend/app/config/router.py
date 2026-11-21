@@ -2,10 +2,17 @@ import datetime
 import logging
 from typing import Literal
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
-from pydantic import BaseModel, Field, ValidationError
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, status
+from pydantic import BaseModel, Field, ValidationError, ValidatorFunctionWrapHandler, field_validator
+from pydantic_core import PydanticCustomError
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 
+from app.live.pecas_reserva import aprovar, normalizar_pecas
+from app.live.bancada import validar_papel_bancada
+from app.live.cortes import cortes_do_as_run
+from app.live.revisao import RevisaoInvalida, decidir_no_banco
+from app.live.relatorio_programa import montar_relatorio
 from app.auth.dependencies import get_current_account
 from app.db.database import get_db
 from app.guardrails.http_rate_limit import limite_atingido, registrar_consumo
@@ -20,6 +27,9 @@ from app.llm.config_generator import (
     reparar_programa_ia,
 )
 from app.llm.tipos_radio import TIPOS_RADIO, tipo_radio_valido
+from app.live.formatos import FORMATOS, ids_aceitos
+from app.live.persona import Persona, persona_ou_none
+from app.live.relogio import PRESETS_INFO, RelogioHora, TotaisRelogio, mensagens_de_erro, totais
 from app.models.account import Account
 from app.models.assunto_programa import AssuntoPrograma
 from app.models.fila_ao_vivo import FilaAoVivo
@@ -30,9 +40,13 @@ from app.models.musica_historico import MusicaHistorico
 from app.models.noticia_historico import NoticiaHistorico
 from app.models.programa import Programa
 from app.models.programa_radialista import ProgramaRadialista
+from app.models.promessa_no_ar import PromessaNoAr
+from app.models.as_run_evento import AsRunEvento
+from app.models.fala_em_revisao import FalaEmRevisao
 from app.models.radio_config import RadioConfig
 from app.models.tema_historico import TemaHistorico
 from app.news.seeds_fontes import criar_seeds_fontes
+from app.news.descoberta import DescobertaFontes, PerfilFontes, descobrir_fontes, preencher_fontes_programa
 from app.billing.limites import limite_agentes_efetivo, limite_radialistas_por_programa
 from app.tts.voices import validar_voz_ou_400
 from app.vinhetas.servico import criar_vinhetas_com_seguranca, excluir_dados_do_programa
@@ -96,6 +110,18 @@ class RadioContaRequest(BaseModel):
     tipo_radio: str = ""
     conhecimento_local: ConhecimentoLocal = Field(default_factory=ConhecimentoLocal)
     biblia_radio: BibliaRadio = Field(default_factory=BibliaRadio)
+    # F9 (app.tts.glossario): glossário de pronúncia da rádio. Gravado inteiro pelo PUT, como os demais campos.
+    glossario_pronuncia: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("glossario_pronuncia")
+    @classmethod
+    def _glossario_limpo(cls, valor: dict[str, str]) -> dict[str, str]:
+        from app.tts.glossario import MAX_TERMOS_RADIO, normalizar_glossario
+
+        try:
+            return normalizar_glossario(valor, MAX_TERMOS_RADIO)
+        except ValueError as erro:
+            raise ValueError(f"glossário de pronúncia: {erro}") from erro
 
 
 class RadioContaResponse(RadioContaRequest):
@@ -131,7 +157,9 @@ class ProgramaRequest(BaseModel):
     limite_mensagens_hora: int = 1000
 
     estrutura_blocos: list[str] = Field(default_factory=list)
-    perfil_programacao: Literal["padrao", "musical_companhia"] = "padrao"
+    # Formato do programa (catálogo app.live.formatos, F6): padrao, os ids implementados e os aliases. O valor
+    # gravado não é reescrito (D2): o alias musical_companhia continua aceito e ecoado.
+    perfil_programacao: str = "padrao"
     ia_pode_adicionar_blocos: bool = True
 
     generos_musicais: list[str] = Field(default_factory=list)
@@ -163,17 +191,90 @@ class ProgramaRequest(BaseModel):
     publico_alvo: str = ""
     densidade_assunto: Literal["leve", "equilibrada", "informado"] = "leve"
 
+    # Persona (F7, app.live.persona): None = sem persona. O PUT grava inteira, como os demais campos do programa.
+    persona: Persona | None = None
+
+    @field_validator("perfil_programacao")
+    @classmethod
+    def _formato_do_catalogo(cls, valor: str) -> str:
+        if valor not in ids_aceitos():
+            raise PydanticCustomError("formato_invalido", "Formato desconhecido ou ainda não disponível: {formato}.",
+                                      {"formato": valor[:40]})
+        return valor
+
 
 class ProgramaResponse(ProgramaRequest):
     id: int
     radio_config_id: int
+    # Leitura tolerante (F6, risco 2 da auditoria): ecoa o valor gravado mesmo fora do catálogo (versão mais nova
+    # do backend, edição direta no banco). O validador da requisição é herdado pelo nome, então é sobrescrito aqui;
+    # redeclarar só o campo não basta.
+    perfil_programacao: str = "padrao"
+    # Relogio da hora (F1). Fora de ProgramaRequest de proposito (D6): os PUTs atuais ecoam o
+    # programa inteiro e nao podem apaga-lo; grava-se por PUT/DELETE /programas/{id}/relogio.
+    relogio_hora: RelogioHora | None = None
 
     model_config = {"from_attributes": True}
+
+    @field_validator("relogio_hora", mode="wrap")
+    @classmethod
+    def _relogio_tolerante(cls, valor, handler: ValidatorFunctionWrapHandler):
+        """JSON invalido no banco aparece como null (com log), em vez de derrubar a leitura."""
+        if valor is None:
+            return None
+        try:
+            return handler(valor)
+        except ValidationError as erro:
+            logger.warning("relogio_hora_invalido_na_leitura erros=%s", mensagens_de_erro(erro))
+            return None
+
+    @field_validator("persona", mode="before")
+    @classmethod
+    def _persona_tolerante(cls, valor):
+        """Persona inválida no banco aparece como null (com log), em vez de derrubar a leitura (F7)."""
+        p = persona_ou_none(valor)
+        return p.model_dump() if p is not None else None
+
+    @field_validator("perfil_programacao")
+    @classmethod
+    def _formato_do_catalogo(cls, valor: str) -> str:
+        return valor
+
+
+class FormatoResponse(BaseModel):
+    """Formato do catálogo para o painel (F6, §6.10), inclusive os ainda não implementados."""
+
+    id: str
+    nome: str
+    promessa: str
+    conteudo: str
+    conducao: str
+    unidade_principal: str
+    roteiro_padrao: list[str]
+    relogio_padrao: str | None
+    ia_pode_adicionar_blocos: bool
+    participacao: str
+    temas_revisao: list[str]
+    reorientacao_s: int | None
+    aliases: list[str]
+    implementado: bool
+    requer: str
+
+
+class PresetRelogioResponse(BaseModel):
+    id: str
+    nome: str
+    descricao: str
+    fonte: str
+    nota: str = ""
+    relogio: RelogioHora
+    totais: TotaisRelogio
 
 
 class RadialistaProgramaRequest(BaseModel):
     papel: str = "Apresentador principal"
     comportamento: str = ""
+    papel_bancada: str | None = None  # F13: mediador | comentarista | contraponto (ou nulo)
 
 
 class RadialistaProgramaResponse(BaseModel):
@@ -183,6 +284,7 @@ class RadialistaProgramaResponse(BaseModel):
     papel: str
     comportamento: str
     e_dono: bool
+    papel_bancada: str | None = None
 
 
 class GerarConfiguracaoIARequest(BaseModel):
@@ -533,6 +635,7 @@ def _resposta_vinculo_radialista(
         papel=vinculo.papel if vinculo else "Apresentador principal",
         comportamento=vinculo.comportamento if vinculo else "",
         e_dono=e_dono,
+        papel_bancada=vinculo.papel_bancada if vinculo else None,
     )
 
 
@@ -692,6 +795,7 @@ def gerar_radialista_ia(
                 detail="Nao foi possivel gerar a configuracao agora. Tenta de novo em instantes.",
             )
 
+    programa_dados = preencher_fontes_programa(programa_dados, account)
     resposta = _commitar_radialista_gerado(
         db, account, radialista_dados, programa_dados, background_tasks, combinacao=combinacao
     )
@@ -825,6 +929,7 @@ def gerar_radialista_ia_preview(
         programa_dados, corrigidos_p = _construir_com_defaults(ProgramaRequest, dados_programa)
         campos_corrigidos = corrigidos_r + corrigidos_p
 
+    programa_dados = preencher_fontes_programa(programa_dados, account)
     avisos = _avisos_coerencia(db, account, programa_dados, radialista_dados, roster_existente)
     geracao_id = _registrar_geracao(
         db,
@@ -965,6 +1070,8 @@ def refinar_radialista_ia_preview(
         programa_dados, corrigidos_p = _construir_com_defaults(ProgramaRequest, dados_programa)
         campos_corrigidos = corrigidos_r + corrigidos_p
 
+    if dados.escopo == "programa":
+        programa_dados = preencher_fontes_programa(programa_dados, account)
     avisos = _avisos_coerencia(db, account, programa_dados, radialista_dados, roster_existente)
     geracao_id = _registrar_geracao(
         db,
@@ -1021,6 +1128,11 @@ def excluir_radialista(
 ):
     radialista = _buscar_radialista(db, account, radialista_id)
     programas_do_radialista = [p.id for p in db.query(Programa.id).filter_by(radio_config_id=radialista.id).all()]
+    from app.models.canal_whatsapp import EntradaWhatsapp, EnvioWhatsapp
+    if db.query(EntradaWhatsapp.id).filter_by(radio_config_id=radialista.id).first() or db.query(EnvioWhatsapp.id).join(
+        InteractionLog, InteractionLog.id == EnvioWhatsapp.log_id,
+    ).filter(InteractionLog.radio_config_id == radialista.id).first():
+        raise HTTPException(409, "Desative este radialista para preservar o histórico de atendimento")
     # remove vinculos onde ele participa como co-apresentador em programas de outros
     # radialistas, e os vinculos dos programas dele que estao pra ser excluidos.
     db.query(ProgramaRadialista).filter_by(radio_config_id=radialista.id).delete()
@@ -1032,14 +1144,29 @@ def excluir_radialista(
     db.query(MensagemOuvinte).filter_by(radio_config_id=radialista.id).delete()
     db.query(InteractionLog).filter_by(radio_config_id=radialista.id).delete()
     db.query(FilaAoVivo).filter_by(radio_config_id=radialista.id).delete()
+    # Promessas no ar (F4): FK sem cascata para programas e radio_configs.
+    db.query(PromessaNoAr).filter_by(radio_config_id=radialista.id).delete()
     if programas_do_radialista:
+        db.query(PromessaNoAr).filter(PromessaNoAr.programa_id.in_(programas_do_radialista)).delete(
+            synchronize_session=False
+        )
         db.query(MusicaHistorico).filter(MusicaHistorico.programa_id.in_(programas_do_radialista)).delete(
+            synchronize_session=False
+        )
+        db.query(AsRunEvento).filter(AsRunEvento.programa_id.in_(programas_do_radialista)).delete(
+            synchronize_session=False
+        )
+        db.query(FalaEmRevisao).filter(FalaEmRevisao.programa_id.in_(programas_do_radialista)).delete(
             synchronize_session=False
         )
         db.query(TemaHistorico).filter(TemaHistorico.programa_id.in_(programas_do_radialista)).delete(
             synchronize_session=False
         )
     for programa_id in programas_do_radialista:
+        from app.whatsapp.arquivo import arquivar_programa
+        arquivar_programa(db, programa_id)
+        db.query(NoticiaHistorico).filter_by(programa_id=programa_id).delete()
+        db.query(AssuntoPrograma).filter_by(programa_id=programa_id).delete()
         excluir_dados_do_programa(db, account.id, programa_id)
     db.query(Programa).filter_by(radio_config_id=radialista.id).delete()
     db.delete(radialista)
@@ -1162,6 +1289,7 @@ def gerar_programa_ia_endpoint(
             )
 
     _validar_conflito_horario(db, account.id, programa_dados)
+    programa_dados = preencher_fontes_programa(programa_dados, account)
     programa = Programa(radio_config_id=radialista.id, **programa_dados.model_dump())
     db.add(programa)
     db.commit()
@@ -1231,6 +1359,7 @@ def gerar_programa_ia_preview(
             logger.warning("Reparo de preview de programa falhou -- caindo pra defaults", exc_info=True)
         programa_dados, campos_corrigidos = _construir_com_defaults(ProgramaRequest, dados_programa)
 
+    programa_dados = preencher_fontes_programa(programa_dados, account)
     avisos = _avisos_coerencia(db, account, programa_dados)
     geracao_id = _registrar_geracao(
         db,
@@ -1296,6 +1425,26 @@ def ajustar_programa_ia_preview(
     )
 
 
+class DescobrirFontesRequest(PerfilFontes):
+    atualizar: bool = False
+
+
+@router.post("/programas/fontes/descobrir", response_model=DescobertaFontes)
+def descobrir_fontes_programa(
+    dados: DescobrirFontesRequest,
+    account: Account = Depends(get_current_account),
+):
+    """Pesquisa contextual para o rascunho; só o salvamento do programa grava a seleção."""
+    if not dados.nome.strip():
+        raise HTTPException(status_code=400, detail="Informe o nome do programa para buscar fontes.")
+    chave = f"descoberta-fontes:{account.id}"
+    if limite_atingido(chave, limite=30, janela_segundos=3600):
+        raise HTTPException(status_code=429, detail="Limite de buscas de fontes atingido. Tente mais tarde.")
+    registrar_consumo(chave, janela_segundos=3600)
+    perfil = PerfilFontes.model_validate(dados.model_dump(exclude={"atualizar"}))
+    return descobrir_fontes(perfil, account, atualizar=dados.atualizar)
+
+
 @router.get("/programas/{programa_id}", response_model=ProgramaResponse)
 def obter_programa(
     programa_id: int,
@@ -1303,6 +1452,138 @@ def obter_programa(
     db: Session = Depends(get_db),
 ):
     return _buscar_programa(db, account, programa_id)
+
+
+@router.post("/programas/{programa_id}/relatorio")
+def relatorio_pos_programa(
+    programa_id: int,
+    resumo: dict = Body(...),
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Relatório pós-programa (F11 item 2) a partir do resumo (mesmo formato do simulador). Função pura: não
+    lê o as-run. Quando o as-run persistente (F11 item 1) existir, este endpoint passa a montar o resumo sozinho."""
+    programa = _buscar_programa(db, account, programa_id)
+    return {"programa_id": programa.id, **montar_relatorio(resumo)}
+
+
+def _falas_revisao_json(linhas) -> list[dict]:
+    return [
+        {"id": fala.id, "categoria": fala.categoria, "texto": fala.texto, "rota": fala.rota, "motivo": fala.motivo,
+         "estado": fala.estado, "criado_em": fala.criado_em.isoformat(),
+         "prazo_em": fala.prazo_em.isoformat() if fala.prazo_em else None}
+        for fala in linhas
+    ]
+
+
+@router.get("/programas/{programa_id}/cortes")
+def listar_cortes(
+    programa_id: int,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Cortes que fazem sentido sozinhos, marcados a partir do as-run (F14 item 2)."""
+    _buscar_programa(db, account, programa_id)
+    linhas = (
+        db.query(AsRunEvento)
+        .filter_by(programa_id=programa_id, account_id=account.id)
+        .order_by(AsRunEvento.ordem.asc())
+        .all()
+    )
+    eventos = [{"ordem": ev.ordem, "tipo": ev.tipo, "status": ev.status, "pedido_id": ev.pedido_id} for ev in linhas]
+    return cortes_do_as_run(eventos)
+
+
+@router.get("/programas/{programa_id}/falas-revisao")
+def listar_falas_revisao(
+    programa_id: int,
+    estado: str | None = None,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Falas que aguardam decisão (F12). Sem `estado`, traz todas."""
+    _buscar_programa(db, account, programa_id)
+    consulta = db.query(FalaEmRevisao).filter_by(programa_id=programa_id, account_id=account.id)
+    if estado:
+        consulta = consulta.filter_by(estado=estado)
+    return _falas_revisao_json(consulta.order_by(FalaEmRevisao.criado_em.desc()).limit(100).all())
+
+
+def _decidir_fala_revisao(db: Session, account: Account, programa_id: int, fala_id: int, acao: str) -> dict:
+    _buscar_programa(db, account, programa_id)
+    try:
+        linha = decidir_no_banco(db, account.id, programa_id, fala_id, acao,
+                                 datetime.datetime.now(datetime.timezone.utc))
+    except RevisaoInvalida as erro:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(erro))
+    if linha is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fala não encontrada")
+    return _falas_revisao_json([linha])[0]
+
+
+@router.post("/programas/{programa_id}/falas-revisao/{fala_id}/aprovar")
+def aprovar_fala_revisao(
+    programa_id: int,
+    fala_id: int,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    return _decidir_fala_revisao(db, account, programa_id, fala_id, "aprovar")
+
+
+@router.post("/programas/{programa_id}/falas-revisao/{fala_id}/rejeitar")
+def rejeitar_fala_revisao(
+    programa_id: int,
+    fala_id: int,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    return _decidir_fala_revisao(db, account, programa_id, fala_id, "rejeitar")
+
+
+@router.get("/programas/{programa_id}/pecas-reserva")
+def listar_pecas_reserva(
+    programa_id: int,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Peças de reserva do programa (F11 item 3). Só as aprovadas entram no ar."""
+    return _buscar_programa(db, account, programa_id).pecas_reserva or []
+
+
+@router.put("/programas/{programa_id}/pecas-reserva")
+def salvar_pecas_reserva(
+    programa_id: int,
+    dados: list[dict] = Body(...),
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Substitui a lista. Texto ou tipo alterado volta a "aprovada": false."""
+    programa = _buscar_programa(db, account, programa_id)
+    try:
+        programa.pecas_reserva = normalizar_pecas(dados, atuais=programa.pecas_reserva or [])
+    except ValueError as erro:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(erro))
+    db.commit()
+    return programa.pecas_reserva
+
+
+@router.post("/programas/{programa_id}/pecas-reserva/{peca_id}/aprovar")
+def aprovar_peca_reserva(
+    programa_id: int,
+    peca_id: int,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    programa = _buscar_programa(db, account, programa_id)
+    pecas = [dict(p) for p in (programa.pecas_reserva or [])]
+    peca = aprovar(pecas, peca_id)
+    if peca is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Peça de reserva não encontrada")
+    programa.pecas_reserva = pecas
+    flag_modified(programa, "pecas_reserva")
+    db.commit()
+    return peca
 
 
 @router.put("/programas/{programa_id}", response_model=ProgramaResponse)
@@ -1321,6 +1602,67 @@ def atualizar_programa(
     return programa
 
 
+@router.get("/formatos", response_model=list[FormatoResponse])
+def listar_formatos(account: Account = Depends(get_current_account)):
+    """Catálogo de formatos (app.live.formatos): promessa, condução, unidade, roteiro e relógio sugeridos."""
+    return [
+        FormatoResponse(
+            id=f.id, nome=f.nome, promessa=f.promessa, conteudo=f.conteudo, conducao=f.conducao,
+            unidade_principal=f.unidade_principal, roteiro_padrao=list(f.roteiro_padrao),
+            relogio_padrao=f.relogio_padrao, ia_pode_adicionar_blocos=f.comportamento.ia_pode_adicionar_blocos,
+            participacao=f.participacao, temas_revisao=list(f.temas_revisao), reorientacao_s=f.reorientacao_s,
+            aliases=list(f.aliases), implementado=f.implementado, requer=f.requer,
+        )
+        for f in FORMATOS.values()
+    ]
+
+
+@router.get("/relogios/presets", response_model=list[PresetRelogioResponse])
+def listar_presets_relogio(account: Account = Depends(get_current_account)):
+    """Relogios de referencia A, B e C (pesquisa §9; hipoteses de projeto, ver app/live/relogios)."""
+    return [
+        PresetRelogioResponse(id=p.id, nome=p.nome, descricao=p.descricao, fonte=p.fonte, nota=p.nota,
+                              relogio=p.relogio, totais=totais(p.relogio))
+        for p in PRESETS_INFO.values()
+    ]
+
+
+@router.put("/programas/{programa_id}/relogio", response_model=ProgramaResponse)
+def gravar_relogio_programa(
+    programa_id: int,
+    dados: dict = Body(...),
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Substitui o relogio da hora do programa inteiro. Relogio invalido = 422 com a mensagem em
+    portugues e nada gravado."""
+    programa = _buscar_programa(db, account, programa_id)
+    try:
+        relogio = RelogioHora.model_validate(dados)
+    except ValidationError as erro:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail=" ".join(mensagens_de_erro(erro))) from erro
+    programa.relogio_hora = relogio.model_dump(mode="json")
+    db.commit()
+    db.refresh(programa)
+    logger.info("Relogio do programa gravado: id=%s preset=%s", programa.id, relogio.preset)
+    return programa
+
+
+@router.delete("/programas/{programa_id}/relogio", response_model=ProgramaResponse)
+def remover_relogio_programa(
+    programa_id: int,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Volta o programa a seguir a estrutura_blocos (sem relogio)."""
+    programa = _buscar_programa(db, account, programa_id)
+    programa.relogio_hora = None
+    db.commit()
+    db.refresh(programa)
+    return programa
+
+
 @router.delete("/programas/{programa_id}", status_code=status.HTTP_204_NO_CONTENT)
 def excluir_programa(
     programa_id: int,
@@ -1328,6 +1670,8 @@ def excluir_programa(
     db: Session = Depends(get_db),
 ):
     programa = _buscar_programa(db, account, programa_id)
+    from app.whatsapp.arquivo import arquivar_programa
+    arquivar_programa(db, programa.id)
     from app.models.mensagem_ouvinte import MensagemOuvinte
     from app.whatsapp.atendimento import registrar_evento
     for pedido in db.query(FilaAoVivo).filter_by(programa_id=programa.id).all():
@@ -1349,6 +1693,9 @@ def excluir_programa(
     # ao vivo do banco de assuntos, ver plano-assuntos.md).
     db.query(NoticiaHistorico).filter_by(programa_id=programa.id).delete()
     db.query(AssuntoPrograma).filter_by(programa_id=programa.id).delete()
+    db.query(PromessaNoAr).filter_by(programa_id=programa.id).delete()  # F4, mesma FK sem cascata
+    db.query(AsRunEvento).filter_by(programa_id=programa.id).delete()  # F11, idem
+    db.query(FalaEmRevisao).filter_by(programa_id=programa.id).delete()  # F12, idem
     excluir_dados_do_programa(db, account.id, programa.id)
     db.delete(programa)
     db.commit()
@@ -1411,8 +1758,13 @@ def definir_radialista_programa(
         vinculo = ProgramaRadialista(programa_id=programa.id, radio_config_id=radialista.id)
         db.add(vinculo)
 
+    try:
+        papel_bancada = validar_papel_bancada(dados.papel_bancada)
+    except ValueError as erro:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(erro))
     vinculo.papel = dados.papel
     vinculo.comportamento = dados.comportamento
+    vinculo.papel_bancada = papel_bancada
     db.commit()
     db.refresh(vinculo)
     return _resposta_vinculo_radialista(radialista, vinculo, e_dono)

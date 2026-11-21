@@ -23,14 +23,27 @@ const ESTADO_VAZIO: ConfiguracaoInicialEstado = {
 let cache: ConfiguracaoInicialEstado | null = null;
 let buscaEmVoo: Promise<ConfiguracaoInicialEstado> | null = null;
 const assinantes = new Set<(estado: ConfiguracaoInicialEstado) => void>();
+let intervaloStatus: ReturnType<typeof setInterval> | null = null;
+
+async function atualizarStatus() {
+  try {
+    const status = await apiFetch<{data?: {loggedIn?: boolean; connected?: boolean}}>("/onboarding/status");
+    if (!cache) return;
+    const conectado = !!status?.data?.loggedIn && status.data.connected !== false;
+    if (cache.whatsappConectado === conectado) return;
+    cache = { ...cache, whatsappConectado: conectado, completa: conectado && cache.radialistaPronto && cache.programaAtivo };
+    assinantes.forEach(avisar => avisar(cache!));
+  } catch { /* Consulta indisponível não equivale a sessão desconectada. */ }
+}
 
 function buscar(): Promise<ConfiguracaoInicialEstado> {
   if (!buscaEmVoo) {
     buscaEmVoo = Promise.all([
       apiFetch<RadioConta>("/config/radio"),
       apiFetch<Radialista[]>("/config/radialistas"),
+      apiFetch<{data?: {loggedIn?: boolean; connected?: boolean}}>("/onboarding/status").catch(() => null),
     ])
-      .then(async ([radio, radialistas]) => {
+      .then(async ([_radio, radialistas, status]) => {
         const radialistaPronto = radialistas.some((r) => r.ativo && r.voz_id);
         const listasDeProgramas = await Promise.all(
           radialistas.map((r) =>
@@ -38,7 +51,7 @@ function buscar(): Promise<ConfiguracaoInicialEstado> {
           )
         );
         const programaAtivo = listasDeProgramas.flat().some((p) => p.ativo);
-        const whatsappConectado = Boolean(radio.wuzapi_token);
+        const whatsappConectado = !!status?.data?.loggedIn && status.data.connected !== false;
         const estado: ConfiguracaoInicialEstado = {
           radialistaPronto,
           programaAtivo,
@@ -80,11 +93,19 @@ export function useConfiguracaoInicial(): ConfiguracaoInicialEstado {
 
   useEffect(() => {
     assinantes.add(setEstado);
+    if (!intervaloStatus) {
+      intervaloStatus = setInterval(atualizarStatus, 30000);
+      if (cache) void atualizarStatus();
+    }
     if (cache === null) {
       buscar().catch(() => {});
     }
     return () => {
       assinantes.delete(setEstado);
+      if (!assinantes.size && intervaloStatus) {
+        clearInterval(intervaloStatus);
+        intervaloStatus = null;
+      }
     };
   }, []);
 

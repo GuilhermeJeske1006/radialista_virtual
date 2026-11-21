@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic_settings import BaseSettings
 
 
@@ -8,9 +10,25 @@ class Settings(BaseSettings):
     wuzapi_admin_token: str = ""
     wuzapi_webhook_url: str = "http://host.docker.internal:8000/webhook/whatsapp"
     locutor_nome: str = "Ze do Radio"
+    # Ativo no deploy com worker separado; desligado conserva atendimento síncrono.
+    whatsapp_worker_ativo: bool = False
+    whatsapp_debounce_s: float = 6.0
+    whatsapp_agrupamento_max_s: float = 60.0
+    whatsapp_tentativas_max: int = 5
+    whatsapp_midia_retencao_horas: int = 24
 
     database_url: str = "postgresql://radialista:radialista@localhost:5433/radialista"
     redis_url: str = "redis://localhost:6379/0"
+    # Redis (F3, item 6 da docs/auditoria.md): timeouts do cliente e pausa do disjuntor do estado de sessão do ao vivo
+    # (app.config.redis_client.redis_sessao). Com o Redis fora, /proxima segue sem memória em vez de travar.
+    redis_connect_timeout_s: float = 0.5
+    redis_socket_timeout_s: float = 1.0
+    redis_health_check_s: int = 30
+    redis_pausa_apos_falha_s: float = 15.0
+    # Cache global da classificação por LLM de bloco customizado (item 9 da docs/auditoria.md, D18 da F6): TTL
+    # renovado a cada gravação e teto de entradas (passado o teto, o hash recomeça).
+    cache_categoria_bloco_ttl_s: int = 30 * 24 * 60 * 60
+    cache_categoria_bloco_max: int = 5000
 
     # Sem default de proposito: segredo fraco/publico no repo permitiria forjar
     # token de qualquer conta. Gere com: openssl rand -hex 32
@@ -53,6 +71,22 @@ class Settings(BaseSettings):
     llm_prompt_cache: bool = False
     ia_cache_habilitado: bool = True
     ia_cache_ttl_segundos: int = 86400
+    # Tetos operacionais compartilhados por credencial, não cotas prometidas pelo provedor.
+    # Ajustar pelos limites reais do Console; 0 desativa somente a métrica RPM/tokens.
+    ia_limites_provedores: dict[str, dict[str, int]] = {
+        "tts": {"concorrencia": 2}, "stt": {"concorrencia": 4}, "music": {"concorrencia": 1},
+        "llm": {"concorrencia": 4, "rpm": 30, "entrada": 40000, "saida": 8000},
+    }
+    # Overrides por pool: ex. {"llm:claude-opus-5": {"rpm": 100, "entrada": 200000}}.
+    ia_limites_por_pool: dict[str, dict[str, int]] = {}
+    ia_fila_max: int = 128
+    ia_fila_espera_s: float = 8.0
+    ia_llm_timeout_s: float = 25.0
+    ia_retentativas: int = 3
+    ia_busca_reserva_tokens: int = 16000
+    ia_imagem_reserva_tokens: int = 8192
+    live_prewarm_workers: int = 2
+    live_prewarm_pendentes: int = 4
     # Desligado por padrão: ligado, toda geração exige tarifa publicada (senão 503) e
     # plano ativo (trial recebe 402). Ligar por env só com GET
     # /billing/admin/tarifas/pendentes vazio no ambiente.
@@ -83,6 +117,43 @@ class Settings(BaseSettings):
         # Preço cheio da API = v3 e Flash (o desconto de lançamento acaba em 2026-10-12).
         "eleven_v4": 0.10, "eleven_v4_turbo": 0.05,
     }
+    # Duração real da fala (F2, app.live.orcamento e app.live.ritmo_voz). Hipóteses de projeto:
+    # o ritmo padrão (palavras/min) é o centro da faixa 130-160 da pesquisa (§5, skill
+    # referencia-radio); por modelo, a média medida em docs/benchmarks/2026-10-08-eleven-v4. A
+    # calibração por voz (tabela ritmos_voz) substitui os dois depois de algumas falas medidas.
+    fala_wpm_padrao: float = 150
+    fala_wpm_padrao_por_modelo: dict[str, float] = {
+        "eleven_v3": 162, "eleven_v4": 158, "eleven_v4_turbo": 158, "eleven_flash_v2_5": 171,
+    }
+    # Acima de (1 + tolerância) x máximo: uma reescrita mais curta antes do TTS; acima de
+    # (1 + teto) x máximo, medido depois do TTS: encurta por frases (nunca acelera a voz).
+    fala_tolerancia_orcamento: float = 0.15
+    fala_teto_orcamento: float = 0.30
+    fala_pausa_explicita_s: float = 1.2      # "......" vira [pause], ~1,2-1,5 s medidos no v3/v4
+    fala_pausa_entre_linhas_s: float = 0.28  # espelho de frontend-painel/lib/continuidadeAudio.ts
+    fala_calibracao_min_amostras: int = 5
+    fala_calibracao_max_amostras: int = 200  # acima disso as somas caem pela metade
+    fala_calibracao_min_palavras: int = 8
+    fala_calibracao_min_segundos: float = 2.0
+    fala_calibracao_wpm_faixa: tuple[float, float] = (80, 320)
+    # Validador pós-geração (F3, app.live.validacao_fala): "corrigir" reescreve (dentro da reescrita única) e tira a
+    # frase com música anunciada sem confirmação; "avisar" só registra no log e na resposta (decisão D2).
+    validacao_musica_modo: Literal["corrigir", "avisar"] = "corrigir"
+    # F4 (decisão D12): modo por regra, para ligar "avisar" só no detector que der falso positivo com LLM real.
+    # Promessa sem evento (app.live.promessas) e participação (app.live.participacao: pedido não selecionado,
+    # ouvinte inexistente, mensagem simulada, pedido que some da fala).
+    validacao_promessa_modo: Literal["corrigir", "avisar"] = "corrigir"
+    validacao_participacao_modo: Literal["corrigir", "avisar"] = "corrigir"
+    # F5 (D7): afirmação de dado sem fonte ou vencido (app.dados.checagem: temperatura, tempo, trânsito, placar,
+    # promoção). Um campo para as duas regras, "avisar" se o detector der falso positivo com LLM real.
+    validacao_dados_modo: Literal["corrigir", "avisar"] = "corrigir"
+    # F7 (reescrita opcional de oralidade, app.live.oralidade): "desligado" (padrão, nada muda); "avisar" só registra
+    # no log; "reescrever" põe o aviso nas instruções da reescrita única que já existe. Não cria chamada ao LLM:
+    # continua no máximo de duas por fala. Ligar só com aprovação, porque a reescrita aumenta o custo.
+    oralidade_modo: Literal["desligado", "avisar", "reescrever"] = "desligado"
+    # Fala que o encurtamento ou o validador deixaram abaixo de (fração x mínimo do orçamento) não vai ao ar: vira só
+    # música ou a reorientação neutra. 0 desliga.
+    validacao_fala_minimo_fracao: float = 1.0
     ia_stt_usd_hora: float = 0.40  # Hipótese scribe_v1: substituir pela tarifa contratada.
     ia_music_usd_minuto: float = 0.15
 

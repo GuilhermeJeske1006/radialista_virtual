@@ -1,0 +1,69 @@
+{
+  "data": "2026-11-12",
+  "branch": "integracao/whatsapp-pos-f4",
+  "codigo_validado": "6ca7049",
+  "base_claude": "04bff64",
+  "f3_fast_forward": {
+    "antes": "c382859",
+    "depois": "24cdd13"
+  },
+  "backend": {
+    "completa": {
+      "passaram": 1633,
+      "ignorados": 3,
+      "segundos": 446.5
+    },
+    "ruff": "aprovado"
+  },
+  "regressoes_direcionadas": {
+    "promessas_noticias_goldens": {
+      "passaram": 111
+    },
+    "worker_noticias_promessas": {
+      "passaram": 100,
+      "ignorados": 3
+    }
+  },
+  "frontend": {
+    "passaram": 350,
+    "arquivos": 63,
+    "typecheck": "aprovado",
+    "build": {
+      "resultado": "aprovado",
+      "ambiente": "Docker isolado",
+      "next": "16.3.0",
+      "node": "20.20.2"
+    }
+  },
+  "postgres": {
+    "passaram": 3,
+    "ambiente": "banco temporário isolado, removido após os testes"
+  },
+  "simulacoes": {
+    "modo": "fake",
+    "rede": false,
+    "geracao_real": false,
+    "perfis": [
+      "simulacao/musical_adulto.json",
+      "simulacao/popular_sertanejo.json",
+      "simulacao/variedades_leves.json"
+    ],
+    "hard_times_perdidos": 0,
+    "anuncios_sem_confirmacao": 0,
+    "promessas_vencidas": 0,
+    "pedidos_indevidos": 0,
+    "ouvintes_inexistentes": 0,
+    "atraso_maximo_segundos": 0.36
+  },
+  "worktree_claude": {
+    "branch_inicial": "melhoria/f4-promessas",
+    "head_inicial": "04bff64",
+    "branch_final": "melhoria/f5-fontes",
+    "head_final": "356575d",
+    "base_f5": "6ca7049",
+    "preservado": true,
+    "limpo_na_conferencia_final": true,
+    "estado_f5_relatorio_claude": "Implementada, portão local verde; portão independente e juiz pendentes. F5 não incluída nesta validação."
+  },
+  "publicacao": "Commits locais; sem push ou deploy."
+}

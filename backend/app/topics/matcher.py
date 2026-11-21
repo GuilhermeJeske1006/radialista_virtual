@@ -140,6 +140,7 @@ def _ja_casados(db: Session, programa_id: int, assunto_ids: list[int]) -> set[in
 
 
 def _candidatos_nao_casados(db: Session, programa: Programa, account: Account) -> list[Assunto]:
+    from app.models.canal_whatsapp import DecisaoPauta
     agora = datetime.datetime.now(datetime.timezone.utc)
     query = db.query(Assunto).filter(
         Assunto.account_id == account.id,
@@ -148,7 +149,9 @@ def _candidatos_nao_casados(db: Session, programa: Programa, account: Account) -
     )
     todos = query.all()
     ja_casados = _ja_casados(db, programa.id, [a.id for a in todos])
-    return [a for a in todos if a.id not in ja_casados]
+    descartados = {i for (i,) in db.query(DecisaoPauta.assunto_id).filter_by(programa_id=programa.id, estado="descartado").all()}
+    return [a for a in todos if a.id not in ja_casados and a.id not in descartados
+            and not (a.origem == "ouvinte" and a.origem_ref_id is not None)]
 
 
 def _teto_diario_estourado(account_id: int) -> bool:

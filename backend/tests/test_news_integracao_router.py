@@ -60,6 +60,43 @@ def _criar_noticia(db_session, account, **kwargs):
 
 
 @freeze_time(AGORA_UTC)
+def test_programa_esportivo_apura_e_gera_fala_sem_edicao_manual_mesmo_com_pauta_geral(
+    client, account, auth_headers, radialista_e_programa, db_session, monkeypatch,
+):
+    from unittest.mock import Mock
+
+    from app.llm.noticias import FonteNoticia, PesquisaNoticias
+
+    radialista, programa = radialista_e_programa
+    programa.perfil = "esportivo"
+    programa.pode_pesquisar = True
+    programa.fontes_noticias = ["https://esporte.example.com/noticias"]
+    db_session.commit()
+    _criar_noticia(db_session, account, categoria="geral")
+    apuracao = PesquisaNoticias(
+        status="ok", esportiva=True,
+        texto="A federação confirmou o próximo jogo para amanhã, às dezesseis horas.",
+        fontes=[FonteNoticia(titulo="Federação", url="https://esporte.example.com/agenda")],
+    )
+    pesquisar = Mock(return_value=apuracao)
+    monkeypatch.setattr("app.live.router.pesquisar_noticias", pesquisar)
+    prompts = []
+    fala = "Segundo a federação, o próximo jogo será amanhã, às dezesseis horas."
+    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or fala)
+    resposta = client.post(
+        _url_proxima(radialista.id, programa.id),
+        json={"historico": [], "total_falas": 1, "incluir_audio": False}, headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["fala"] == fala, resposta.json()
+    pesquisar.assert_called_once()
+    assert pesquisar.call_args.args[0].id == programa.id
+    assert pesquisar.call_args.args[1].id == account.id
+    assert "APURAÇÃO JORNALÍSTICA" in prompts[0]
+    assert "Rua São Paulo" not in prompts[0]
+
+
+@freeze_time(AGORA_UTC)
 def test_bloco_noticia_usa_pauta_do_banco_em_vez_de_pesquisar_noticias(
     client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
 ):
@@ -158,9 +195,10 @@ def test_bloco_escalada_le_varias_manchetes_e_registra_historico_de_cada(
     for i in range(3):
         _criar_noticia(db_session, account, titulo=f"Manchete {i}", url=f"https://exemplo.com/{i}", url_hash=f"hash-escalada-{i}", score=90 - i)
 
-    prompts = []
+    prompts, mensagens = [], []
     fala = "Rua interditada. Falta de água em bairro. Show na praça central."
-    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or fala)
+    monkeypatch.setattr("app.live.router.gerar_resposta",
+                        lambda system, msg: prompts.append(system) or mensagens.append(msg) or fala)
 
     resposta = client.post(
         _url_proxima(radialista.id, programa.id),
@@ -171,7 +209,9 @@ def test_bloco_escalada_le_varias_manchetes_e_registra_historico_de_cada(
     assert resposta.status_code == 200
     assert resposta.json()["tipo"] == "escalada"
     assert "PAUTA DESTA ESCALADA" in prompts[0]
-    assert "Manchete 0" in prompts[0] and "Manchete 1" in prompts[0] and "Manchete 2" in prompts[0]
+    # F5: as manchetes vão no bloco de dados da mensagem; o system só aponta para os dados.
+    assert "Manchete 0" in mensagens[0] and "Manchete 1" in mensagens[0] and "Manchete 2" in mensagens[0]
+    assert "Manchete" not in prompts[0]
 
     historico = db_session.query(NoticiaHistorico).filter_by(programa_id=programa.id).all()
     assert len(historico) == 3
@@ -187,8 +227,10 @@ def test_bloco_noticia_nao_repete_noticia_ja_ao_ar_no_programa(
     _criar_noticia(db_session, account, titulo="Inédita, nunca foi ao ar", url="https://exemplo.com/inedita", url_hash="hash-inedita")
     db_session.commit()
 
-    prompts = []
-    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Nova notícia sobre a cidade.")
+    prompts, mensagens = [], []
+    monkeypatch.setattr("app.live.router.gerar_resposta",
+                        lambda system, msg: prompts.append(system) or mensagens.append(msg)
+                        or "Nova notícia sobre a cidade.")
 
     resposta = client.post(
         _url_proxima(radialista.id, programa.id),
@@ -198,8 +240,8 @@ def test_bloco_noticia_nao_repete_noticia_ja_ao_ar_no_programa(
 
     assert resposta.status_code == 200
     assert "PAUTA DESTE BLOCO" in prompts[0]
-    assert "Inédita, nunca foi ao ar" in prompts[0]
-    assert "Rua São Paulo interditada" not in prompts[0]
+    assert "Inédita, nunca foi ao ar" in mensagens[0]   # F5: o fato vai no bloco de dados da mensagem
+    assert "Rua São Paulo interditada" not in prompts[0] and "Rua São Paulo interditada" not in mensagens[0]
 
 
 @freeze_time(AGORA_UTC)
@@ -298,9 +340,10 @@ def test_correcao_pendente_tem_prioridade_sobre_pauta_normal(
     db_session.commit()
     _criar_noticia(db_session, account, titulo="Outra pauta qualquer", url="https://exemplo.com/outra", url_hash="hash-outra", score=99)
 
-    prompts = []
+    prompts, mensagens = [], []
     fala = "Corrigindo uma informação que a gente deu há pouco: a rua foi liberada às 14h."
-    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or fala)
+    monkeypatch.setattr("app.live.router.gerar_resposta",
+                        lambda system, msg: prompts.append(system) or mensagens.append(msg) or fala)
 
     resposta = client.post(
         _url_proxima(radialista.id, programa.id),
@@ -310,7 +353,9 @@ def test_correcao_pendente_tem_prioridade_sobre_pauta_normal(
 
     assert resposta.status_code == 200
     assert "CORREÇÃO PENDENTE" in prompts[0]
-    assert "Na verdade a rua foi liberada às 14h" in prompts[0]
+    # F5: a retificação vai limpa no bloco de dados da mensagem, não no system.
+    assert "Na verdade a rua foi liberada às 14h" in mensagens[0]
+    assert "Na verdade a rua foi liberada às 14h" not in prompts[0]
 
     historico = db_session.query(NoticiaHistorico).filter_by(programa_id=programa.id, noticia_id=noticia.id).all()
     assert any(h.angulo == "correcao" for h in historico)

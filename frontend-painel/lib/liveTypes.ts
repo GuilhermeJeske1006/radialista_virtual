@@ -23,8 +23,13 @@ export type PesquisaNoticias = {
 };
 
 export type ConfirmacaoPedido = {
+  bloco_id?: number | null;
+  bloco_token?: string | null;
+  bloco_programa_id?: number | null;
   pedido_id?: number | null;
   pedido_token?: string | null;
+  // F11 item 1: linha do as-run criada pelo /proxima; o player confirma por ela (ver lib/asRun.ts).
+  as_run_evento_id?: number | null;
   pedido_programa_id?: number | null;
   pedido_radialista_id?: number | null;
 };
@@ -64,7 +69,115 @@ export type ProgramSegment = ConfirmacaoPedido & {
   intervalo_ms?: number | null;
   pausa_antes_ms?: number | null;
   duracao_alvo_segundos?: [number, number] | null;
+  // Estimativa do backend (fala no ritmo calibrado da voz ou medida, músicas, vinhetas) -- encadeia o
+  // horário previsto do bloco seguinte (ver lib/relogioAoVivo.ts).
+  duracao_prevista_s?: number | null;
+  // Só em programa com relógio da hora: etapa, próximo compromisso e espaço (backtiming).
+  relogio?: RelogioAoVivo | null;
+  // Duração real da fala (F2). Opcionais: o painel ainda não usa, só carrega no segmento.
+  duracao_fala_s?: number | null;
+  duracao_fala_estimada_s?: number | null;
+  orcamento_fala_s?: OrcamentoFala | null;
+  fala_ajuste?: FalaAjuste | null;
+  // Validador pós-geração (F3): música anunciada sem confirmação ou fragmento abaixo do mínimo. Opcional e só
+  // carregado no segmento (o painel não usa); nulo quando nada foi encontrado.
+  validacao_fala?: ValidacaoFala | null;
+  // Promessas feitas no ar registradas e resolvidas neste bloco (F4). Opcional e só carregado no segmento (o
+  // painel não usa; o relatório é da F11); nulo quando não houve nenhuma.
+  promessas?: PromessasBloco | null;
+  // Dados verificáveis do bloco e o estado de cada um (F5). Opcional e só carregado no segmento (o painel não
+  // usa; o relatório é da F11); nulo quando o bloco não teve dado.
+  dados?: DadoFala[] | null;
+  // Horário previsto enviado ao backend e início bruto da cadeia (ms desde a época).
+  inicio_previsto_ms?: number;
+  inicio_bruto_ms?: number;
 };
+
+export type EtapaRelogioAoVivo = {
+  hora: number;
+  inicio_s: number;
+  tipo: string;
+  tipo_efetivo: string;
+  rotulo: string;
+  natureza: string;
+  hard_time: boolean;
+  inicio: string;
+  fim: string;
+};
+
+export type RelogioAoVivo = {
+  preset: string | null;
+  inicio_previsto: string;
+  inicio_previsto_aceito: boolean;
+  hora: number;
+  etapa: EtapaRelogioAoVivo;
+  proximo_compromisso: EtapaRelogioAoVivo | null;
+  segundos_ate_hard_time: number | null;
+  espaco_s: number | null;
+  acao: string;
+  orcamento_s: [number, number] | null;
+  puladas?: string[];
+  // F3: de onde veio o horário do bloco. "estimado": painel antigo sem inicio_previsto, cadeia no servidor.
+  origem_instante?: "painel" | "estimado" | "agora";
+  // F4: etapas com promessa aberta ("hora:inicio_s"), reservadas no backtiming. Nulo sem obrigação.
+  obrigacoes?: string[] | null;
+};
+
+// Orçamento de duração da fala devolvido pelo /proxima (F2). aplicado=false: só medido (formato padrão
+// sem relógio). O /tts com pós-produção devolve a duração medida no cabeçalho X-Duracao-Fala-S.
+export type OrcamentoFala = {
+  min_s: number;
+  alvo_s: number;
+  max_s: number;
+  fonte: "relogio" | "formato" | "observacao";
+  aplicado: boolean;
+};
+
+// Validador pós-geração da fala (F3, app/live/validacao_fala.py).
+export type ViolacaoFala = {
+  regra: string;
+  trecho: string;
+  ref_id: string;
+};
+
+export type ValidacaoFala = {
+  violacoes: ViolacaoFala[];
+  acao: "nenhuma" | "reescrita" | "mencao_removida" | "fala_neutra" | "fala_removida";
+};
+
+// Promessas feitas no ar (F4, app/live/promessas.py e a tabela promessas_no_ar).
+export type PromessaRegistrada = {
+  id: number;
+  tipo: string;
+  trecho: string;
+  evento_alvo: string;
+  prazo?: string | null;
+  prazo_posicao?: number | null;
+};
+
+export type PromessaResolvida = {
+  id: number;
+  estado: "cumprida" | "cancelada" | "vencida";
+  contingencia?: string | null;
+};
+
+export type PromessasBloco = {
+  registradas: PromessaRegistrada[];
+  resolvidas: PromessaResolvida[];
+};
+
+// Dado verificável do bloco (F5, app/dados): sem o texto, só o que o painel e o relatório precisam.
+export type DadoFala = {
+  id: string;
+  tipo: string;
+  estado: "valido" | "vencido" | "sem_fonte" | "nao_aprovado" | "futuro";
+  atualizado_em?: string | null;
+  valido_ate?: string | null;
+  alertas: string[];
+};
+
+// O que o backend fez para a fala caber no orçamento; nunca acelera a voz.
+export type FalaAjuste = "nenhum" | "reescrita" | "encurtada" | "cortada" | "acima_do_teto";
 
 export type LiveProgramResponse = ConfirmacaoPedido & {
   pesquisa_noticias?: PesquisaNoticias | null;
@@ -106,6 +219,17 @@ export type LiveProgramResponse = ConfirmacaoPedido & {
   // dentro do proprio /proxima pra dialogo multi-voz (ver _sintetizar_falas_multivoz no
   // backend). Item null = aquela linha falhou; prepararAudio cai pro /tts avulso so' pra ela.
   audios_falas_base64?: (string | null)[] | null;
+  duracao_prevista_s?: number | null;
+  relogio?: RelogioAoVivo | null;
+  // F2: duração medida (só com áudio sintetizado no próprio /proxima), estimada, orçamento e ajuste.
+  duracao_fala_s?: number | null;
+  duracao_fala_estimada_s?: number | null;
+  orcamento_fala_s?: OrcamentoFala | null;
+  fala_ajuste?: FalaAjuste | null;
+  // F4: promessas registradas e resolvidas neste bloco; nulo quando não houve nenhuma.
+  promessas?: PromessasBloco | null;
+  // F5: dados verificáveis do bloco; nulo quando não houve nenhum.
+  dados?: DadoFala[] | null;
 };
 
 export type ProgramaOpcao = Programa & { radialistaId: number; radialistaNome: string };

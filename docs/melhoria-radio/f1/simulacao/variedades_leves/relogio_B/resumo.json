@@ -1,0 +1,172 @@
+{
+  "abertura_repetida": 0,
+  "adiantamentos": 2,
+  "anuncio_sem_confirmacao": 0,
+  "atraso_hard_time_s": 0.0,
+  "aviso_oralidade": null,
+  "blocos_gerados": 27,
+  "blocos_nao_tocados": 0,
+  "caracteres_tts": 0,
+  "caracteres_tts_estimados": 13513,
+  "chamadas_llm": {
+    "falas": 18,
+    "revisoes": 6,
+    "total": 24
+  },
+  "chamadas_proxima": 27,
+  "chamadas_tts": 0,
+  "config": {
+    "antecedencia": 2,
+    "commit": "dff4259",
+    "corte": "agendado",
+    "fixture": "variedades_leves",
+    "inicio_previsto": true,
+    "modo": "fake",
+    "preparo_antecipado_s": 90,
+    "relogio": "B",
+    "relogio_backend": "fixture",
+    "semente": 7,
+    "versao_formato": 1,
+    "wpm": 145
+  },
+  "confirmacoes_pedido": 0,
+  "destinos_rede": [],
+  "dubles": {
+    "blocos_musica_com_llm": 1,
+    "contadores": {
+      "blocos_musica_llm": 1,
+      "buscar_musica": 5,
+      "classificar_fio_condutor": 1,
+      "classificar_tema_fala": 11,
+      "extrair_musicas_citadas": 17,
+      "faixa_reconhecida": 1,
+      "faixas_devolvidas": 23,
+      "falas": 18,
+      "gerar_resposta": 24,
+      "injecao_cita_ouvinte": 1,
+      "injecao_excesso": 1,
+      "itens_fora_do_genero": 2,
+      "obter_clima_atual": 18,
+      "registrar_tema": 11,
+      "resolver_musica_catalogada": 20,
+      "revisoes": 6,
+      "tipo_reconhecido": 24,
+      "tts_habilitado": 18
+    },
+    "faixa_reconhecida_pct": 100.0,
+    "tipo_reconhecido_pct": 100.0
+  },
+  "encerramento_no_ar": true,
+  "erros_http": 0,
+  "estouro_fim_programa_s": 0.0,
+  "estouro_max_pct": 0.0,
+  "etapas_puladas": [],
+  "eventos_por_tipo": {
+    "fala": 18,
+    "musica": 10
+  },
+  "falas_abaixo_minimo": 0,
+  "falas_por_bloco": {
+    "abertura": 1,
+    "chamada_ouvinte": 1,
+    "comentario": 11,
+    "encerramento": 1,
+    "identificacao": 3,
+    "musica": 1
+  },
+  "fechamentos_curtos": 1,
+  "fim_antecipado_s": 47.21,
+  "fora_orcamento_pct": 0.0,
+  "hard_times": [
+    {
+      "atraso_s": 0.0,
+      "cortado": false,
+      "executado_em_s": 0.0,
+      "inicio_s": 0,
+      "status": "ok",
+      "tipo": "manchetes"
+    },
+    {
+      "atraso_s": null,
+      "cortado": false,
+      "executado_em_s": null,
+      "inicio_s": 900,
+      "status": "dispensado",
+      "tipo": "intervalo"
+    },
+    {
+      "atraso_s": -29.1,
+      "cortado": false,
+      "executado_em_s": 1050.9,
+      "inicio_s": 1080,
+      "status": "adiantado",
+      "tipo": "entrevista"
+    },
+    {
+      "atraso_s": null,
+      "cortado": false,
+      "executado_em_s": null,
+      "inicio_s": 2460,
+      "status": "dispensado",
+      "tipo": "intervalo"
+    },
+    {
+      "atraso_s": -79.29,
+      "cortado": false,
+      "executado_em_s": 3400.71,
+      "inicio_s": 3480,
+      "status": "adiantado",
+      "tipo": "passagem"
+    }
+  ],
+  "hard_times_dispensados": 2,
+  "hard_times_perdidos": 0,
+  "observacoes": [
+    "O GET /preparo (preparo prévio no servidor) fica de fora: a primeira fala sai do /proxima normal.",
+    "Modo fake: o comprimento das falas é sintético (o dublê fala dentro da meta por construção); só a mecânica é medida (relógio, fila, corte, pedidos, continuidade e detectores).",
+    "Detectores de promessa, música anunciada e abertura repetida são provisórios da F0.",
+    "SQLite em memória e execução sequencial: with_for_update(skip_locked) não é exercitado."
+  ],
+  "ouvinte_inexistente": 1,
+  "pedido_indevido": 3,
+  "pedidos": {
+    "atendidos_antes_de_tocar": 2,
+    "executados": 0,
+    "expirados": 0,
+    "nao_atendidos": 0,
+    "pendentes_fim": 1,
+    "por_estado": {
+      "em_fila": 1,
+      "historico_legado": 2
+    },
+    "recebidos": 3,
+    "selecionados": 2,
+    "selecionados_nao_tocados": 0
+  },
+  "promessa_vencida": 0,
+  "promessas_abertas": 0,
+  "relogio_acoes": {
+    "adiantamento": 2,
+    "encerramento": 1,
+    "fala": 6,
+    "fala_reduzida": 1,
+    "fechamento_curto": 1,
+    "musica": 10,
+    "reserva": 6
+  },
+  "relogio_previsto_s": {
+    "fala": 3240,
+    "intervalo": 360,
+    "musica": 0
+  },
+  "repeticao_estrutura": null,
+  "segundos_cortados": 0.0,
+  "silencio_editorial_s": 5.45,
+  "silencio_s": 0.0,
+  "tempo_execucao_s": 0.4,
+  "tempo_fala_s": 1066.34,
+  "tempo_musica_s": 2481.0,
+  "tempo_outros_s": 0,
+  "tentativas_rede": 0,
+  "wpm_observado": null
+}

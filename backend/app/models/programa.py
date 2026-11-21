@@ -73,6 +73,10 @@ class Programa(Base):
     # app.live.router) -- da identidade fixa e reconhecivel ao quadro, com conteudo sempre novo.
     quadros_fixos: Mapped[dict[str, list[str]]] = mapped_column(JSON, default=dict)
 
+    # Peças de reserva (F11 item 3, app.live.pecas_reserva): [{id, tipo, texto, aprovada}]. Só as aprovadas pelo
+    # operador entram quando convidado/fonte/pedido/áudio/estouro falham. Separado de quadros_fixos de propósito.
+    pecas_reserva: Mapped[list[dict]] = mapped_column(JSON, default=list)
+
     # Feriados municipais (cadastro manual: [{"data": "MM-DD", "nome": "..."}]) -- ao contrario
     # do feriado nacional (calculado por formula, ver app.feriados), nao da pra calcular nem
     # existe fonte gratuita confiavel pras ~5000 cidades brasileiras, entao e' o usuario quem
@@ -110,6 +114,16 @@ class Programa(Base):
     # | equilibrada | informado (prioriza assunto com fatos sobre papo sem pauta). Ver Fase H do
     # plano-assuntos.md -- mesmo espirito de dose_noticia, mas pro banco de assuntos.
     densidade_assunto: Mapped[str] = mapped_column(String, default="leve")
+
+    # Persona do programa (F7, app.live.persona): cinco escalas 1-5 e até 5 exemplos de fala. Nulo = sem persona, e o
+    # prompt do ao vivo fica como antes. Gravada inteira pelo PUT do programa.
+    persona: Mapped[dict | None] = mapped_column(JSON, nullable=True, default=None)
+
+    # Relogio da hora (ver app.live.relogio.RelogioHora e F1 do plano de melhoria de radio): eventos
+    # com inicio, duracao, natureza e hard time. Nulo = sem relogio, o ao vivo segue estrutura_blocos
+    # como sempre. Sempre substituido inteiro (PUT /config/programas/{id}/relogio), fora de
+    # ProgramaRequest para os PUTs atuais (que ecoam o programa inteiro) nao o apagarem.
+    relogio_hora: Mapped[dict | None] = mapped_column(JSON, nullable=True, default=None)
 
     criado_em: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.datetime.now(datetime.timezone.utc)

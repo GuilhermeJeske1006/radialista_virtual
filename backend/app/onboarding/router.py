@@ -135,6 +135,17 @@ def status_sessao(account: Account = Depends(get_current_account), db: Session =
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Falha ao obter status da sessao") from exc
 
     logado = (resultado.get("data") or {}).get("loggedIn", False)
+    from app.models.canal_whatsapp import StatusWhatsapp, agora
+    from app.whatsapp.eventos import registrar
+    db.query(Account.id).filter_by(id=account.id).with_for_update().one()
+    estado = db.get(StatusWhatsapp, account.id)
+    dados = {"loggedIn": bool(logado), "connected": bool((resultado.get("data") or {}).get("connected", logado))}
+    if not estado:
+        estado = StatusWhatsapp(account_id=account.id)
+        db.add(estado)
+    if estado.dados != dados:
+        registrar(db, account.id, "whatsapp.status", **dados)
+    estado.dados, estado.atualizado_em = dados, agora()
     if logado and not account.onboarding_email_enviado:
         admin = next((u for u in account.usuarios if u.role == "admin" and u.ativo), None)
         if admin is not None:
@@ -142,4 +153,5 @@ def status_sessao(account: Account = Depends(get_current_account), db: Session =
         account.onboarding_email_enviado = True
         db.commit()
 
+    db.commit()
     return resultado

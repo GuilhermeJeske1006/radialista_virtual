@@ -25,11 +25,14 @@ router = APIRouter(prefix="/ouvintes", tags=["ouvintes"])
 
 class Config(BaseModel):
     ativo: bool
+    notificar_resultado: bool | None = None
 
 
 @router.get("/config")
-def config(account: Account = Depends(get_current_account)):
-    return {"ativo": account.atendimento_ouvinte_ativo}
+def config(account: Account = Depends(get_current_account), db: Session = Depends(get_db)):
+    from app.models.canal_whatsapp import PreferenciasCanal
+    p = db.get(PreferenciasCanal, account.id)
+    return {"ativo": account.atendimento_ouvinte_ativo, "notificar_resultado": bool(p and p.notificar_resultado)}
 
 
 @router.put("/config")
@@ -37,6 +40,13 @@ def configurar(
     dados: Config, usuario=Depends(exigir_admin), db: Session = Depends(get_db)
 ):
     usuario.account.atendimento_ouvinte_ativo = dados.ativo
+    if dados.notificar_resultado is not None:
+        from app.models.canal_whatsapp import PreferenciasCanal
+        p = db.get(PreferenciasCanal, usuario.account_id)
+        if not p:
+            p = PreferenciasCanal(account_id=usuario.account_id)
+            db.add(p)
+        p.notificar_resultado = dados.notificar_resultado
     db.commit()
     return {"ativo": dados.ativo}
 
@@ -170,13 +180,16 @@ def alterar_pedido(
             raise HTTPException(
                 409, "Apenas seleções sem confirmação podem ser reenfileiradas"
             )
-        pedido.estado = "aguardando_revisao"
+        # O legado (sem programa) não tem revisão da equipe: volta direto para a fila (F4, D1).
+        pedido.estado = "em_fila" if pedido.programa_id is None else "aguardando_revisao"
         pedido.selecao_token = None
         pedido.motivo = dados.motivo or "Revisão solicitada após interrupção do player"
     else:
         pedido.estado = "cancelado" if dados.acao == "cancelar" else "nao_atendido"
         pedido.motivo = dados.motivo or "Decisão da equipe"
     registrar_evento(pedido, dados.acao, usuario.id, programa_anterior)
+    from app.whatsapp.eventos import registrar
+    registrar(db, account.id, "pedido.atualizado", pedido_id=pedido.id, estado=pedido.estado)
     db.commit()
     return {"id": pedido.id, "estado": pedido.estado}
 
@@ -195,7 +208,13 @@ def confirmar(
     db: Session = Depends(get_db),
 ):
     pedido = buscar_pedido(db, account, pedido_id)
-    if pedido.selecao_token != dados.token or pedido.programa_id != dados.programa_id:
+    if pedido.programa_id is None:
+        # Legado (F4, D1): o pedido não tem programa; vale o programa do mesmo rádio que o tocou.
+        programa = db.get(Programa, dados.programa_id)
+        mesmo_radio = programa is not None and programa.radio_config_id == pedido.radio_config_id
+    else:
+        mesmo_radio = pedido.programa_id == dados.programa_id
+    if pedido.selecao_token != dados.token or not mesmo_radio:
         raise HTTPException(409, "Confirmação não pertence à seleção atual")
     if pedido.estado in ("executado", "nao_atendido"):
         return {"estado": pedido.estado}
@@ -212,6 +231,22 @@ def confirmar(
         else f"Player: {dados.resultado}"
     )
     registrar_evento(pedido, f"player_{dados.resultado}")
+    from app.whatsapp.eventos import registrar
+    registrar(db, account.id, "pedido.atualizado", pedido_id=pedido.id, estado=pedido.estado)
+    if pedido.atendido:
+        from app.models.canal_whatsapp import PreferenciasCanal, EnvioWhatsapp
+        from app.models.interaction_log import InteractionLog
+        preferencias = db.get(PreferenciasCanal, account.id)
+        if preferencias and preferencias.notificar_resultado:
+            # F4 confirma também pedidos legados, que não têm programa persistido.
+            programa = db.get(Programa, pedido.programa_id or dados.programa_id)
+            texto = f"Sua participação foi reproduzida no programa {programa.nome}. Obrigado por participar!"
+            log = InteractionLog(radio_config_id=pedido.radio_config_id, telefone=pedido.telefone,
+                nome=pedido.nome, mensagem_usuario=texto, resposta_pendente=texto, origem="radio", status="pendente_envio")
+            db.add(log)
+            db.flush()
+            db.add(EnvioWhatsapp(chave=f"resultado:{pedido.id}:{dados.token}", account_id=account.id,
+                log_id=log.id, telefone=pedido.telefone, texto=texto))
     db.commit()
     return {"estado": pedido.estado}
 
@@ -247,6 +282,7 @@ def listar(account=Depends(get_current_account), db: Session = Depends(get_db)):
 class AtendimentoHumano(BaseModel):
     humano: bool
     nome: str | None = Field(default=None, max_length=100)
+    usuario_id: int | None = None
 
 
 @router.patch("/conversas/{conversa_id}")
@@ -255,6 +291,7 @@ def assumir(
     dados: AtendimentoHumano,
     account=Depends(get_current_account),
     db: Session = Depends(get_db),
+    usuario=Depends(get_current_usuario),
 ):
     c = (
         db.query(ConversaOuvinte)
@@ -266,10 +303,29 @@ def assumir(
         raise HTTPException(404, "Conversa não encontrada")
     from app.whatsapp.locks import bloquear_conversa
 
-    with bloquear_conversa(account.id, c.telefone):
+    with bloquear_conversa(account.id, c.telefone, db):
+        from app.models.canal_whatsapp import ResponsavelConversa
+        from app.models.usuario import Usuario
+        responsavel = db.get(ResponsavelConversa, c.id)
+        if responsavel and responsavel.usuario_id and responsavel.usuario_id != usuario.id and usuario.role != "admin":
+            raise HTTPException(409, "Esta conversa está sendo atendida por outra pessoa da equipe")
+        destino = dados.usuario_id or usuario.id
+        if dados.humano and not db.query(Usuario.id).filter_by(id=destino, account_id=account.id, ativo=True).first():
+            raise HTTPException(404, "Responsável não encontrado")
+        if responsavel is None:
+            responsavel = ResponsavelConversa(conversa_id=c.id)
+            db.add(responsavel)
+        responsavel.usuario_id = destino if dados.humano else None
+        from app.models.canal_whatsapp import EnvioWhatsapp
+        if not dados.humano and db.query(EnvioWhatsapp.id).filter_by(account_id=account.id,
+            telefone=c.telefone, automatico=False).filter(EnvioWhatsapp.estado.in_(("pendente", "falha_conexao", "incerto"))).first():
+            raise HTTPException(409, "Conclua ou confira os envios da equipe antes de devolver ao agente")
         c.humano = dados.humano
+        c.atualizado_em = datetime.datetime.now(datetime.timezone.utc)
         if dados.nome is not None:
             c.nome = dados.nome.strip()
+        from app.whatsapp.eventos import registrar
+        registrar(db, account.id, "conversa.atualizada", conversa_id=c.id, usuario_id=usuario.id)
         db.commit()
     return {"humano": c.humano}
 
@@ -383,7 +439,7 @@ def reenviar(
         raise HTTPException(
             422, "Confira no WhatsApp se a mensagem não foi entregue antes de reenviar"
         )
-    with bloquear_conversa(account.id, log.telefone):
+    with bloquear_conversa(account.id, log.telefone, db):
         db.refresh(log)
         c = conversa(db, account.id, log.telefone)
         config = db.get(RadioConfig, log.radio_config_id)

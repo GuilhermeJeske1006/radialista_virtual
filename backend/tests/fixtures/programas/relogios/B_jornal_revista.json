@@ -1,0 +1,146 @@
+{
+  "id": "B",
+  "nome": "Jornal/revista informativa",
+  "fonte": "docs/pesquisa-radio-locufy.md §9.B",
+  "hipotese": true,
+  "nota": "Hipótese de projeto: os intervalos da §9 são reservas ilustrativas, não recomendação comercial. hard_time marca o que não pode atrasar (tolerância de 5 s, critério da F1). A fonte de verdade é backend/app/live/relogios/ (teste de paridade em tests/test_live_relogio.py); este arquivo só mede.",
+  "eventos": [
+    {
+      "inicio_s": 0,
+      "duracao_s": 180,
+      "tipo": "manchetes",
+      "grupo": "fala",
+      "rotulo": "Abertura e manchetes",
+      "natureza": "obrigatorio",
+      "hard_time": true,
+      "corresponde_a": [
+        "abertura",
+        "escalada"
+      ]
+    },
+    {
+      "inicio_s": 180,
+      "duracao_s": 480,
+      "tipo": "noticia",
+      "grupo": "fala",
+      "rotulo": "Principal cobertura",
+      "natureza": "ajustavel",
+      "hard_time": false,
+      "corresponde_a": [
+        "noticia"
+      ]
+    },
+    {
+      "inicio_s": 660,
+      "duracao_s": 240,
+      "tipo": "servico",
+      "grupo": "fala",
+      "rotulo": "Serviço local",
+      "natureza": "ajustavel",
+      "hard_time": false,
+      "corresponde_a": [
+        "servico"
+      ]
+    },
+    {
+      "inicio_s": 900,
+      "duracao_s": 180,
+      "tipo": "intervalo",
+      "grupo": "intervalo",
+      "rotulo": "Intervalo",
+      "natureza": "obrigatorio",
+      "hard_time": true,
+      "corresponde_a": [
+        "intervalo"
+      ]
+    },
+    {
+      "inicio_s": 1080,
+      "duracao_s": 720,
+      "tipo": "entrevista",
+      "grupo": "fala",
+      "rotulo": "Entrevista",
+      "natureza": "obrigatorio",
+      "hard_time": true,
+      "corresponde_a": [
+        "entrevista"
+      ]
+    },
+    {
+      "inicio_s": 1800,
+      "duracao_s": 180,
+      "tipo": "atualizacao",
+      "grupo": "fala",
+      "rotulo": "Atualização dos destaques",
+      "natureza": "ajustavel",
+      "hard_time": false,
+      "corresponde_a": [
+        "escalada",
+        "noticia"
+      ]
+    },
+    {
+      "inicio_s": 1980,
+      "duracao_s": 480,
+      "tipo": "noticia",
+      "grupo": "fala",
+      "rotulo": "Economia ou cotidiano",
+      "natureza": "ajustavel",
+      "hard_time": false,
+      "corresponde_a": [
+        "noticia",
+        "comentario"
+      ]
+    },
+    {
+      "inicio_s": 2460,
+      "duracao_s": 180,
+      "tipo": "intervalo",
+      "grupo": "intervalo",
+      "rotulo": "Intervalo",
+      "natureza": "obrigatorio",
+      "hard_time": true,
+      "corresponde_a": [
+        "intervalo"
+      ]
+    },
+    {
+      "inicio_s": 2640,
+      "duracao_s": 540,
+      "tipo": "reportagem",
+      "grupo": "fala",
+      "rotulo": "Reportagem e contexto",
+      "natureza": "ajustavel",
+      "hard_time": false,
+      "corresponde_a": [
+        "reporter",
+        "noticia"
+      ]
+    },
+    {
+      "inicio_s": 3180,
+      "duracao_s": 300,
+      "tipo": "participacao",
+      "grupo": "fala",
+      "rotulo": "Participação e serviço",
+      "natureza": "ajustavel",
+      "hard_time": false,
+      "corresponde_a": [
+        "chamada_ouvinte",
+        "servico"
+      ]
+    },
+    {
+      "inicio_s": 3480,
+      "duracao_s": 120,
+      "tipo": "passagem",
+      "grupo": "fala",
+      "rotulo": "Resumo e passagem",
+      "natureza": "obrigatorio",
+      "hard_time": true,
+      "corresponde_a": [
+        "encerramento"
+      ]
+    }
+  ]
+}

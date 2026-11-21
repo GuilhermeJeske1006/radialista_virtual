@@ -1,13 +1,19 @@
 "use client";
 
+import { informarBloco } from "../lib/blocosReproduzidos";
 import { confirmarParticipacao } from "../lib/participacoes";
+import { relatarAsRun } from "../lib/asRun";
 import { esperarTransicao, pausaAntesDoBloco, reproduzirGrupoDeFalas } from "../lib/continuidadeAudio";
 import { FilaPreparo } from "../lib/filaPreparo";
+import { RecuperacaoAoVivo } from "../lib/recuperacaoAoVivo";
+import { inicioAEnviar, medirDesvio, proximoInicioBruto } from "../lib/relogioAoVivo";
 
 import { useEffect, useRef, useState } from "react";
 import { sondarAutoplayComSom as sondarAutoplay } from "../lib/autoplay";
 import { apiFetch, apiFetchBlob, apiFetchBlobComTimeout, apiFetchComTimeout, ApiError } from "../lib/api";
 import { setRadialistaAtualId } from "../lib/radialistas";
+import { falaReservaNeutra } from "../lib/reservaNeutra";
+import { ehMusical, roteiroDoFormato } from "../lib/formatoPrograma";
 import { Radialista, Programa, RadioConta } from "../lib/types";
 import {
   AudioFala,
@@ -65,6 +71,9 @@ type ContextoPreparo = {
   historicoBase: HistoricoFonte[];
   totalFalas: number;
   ultimaFala: string | null;
+  // Início previsto (bruto, sem o desvio) do bloco a gerar com este contexto -- o relógio da hora
+  // do backend decide pelo horário em que o bloco vai ao ar (ver lib/relogioAoVivo.ts).
+  inicioBrutoMs: number;
 };
 type TextoPreparado = {
   segmento: Omit<ProgramSegment, "id">;
@@ -147,19 +156,22 @@ function _semAcento(texto: string): string {
   return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-// roteiro de EMERGENCIA (TTS/LLM indisponivel), usado so' quando POST /live/.../proxima falha.
-// Atencao: essa ordem e' DIFERENTE do _ROTEIRO_PADRAO real do motor (backend/app/live/router.py),
-// que comeca por "musica" -- nao usar como referencia pra preview de proximos blocos.
-function gerarFalaLocal(
+// Fala de EMERGENCIA (TTS/LLM indisponivel), usada so' quando POST /live/.../proxima falha.
+// O tipo segue o formato do programa (F6, lib/formatoPrograma.ts) com a mesma regra do motor
+// (backend app/live/router.py::_tipo_proximo_bloco): estrutura personalizada em loop ou, vazia,
+// abertura na largada e o roteiro do formato pelo deslocamento (n-1). O texto nao promete conteudo
+// (F5/F6, D22): toda fala termina na reorientacao neutra, nome do programa e da radio.
+export function gerarFalaLocal(
   radialista: Radialista,
   programa: Programa,
-  totalFalas: number
+  totalFalas: number,
+  nomeRadio?: string | null,
 ): Omit<ProgramSegment, "id" | "criado_em" | "origem"> {
-  if (programa.perfil_programacao === "musical_companhia") {
-    return { tipo: "identificacao", fala: `Você está no ${programa.nome}. Obrigado pela companhia.` };
+  const reorientacao = falaReservaNeutra(programa.nome, nomeRadio);
+  if (ehMusical(programa)) {
+    return { tipo: "identificacao", fala: `${reorientacao} Obrigado pela companhia.` };
   }
   const nome = radialista.nome_locutor || "Locutor";
-  const roteiroPadrao = ["abertura", "musica", "comentario", "noticia", "chamada_ouvinte"];
   // "encerramento" fica de fora do round-robin de propósito -- esse fallback local nao
   // sabe quanto tempo falta pro horario_fim (isso e' calculado no backend, ver perto_do_fim
   // em gerar_proxima_fala), entao deixar cair aqui por coincidencia do modulo faz o programa
@@ -168,29 +180,38 @@ function gerarFalaLocal(
   const roteiroCustom = programa.estrutura_blocos
     .map((b) => b.trim())
     .filter((b) => b && _semAcento(b.toLowerCase()) !== "encerramento");
-  const roteiro = roteiroCustom.length > 0 ? roteiroCustom : roteiroPadrao;
-  const tipo = roteiro[totalFalas % roteiro.length];
+  let tipo: string;
+  if (roteiroCustom.length > 0) {
+    tipo = roteiroCustom[totalFalas % roteiroCustom.length];
+  } else if (totalFalas === 0) {
+    tipo = "abertura";
+  } else {
+    const roteiroFormato = roteiroDoFormato(programa);
+    tipo = roteiroFormato[(totalFalas - 1) % roteiroFormato.length];
+  }
   const genero = escolher(programa.generos_musicais, "os sucessos da nossa programacao");
   const musica = escolher(programa.musicas_permitidas, genero);
   const assunto = escolher(
     programa.assuntos_ao_vivo.length ? programa.assuntos_ao_vivo : programa.topicos_permitidos,
     "a rotina da cidade"
   );
-  const noticia = escolher(programa.tipos_noticias, "informacoes locais");
 
   const falas: Record<string, string> = {
-    abertura: `Muito bem, aqui e ${nome} no ${programa.nome}. Bora de ${assunto} e boa musica ate o fim do bloco.`,
-    musica: `Toca ai ${musica}. Ja volto com mais.`,
-    comentario: `Sobre ${assunto}: quem tiver passando por isso, manda mensagem no WhatsApp que eu leio aqui.`,
-    noticia: `${noticia}. Sem numero nem nome cravado agora, mas assim que a fonte confirmar eu trago certinho.`,
-    chamada_ouvinte: `Bora, manda seu recado ou pede sua musica no WhatsApp.`,
+    abertura: `Muito bem, aqui e ${nome}. ${reorientacao} Bora de ${assunto} e boa musica.`,
+    musica: `Toca ai ${musica}. ${reorientacao}`,
+    comentario: `Sobre ${assunto}: fica comigo. ${reorientacao}`,
+    noticia: `${reorientacao} Fica com a gente e boa musica.`,
+    chamada_ouvinte: `Manda seu recado ou pede sua musica no WhatsApp. ${reorientacao}`,
   };
 
-  const falaGenerica = `Seguimos com o bloco de ${tipo.replace(/_/g, " ")} aqui no ${programa.nome}, fica comigo.`;
+  const falaGenerica = `Seguimos com o bloco de ${tipo.replace(/_/g, " ")}. ${reorientacao}`;
   return { tipo, fala: falas[tipo] ?? falaGenerica };
 }
 
 export function useLiveEngine() {
+  const recuperacaoTextoRef = useRef(new RecuperacaoAoVivo());
+  const recuperacaoVozRef = useRef(new RecuperacaoAoVivo());
+  const reservaRef = useRef<{ programaId: number; expira: number; dados: Promise<{ disponivel: boolean; audio_base64?: string; texto?: string }> } | null>(null);
   const [radialistas, setRadialistas] = useState<Radialista[]>([]);
   const [radialistaId, setRadialistaId] = useState<number | null>(null);
   const [radioConta, setRadioConta] = useState<RadioConta | null>(null);
@@ -290,6 +311,8 @@ export function useLiveEngine() {
   // clicou em "Proxima fala") depois que ela acorda do pararFala/musicStopRef,
   // pra ela nao concorrer com a nova execucao nem re-agendar o timer do loop.
   const execucaoAtualRef = useRef(0);
+  // Quanto o último bloco que começou a tocar ficou atrás da cadeia bruta de horário previsto.
+  const desvioPrevistoRef = useRef(0);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1269,6 +1292,13 @@ export function useLiveEngine() {
 
   // Entrega o texto antes do TTS para liberar a escrita do próximo bloco.
   async function prepararTexto(contexto: ContextoPreparo, ativa: () => boolean): Promise<TextoPreparado> {
+    const texto = await prepararTextoSemHorario(contexto, ativa);
+    return { ...texto, segmento: { ...texto.segmento, inicio_bruto_ms: contexto.inicioBrutoMs } };
+  }
+
+  async function prepararTextoSemHorario(contexto: ContextoPreparo, ativa: () => boolean): Promise<TextoPreparado> {
+    await recuperacaoTextoRef.current.aguardar(ativa);
+    if (!ativa()) throw new Error("Preparo cancelado");
     const { historicoBase, totalFalas: totalFalasAtual, ultimaFala: ultimaFalaAtual } = contexto;
     let segmento: Omit<ProgramSegment, "id">;
     // audio ja sintetizado dentro de /proxima (ver Plano B.3) -- so' preenchido quando o backend
@@ -1306,6 +1336,7 @@ export function useLiveEngine() {
       }
     }
 
+    const inicioPrevistoMs = inicioAEnviar(contexto.inicioBrutoMs, desvioPrevistoRef.current, Date.now());
     try {
       const { audio_base64, audio_status, audio_erro, audios_falas_base64, ...resposta } =
         await apiFetchComTimeout<LiveProgramResponse>(
@@ -1321,6 +1352,7 @@ export function useLiveEngine() {
               total_falas: totalFalasAtual,
               perfil_pos_producao: "radio_fm",
               ultima_fala: ultimaFalaAtual,
+              inicio_previsto: new Date(inicioPrevistoMs).toISOString(),
             }),
           },
           // Inclui apuração jornalística antes da locução; o áudio segue preparado em paralelo.
@@ -1330,19 +1362,22 @@ export function useLiveEngine() {
       audioStatus = audio_status;
       audioErro = audio_erro;
       audiosFalasBase64 = audios_falas_base64 ?? null;
-      segmento = { ...resposta, origem: "ia" };
+      segmento = { ...resposta, origem: "ia", inicio_previsto_ms: inicioPrevistoMs };
+      recuperacaoTextoRef.current.sucesso();
       if (ativa()) setErro("");
     } catch (err) {
+      recuperacaoTextoRef.current.falhou();
       const radialistaAtual = radialistas.find((r) => r.id === contexto.radialistaId);
       const programaAtual = programasTodos.find((p) => p.id === contexto.programaId);
       if (radialistaAtual && programaAtual) {
-        const local = gerarFalaLocal(radialistaAtual, programaAtual, totalFalasAtual);
+        const local = gerarFalaLocal(radialistaAtual, programaAtual, totalFalasAtual, radioConta?.nome_radio);
         segmento = { ...local, criado_em: new Date().toISOString(), origem: "local" };
         if (ativa()) setErro(err instanceof ApiError ? `${err.message}. Usando fala local.` : "IA indisponivel. Usando fala local.");
       } else {
+        // F5 (D16): reorientação neutra, sem prometer conteúdo que não está agendado.
         segmento = {
           tipo: "comentario",
-          fala: "Seguimos no ar, ja volto com mais uma novidade.",
+          fala: falaReservaNeutra(programaAtual?.nome, radioConta?.nome_radio),
           criado_em: new Date().toISOString(),
           origem: "local",
         };
@@ -1356,6 +1391,31 @@ export function useLiveEngine() {
   async function prepararAudio(texto: TextoPreparado, contexto: ContextoPreparo, ativa: () => boolean): Promise<SegmentoPreparado> {
     const { segmento, audioBase64, audioStatus, audioErro, audiosFalasBase64 } = texto;
     const ultimaFalaAtual = contexto.ultimaFala;
+
+    // Falha de texto: identificação pronta do próprio programa cobre a pausa.
+    // Nunca apresentar notícia antiga, anunciar música ou confirmar pedido por ela.
+    if (segmento.origem === "local") {
+      try {
+        if (reservaRef.current?.programaId !== contexto.programaId || reservaRef.current.expira <= Date.now()) {
+          reservaRef.current = { programaId: contexto.programaId, expira: Date.now() + 60_000, dados: apiFetchComTimeout(
+            `/live/${contexto.radialistaId}/programas/${contexto.programaId}/reserva`, {}, 5_000) };
+        }
+        const reserva = await reservaRef.current.dados;
+        if (reserva.disponivel && reserva.audio_base64) {
+          const bytes = Uint8Array.from(atob(reserva.audio_base64), (c) => c.charCodeAt(0));
+          const blob = new Blob([bytes], { type: "audio/mpeg" });
+          return { segmento: { ...segmento, tipo: "vinheta", fala: reserva.texto ?? "" },
+            audioUrl: URL.createObjectURL(blob), audioBlob: blob, audiosFalas: null };
+        }
+      } catch {
+        // Storage também pode estar indisponível. A cama musical permanece tocando.
+      }
+    }
+
+    const arquivoPronto = segmento.vinheta_id || segmento.patrocinador_audio || audioBase64 || audiosFalasBase64;
+    if (!arquivoPronto && !recuperacaoVozRef.current.disponivel()) {
+      return { segmento, audioUrl: null, audioBlob: null, audiosFalas: null };
+    }
 
     // dialogo multi-voz (mais de um radialista no programa): busca um audio por linha,
     // cada uma com a voz do radialista que falou -- em vez de um audio unico pro bloco.
@@ -1391,8 +1451,10 @@ export function useLiveEngine() {
                 programa_id: contexto.programaId,
               }),
             }, 60_000);
+            recuperacaoVozRef.current.sucesso();
             return { url: URL.createObjectURL(blob), blob };
           } catch (err) {
+            recuperacaoVozRef.current.falhou();
             console.error("Falha ao gerar audio TTS (dialogo multi-voz), mantendo cama musical", err);
             if (ativa()) setErro(err instanceof ApiError ? `${err.message}. Linha pulada; cama musical mantida.` : "Voz IA indisponivel. Linha pulada; cama musical mantida.");
             return { url: null, blob: null };
@@ -1454,8 +1516,10 @@ export function useLiveEngine() {
               }, 60_000);
       }
       audioUrl = URL.createObjectURL(audioBlob);
+      recuperacaoVozRef.current.sucesso();
       if (ativa()) setFalhasAudioConsecutivas(0);
     } catch (err) {
+      recuperacaoVozRef.current.falhou();
       // engolir aqui sem log/aviso fazia a fala cair calada pra voz robotica do navegador (ver
       // falarComVozNavegador) sem nenhum indicio de que o TTS/audio do backend falhou.
       console.error("Falha ao gerar audio (TTS/patrocinador/vinheta), mantendo cama musical", err);
@@ -1473,6 +1537,16 @@ export function useLiveEngine() {
   function descartarPreparo() {
     filaPreparoRef.current?.cancelar();
     filaPreparoRef.current = null;
+    desvioPrevistoRef.current = 0;
+  }
+
+  // Primeiro bloco da fila: o horario_inicio quando a fila nasce no pré-aquecimento do programa
+  // agendado (até ANTECEDENCIA_PREPARO_SEGUNDOS antes), senão agora.
+  function inicioDaFila(): number {
+    const programa = programasTodos.find((p) => p.id === programaIdRef.current);
+    const radialista = radialistas.find((r) => r.id === programa?.radialistaId);
+    const restante = programa && radialista ? segundosParaInicio(programa, radialista.timezone) : null;
+    return Date.now() + (restante !== null && restante <= ANTECEDENCIA_PREPARO_SEGUNDOS ? restante * 1000 : 0);
   }
 
   function obterFilaPreparo(): FilaPreparo<ContextoPreparo, TextoPreparado, SegmentoPreparado> {
@@ -1483,6 +1557,7 @@ export function useLiveEngine() {
         historicoBase: [...falasProgramaRef.current],
         totalFalas: totalFalasRef.current,
         ultimaFala: falasProgramaRef.current[0]?.fala ?? null,
+        inicioBrutoMs: inicioDaFila(),
       }, {
         gerarTexto: (contexto) => prepararTexto(contexto, () => fila.ativa),
         prepararAudio: (texto, contexto) => prepararAudio(texto, contexto, () => fila.ativa),
@@ -1492,6 +1567,7 @@ export function useLiveEngine() {
           historicoBase: [segmento, ...contexto.historicoBase].slice(0, 20),
           totalFalas: contexto.totalFalas + (segmento.passos_roteiro ?? 1),
           ultimaFala: segmento.fala,
+          inicioBrutoMs: proximoInicioBruto(contexto.inicioBrutoMs, segmento),
         }),
         descartar: (preparado) => {
           if (preparado.audioUrl) URL.revokeObjectURL(preparado.audioUrl);
@@ -1563,8 +1639,11 @@ export function useLiveEngine() {
 
     const transicao = new AbortController();
     transicaoRef.current = transicao;
-    const podeTocar = await esperarTransicao(pausaAntesDoBloco(novaFala.pausa_antes_ms), transicao.signal);
+    const pausaAplicadaMs = pausaAntesDoBloco(novaFala.pausa_antes_ms);
+    const podeTocar = await esperarTransicao(pausaAplicadaMs, transicao.signal);
     if (transicaoRef.current === transicao) transicaoRef.current = null;
+    const desvio = medirDesvio(novaFala.inicio_bruto_ms, Date.now(), pausaAplicadaMs);
+    if (podeTocar && desvio !== null) desvioPrevistoRef.current = desvio;
     if (!podeTocar || !programaAtivoRef.current || execucaoAtualRef.current !== minhaExecucao) {
       if (preparado.audioUrl) URL.revokeObjectURL(preparado.audioUrl);
       preparado.audiosFalas?.forEach((a) => a.url && URL.revokeObjectURL(a.url));
@@ -1579,6 +1658,20 @@ export function useLiveEngine() {
       return;
     }
 
+    try {
+      await informarBloco(novaFala, "reproduzindo");
+    } catch {
+      setErro("Não foi possível assumir a reprodução deste bloco. Confira se há outro player transmitindo.");
+      programaAtivoRef.current = false;
+      setProgramaAtivo(false);
+      if (preparado.audioUrl) URL.revokeObjectURL(preparado.audioUrl);
+      preparado.audiosFalas?.forEach(a => a.url && URL.revokeObjectURL(a.url));
+      return;
+    }
+    const heartbeatBloco = novaFala.bloco_id ? setInterval(() => {
+      informarBloco(novaFala, "heartbeat").catch(() => {});
+    }, 20000) : null;
+
     if (preparado.audioBlob) gravacaoBlobsRef.current.push(preparado.audioBlob);
     preparado.audiosFalas?.forEach((a) => a.blob && gravacaoBlobsRef.current.push(a.blob));
 
@@ -1587,6 +1680,7 @@ export function useLiveEngine() {
     // em vez de uma estimativa -- grava no historico ao final (ver atualizarDuracaoFala).
     let duracaoBlocoSegundos = 0;
     let participacaoConcluida = false;
+    let falaDoBlocoConcluida = !novaFala.fala.trim();
     let linhasConcluidas = 0;
 
     if (novaFala.video_id) {
@@ -1597,11 +1691,17 @@ export function useLiveEngine() {
           duracaoBlocoSegundos += await reproduzirGrupoDeFalas(
             preparado.audiosFalas,
             () => programaAtivoRef.current && execucaoAtualRef.current === minhaExecucao,
-            (audio, i) => reproduzirAudioPreparado(audio.url, novaFala.falas?.[i]?.texto ?? novaFala.fala, undefined, false),
+            (audio, i) => reproduzirAudioPreparado(audio.url, novaFala.falas?.[i]?.texto ?? novaFala.fala, () => { linhasConcluidas++; }, false),
             duckMusicaFundo,
           );
         } else {
-          duracaoBlocoSegundos += await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala);
+          duracaoBlocoSegundos += await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala, () => {
+            falaDoBlocoConcluida = true;
+            // F11: fim natural do audio = foi ao ar (o as-run so conta quando o player confirma)
+            if (radialistaIdRef.current && programaIdRef.current) {
+              relatarAsRun(radialistaIdRef.current, programaIdRef.current, novaFala.as_run_evento_id, "confirmado").catch(() => {});
+            }
+          });
         }
         // bloco pode ter mais de uma musica (o agente decidiu emendar) --
         // toca todas seguidas, sem nova fala entre elas, pra manter o embalo
@@ -1640,11 +1740,12 @@ export function useLiveEngine() {
         duckMusicaFundo,
       );
     } else {
-      duracaoBlocoSegundos += await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala, () => { participacaoConcluida = true; });
+      duracaoBlocoSegundos += await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala, () => { participacaoConcluida = true; falaDoBlocoConcluida = true; });
     }
     if (preparado.audiosFalas?.length && !novaFala.video_id) {
       participacaoConcluida = linhasConcluidas === preparado.audiosFalas.length;
     }
+    if (preparado.audiosFalas?.length) falaDoBlocoConcluida = linhasConcluidas === preparado.audiosFalas.length;
     if (novaFala.pedido_id && novaFala.pedido_token && novaFala.pedido_programa_id) {
       const interrompido = execucaoAtualRef.current !== minhaExecucao || !programaAtivoRef.current;
       try {
@@ -1654,6 +1755,13 @@ export function useLiveEngine() {
       }
     }
 
+    if (heartbeatBloco) clearInterval(heartbeatBloco);
+    try {
+      await informarBloco(novaFala, participacaoConcluida && falaDoBlocoConcluida ? "concluido" :
+        execucaoAtualRef.current !== minhaExecucao || !programaAtivoRef.current ? "interrompido" : "falhou");
+    } catch {
+      setErro("O resultado deste bloco não foi confirmado. O contexto do atendimento não foi atualizado.");
+    }
     atualizarDuracaoFala(novaFala.id, duracaoBlocoSegundos);
 
     // execucao foi "pulada" (pularFala disparou uma nova) enquanto essa tocava --
@@ -1923,9 +2031,36 @@ export function useLiveEngine() {
       selecionarPrograma(proximo);
     }
 
-    verificarHorarioAgendado();
-    const intervalo = setInterval(verificarHorarioAgendado, 15000);
-    return () => clearInterval(intervalo);
+    // Início pontual: o polling de 15 s atrasaria a abertura (hard time das 00:00 do relógio) em até
+    // 15 s. Com um programa a até ANTECEDENCIA_PREPARO_SEGUNDOS de começar, um timer dispara a
+    // verificação exatamente no horario_inicio.
+    let timerInicio: ReturnType<typeof setTimeout> | null = null;
+    function agendarInicioPontual() {
+      if (timerInicio || programaAtivoRef.current) return;
+      const restantes = programasTodos
+        .map((p) => {
+          const radialista = radialistas.find((r) => r.id === p.radialistaId);
+          return radialista ? segundosParaInicio(p, radialista.timezone) : null;
+        })
+        .filter((r): r is number => r !== null && r <= ANTECEDENCIA_PREPARO_SEGUNDOS);
+      if (restantes.length === 0) return;
+      timerInicio = setTimeout(() => {
+        timerInicio = null;
+        verificarHorarioAgendado();
+      }, Math.min(...restantes) * 1000);
+    }
+
+    function verificarEAgendar() {
+      verificarHorarioAgendado();
+      agendarInicioPontual();
+    }
+
+    verificarEAgendar();
+    const intervalo = setInterval(verificarEAgendar, 15000);
+    return () => {
+      clearInterval(intervalo);
+      if (timerInicio) clearTimeout(timerInicio);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [carregandoProgramas, programasTodos, radialistas]);
 

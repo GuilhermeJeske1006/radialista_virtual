@@ -117,6 +117,7 @@ services:
       WUZAPI_BASE_URL: http://wuzapi:8080
       WUZAPI_WEBHOOK_URL: http://backend:8000/webhook/whatsapp
       WUZAPI_ADMIN_TOKEN: ${WUZAPI_ADMIN_TOKEN}
+      WHATSAPP_WORKER_ATIVO: "true"
     # --proxy-headers: o rate limit usa request.client.host; atras do Caddy
     # todo mundo viraria o IP do proxy sem isso.
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
@@ -128,6 +129,21 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+
+  whatsapp-worker:
+    image: ghcr.io/guilhermejeske1006/locufy-backend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    env_file:
+      - .env.backend
+    environment:
+      DATABASE_URL: postgresql://radialista:${APP_DB_PASSWORD}@postgres:5432/radialista
+      REDIS_URL: redis://redis:6379/0
+      WUZAPI_BASE_URL: http://wuzapi:8080
+      WHATSAPP_WORKER_ATIVO: "true"
+    command: ["python", "-m", "app.whatsapp.worker"]
 
   frontend:
     image: ghcr.io/guilhermejeske1006/locufy-frontend:${IMAGE_TAG:-latest}

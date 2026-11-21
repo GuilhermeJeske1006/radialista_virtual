@@ -518,10 +518,10 @@ def test_fala_nova_usa_apenas_conteudo_aprovado(
     pedido.mensagem_usuario = "Meu endereço privado é Rua Particular 123"
     pedido.texto_autorizado = "Carla pediu um abraço para a mãe"
     db_session.commit()
-    prompts = []
+    prompts, mensagens = [], []
     monkeypatch.setattr(
         "app.live.router.gerar_resposta",
-        lambda prompt, msg: prompts.append(prompt)
+        lambda prompt, msg: prompts.append(prompt) or mensagens.append(msg)
         or "Carla, um abraço para você e sua mãe!",
     )
     monkeypatch.setattr("app.llm.prompt_builder.obter_clima_atual", lambda cidade: None)
@@ -533,8 +533,9 @@ def test_fala_nova_usa_apenas_conteudo_aprovado(
     )
     assert res.status_code == 200
     assert res.json()["pedido_id"] == pedido.id
-    assert "Rua Particular" not in prompts[0]
-    assert pedido.texto_autorizado in prompts[0]
+    assert "Rua Particular" not in prompts[0] and "Rua Particular" not in mensagens[0]
+    # F5: o conteúdo aprovado vai no bloco de dados da mensagem; o system aponta para o dado.
+    assert pedido.texto_autorizado in mensagens[0] and pedido.texto_autorizado not in prompts[0]
     assert "sem deduzir profissão" in prompts[0]
     assert not pedido.atendido
 
