@@ -1758,13 +1758,14 @@ def definir_radialista_programa(
         vinculo = ProgramaRadialista(programa_id=programa.id, radio_config_id=radialista.id)
         db.add(vinculo)
 
-    try:
-        papel_bancada = validar_papel_bancada(dados.papel_bancada)
-    except ValueError as erro:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(erro))
     vinculo.papel = dados.papel
     vinculo.comportamento = dados.comportamento
-    vinculo.papel_bancada = papel_bancada
+    # Campo ausente no corpo mantém o papel de bancada atual (salvar papel/comportamento não o apaga).
+    if "papel_bancada" in dados.model_fields_set:
+        try:
+            vinculo.papel_bancada = validar_papel_bancada(dados.papel_bancada)
+        except ValueError as erro:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(erro))
     db.commit()
     db.refresh(vinculo)
     return _resposta_vinculo_radialista(radialista, vinculo, e_dono)

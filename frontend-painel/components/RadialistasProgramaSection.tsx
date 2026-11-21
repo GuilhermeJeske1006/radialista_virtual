@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch, ApiError } from "../lib/api";
-import { PAPEIS_SUGERIDOS, Radialista, RadialistaPrograma } from "../lib/types";
+import { PAPEIS_BANCADA, PAPEIS_SUGERIDOS, PapelBancada, Radialista, RadialistaPrograma } from "../lib/types";
 import { LocufySpin } from "./LocufyLogo";
 
 const inputClass =
@@ -40,13 +40,20 @@ export default function RadialistasProgramaSection({ programaId }: Props) {
     setRoster((atual) => atual?.map((r) => (r.radio_config_id === radioConfigId ? { ...r, [campo]: valor } : r)) ?? atual);
   }
 
+  function definirPapelBancada(radioConfigId: number, valor: PapelBancada | null) {
+    setRoster((atual) => atual?.map((r) => (r.radio_config_id === radioConfigId ? { ...r, papel_bancada: valor } : r)) ?? atual);
+  }
+
   async function salvar(item: RadialistaPrograma) {
     setSalvandoId(item.radio_config_id);
     setErro("");
     try {
       const atualizado = await apiFetch<RadialistaPrograma>(
         `/config/programas/${programaId}/radialistas/${item.radio_config_id}`,
-        { method: "PUT", body: JSON.stringify({ papel: item.papel, comportamento: item.comportamento }) }
+        {
+          method: "PUT",
+          body: JSON.stringify({ papel: item.papel, comportamento: item.comportamento, papel_bancada: item.papel_bancada ?? null }),
+        }
       );
       setRoster((atual) => atual?.map((r) => (r.radio_config_id === atualizado.radio_config_id ? atualizado : r)) ?? atual);
     } catch (err) {
@@ -165,6 +172,20 @@ export default function RadialistasProgramaSection({ programaId }: Props) {
               value={item.comportamento}
               onChange={(e) => atualizarLocal(item.radio_config_id, "comportamento", e.target.value)}
             />
+            <label className="block text-xs text-fg/70">
+              Papel na bancada
+              <select
+                className={inputClass + " mt-1"}
+                aria-label={`Papel na bancada de ${item.nome_locutor}`}
+                value={item.papel_bancada ?? ""}
+                onChange={(e) => definirPapelBancada(item.radio_config_id, (e.target.value || null) as PapelBancada | null)}
+              >
+                <option value="">Sem papel (ordem livre)</option>
+                {PAPEIS_BANCADA.map((p) => (
+                  <option key={p.valor} value={p.valor}>{p.rotulo}</option>
+                ))}
+              </select>
+            </label>
             <div>
               <button
                 type="button"
