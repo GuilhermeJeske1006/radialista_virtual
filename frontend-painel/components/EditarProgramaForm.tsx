@@ -8,6 +8,9 @@ import RoteiroBlocosEditor from "./RoteiroBlocosEditor";
 import QuadrosFixosInput from "./QuadrosFixosInput";
 import FeriadosMunicipaisInput from "./FeriadosMunicipaisInput";
 import RadialistasProgramaSection from "./RadialistasProgramaSection";
+import PecasReservaSection from "./PecasReservaSection";
+import FalasRevisaoPanel from "./FalasRevisaoPanel";
+import CortesProgramaPanel from "./CortesProgramaPanel";
 import FontesNoticiaSection from "./FontesNoticiaSection";
 import DescobertaFontesPrograma from "./DescobertaFontesPrograma";
 import PautaDoDiaSection from "./PautaDoDiaSection";
@@ -668,6 +671,12 @@ export default function EditarProgramaForm({
             <hr className="border-border" />
             <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro">Radialistas</h3>
             <RadialistasProgramaSection programaId={idEfetivo} />
+            <hr className="border-border" />
+            <PecasReservaSection programaId={idEfetivo} />
+            <hr className="border-border" />
+            <FalasRevisaoPanel programaId={idEfetivo} />
+            <hr className="border-border" />
+            <CortesProgramaPanel programaId={idEfetivo} />
           </>
         )}
 

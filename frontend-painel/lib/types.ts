@@ -375,7 +375,16 @@ export type RadialistaPrograma = {
   papel: string;
   comportamento: string;
   e_dono: boolean;
+  papel_bancada?: PapelBancada | null;
 };
+
+// F13: papel fixo na bancada (ver backend app/live/bancada.py). null = sem papel.
+export const PAPEIS_BANCADA = [
+  { valor: "mediador", rotulo: "Mediador" },
+  { valor: "comentarista", rotulo: "Comentarista" },
+  { valor: "contraponto", rotulo: "Contraponto" },
+] as const;
+export type PapelBancada = (typeof PAPEIS_BANCADA)[number]["valor"];
 
 export const PAPEIS_SUGERIDOS = ["Co-apresentador", "Comentarista", "Repórter convidado"];
 
@@ -594,3 +603,29 @@ export type Notificacao = {
   lida: boolean;
   criado_em: string;
 };
+
+// F11 item 3: peça de reserva (ver backend app/live/pecas_reserva.py). Só as aprovadas entram no ar.
+export const TIPOS_RESERVA = [
+  { valor: "convidado", rotulo: "Convidado não veio" },
+  { valor: "fonte", rotulo: "Fonte indisponível" },
+  { valor: "pedido", rotulo: "Pedido não atendido" },
+  { valor: "audio", rotulo: "Áudio falhou" },
+  { valor: "estouro", rotulo: "Estouro de horário" },
+] as const;
+export type TipoReserva = (typeof TIPOS_RESERVA)[number]["valor"];
+export type PecaReserva = { id: number; tipo: TipoReserva; texto: string; aprovada: boolean };
+
+// F12: fala que aguarda decisão humana (ver backend app/live/revisao.py).
+export type FalaRevisao = {
+  id: number;
+  categoria: string;
+  texto: string;
+  rota: string;
+  motivo: string;
+  estado: string;
+  criado_em: string;
+  prazo_em: string | null;
+};
+
+// F14: corte do as-run (ver backend app/live/cortes.py).
+export type CorteAsRun = { ordem_inicio: number; ordem_fim: number; eventos: number; tipos: string[] };

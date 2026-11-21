@@ -137,6 +137,20 @@ def _texto_vinhetas_sem_llm(monkeypatch):
     monkeypatch.setattr("app.vinhetas.gerador.gerar_configuracao", _falha)
 
 
+@pytest.fixture(autouse=True)
+def _sem_api_anthropic(monkeypatch):
+    """Nenhum teste fala com a API da Anthropic (chave real no .env gastaria e travaria a suíte). Toda chamada
+    `messages.create` levanta APIConnectionError -- o mesmo erro de rede que o código já trata e cai no fallback.
+    Teste que precisa de resposta do LLM stuba a função de alto nível, como já fazia."""
+    import anthropic
+    import httpx
+
+    def _sem_rede(self, *args, **kwargs):
+        raise anthropic.APIConnectionError(request=httpx.Request("POST", "https://api.anthropic.com/v1/messages"))
+
+    monkeypatch.setattr(anthropic.resources.messages.Messages, "create", _sem_rede)
+
+
 @pytest.fixture()
 def db_session():
     engine = create_engine(

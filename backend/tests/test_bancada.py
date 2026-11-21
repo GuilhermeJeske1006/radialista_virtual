@@ -90,3 +90,15 @@ def test_api_papel_de_bancada_invalido_400(client, account, auth_headers):
     resposta = client.put(url, json={"papel": "X", "comportamento": "", "papel_bancada": "chefe"},
                           headers=auth_headers(account.id))
     assert resposta.status_code == 400
+
+
+def test_api_salvar_sem_papel_de_bancada_mantem_o_atual(client, account, auth_headers):
+    from tests.test_config_relogio import _criar_programa
+    radialista, programa = _criar_programa(client, auth_headers, account.id)
+    url = f"/config/programas/{programa['id']}/radialistas/{radialista['id']}"
+    client.put(url, json={"papel": "Mediador", "comportamento": "", "papel_bancada": "mediador"},
+               headers=auth_headers(account.id))
+    resposta = client.put(url, json={"papel": "Mediador da tarde", "comportamento": "calmo"},
+                          headers=auth_headers(account.id))
+    assert resposta.status_code == 200
+    assert resposta.json()["papel_bancada"] == "mediador"
