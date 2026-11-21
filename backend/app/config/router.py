@@ -10,6 +10,7 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from app.live.pecas_reserva import aprovar, normalizar_pecas
 from app.live.bancada import validar_papel_bancada
+from app.live.cortes import cortes_do_as_run
 from app.live.revisao import RevisaoInvalida, decidir_no_banco
 from app.live.relatorio_programa import montar_relatorio
 from app.auth.dependencies import get_current_account
@@ -1473,6 +1474,24 @@ def _falas_revisao_json(linhas) -> list[dict]:
          "prazo_em": fala.prazo_em.isoformat() if fala.prazo_em else None}
         for fala in linhas
     ]
+
+
+@router.get("/programas/{programa_id}/cortes")
+def listar_cortes(
+    programa_id: int,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Cortes que fazem sentido sozinhos, marcados a partir do as-run (F14 item 2)."""
+    _buscar_programa(db, account, programa_id)
+    linhas = (
+        db.query(AsRunEvento)
+        .filter_by(programa_id=programa_id, account_id=account.id)
+        .order_by(AsRunEvento.ordem.asc())
+        .all()
+    )
+    eventos = [{"ordem": ev.ordem, "tipo": ev.tipo, "status": ev.status, "pedido_id": ev.pedido_id} for ev in linhas]
+    return cortes_do_as_run(eventos)
 
 
 @router.get("/programas/{programa_id}/falas-revisao")

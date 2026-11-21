@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 
 from app.dados.fontes import bloco_de_dados, extra_faixa, extra_ouvinte, no_bloco
 from app.live.formatos import direcao_formato, eh_quadro_fixo, linhas_do_formato
+from app.live.narrativo import eh_quadro_narrativo, instrucao_narrativa
 from app.live.persona import linhas_da_persona
 from app.live.promessas import descrever_agenda, instrucoes_do_bloco, situacao_do_contexto
 from app.live.orcamento import contar_pausas, palavras_max
@@ -333,6 +334,8 @@ def _memoria(ctx: "ContextoEmissao") -> list[str]:
             "Mantenha a identidade reconhecível do quadro (mesmo tom, mesma forma de abrir), mas o conteúdo "
             "em si é sempre novo -- não repita o conteúdo de uma vez anterior deste mesmo quadro."
         )
+        if eh_quadro_narrativo(ctx.tipo):
+            linhas.append(instrucao_narrativa())
     elif v.assunto is not None:
         linhas.append(montar_pauta_assunto(v.assunto))
     elif v.assunto_sugerido is not None:
