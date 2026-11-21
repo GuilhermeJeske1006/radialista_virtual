@@ -433,21 +433,25 @@ Next 16); não conta como regressão.
   - **Relatório no painel**: endpoint e tela não feitos.
 - Detalhes em [`f11/auditoria.md`](f11/auditoria.md).
 
-### F12–F14 — Expansão — PARCIAL (roteamento F12 pronto; F13 e F14 aguardam decisão)
+### F12–F14 — Expansão — PARCIAL (backend das três frentes; painel e juiz LLM pendentes)
 
-- Branch: `melhoria/f12-14-expansao` (a partir de `melhoria/f11-producao`). Sem push.
-- Commit: `9d45550` (roteamento e auditoria).
+- Branch: `melhoria/f12-14-expansao` (a partir de `melhoria/f11-producao`), publicada no `origin` até `3ac5511`.
+- Commits: `dc1124d` (roteamento), `af15a4b` (F12 revisão), `f411d7a` (F13 bancada), `3ac5511` (F14 narrativo e cortes).
 - Entregas:
-  - **F12, roteamento** (`app/live/roteamento_revisao.py`): rota `automatico`, `revisao` ou `proibido` por categoria
-    (plantão, repórter, entrevista), tema delicado no texto e tópico proibido de `Programa.topicos_proibidos`; estado inicial
-    `no_ar`, `aguardando_revisao` ou `bloqueado`. 18 testes.
-- Portão (ver [`f12-14/portao.md`](f12-14/portao.md)): suíte completa **2375 passed, 3 skipped**, 0 falhas, cobertura 89%;
-  ruff ok.
+  - **F12, revisão humana**: rota `automatico` / `revisao` / `proibido` (`app/live/roteamento_revisao.py`) ligada ao
+    `/proxima`. Fala em revisão ou proibida sai como substituta neutra; o original fica em `falas_em_revisao` com estado
+    `aguardando_revisao` ou `bloqueado`. Decisão (aprovar/rejeitar) só dentro de 20 min; depois, 409. Aprovar não leva a fala
+    ao ar.
+  - **F13, bancada**: papéis fixos (`mediador`, `comentarista`, `contraponto`) em `ProgramaRadialista.papel_bancada`;
+    ordem de turnos e regra de resposta ao turno anterior no prompt, só quando há papel definido.
+  - **F14, narrativo e cortes**: quadro narrativo como quadro fixo (label `narrativo*`/`historia*`) com instrução
+    personagem → situação → mudança → consequência; cortes do as-run (`GET /config/programas/{id}/cortes`).
+- Portão (ver [`f12-14/portao.md`](f12-14/portao.md)): suíte completa **2435 passed, 3 skipped**, 0 falhas, EXIT 0 em
+  `3ac5511`; ruff limpo.
 - Pendências:
-  - **F12**: estado `aguardando_revisao` gravado, tela de aprovação e integração ao router. Precisa decidir quem aprova e o
-    que acontece com a fala aprovada depois do horário.
-  - **F13** (bancada com personas): papéis, turnos que respondem ao anterior e tempo dentro do relógio. Precisa decidir papéis
-    fixos ou por programa, e a origem da resposta. O aceite exige LLM com aprovação de custo.
-  - **F14** (narrativos e cortes): nada implementado. Precisa decidir se narrativo é categoria ou quadro, e se cortes esperam
-    o as-run persistente (F11, item 1).
+  - **F12**: tela de aprovação no painel; job de expiração (hoje a expiração só é checada na decisão).
+  - **F13**: tempo total da bancada dentro do relógio; juiz com LLM para "resposta ao que acabou de ser dito" ≥ 4/5
+    (precisa de aprovação de custo); tela para escolher o papel.
+  - **F14**: tela de cortes e de quadro narrativo; teste do prompt narrativo só verifica o import (fraco); corte usa
+    heurística sem duração no as-run.
 - Detalhes em [`f12-14/auditoria.md`](f12-14/auditoria.md).
