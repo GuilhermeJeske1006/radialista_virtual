@@ -10,7 +10,7 @@ import httpx
 from app.config.settings import settings
 from app.billing.contexto_ia import modelo_efetivo
 from app.tts.cache import cache_audio
-from app.tts.modelos import MODELOS_COM_TAGS, MODELOS_SEM_CONTEXTO
+from app.tts.modelos import MODELOS_COM_TAGS, MODELOS_SEM_CONTEXTO, MODELOS_V4, filtrar_voice_settings
 from app.billing.consumo_ia import reservar, concluir, falhar
 from fastapi import HTTPException
 from app.numeros import normalizar_texto_fala
@@ -43,9 +43,8 @@ _VOICE_SETTINGS_PADRAO = {
     "speed": 0.97,
 }
 
-# Perfil inicial do Flash para comparacao por escuta. Os presets abaixo foram
-# calibrados para a locucao anterior: empilhar estilo, tom e desaceleracao do clone
-# no Flash mudou a entrega vocal. Mantemos este perfil independente desses deltas.
+# Flash tem calibração própria; os ajustes de intenção ficam separados dos
+# presets de estilo e dos deltas de clone usados nos outros modelos.
 _VOICE_SETTINGS_FLASH = {
     "stability": 0.5,
     "similarity_boost": 0.75,
@@ -66,6 +65,8 @@ _VOICE_SETTINGS_FLASH = {
 # dos ajustes anteriores) -- mantem a diferenca relativa entre bloco energico/calmo, so' desloca o
 # piso geral pra baixo.
 _VOICE_SETTINGS_POR_TIPO = {
+    # Identidade sonora curta: todos os papéis usam ataque e fechamento vivos.
+    "vinheta": {"stability": 0.45, "style": 0.55, "speed": 1.06},
     "abertura": {"stability": 0.34, "style": 0.55, "speed": 1.02},
     "musica": {"stability": 0.34, "style": 0.55, "speed": 1.02},
     "chamada_ouvinte": {"stability": 0.37, "style": 0.5, "speed": 1.0},
@@ -98,7 +99,8 @@ _AJUSTE_TOM = {
 
 # audio tag [excited] do eleven_v3 (so mandado no tom "energico") direciona uma entrega ofegante --
 # muita respiracao audivel entre as frases, mais que o [calm] do tom oposto. Tirado ate ter como
-# validar por audicao um tag mais neutro; energia do bloco continua vindo so de stability/style/speed.
+# validar por audicao um tag mais neutro; no v3 conversacional, energia continua vindo de
+# stability/style/speed. Vinhetas curtas e modelos v4 têm direção específica em _preparar_sintese.
 #
 # So aplicado quando a fala nao ja vem com uma tag inline propria (ver _TAGS_V3_PERMITIDAS abaixo) --
 # o prompt em app.live.router agora deixa o proprio LLM inserir tag no ponto exato da fala que faz
@@ -150,21 +152,15 @@ def _tem_tag_emocao_v3(texto: str) -> bool:
 # raro (no maximo 1x por fala) -- em todo ponto final tambem destruiria o efeito.
 _PAUSA_TROCA_ASSUNTO = re.compile(r"\.{4,}")
 
-# similarity_boost/use_speaker_boost nao sao suportados pelo eleven_v3 nem pelo v4 (GET /v1/models:
-# can_use_speaker_boost=false) -- _construir_voice_settings remove essas chaves do payload nesses
-# modelos, pra voz do catalogo e pra voz clonada.
-#
-# v4/v4 Turbo ignoram speed (medido em 2026-10-08: mesmo texto com speed 0.7 e 1.2 sai com a mesma
-# duracao; a ElevenLabs documenta que o v4 nao tem controle de velocidade). Os presets de speed por
-# bloco/voz abaixo continuam indo no payload, mas so' surtem efeito no v3/v2/Flash.
-_CHAVES_INDISPONIVEIS_V3 = {"similarity_boost", "use_speaker_boost"}
+# v3 não usa Similarity/Speaker Boost; v4 usa Similarity, mas não Style/Speed.
+# O filtro de capacidades em app.tts.modelos vale também para o perfil natural.
 
 # Voz clonada (Instant Voice Cloning, ver clonar_voz) usava similarity_boost alto + fallback forcado
 # pro multilingual_v2 (que suporta esse parametro) pra soar mais parecida com a amostra -- mas o v2 e'
 # mais literal/robotico que o v3, sobretudo na entonacao de pontuacao e terminacao de frase, o que
 # virou reclamacao maior que a perda de fidelidade. Voz clonada roda no mesmo modelo configurado pro
 # catalogo (ver settings.elevenlabs_model) desde entao; sem similarity_boost/use_speaker_boost quando
-# esse modelo for v3 (removidos como qualquer outra voz, ver _CHAVES_INDISPONIVEIS_V3 acima).
+# esse modelo for v3 (removidos como qualquer outra voz pelo filtro de capacidades).
 _SIMILARITY_BOOST_CLONE = 0.8
 
 # Empiricamente a voz clonada ainda sai um pouco mais rapida/menos estavel que uma voz de catalogo
@@ -228,6 +224,8 @@ def categoria_tipo_bloco(tipo_bloco: str) -> str:
     (app.live.ritmo_voz) e' agrupado pela mesma categoria de prosodia.
     """
     normalizado = _sem_acento(tipo_bloco.strip().lower())
+    if normalizado in {"retomada", "identificacao"}:
+        return "abertura"
     for base in _VOICE_SETTINGS_POR_TIPO:
         if normalizado == base or normalizado.startswith(f"{base} ") or normalizado.startswith(f"{base}:"):
             return base
@@ -240,10 +238,19 @@ CATEGORIAS_PROSODIA = frozenset(_VOICE_SETTINGS_POR_TIPO)
 
 
 def _construir_voice_settings(tipo_bloco: str | None, tom: str | None, modelo: str, eh_clonada: bool, voice_id: str | None = None) -> dict:
-    if modelo == "eleven_flash_v2_5":
-        return _aplicar_jitter(dict(_VOICE_SETTINGS_FLASH))
-
     categoria = categoria_tipo_bloco(tipo_bloco) if tipo_bloco else ""
+    if modelo == "eleven_flash_v2_5":
+        # Flash tem calibração própria: não herda estilo nem os deltas de clone
+        # do v3, mas a intenção editorial também precisa chegar a esse modelo.
+        valores = dict(_VOICE_SETTINGS_FLASH)
+        if categoria == "vinheta":
+            valores.update(stability=0.4, speed=1.08)
+        elif tom == "energico":
+            valores.update(stability=0.42, speed=1.04)
+        elif tom == "calmo":
+            valores.update(stability=0.58, speed=0.96)
+        return _aplicar_jitter(valores)
+
     voice_settings = {**_VOICE_SETTINGS_PADRAO, **_VOICE_SETTINGS_POR_TIPO.get(categoria, {})}
     for chave, delta in _AJUSTE_TOM.get(tom or "", {}).items():
         voice_settings[chave] = voice_settings[chave] + delta
@@ -264,9 +271,7 @@ def _construir_voice_settings(tipo_bloco: str | None, tom: str | None, modelo: s
         voice_settings["similarity_boost"] = _SIMILARITY_BOOST_CLONE
         voice_settings["use_speaker_boost"] = True
 
-    if modelo not in MODELOS_COM_TAGS:
-        return voice_settings
-    return {k: v for k, v in voice_settings.items() if k not in _CHAVES_INDISPONIVEIS_V3}
+    return filtrar_voice_settings(modelo, voice_settings)
 
 
 def _preparar_sintese(
@@ -290,9 +295,10 @@ def _preparar_sintese(
     modelo = modelo or modelo_efetivo("tts", settings.elevenlabs_model)
     voice_settings = _construir_voice_settings(tipo_bloco, tom, modelo, eh_clonada, voice_id)
     if perfil == "natural":
-        voice_settings = {"stability": 0.5, "style": 0.0, "speed": 1.0}
-        if modelo not in MODELOS_COM_TAGS:
-            voice_settings.update(similarity_boost=0.8 if eh_clonada else 0.75, use_speaker_boost=True)
+        voice_settings = filtrar_voice_settings(modelo, {
+            "stability": 0.5, "style": 0.0, "speed": 1.0,
+            "similarity_boost": 0.8 if eh_clonada else 0.75, "use_speaker_boost": True,
+        })
 
     # "R$ 19,90" etc -- so' aparece em texto que nunca passou pelo LLM (ver Patrocinador.texto em
     # app.live.router, conteudo fixo), entao a instrucao de prompt "escreva numero por extenso"
@@ -305,6 +311,15 @@ def _preparar_sintese(
         texto_tts = re.sub(r" {2,}", " ", texto_tts).strip()
         if perfil != "natural" and not _tem_tag_emocao_v3(texto_tts):
             tag = _TAG_POR_TOM.get(tom or "")
+            categoria = categoria_tipo_bloco(tipo_bloco or "")
+            # Vinhetas são peças curtas, não conversa. No v4, speed/style não
+            # dão energia: usar a direção vocal nos blocos musicais enérgicos.
+            # Plantão/notícia ficam fora dessa direção comemorativa.
+            if categoria == "vinheta" or (
+                modelo in MODELOS_V4 and tom == "energico"
+                and categoria in {"abertura", "musica", "chamada_ouvinte", "encerramento"}
+            ):
+                tag = "[excited]"
             if tag:
                 texto_tts = f"{tag} {texto_tts}"
     else:

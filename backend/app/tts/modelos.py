@@ -11,3 +11,15 @@ MODELOS_COM_TAGS = {"eleven_v3", "eleven_v4", "eleven_v4_turbo"}
 # previous_text da 400 (unsupported_model) so' no eleven_v3 -- v4/v4 Turbo aceitam (medido
 # na API em 2026-10-08), entao a prosodia contigua entre falas volta a valer nesses modelos.
 MODELOS_SEM_CONTEXTO = {"eleven_v3"}
+
+# v4 usa Stability e Similarity; Style e Speed não são controles desse modelo.
+# https://elevenlabs.io/docs/overview/capabilities/text-to-speech/eleven-v4
+MODELOS_V4 = frozenset({"eleven_v4", "eleven_v4_turbo"})
+
+
+def filtrar_voice_settings(modelo: str, valores: dict) -> dict:
+    if modelo in MODELOS_V4:
+        return {k: v for k, v in valores.items() if k in {"stability", "similarity_boost"}}
+    if modelo == "eleven_v3":
+        return {k: v for k, v in valores.items() if k not in {"similarity_boost", "use_speaker_boost"}}
+    return valores

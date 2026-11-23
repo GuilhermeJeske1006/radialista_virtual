@@ -1,0 +1,67 @@
+{
+  "versao": 1,
+  "publico": "Português brasileiro, com expressões gaúchas; voz padrão do catálogo",
+  "status": "Textos originais para avaliação. Pronúncia e interpretação ainda precisam de escuta regional.",
+  "casos": [
+    {
+      "id": "G1", "grupo": "giria", "tipo": "chamada_ouvinte", "tom": "energico",
+      "texto": "Bah, tchê, que saudade de ouvir essa! Aumenta um pouquinho o som e fica com a gente.",
+      "avaliar": "Bah e tchê integrados à frase, sem silabar ou soar como leitura de palavras estrangeiras."
+    },
+    {
+      "id": "G2", "grupo": "giria", "tipo": "musica", "tom": "energico",
+      "texto": "Essa versão ficou tri boa, e quem pediu foi o pessoal que tá voltando pra casa agora.",
+      "avaliar": "Tri como intensificador, sem pausa entre tri e boa; preservar tá e pra."
+    },
+    {
+      "id": "G3", "grupo": "giria", "tipo": "chamada_ouvinte", "tom": "neutro",
+      "texto": "Mas capaz! Tu também tava naquele baile? Então essa lembrança é nossa.",
+      "avaliar": "Capaz como surpresa no contexto, seguido de pergunta; evitar leitura literal de capacidade."
+    },
+    {
+      "id": "G4", "grupo": "giria", "tipo": "comentario", "tom": "calmo",
+      "texto": "Pega o chimas, te aprochega e fica por aqui. A prosa segue depois dessa música.",
+      "avaliar": "Chimas e aprochega compreensíveis e fluidos; proximidade sem sotaque teatral."
+    },
+    {
+      "id": "P1", "grupo": "pontuacao", "tipo": "servico", "tom": "neutro",
+      "texto": "Tu vem com a gente.",
+      "avaliar": "Afirmação, com fechamento. Comparar com P2 e P3 sem alterar voz ou parâmetros."
+    },
+    {
+      "id": "P2", "grupo": "pontuacao", "tipo": "servico", "tom": "neutro",
+      "texto": "Tu vem com a gente?",
+      "avaliar": "Pergunta reconhecível pelo áudio, sem mostrar pontuação ao avaliador."
+    },
+    {
+      "id": "P3", "grupo": "pontuacao", "tipo": "servico", "tom": "neutro",
+      "texto": "Tu vem com a gente!",
+      "avaliar": "Convite enfático, distinguível da afirmação e da pergunta, sem gritar."
+    },
+    {
+      "id": "E1", "grupo": "entusiasmo", "tipo": "abertura", "tom": "energico",
+      "texto": "Tá começando mais uma tarde de música boa! Chega junto, que essa primeira já é pra levantar o astral.",
+      "avaliar": "Entusiasmo audível com articulação clara, sem ofegar e sem acelerar até atropelar palavras."
+    },
+    {
+      "id": "E2", "grupo": "entusiasmo", "tipo": "chamada_ouvinte", "tom": "energico",
+      "texto": "Mas bah, essa foi tri boa! O João acertou a música de primeira e mandou um abraço pra toda a gurizada.",
+      "avaliar": "Alegria coerente com a frase; gírias não podem virar gritos ou bordões repetidos."
+    },
+    {
+      "id": "C1", "grupo": "calma", "tipo": "comentario", "tom": "calmo",
+      "texto": "Agora dá pra baixar um pouco o ritmo, ajeitar o mate e deixar a música fazer companhia. Sem pressa.",
+      "avaliar": "Acolhimento e pausas naturais; calma sem voz sonolenta, sussurro ou queda de inteligibilidade."
+    },
+    {
+      "id": "C2", "grupo": "calma", "tipo": "servico", "tom": "neutro",
+      "texto": "Tem um trecho em obras logo adiante. Vai com calma, mantém a distância e segue a sinalização.",
+      "avaliar": "Orientação séria e clara; nenhuma risada, comemoração ou dramatização. Cenário fictício de teste."
+    },
+    {
+      "id": "T1", "grupo": "transicao", "tipo": "musica", "tom": "energico",
+      "texto": "A gente fica por aqui mais um pouquinho, nessa calma de fim de tarde. E agora, bora levantar esse astral com a próxima!",
+      "avaliar": "Mudança de energia no segundo período preservando timbre, volume confortável e continuidade."
+    }
+  ]
+}

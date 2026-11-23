@@ -169,8 +169,8 @@ def test_flash_envia_perfil_proprio_sem_deltas_do_v3(monkeypatch, eh_clonada, ti
     payload = fake.chamadas[0][2]["json"]
     assert payload["model_id"] == "eleven_flash_v2_5"
     assert payload["voice_settings"] == {
-        "stability": 0.5, "similarity_boost": 0.75, "style": 0.0,
-        "use_speaker_boost": True, "speed": 1.0,
+        "stability": 0.42 if tom == "energico" else 0.58, "similarity_boost": 0.75, "style": 0.0,
+        "use_speaker_boost": True, "speed": 1.04 if tom == "energico" else 0.96,
     }
     assert payload["previous_text"] == "Fala anterior."
     assert payload["language_code"] == "pt"
@@ -209,7 +209,8 @@ def test_v4_le_roteiro_do_v3_e_recebe_contexto(modelo):
     assert payload["text"] == "Olá! [laughs] Que dia [pause] Bora."
     assert payload["previous_text"] == "Fala anterior."
     assert payload["language_code"] == "pt"
-    assert not {"similarity_boost", "use_speaker_boost"} & payload["voice_settings"].keys()
+    assert set(payload["voice_settings"]) == {"stability", "similarity_boost"}
+    assert payload["voice_settings"]["similarity_boost"] == 0.8
 
 
 def test_v4_sem_tag_inline_mantem_tag_por_tom():

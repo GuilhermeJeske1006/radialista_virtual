@@ -1,0 +1,1494 @@
+{
+  "data": "2026-11-21",
+  "commit": "2ee8b2899dda816f4619f55d9feed43ddcdea40d",
+  "rede_bloqueada": true,
+  "sinteses_executadas": 0,
+  "jitter_zerado_para_comparacao": true,
+  "voz_real_nao_consultada": true,
+  "sondagens_confirmadas": {
+    "flash_payload_calmo_igual_energico": true,
+    "v4_envia_speed_e_style": true,
+    "v4_remove_similarity_boost": true,
+    "energico_sem_tag_automatica": true,
+    "tag_curiosidade_removida": true,
+    "pausa_curta_descritiva_removida": true,
+    "giria_preservada_sem_alias": true,
+    "comentario_direcionado_calmo": true
+  },
+  "piloto_proposto": {
+    "casos": 12,
+    "vozes": 1,
+    "condicoes": 2,
+    "repeticoes": 2,
+    "sinteses": 48,
+    "caracteres_base_por_passagem": 889,
+    "estimativa_caracteres_enviados": 4324,
+    "hipotese_estimativa": "Mesmo texto nas duas condições; até 32 caracteres extras de tags por caso apenas na candidata; sem STT ou tentativas extras. Não equivale a caracteres faturados."
+  },
+  "payloads": [
+    {
+      "caso": "G1",
+      "perfil": "atual",
+      "payload": {
+        "text": "Bah, tchê, que saudade de ouvir essa! Aumenta um pouquinho o som e fica com a gente.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.33,
+          "style": 0.6,
+          "speed": 1.04
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "G2",
+      "perfil": "atual",
+      "payload": {
+        "text": "Essa versão ficou tri boa, e quem pediu foi o pessoal que tá voltando pra casa agora.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.30000000000000004,
+          "style": 0.65,
+          "speed": 1.06
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "G3",
+      "perfil": "atual",
+      "payload": {
+        "text": "Mas capaz! Tu também tava naquele baile? Então essa lembrança é nossa.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.37,
+          "style": 0.5,
+          "speed": 1.0
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "G4",
+      "perfil": "atual",
+      "payload": {
+        "text": "[calm] Pega o chimas, te aprochega e fica por aqui. A prosa segue depois dessa música.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.52,
+          "style": 0.19999999999999998,
+          "speed": 0.88
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "P1",
+      "perfil": "atual",
+      "payload": {
+        "text": "Tu vem com a gente.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.42,
+          "style": 0.25,
+          "speed": 0.97
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "P2",
+      "perfil": "atual",
+      "payload": {
+        "text": "Tu vem com a gente?",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.42,
+          "style": 0.25,
+          "speed": 0.97
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "P3",
+      "perfil": "atual",
+      "payload": {
+        "text": "Tu vem com a gente!",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.42,
+          "style": 0.25,
+          "speed": 0.97
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "E1",
+      "perfil": "atual",
+      "payload": {
+        "text": "Tá começando mais uma tarde de música boa! Chega junto, que essa primeira já é pra levantar o astral.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.30000000000000004,
+          "style": 0.65,
+          "speed": 1.06
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "E2",
+      "perfil": "atual",
+      "payload": {
+        "text": "Mas bah, essa foi tri boa! O João acertou a música de primeira e mandou um abraço pra toda a gurizada.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.33,
+          "style": 0.6,
+          "speed": 1.04
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "C1",
+      "perfil": "atual",
+      "payload": {
+        "text": "[calm] Agora dá pra baixar um pouco o ritmo, ajeitar o mate e deixar a música fazer companhia. Sem pressa.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.52,
+          "style": 0.19999999999999998,
+          "speed": 0.88
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "C2",
+      "perfil": "atual",
+      "payload": {
+        "text": "Tem um trecho em obras logo adiante. Vai com calma, mantém a distância e segue a sinalização.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.42,
+          "style": 0.25,
+          "speed": 0.97
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "T1",
+      "perfil": "atual",
+      "payload": {
+        "text": "A gente fica por aqui mais um pouquinho, nessa calma de fim de tarde. E agora, bora levantar esse astral com a próxima!",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.30000000000000004,
+          "style": 0.65,
+          "speed": 1.06
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "G1",
+      "perfil": "natural",
+      "payload": {
+        "text": "Bah, tchê, que saudade de ouvir essa! Aumenta um pouquinho o som e fica com a gente.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "G2",
+      "perfil": "natural",
+      "payload": {
+        "text": "Essa versão ficou tri boa, e quem pediu foi o pessoal que tá voltando pra casa agora.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "G3",
+      "perfil": "natural",
+      "payload": {
+        "text": "Mas capaz! Tu também tava naquele baile? Então essa lembrança é nossa.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "G4",
+      "perfil": "natural",
+      "payload": {
+        "text": "Pega o chimas, te aprochega e fica por aqui. A prosa segue depois dessa música.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "P1",
+      "perfil": "natural",
+      "payload": {
+        "text": "Tu vem com a gente.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "P2",
+      "perfil": "natural",
+      "payload": {
+        "text": "Tu vem com a gente?",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "P3",
+      "perfil": "natural",
+      "payload": {
+        "text": "Tu vem com a gente!",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "E1",
+      "perfil": "natural",
+      "payload": {
+        "text": "Tá começando mais uma tarde de música boa! Chega junto, que essa primeira já é pra levantar o astral.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "E2",
+      "perfil": "natural",
+      "payload": {
+        "text": "Mas bah, essa foi tri boa! O João acertou a música de primeira e mandou um abraço pra toda a gurizada.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "C1",
+      "perfil": "natural",
+      "payload": {
+        "text": "Agora dá pra baixar um pouco o ritmo, ajeitar o mate e deixar a música fazer companhia. Sem pressa.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "C2",
+      "perfil": "natural",
+      "payload": {
+        "text": "Tem um trecho em obras logo adiante. Vai com calma, mantém a distância e segue a sinalização.",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "T1",
+      "perfil": "natural",
+      "payload": {
+        "text": "A gente fica por aqui mais um pouquinho, nessa calma de fim de tarde. E agora, bora levantar esse astral com a próxima!",
+        "model_id": "eleven_v3",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt"
+      }
+    },
+    {
+      "caso": "G1",
+      "perfil": "atual",
+      "payload": {
+        "text": "Bah, tchê, que saudade de ouvir essa! Aumenta um pouquinho o som e fica com a gente.",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.33,
+          "style": 0.6,
+          "speed": 1.04
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G2",
+      "perfil": "atual",
+      "payload": {
+        "text": "Essa versão ficou tri boa, e quem pediu foi o pessoal que tá voltando pra casa agora.",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.30000000000000004,
+          "style": 0.65,
+          "speed": 1.06
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G3",
+      "perfil": "atual",
+      "payload": {
+        "text": "Mas capaz! Tu também tava naquele baile? Então essa lembrança é nossa.",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.37,
+          "style": 0.5,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G4",
+      "perfil": "atual",
+      "payload": {
+        "text": "[calm] Pega o chimas, te aprochega e fica por aqui. A prosa segue depois dessa música.",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.52,
+          "style": 0.19999999999999998,
+          "speed": 0.88
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "P1",
+      "perfil": "atual",
+      "payload": {
+        "text": "Tu vem com a gente.",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.42,
+          "style": 0.25,
+          "speed": 0.97
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "P2",
+      "perfil": "atual",
+      "payload": {
+        "text": "Tu vem com a gente?",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.42,
+          "style": 0.25,
+          "speed": 0.97
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "P3",
+      "perfil": "atual",
+      "payload": {
+        "text": "Tu vem com a gente!",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.42,
+          "style": 0.25,
+          "speed": 0.97
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "E1",
+      "perfil": "atual",
+      "payload": {
+        "text": "Tá começando mais uma tarde de música boa! Chega junto, que essa primeira já é pra levantar o astral.",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.30000000000000004,
+          "style": 0.65,
+          "speed": 1.06
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "E2",
+      "perfil": "atual",
+      "payload": {
+        "text": "Mas bah, essa foi tri boa! O João acertou a música de primeira e mandou um abraço pra toda a gurizada.",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.33,
+          "style": 0.6,
+          "speed": 1.04
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "C1",
+      "perfil": "atual",
+      "payload": {
+        "text": "[calm] Agora dá pra baixar um pouco o ritmo, ajeitar o mate e deixar a música fazer companhia. Sem pressa.",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.52,
+          "style": 0.19999999999999998,
+          "speed": 0.88
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "C2",
+      "perfil": "atual",
+      "payload": {
+        "text": "Tem um trecho em obras logo adiante. Vai com calma, mantém a distância e segue a sinalização.",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.42,
+          "style": 0.25,
+          "speed": 0.97
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "T1",
+      "perfil": "atual",
+      "payload": {
+        "text": "A gente fica por aqui mais um pouquinho, nessa calma de fim de tarde. E agora, bora levantar esse astral com a próxima!",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.30000000000000004,
+          "style": 0.65,
+          "speed": 1.06
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G1",
+      "perfil": "natural",
+      "payload": {
+        "text": "Bah, tchê, que saudade de ouvir essa! Aumenta um pouquinho o som e fica com a gente.",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G2",
+      "perfil": "natural",
+      "payload": {
+        "text": "Essa versão ficou tri boa, e quem pediu foi o pessoal que tá voltando pra casa agora.",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G3",
+      "perfil": "natural",
+      "payload": {
+        "text": "Mas capaz! Tu também tava naquele baile? Então essa lembrança é nossa.",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G4",
+      "perfil": "natural",
+      "payload": {
+        "text": "Pega o chimas, te aprochega e fica por aqui. A prosa segue depois dessa música.",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "P1",
+      "perfil": "natural",
+      "payload": {
+        "text": "Tu vem com a gente.",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "P2",
+      "perfil": "natural",
+      "payload": {
+        "text": "Tu vem com a gente?",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "P3",
+      "perfil": "natural",
+      "payload": {
+        "text": "Tu vem com a gente!",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "E1",
+      "perfil": "natural",
+      "payload": {
+        "text": "Tá começando mais uma tarde de música boa! Chega junto, que essa primeira já é pra levantar o astral.",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "E2",
+      "perfil": "natural",
+      "payload": {
+        "text": "Mas bah, essa foi tri boa! O João acertou a música de primeira e mandou um abraço pra toda a gurizada.",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "C1",
+      "perfil": "natural",
+      "payload": {
+        "text": "Agora dá pra baixar um pouco o ritmo, ajeitar o mate e deixar a música fazer companhia. Sem pressa.",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "C2",
+      "perfil": "natural",
+      "payload": {
+        "text": "Tem um trecho em obras logo adiante. Vai com calma, mantém a distância e segue a sinalização.",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "T1",
+      "perfil": "natural",
+      "payload": {
+        "text": "A gente fica por aqui mais um pouquinho, nessa calma de fim de tarde. E agora, bora levantar esse astral com a próxima!",
+        "model_id": "eleven_v4",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G1",
+      "perfil": "atual",
+      "payload": {
+        "text": "Bah, tchê, que saudade de ouvir essa! Aumenta um pouquinho o som e fica com a gente.",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.33,
+          "style": 0.6,
+          "speed": 1.04
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G2",
+      "perfil": "atual",
+      "payload": {
+        "text": "Essa versão ficou tri boa, e quem pediu foi o pessoal que tá voltando pra casa agora.",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.30000000000000004,
+          "style": 0.65,
+          "speed": 1.06
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G3",
+      "perfil": "atual",
+      "payload": {
+        "text": "Mas capaz! Tu também tava naquele baile? Então essa lembrança é nossa.",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.37,
+          "style": 0.5,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G4",
+      "perfil": "atual",
+      "payload": {
+        "text": "[calm] Pega o chimas, te aprochega e fica por aqui. A prosa segue depois dessa música.",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.52,
+          "style": 0.19999999999999998,
+          "speed": 0.88
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "P1",
+      "perfil": "atual",
+      "payload": {
+        "text": "Tu vem com a gente.",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.42,
+          "style": 0.25,
+          "speed": 0.97
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "P2",
+      "perfil": "atual",
+      "payload": {
+        "text": "Tu vem com a gente?",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.42,
+          "style": 0.25,
+          "speed": 0.97
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "P3",
+      "perfil": "atual",
+      "payload": {
+        "text": "Tu vem com a gente!",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.42,
+          "style": 0.25,
+          "speed": 0.97
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "E1",
+      "perfil": "atual",
+      "payload": {
+        "text": "Tá começando mais uma tarde de música boa! Chega junto, que essa primeira já é pra levantar o astral.",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.30000000000000004,
+          "style": 0.65,
+          "speed": 1.06
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "E2",
+      "perfil": "atual",
+      "payload": {
+        "text": "Mas bah, essa foi tri boa! O João acertou a música de primeira e mandou um abraço pra toda a gurizada.",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.33,
+          "style": 0.6,
+          "speed": 1.04
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "C1",
+      "perfil": "atual",
+      "payload": {
+        "text": "[calm] Agora dá pra baixar um pouco o ritmo, ajeitar o mate e deixar a música fazer companhia. Sem pressa.",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.52,
+          "style": 0.19999999999999998,
+          "speed": 0.88
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "C2",
+      "perfil": "atual",
+      "payload": {
+        "text": "Tem um trecho em obras logo adiante. Vai com calma, mantém a distância e segue a sinalização.",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.42,
+          "style": 0.25,
+          "speed": 0.97
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "T1",
+      "perfil": "atual",
+      "payload": {
+        "text": "A gente fica por aqui mais um pouquinho, nessa calma de fim de tarde. E agora, bora levantar esse astral com a próxima!",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.30000000000000004,
+          "style": 0.65,
+          "speed": 1.06
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G1",
+      "perfil": "natural",
+      "payload": {
+        "text": "Bah, tchê, que saudade de ouvir essa! Aumenta um pouquinho o som e fica com a gente.",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G2",
+      "perfil": "natural",
+      "payload": {
+        "text": "Essa versão ficou tri boa, e quem pediu foi o pessoal que tá voltando pra casa agora.",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G3",
+      "perfil": "natural",
+      "payload": {
+        "text": "Mas capaz! Tu também tava naquele baile? Então essa lembrança é nossa.",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G4",
+      "perfil": "natural",
+      "payload": {
+        "text": "Pega o chimas, te aprochega e fica por aqui. A prosa segue depois dessa música.",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "P1",
+      "perfil": "natural",
+      "payload": {
+        "text": "Tu vem com a gente.",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "P2",
+      "perfil": "natural",
+      "payload": {
+        "text": "Tu vem com a gente?",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "P3",
+      "perfil": "natural",
+      "payload": {
+        "text": "Tu vem com a gente!",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "E1",
+      "perfil": "natural",
+      "payload": {
+        "text": "Tá começando mais uma tarde de música boa! Chega junto, que essa primeira já é pra levantar o astral.",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "E2",
+      "perfil": "natural",
+      "payload": {
+        "text": "Mas bah, essa foi tri boa! O João acertou a música de primeira e mandou um abraço pra toda a gurizada.",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "C1",
+      "perfil": "natural",
+      "payload": {
+        "text": "Agora dá pra baixar um pouco o ritmo, ajeitar o mate e deixar a música fazer companhia. Sem pressa.",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "C2",
+      "perfil": "natural",
+      "payload": {
+        "text": "Tem um trecho em obras logo adiante. Vai com calma, mantém a distância e segue a sinalização.",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "T1",
+      "perfil": "natural",
+      "payload": {
+        "text": "A gente fica por aqui mais um pouquinho, nessa calma de fim de tarde. E agora, bora levantar esse astral com a próxima!",
+        "model_id": "eleven_v4_turbo",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G1",
+      "perfil": "atual",
+      "payload": {
+        "text": "Bah, tchê, que saudade de ouvir essa! Aumenta um pouquinho o som e fica com a gente.",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "similarity_boost": 0.75,
+          "style": 0.0,
+          "use_speaker_boost": true,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G2",
+      "perfil": "atual",
+      "payload": {
+        "text": "Essa versão ficou tri boa, e quem pediu foi o pessoal que tá voltando pra casa agora.",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "similarity_boost": 0.75,
+          "style": 0.0,
+          "use_speaker_boost": true,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G3",
+      "perfil": "atual",
+      "payload": {
+        "text": "Mas capaz! Tu também tava naquele baile? Então essa lembrança é nossa.",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "similarity_boost": 0.75,
+          "style": 0.0,
+          "use_speaker_boost": true,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G4",
+      "perfil": "atual",
+      "payload": {
+        "text": "Pega o chimas, te aprochega e fica por aqui. A prosa segue depois dessa música.",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "similarity_boost": 0.75,
+          "style": 0.0,
+          "use_speaker_boost": true,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "P1",
+      "perfil": "atual",
+      "payload": {
+        "text": "Tu vem com a gente.",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "similarity_boost": 0.75,
+          "style": 0.0,
+          "use_speaker_boost": true,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "P2",
+      "perfil": "atual",
+      "payload": {
+        "text": "Tu vem com a gente?",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "similarity_boost": 0.75,
+          "style": 0.0,
+          "use_speaker_boost": true,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "P3",
+      "perfil": "atual",
+      "payload": {
+        "text": "Tu vem com a gente!",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "similarity_boost": 0.75,
+          "style": 0.0,
+          "use_speaker_boost": true,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "E1",
+      "perfil": "atual",
+      "payload": {
+        "text": "Tá começando mais uma tarde de música boa! Chega junto, que essa primeira já é pra levantar o astral.",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "similarity_boost": 0.75,
+          "style": 0.0,
+          "use_speaker_boost": true,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "E2",
+      "perfil": "atual",
+      "payload": {
+        "text": "Mas bah, essa foi tri boa! O João acertou a música de primeira e mandou um abraço pra toda a gurizada.",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "similarity_boost": 0.75,
+          "style": 0.0,
+          "use_speaker_boost": true,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "C1",
+      "perfil": "atual",
+      "payload": {
+        "text": "Agora dá pra baixar um pouco o ritmo, ajeitar o mate e deixar a música fazer companhia. Sem pressa.",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "similarity_boost": 0.75,
+          "style": 0.0,
+          "use_speaker_boost": true,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "C2",
+      "perfil": "atual",
+      "payload": {
+        "text": "Tem um trecho em obras logo adiante. Vai com calma, mantém a distância e segue a sinalização.",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "similarity_boost": 0.75,
+          "style": 0.0,
+          "use_speaker_boost": true,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "T1",
+      "perfil": "atual",
+      "payload": {
+        "text": "A gente fica por aqui mais um pouquinho, nessa calma de fim de tarde. E agora, bora levantar esse astral com a próxima!",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "similarity_boost": 0.75,
+          "style": 0.0,
+          "use_speaker_boost": true,
+          "speed": 1.0
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G1",
+      "perfil": "natural",
+      "payload": {
+        "text": "Bah, tchê, que saudade de ouvir essa! Aumenta um pouquinho o som e fica com a gente.",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0,
+          "similarity_boost": 0.75,
+          "use_speaker_boost": true
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G2",
+      "perfil": "natural",
+      "payload": {
+        "text": "Essa versão ficou tri boa, e quem pediu foi o pessoal que tá voltando pra casa agora.",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0,
+          "similarity_boost": 0.75,
+          "use_speaker_boost": true
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G3",
+      "perfil": "natural",
+      "payload": {
+        "text": "Mas capaz! Tu também tava naquele baile? Então essa lembrança é nossa.",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0,
+          "similarity_boost": 0.75,
+          "use_speaker_boost": true
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "G4",
+      "perfil": "natural",
+      "payload": {
+        "text": "Pega o chimas, te aprochega e fica por aqui. A prosa segue depois dessa música.",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0,
+          "similarity_boost": 0.75,
+          "use_speaker_boost": true
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "P1",
+      "perfil": "natural",
+      "payload": {
+        "text": "Tu vem com a gente.",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0,
+          "similarity_boost": 0.75,
+          "use_speaker_boost": true
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "P2",
+      "perfil": "natural",
+      "payload": {
+        "text": "Tu vem com a gente?",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0,
+          "similarity_boost": 0.75,
+          "use_speaker_boost": true
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "P3",
+      "perfil": "natural",
+      "payload": {
+        "text": "Tu vem com a gente!",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0,
+          "similarity_boost": 0.75,
+          "use_speaker_boost": true
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "E1",
+      "perfil": "natural",
+      "payload": {
+        "text": "Tá começando mais uma tarde de música boa! Chega junto, que essa primeira já é pra levantar o astral.",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0,
+          "similarity_boost": 0.75,
+          "use_speaker_boost": true
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "E2",
+      "perfil": "natural",
+      "payload": {
+        "text": "Mas bah, essa foi tri boa! O João acertou a música de primeira e mandou um abraço pra toda a gurizada.",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0,
+          "similarity_boost": 0.75,
+          "use_speaker_boost": true
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "C1",
+      "perfil": "natural",
+      "payload": {
+        "text": "Agora dá pra baixar um pouco o ritmo, ajeitar o mate e deixar a música fazer companhia. Sem pressa.",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0,
+          "similarity_boost": 0.75,
+          "use_speaker_boost": true
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "C2",
+      "perfil": "natural",
+      "payload": {
+        "text": "Tem um trecho em obras logo adiante. Vai com calma, mantém a distância e segue a sinalização.",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0,
+          "similarity_boost": 0.75,
+          "use_speaker_boost": true
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    },
+    {
+      "caso": "T1",
+      "perfil": "natural",
+      "payload": {
+        "text": "A gente fica por aqui mais um pouquinho, nessa calma de fim de tarde. E agora, bora levantar esse astral com a próxima!",
+        "model_id": "eleven_flash_v2_5",
+        "voice_settings": {
+          "stability": 0.5,
+          "style": 0.0,
+          "speed": 1.0,
+          "similarity_boost": 0.75,
+          "use_speaker_boost": true
+        },
+        "language_code": "pt",
+        "previous_text": "A música anterior acabou."
+      }
+    }
+  ]
+}

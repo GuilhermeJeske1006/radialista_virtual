@@ -39,7 +39,7 @@ logger = logging.getLogger("radialista.vinhetas")
 _CATEGORIA_POR_PAPEL = {"abertura": "Abertura", "passagem": "Vinhetas", "encerramento": "Encerramento"}
 
 # tipo_bloco repassado ao TTS (ajusta prosodia, ver _construir_voice_settings em app.tts.client).
-_TIPO_BLOCO_TTS = {"abertura": "abertura", "encerramento": "encerramento", "passagem": None}
+_TIPO_BLOCO_TTS = "vinheta"
 
 _MSG_TTS_INDISPONIVEL = "Voz IA indisponível -- o ao vivo fala o texto na hora, sem trilha."
 
@@ -201,8 +201,11 @@ def _pedido_voz(db: Session, item: BibliotecaAudioItem) -> dict | None:
     return {
         "texto": item.texto,
         "voz": voz,
-        "tipo_bloco": _TIPO_BLOCO_TTS.get(item.papel),
-        "parametros": {**parametros_sintese(db, item.account_id, voz), "reutilizar_audio": not bool(item.voz_path)},
+        "tipo_bloco": _TIPO_BLOCO_TTS,
+        # A vinheta usa direção própria mesmo quando a leitura comum da voz
+        # está no perfil neutro/natural. Não altera a preferência salva da voz.
+        "parametros": {**parametros_sintese(db, item.account_id, voz), "tom": "energico", "perfil": "atual",
+                       "reutilizar_audio": not bool(item.voz_path)},
     }
 
 

@@ -76,7 +76,7 @@ def tts_fake(monkeypatch, voz_mp3):
     chamadas = []
 
     def _sintetizar(texto, voz, **kwargs):
-        chamadas.append((texto, voz, kwargs.get("tipo_bloco")))
+        chamadas.append((texto, voz, kwargs.get("tipo_bloco"), kwargs))
         return voz_mp3
 
     monkeypatch.setattr(servico, "tts_habilitado", lambda voz=None: True)
@@ -321,7 +321,8 @@ def test_mesma_trilha_nas_3_vinhetas_com_uma_chamada_a_music_api(
     assert len(trilhas) == 1 and None not in trilhas
     assert all(v.status == "pronta" and v.audio_path and v.voz_path for v in vinhetas.values())
     assert [c[1] for c in tts_fake] == ["voz-do-ze"] * 3
-    assert {c[2] for c in tts_fake} == {"abertura", "encerramento", None}
+    assert {c[2] for c in tts_fake} == {"vinheta"}
+    assert all(c[3]["tom"] == "energico" and c[3]["perfil"] == "atual" for c in tts_fake)
 
 
 def test_music_api_falha_cai_no_banco_local(
@@ -648,6 +649,28 @@ def test_prompt_da_trilha_nao_usa_texto_livre_do_programa(radialista_e_programa)
     prompt = trilha_mod.prompt_trilha_ia(programa)
     assert "hits" not in prompt.lower() and "Carlos" not in prompt
     assert "instrumental" in prompt and "pop" in prompt
+
+
+def test_vinheta_usa_perfil_proprio_sem_mudar_preferencia_da_voz(
+    db_session, account, radialista_e_programa, monkeypatch
+):
+    radialista, programa = radialista_e_programa
+    item = _criar_vinhetas(db_session, account, radialista, programa)["encerramento"]
+    preferencia = {"perfil": "natural", "modelo": "eleven_v4", "pronuncias": {"FM": "efe eme"}}
+    monkeypatch.setattr(servico, "tts_habilitado", lambda *_: True)
+    monkeypatch.setattr(servico, "parametros_sintese", lambda *_: preferencia)
+    pedido = servico._pedido_voz(db_session, item)
+    assert pedido["tipo_bloco"] == "vinheta"
+    assert pedido["parametros"]["tom"] == "energico"
+    assert pedido["parametros"]["perfil"] == "atual"
+    assert pedido["parametros"]["modelo"] == "eleven_v4"
+    assert pedido["parametros"]["pronuncias"] == {"FM": "efe eme"}
+    assert preferencia["perfil"] == "natural"
+
+
+def test_texto_de_vinheta_pede_impacto_ate_no_encerramento():
+    assert "fechamento com energia" in gerador._SYSTEM_PROMPT
+    assert "não escreva tags" in gerador._SYSTEM_PROMPT
 
 
 def test_prompt_recusado_tenta_sugestao_da_api(monkeypatch, trilha_mp3):

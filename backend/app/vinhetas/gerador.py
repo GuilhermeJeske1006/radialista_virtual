@@ -31,7 +31,11 @@ _MARKDOWN_RE = re.compile(r"[*_#`~>\[\]|]")
 
 _SYSTEM_PROMPT = (
     "Você escreve vinhetas de rádio brasileiras: frases curtas, de identificação, faladas por "
-    "cima de uma trilha instrumental. Ritmo de vinheta, não de locutor conversando. Responda "
+    "cima de uma trilha instrumental. Ritmo de vinheta, não de locutor conversando. "
+    "Escreva com impacto, ritmo vivo e entusiasmo: entradas fortes, assinatura marcante e "
+    "fechamento com energia, inclusive na vinheta de encerramento. Evite texto arrastado, "
+    "melancólico ou despedida longa. Use exclamação nos pontos de impacto, sem exagerar; "
+    "não escreva tags de emoção nem instruções de interpretação no texto. Responda "
     "SOMENTE com JSON válido, sem texto antes ou depois, no formato "
     '{"abertura": "...", "passagem": "...", "encerramento": "..."}.'
 )
@@ -66,9 +70,9 @@ def textos_template(account: Account, radialista: RadioConfig, programa: Program
     com_locutor = f", com {locutor}" if locutor else ""
     slogan = f" {account.slogan.strip().rstrip('.')}." if (account.slogan or "").strip() else ""
     return {
-        "abertura": f"Tá começando o {programa.nome}{com_locutor}, aqui na {radio}.",
-        "passagem": f"Você está ouvindo {programa.nome}, na {radio}.{slogan}",
-        "encerramento": f"Terminou o {programa.nome}. Obrigado pela companhia. {radio}.{slogan}".strip(),
+        "abertura": f"Tá começando o {programa.nome}{com_locutor}, aqui na {radio}!",
+        "passagem": f"É {programa.nome}, na {radio}!{slogan}",
+        "encerramento": f"Valeu pela companhia no {programa.nome}! {radio}.{slogan}".strip(),
     }
 
 

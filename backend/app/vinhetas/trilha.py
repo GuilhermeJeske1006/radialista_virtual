@@ -97,6 +97,12 @@ def estilo_do_programa(programa: Programa) -> str:
 
 
 def _energia_por_horario(programa: Programa) -> str:
+    from app.live.direcao_voz import energia_do_programa
+
+    # A identidade do programa prevalece sobre o relógio: uma atração musical
+    # animada à noite também precisa de uma assinatura com pulso e impacto.
+    if energia_do_programa(programa) == "energico":
+        return "high energy, upbeat, punchy rhythmic accents, confident radio station identity"
     hora = programa.horario_inicio.hour if programa.horario_inicio else 12
     if 5 <= hora < 12:
         return "high energy, bright morning mood"

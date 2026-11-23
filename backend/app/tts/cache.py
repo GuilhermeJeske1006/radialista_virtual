@@ -42,7 +42,8 @@ def _chave(signature, args, kwargs):
     dados["conta"] = conta.id if conta else None
     dados["credencial"] = hashlib.sha256(settings.elevenlabs_api_key.encode()).hexdigest()
     digest = hashlib.sha256(json.dumps(dados, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
-    return f"tts:audio:v1:{digest}"
+    # Presets e capacidades por modelo mudaram: não reutilizar a leitura antiga.
+    return f"tts:audio:v2:{digest}"
 
 
 def _ler(chave):

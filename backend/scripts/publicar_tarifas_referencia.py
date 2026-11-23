@@ -31,19 +31,26 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--ambiente-de-teste", action="store_true", required=True,
                         help="confirma que o banco é de desenvolvimento/homologação")
-    parser.parse_args()
+    parser.add_argument("--somente-ausentes", action="store_true",
+                        help="preserva qualquer tarifa vigente já publicada para o modelo")
+    args = parser.parse_args()
 
     from sqlalchemy import select
     from app.config.settings import settings
     from app.db.database import SessionLocal, engine
     from app.db.migrations.consumo_20260925 import aplicar
-    from app.models.consumo_flex import TarifaIA
+    from app.models.consumo_flex import TarifaIA, agora
 
     if settings.stripe_secret_key.startswith(("sk_live", "rk_live")):
         sys.exit("Recusado: chave Stripe live configurada. Publique as tarifas contratadas pelo endpoint administrativo.")
     aplicar(engine)
     with SessionLocal() as db, db.begin():
         for tipo, provedor, modelo, unidades in tarifas(settings):
+            if args.somente_ausentes and db.scalar(select(TarifaIA.id).where(
+                TarifaIA.tipo == tipo, TarifaIA.modelo == modelo, TarifaIA.vigente_desde <= agora()
+            ).limit(1)):
+                print(f"tarifa vigente preservada: {tipo} {modelo}")
+                continue
             if db.scalar(select(TarifaIA.id).where(TarifaIA.tipo == tipo, TarifaIA.modelo == modelo, TarifaIA.versao == VERSAO)):
                 print(f"já publicada: {tipo} {modelo}")
                 continue
