@@ -88,9 +88,12 @@ Primeira subida num VPS que já está rodando (volume do Postgres já existe):
 
    ```sh
    cd /opt/locufy
-   for v in BARBERYA_WUZAPI_DB_PASSWORD BARBERYA_WUZAPI_ADMIN_TOKEN BARBERYA_WUZAPI_ENCRYPTION_KEY BARBERYA_WUZAPI_HMAC_KEY; do
+   for v in BARBERYA_WUZAPI_DB_PASSWORD BARBERYA_WUZAPI_ADMIN_TOKEN BARBERYA_WUZAPI_HMAC_KEY; do
      echo "$v=$(openssl rand -hex 32)" >> .env
    done
+   # O AES exige exatamente 32 caracteres; com 64 o WuzAPI loga
+   # "invalid key size 64" e não assina os webhooks.
+   echo "BARBERYA_WUZAPI_ENCRYPTION_KEY=$(openssl rand -hex 16)" >> .env
    ```
 
 3. Copiar `docker-compose.yml`, `Caddyfile` e `postgres-init/02-wuzapi-barberya.sh`
@@ -106,7 +109,8 @@ Primeira subida num VPS que já está rodando (volume do Postgres já existe):
    ```
 
 5. Conferir: `curl -s -o /dev/null -w "%{http_code}\n" https://wa.locufybr.com/admin/users`
-   deve responder `401` (sem token).
+   deve responder `401` (sem token), e `docker compose logs wuzapi-barberya | grep ERROR`
+   não deve mostrar nada.
 
 Na Barberya: `WUZAPI_BASE_URL=https://wa.locufybr.com` e `WUZAPI_ADMIN_TOKEN`
 com o valor de `BARBERYA_WUZAPI_ADMIN_TOKEN` do `.env` do VPS.
