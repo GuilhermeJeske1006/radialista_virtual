@@ -149,6 +149,7 @@ class Chamadas:
     ocorrencia: str | None = None                  # chave da ocorrência (registro em promessas_no_ar)
     posicao: int | None = None                     # sem relógio: posição do próximo bloco no roteiro
     tem_musica: bool = True
+    pecas_usadas: frozenset[int] = frozenset()     # F11: peças de reserva já ditas nesta ocorrência
 
 
 @dataclasses.dataclass(frozen=True)
@@ -680,7 +681,10 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
             nome_recente=pedido_recente.nome if pedido_recente is not None and pedido_recente.nome else None,
         ),
         chamadas=Chamadas(fio_condutor=fio, pedidos_em_fila=len(nomes_fila), promessas=abertas, agenda=agenda,
-                          ocorrencia=ocorrencia, posicao=posicao, tem_musica=tem_musica),
+                          ocorrencia=ocorrencia, posicao=posicao, tem_musica=tem_musica,
+                          pecas_usadas=portas.pecas_reserva_usadas(programa.id, ocorrencia)
+                          if any(p.get("aprovada") for p in (getattr(programa, "pecas_reserva", None) or []))
+                          else frozenset()),
         memoria=Memoria(historico=tuple(entrada.dados.historico), historico_prompt=resolucao.historico_prompt,
                         ultima_categoria=ultima_categoria, falas_categoria=tuple(falas_categoria),
                         aberturas=tuple(aberturas), fechamentos=tuple(fechamentos), tom_anterior=tom_anterior,

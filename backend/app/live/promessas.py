@@ -23,6 +23,8 @@ from typing import TYPE_CHECKING, Callable, Iterable, Literal
 
 from app.dados.verificavel import estado as estado_do_dado
 from app.live.orcamento import frases
+from app.live.pecas_reserva import escolher_reserva
+from app.util.texto import sem_acento
 
 if TYPE_CHECKING:
     from app.live.contexto import ContextoEmissao
@@ -180,6 +182,7 @@ class Contingencia:
     promessa_id: int
     texto: str
     motivo: Literal["conteudo_caiu", "prazo_vencido", "fim_do_programa", "fonte_desatualizada"]
+    peca_id: int | None = None  # F11 (item 3): peça de reserva aprovada usada no lugar da frase padrão
 
 
 @dataclasses.dataclass(frozen=True)
@@ -637,9 +640,29 @@ def conteudo_do_bloco(promessa: PromessaRef, ctx: "ContextoEmissao", config: Con
     return cfg.conteudos["generico"]
 
 
+_ROTULO_CONVIDADO_RE = re.compile(r"entrevist|convidad")
+
+
+def tipo_peca_reserva(tipo_promessa: str, rotulo: str | None) -> str | None:
+    """F11 (item 3): tipo da peça de reserva que cobre a promessa que caiu. Pedido e recado: "pedido"; informação:
+    "fonte"; quadro com entrevista ou convidado: "convidado". Os demais seguem com a frase padrão."""
+    if tipo_promessa == "participacao":
+        return "pedido"
+    if tipo_promessa == "informacao":
+        return "fonte"
+    if tipo_promessa == "quadro" and _ROTULO_CONVIDADO_RE.search(sem_acento((rotulo or "").lower())):
+        return "convidado"
+    return None
+
+
 def _contingencia(promessa: PromessaRef, ctx: "ContextoEmissao", motivo: str, cfg: ConfigPromessas) -> Contingencia:
     tipo = promessa.tipo if promessa.tipo in ("participacao", "quadro", "informacao") else "generico"
     rotulo = promessa.rotulo if tipo != "generico" or promessa.rotulo else ""
+    tipo_peca = tipo_peca_reserva(promessa.tipo, promessa.rotulo)
+    peca = escolher_reserva(getattr(ctx.programa, "pecas_reserva", None) or [], tipo_peca,
+                            getattr(ctx.chamadas, "pecas_usadas", frozenset())) if tipo_peca else None
+    if peca is not None:
+        return Contingencia(promessa_id=promessa.id, texto=peca["texto"], motivo=motivo, peca_id=peca["id"])
     texto = texto_contingencia(tipo, rotulo, getattr(ctx.account, "nome_radio", "") or "", cfg)
     return Contingencia(promessa_id=promessa.id, texto=texto, motivo=motivo)
 

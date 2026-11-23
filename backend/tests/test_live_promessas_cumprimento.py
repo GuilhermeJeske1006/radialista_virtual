@@ -280,3 +280,55 @@ def test_u12_contingencia_preservada_pelo_encurtamento():
     curto = encurtar_por_frases(texto, 16, preservar=[CONTINGENCIA_RECADO])
     assert curto is not None and curto.startswith(CONTINGENCIA_RECADO)
     assert OrcamentoFala  # tipo usado pelo momento C (encurtar_pela_medida usa a mesma regra)
+
+
+PECA_PEDIDO = "Os recados de hoje já foram lidos; o WhatsApp da Rádio Teste continua esperando o seu."
+
+
+def test_f11_contingencia_usa_a_peca_de_reserva_aprovada_e_registra_o_uso(client, account, auth_headers, programa,
+                                                                         db_session, monkeypatch):
+    """F11 (item 3): a contingência de pedido usa a peça aprovada do tipo "pedido" em vez da frase padrão."""
+    from app.live.router import _pecas_reserva_usadas
+
+    radialista, prog = programa
+    prog.pecas_reserva = [{"id": 1, "tipo": "pedido", "texto": "Peça não aprovada.", "aprovada": False},
+                          {"id": 2, "tipo": "pedido", "texto": PECA_PEDIDO, "aprovada": True}]
+    db_session.commit()
+    with freeze_time("2026-11-10 15:26:50"):
+        ocorrencia = _relogio(db_session, account, radialista, prog, "A", *EXECUTADAS_ATE_O_RETORNO)
+        promessa = _promessa(db_session, prog, ocorrencia)
+        convite = "O WhatsApp da Rádio Teste está aberto para o seu recado."
+        monkeypatch.setattr("app.live.router.gerar_resposta", _gerador([], convite))
+        dados = _post(client, account, auth_headers, radialista, prog, **RETORNO_A)
+        usadas = _pecas_reserva_usadas(prog.id, ocorrencia)
+    assert dados["fala"] == f"{PECA_PEDIDO} {convite}"
+    db_session.refresh(promessa)
+    assert promessa.contingencia == PECA_PEDIDO
+    assert usadas == frozenset({2})
+
+
+def test_f11_peca_ja_usada_na_ocorrencia_volta_para_a_frase_padrao(client, account, auth_headers, programa,
+                                                                  db_session, monkeypatch):
+    from app.live.router import _registrar_peca_usada
+
+    radialista, prog = programa
+    prog.pecas_reserva = [{"id": 2, "tipo": "pedido", "texto": PECA_PEDIDO, "aprovada": True}]
+    db_session.commit()
+    with freeze_time("2026-11-10 15:26:50"):
+        ocorrencia = _relogio(db_session, account, radialista, prog, "A", *EXECUTADAS_ATE_O_RETORNO)
+        _promessa(db_session, prog, ocorrencia)
+        _registrar_peca_usada(prog.id, ocorrencia, 2)
+        convite = "O WhatsApp da Rádio Teste está aberto para o seu recado."
+        monkeypatch.setattr("app.live.router.gerar_resposta", _gerador([], convite))
+        dados = _post(client, account, auth_headers, radialista, prog, **RETORNO_A)
+    assert dados["fala"] == f"{CONTINGENCIA_RECADO} {convite}"
+
+
+@pytest.mark.parametrize("tipo_promessa,rotulo,tipo_peca", [
+    ("participacao", "", "pedido"),
+    ("informacao", "previsão do tempo", "fonte"),
+    ("quadro", "entrevista com o prefeito", "convidado"),
+    ("quadro", "curiosidade das 10", None),
+])
+def test_f11_tipo_da_peca_pela_promessa(tipo_promessa, rotulo, tipo_peca):
+    assert p.tipo_peca_reserva(tipo_promessa, rotulo) == tipo_peca

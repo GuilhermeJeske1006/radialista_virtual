@@ -813,6 +813,21 @@ def _ultima_reorientacao(programa_id: int) -> datetime.datetime | None:
         return None
 
 
+def _pecas_reserva_usadas(programa_id: int, ocorrencia: str | None) -> frozenset[int]:
+    """F11 (item 3): ids das peças de reserva já ditas nesta ocorrência do programa (cada peça vai ao ar uma vez)."""
+    if not ocorrencia:
+        return frozenset()
+    return frozenset(int(i) for i in redis_client.smembers(f"pecas_reserva_usadas:{programa_id}:{ocorrencia}") or ())
+
+
+def _registrar_peca_usada(programa_id: int, ocorrencia: str | None, peca_id: int) -> None:
+    if not ocorrencia:
+        return
+    chave = f"pecas_reserva_usadas:{programa_id}:{ocorrencia}"
+    redis_client.sadd(chave, str(peca_id))
+    redis_client.expire(chave, _TTL_SESSAO_AO_VIVO)
+
+
 def _registrar_reorientacao(programa_id: int, instante: datetime.datetime) -> None:
     redis_client.set(f"ultima_reorientacao:{programa_id}", instante.astimezone(datetime.timezone.utc).isoformat(),
                      ex=_TTL_SESSAO_AO_VIVO)
@@ -2412,6 +2427,8 @@ def _registrar_promessas(db: Session, ctx: ContextoEmissao, fala: str, devolvido
         resolvidas += promessas_repo.resolver(db, cumpridas, "cumprida", "cumprida no bloco")
         for contingencia in chamadas.contingencias:
             if dita(contingencia.texto, fala):
+                if contingencia.peca_id is not None:
+                    _registrar_peca_usada(ctx.programa.id, chamadas.ocorrencia, contingencia.peca_id)
                 resolvidas += promessas_repo.resolver(db, [contingencia.promessa_id], "cancelada",
                                                       f"contingencia:{contingencia.motivo}",
                                                       contingencia=contingencia.texto)
