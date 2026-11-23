@@ -1,0 +1,2397 @@
+{
+  "versao": 1,
+  "fonte": "docs/plano-humanizacao-fala.md (H0, entrega 2) e docs/humanizacao/h0/auditoria.md §5.2; 'Como medir' de docs/Locufy — Plano de humanização da fala.md; esquema próximo de docs/benchmarks/2026-11-06-formatos/casos.json.",
+  "regras": {
+    "tipos": [
+      "recado",
+      "pedido_musica",
+      "aniversario",
+      "clima_transito",
+      "patrocinio_lido",
+      "whatsapp"
+    ],
+    "canais": {
+      "recado": "ao_vivo",
+      "pedido_musica": "ao_vivo",
+      "aniversario": "ao_vivo",
+      "clima_transito": "ao_vivo",
+      "patrocinio_lido": "patrocinio",
+      "whatsapp": "whatsapp"
+    },
+    "tons": {
+      "formal": {
+        "persona": {
+          "formalidade": 4
+        },
+        "descricao": "Ao vivo: persona.formalidade 4, norma culta, sem 'pra' e 'tá' (D2). WhatsApp: o ouvinte escreve formal. Patrocínio: o texto cadastrado formal."
+      },
+      "informal": {
+        "persona": {
+          "formalidade": 2
+        },
+        "descricao": "Ao vivo: persona.formalidade 2, registro coloquial permitido. WhatsApp: o ouvinte escreve informal (gíria, abreviação, às vezes emoji). Patrocínio: o texto cadastrado informal."
+      }
+    },
+    "mescla": "A fixture do formato (backend/tests/fixtures/programas/<formato>.json) recebe programa.persona do tom, depois `entrada` e por fim `por_tom[tom]`. Listas e valores substituem; os dicionários `programa` e `conta` são mesclados chave a chave. `mensagens_ouvinte` não é campo da fixture: é a entrada de scripts/conversa_teste.py (mesma chave de cenas[].mensagens_ouvinte do roteiro.json).",
+    "esperado": {
+      "sem_vazamento": "Nenhum vazamento: placeholder, recusa, identidade de IA, data de corte, marcação, emoji no ar e link (H1).",
+      "sem_frase_atendimento": "Nenhuma frase de chatbot ('espero ter ajudado', 'fico à disposição', 'posso ajudar em algo mais', 'ótima pergunta').",
+      "cita_especifico": "Cita pelo menos um dos `especificos` da entrada (nome autorizado, bairro, faixa, fonte do dado).",
+      "whatsapp_max_frases": 2,
+      "whatsapp_max_emoji": "1 se o ouvinte usou emoji, senão 0.",
+      "nao_prometer_execucao": "No WhatsApp, não promete que o pedido vai ao ar: a equipe confere e depende da programação.",
+      "dado_com_fonte": "Clima e trânsito só com fonte e horário; leitura vencida só com o horário da última atualização (F5).",
+      "faixa_indisponivel": "Pedido de faixa indisponível (musica_indisponivel) não é anunciado nem prometido.",
+      "sinais_ia": "Nota do detector da H4 (sinais_ia_media por tom), comparada com a linha de base."
+    },
+    "dimensoes": [
+      "soa_como_pessoa",
+      "naturalidade",
+      "precisao",
+      "clareza",
+      "utilidade",
+      "coerencia",
+      "continuidade"
+    ],
+    "executor": "Pendente. H3: ao vivo, uma fala por entrada no bloco indicado (não rodar uma hora de simulação por entrada: multiplica as chamadas reais). H6: adaptador de scripts/conversa_teste.py para `mensagens_ouvinte`. Patrocínio não passa pelo LLM: mede o texto cadastrado (H7) e o payload da TTS (H2). Rodadas com LLM real só com aprovação (D9).",
+    "observacao": "Entradas originais, escritas para este conjunto; nenhuma transcreve ou imita radialista real. Rádios, programas, ouvintes, estabelecimentos, endereços e telefones (55000000030xx e os do patrocínio) são fictícios. 60 entradas, 10 por tipo, cada uma nos dois tons (DH0-1): 120 casos."
+  },
+  "casos": [
+    {
+      "id": "recado-01",
+      "tipo": "recado",
+      "canal": "ao_vivo",
+      "formato": "popular_sertanejo",
+      "bloco": "chamada_ouvinte",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "abraco",
+            "nome": "Benedita Lima",
+            "telefone": "5500000003001",
+            "natureza": "recado_comum",
+            "mensagem": "Manda um abraço pro pessoal da cooperativa de leite, que acorda cedo todo dia.",
+            "texto_autorizado": "Mandou um abraço para o pessoal da cooperativa de leite, que acorda cedo todo dia."
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Benedita",
+        "cooperativa de leite"
+      ],
+      "criterio": "Diz o nome autorizado e o recado com palavras de locutor, para uma pessoa; sem frase de atendimento, sem fechamento-resumo e sem inflar o recado; não promete música nem cita outro ouvinte.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "precisao",
+        "clareza",
+        "continuidade"
+      ]
+    },
+    {
+      "id": "recado-02",
+      "tipo": "recado",
+      "canal": "ao_vivo",
+      "formato": "popular_sertanejo",
+      "bloco": "chamada_ouvinte",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "abraco",
+            "nome": "Tião Moreira",
+            "telefone": "5500000003002",
+            "natureza": "recado_comum",
+            "mensagem": "Alô Zeca, um salve pra turma da borracharia do trevo!",
+            "texto_autorizado": "Mandou um salve para a turma da borracharia do trevo."
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Tião",
+        "borracharia do trevo"
+      ],
+      "criterio": "Diz o nome autorizado e o recado com palavras de locutor, para uma pessoa; sem frase de atendimento, sem fechamento-resumo e sem inflar o recado; não promete música nem cita outro ouvinte.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "precisao",
+        "clareza",
+        "continuidade"
+      ]
+    },
+    {
+      "id": "recado-03",
+      "tipo": "recado",
+      "canal": "ao_vivo",
+      "formato": "popular_sertanejo",
+      "bloco": "chamada_ouvinte",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "abraco",
+            "nome": "Cleide Arruda",
+            "telefone": "5500000003003",
+            "natureza": "recado_comum",
+            "mensagem": "Quero agradecer a vizinha Zuleica que cuidou das minhas galinhas na viagem.",
+            "texto_autorizado": "Agradece à vizinha Zuleica, que cuidou das galinhas durante a viagem."
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Cleide",
+        "Zuleica"
+      ],
+      "criterio": "Diz o nome autorizado e o recado com palavras de locutor, para uma pessoa; sem frase de atendimento, sem fechamento-resumo e sem inflar o recado; não promete música nem cita outro ouvinte.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "precisao",
+        "clareza",
+        "continuidade"
+      ]
+    },
+    {
+      "id": "recado-04",
+      "tipo": "recado",
+      "canal": "ao_vivo",
+      "formato": "popular_sertanejo",
+      "bloco": "chamada_ouvinte",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "abraco",
+            "nome": "Joaquim Prado",
+            "telefone": "5500000003004",
+            "natureza": "recado_comum",
+            "mensagem": "Abraço pros motoristas da linha rural que levam as crianças pra escola.",
+            "texto_autorizado": "Mandou um abraço para os motoristas da linha rural que levam as crianças para a escola."
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Joaquim",
+        "linha rural"
+      ],
+      "criterio": "Diz o nome autorizado e o recado com palavras de locutor, para uma pessoa; sem frase de atendimento, sem fechamento-resumo e sem inflar o recado; não promete música nem cita outro ouvinte.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "precisao",
+        "clareza",
+        "continuidade"
+      ]
+    },
+    {
+      "id": "recado-05",
+      "tipo": "recado",
+      "canal": "ao_vivo",
+      "formato": "variedades_leves",
+      "bloco": "chamada_ouvinte",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "abraco",
+            "nome": "Sueli Matos",
+            "telefone": "5500000003005",
+            "natureza": "recado_comum",
+            "mensagem": "Um beijo pra minha filha Bia que começou hoje no emprego novo na padaria.",
+            "texto_autorizado": "Manda um beijo para a filha Bia, que começou hoje no emprego novo na padaria."
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Sueli",
+        "Bia"
+      ],
+      "criterio": "Diz o nome autorizado e o recado com palavras de locutor, para uma pessoa; sem frase de atendimento, sem fechamento-resumo e sem inflar o recado; não promete música nem cita outro ouvinte.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "precisao",
+        "clareza",
+        "continuidade"
+      ]
+    },
+    {
+      "id": "recado-06",
+      "tipo": "recado",
+      "canal": "ao_vivo",
+      "formato": "variedades_leves",
+      "bloco": "chamada_ouvinte",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "abraco",
+            "nome": "Renato Siqueira",
+            "telefone": "5500000003006",
+            "natureza": "recado_comum",
+            "mensagem": "Recado pro grupo de caminhada da praça: amanhã a gente sai às 6.",
+            "texto_autorizado": "Avisa o grupo de caminhada da praça que amanhã a saída é às seis."
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Renato",
+        "grupo de caminhada"
+      ],
+      "criterio": "Diz o nome autorizado e o recado com palavras de locutor, para uma pessoa; sem frase de atendimento, sem fechamento-resumo e sem inflar o recado; não promete música nem cita outro ouvinte.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "precisao",
+        "clareza",
+        "continuidade"
+      ]
+    },
+    {
+      "id": "recado-07",
+      "tipo": "recado",
+      "canal": "ao_vivo",
+      "formato": "variedades_leves",
+      "bloco": "chamada_ouvinte",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "abraco",
+            "nome": "Marlene Coutinho",
+            "telefone": "5500000003007",
+            "natureza": "recado_comum",
+            "mensagem": "Obrigada ao pessoal da biblioteca do bairro Jardim, que me ajudou com o currículo.",
+            "texto_autorizado": "Agradece ao pessoal da biblioteca do bairro Jardim, que ajudou com o currículo."
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Marlene",
+        "biblioteca do bairro Jardim"
+      ],
+      "criterio": "Diz o nome autorizado e o recado com palavras de locutor, para uma pessoa; sem frase de atendimento, sem fechamento-resumo e sem inflar o recado; não promete música nem cita outro ouvinte.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "precisao",
+        "clareza",
+        "continuidade"
+      ]
+    },
+    {
+      "id": "recado-08",
+      "tipo": "recado",
+      "canal": "ao_vivo",
+      "formato": "musical_adulto",
+      "bloco": "chamada_ouvinte",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "abraco",
+            "nome": "Heloísa Bastos",
+            "telefone": "5500000003008",
+            "natureza": "recado_comum",
+            "mensagem": "Deixo um carinho pro meu marido Otávio, que está trabalhando de plantão hoje.",
+            "texto_autorizado": "Deixa um carinho para o marido Otávio, que trabalha de plantão hoje."
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Heloísa",
+        "Otávio"
+      ],
+      "criterio": "Diz o nome autorizado e o recado com palavras de locutor, para uma pessoa; sem frase de atendimento, sem fechamento-resumo e sem inflar o recado; não promete música nem cita outro ouvinte.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "precisao",
+        "clareza",
+        "continuidade"
+      ]
+    },
+    {
+      "id": "recado-09",
+      "tipo": "recado",
+      "canal": "ao_vivo",
+      "formato": "musical_adulto",
+      "bloco": "chamada_ouvinte",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "abraco",
+            "nome": "Ronaldo Ferraz",
+            "telefone": "5500000003009",
+            "natureza": "recado_comum",
+            "mensagem": "Um abraço para os colegas da marcenaria, que ouvem a rádio a tarde inteira.",
+            "texto_autorizado": "Mandou um abraço para os colegas da marcenaria, que ouvem a rádio a tarde inteira."
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Ronaldo",
+        "marcenaria"
+      ],
+      "criterio": "Diz o nome autorizado e o recado com palavras de locutor, para uma pessoa; sem frase de atendimento, sem fechamento-resumo e sem inflar o recado; não promete música nem cita outro ouvinte.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "precisao",
+        "clareza",
+        "continuidade"
+      ]
+    },
+    {
+      "id": "recado-10",
+      "tipo": "recado",
+      "canal": "ao_vivo",
+      "formato": "musical_adulto",
+      "bloco": "chamada_ouvinte",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "abraco",
+            "nome": "Ivone Teixeira",
+            "telefone": "5500000003010",
+            "natureza": "recado_comum",
+            "mensagem": "Saudações aos vizinhos da rua das Hortênsias, que organizaram o mutirão de domingo.",
+            "texto_autorizado": "Manda saudações aos vizinhos da rua das Hortênsias, que organizaram o mutirão de domingo."
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Ivone",
+        "rua das Hortênsias"
+      ],
+      "criterio": "Diz o nome autorizado e o recado com palavras de locutor, para uma pessoa; sem frase de atendimento, sem fechamento-resumo e sem inflar o recado; não promete música nem cita outro ouvinte.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "precisao",
+        "clareza",
+        "continuidade"
+      ]
+    },
+    {
+      "id": "pedido-musica-01",
+      "tipo": "pedido_musica",
+      "canal": "ao_vivo",
+      "formato": "popular_sertanejo",
+      "bloco": "musica",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "musica",
+            "nome": "Valdecir Rocha",
+            "telefone": "5500000003011",
+            "natureza": "pedido_musica",
+            "mensagem": "Toca Estrada de Chão Batido pra quem tá na lida da roça!",
+            "texto_autorizado": "Pediu Estrada de Chão Batido para quem está na lida da roça.",
+            "musica_query": "Estrada de Chão Batido"
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Valdecir",
+        "Estrada de Chão Batido"
+      ],
+      "criterio": "Anuncia só a faixa confirmada para o próximo evento, com o nome de quem pediu; sem 'não é só música, é emoção' nem adjetivo inflado.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "precisao",
+        "continuidade",
+        "naturalidade"
+      ]
+    },
+    {
+      "id": "pedido-musica-02",
+      "tipo": "pedido_musica",
+      "canal": "ao_vivo",
+      "formato": "popular_sertanejo",
+      "bloco": "musica",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "musica",
+            "nome": "Aparecida Toledo",
+            "telefone": "5500000003012",
+            "natureza": "pedido_musica",
+            "mensagem": "Manda Viola no Alpendre, que meu avô cantava essa.",
+            "texto_autorizado": "Pediu Viola no Alpendre, que lembra o avô.",
+            "musica_query": "Viola no Alpendre"
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Aparecida",
+        "Viola no Alpendre"
+      ],
+      "criterio": "Anuncia só a faixa confirmada para o próximo evento, com o nome de quem pediu; sem 'não é só música, é emoção' nem adjetivo inflado.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "precisao",
+        "continuidade",
+        "naturalidade"
+      ]
+    },
+    {
+      "id": "pedido-musica-03",
+      "tipo": "pedido_musica",
+      "canal": "ao_vivo",
+      "formato": "popular_sertanejo",
+      "bloco": "musica",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "musica",
+            "nome": "Jurandir Melo",
+            "telefone": "5500000003013",
+            "natureza": "pedido_musica",
+            "mensagem": "Quero ouvir Chuva no Cafezal, por favor.",
+            "texto_autorizado": "Pediu Chuva no Cafezal.",
+            "musica_query": "Chuva no Cafezal"
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Jurandir",
+        "Chuva no Cafezal"
+      ],
+      "criterio": "Anuncia só a faixa confirmada para o próximo evento, com o nome de quem pediu; sem 'não é só música, é emoção' nem adjetivo inflado.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "precisao",
+        "continuidade",
+        "naturalidade"
+      ]
+    },
+    {
+      "id": "pedido-musica-04",
+      "tipo": "pedido_musica",
+      "canal": "ao_vivo",
+      "formato": "popular_sertanejo",
+      "bloco": "musica",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "musica",
+            "nome": "Zilda Ramos",
+            "telefone": "5500000003014",
+            "natureza": "pedido_musica",
+            "mensagem": "Toca Moda da Ponte Caída pra minha irmã Neide?",
+            "texto_autorizado": "Pediu Moda da Ponte Caída para a irmã Neide.",
+            "musica_query": "Moda da Ponte Caída"
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Zilda",
+        "Moda da Ponte Caída"
+      ],
+      "criterio": "A faixa pedida não está disponível: não anuncia o título, não promete tocar depois; agradece ou convida sem simular atendimento.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "precisao",
+        "continuidade",
+        "naturalidade"
+      ],
+      "musica_indisponivel": true
+    },
+    {
+      "id": "pedido-musica-05",
+      "tipo": "pedido_musica",
+      "canal": "ao_vivo",
+      "formato": "popular_sertanejo",
+      "bloco": "musica",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "musica",
+            "nome": "Osmar Freitas",
+            "telefone": "5500000003015",
+            "natureza": "pedido_musica",
+            "mensagem": "Prosa de Varanda pro pessoal do bar do Tonico!",
+            "texto_autorizado": "Pediu Prosa de Varanda para o pessoal do bar do Tonico.",
+            "musica_query": "Prosa de Varanda"
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Osmar",
+        "Prosa de Varanda"
+      ],
+      "criterio": "Anuncia só a faixa confirmada para o próximo evento, com o nome de quem pediu; sem 'não é só música, é emoção' nem adjetivo inflado.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "precisao",
+        "continuidade",
+        "naturalidade"
+      ]
+    },
+    {
+      "id": "pedido-musica-06",
+      "tipo": "pedido_musica",
+      "canal": "ao_vivo",
+      "formato": "variedades_leves",
+      "bloco": "musica",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "musica",
+            "nome": "Larissa Dantas",
+            "telefone": "5500000003016",
+            "natureza": "pedido_musica",
+            "mensagem": "Toca Feira de Sábado, que hoje é dia de feira aqui em casa!",
+            "texto_autorizado": "Pediu Feira de Sábado, porque hoje é dia de feira na casa dela.",
+            "musica_query": "Feira de Sábado"
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Larissa",
+        "Feira de Sábado"
+      ],
+      "criterio": "Anuncia só a faixa confirmada para o próximo evento, com o nome de quem pediu; sem 'não é só música, é emoção' nem adjetivo inflado.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "precisao",
+        "continuidade",
+        "naturalidade"
+      ]
+    },
+    {
+      "id": "pedido-musica-07",
+      "tipo": "pedido_musica",
+      "canal": "ao_vivo",
+      "formato": "variedades_leves",
+      "bloco": "musica",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "musica",
+            "nome": "Bruno Esteves",
+            "telefone": "5500000003017",
+            "natureza": "pedido_musica",
+            "mensagem": "Dança na Cozinha pra minha esposa, que tá fazendo o almoço.",
+            "texto_autorizado": "Pediu Dança na Cozinha para a esposa, que está fazendo o almoço.",
+            "musica_query": "Dança na Cozinha"
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Bruno",
+        "Dança na Cozinha"
+      ],
+      "criterio": "Anuncia só a faixa confirmada para o próximo evento, com o nome de quem pediu; sem 'não é só música, é emoção' nem adjetivo inflado.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "precisao",
+        "continuidade",
+        "naturalidade"
+      ]
+    },
+    {
+      "id": "pedido-musica-08",
+      "tipo": "pedido_musica",
+      "canal": "ao_vivo",
+      "formato": "variedades_leves",
+      "bloco": "musica",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "musica",
+            "nome": "Mirela Antunes",
+            "telefone": "5500000003018",
+            "natureza": "pedido_musica",
+            "mensagem": "Coloca Coco de Roda Elétrico pra animar o escritório!",
+            "texto_autorizado": "Pediu Coco de Roda Elétrico para animar o escritório.",
+            "musica_query": "Coco de Roda Elétrico"
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Mirela",
+        "Coco de Roda Elétrico"
+      ],
+      "criterio": "A faixa pedida não está disponível: não anuncia o título, não promete tocar depois; agradece ou convida sem simular atendimento.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "precisao",
+        "continuidade",
+        "naturalidade"
+      ],
+      "musica_indisponivel": true
+    },
+    {
+      "id": "pedido-musica-09",
+      "tipo": "pedido_musica",
+      "canal": "ao_vivo",
+      "formato": "musical_adulto",
+      "bloco": "musica",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "musica",
+            "nome": "Sérgio Valadares",
+            "telefone": "5500000003019",
+            "natureza": "pedido_musica",
+            "mensagem": "Gostaria de ouvir Janela para o Mar, de Tomás Ribeira.",
+            "texto_autorizado": "Pediu Janela para o Mar, de Tomás Ribeira.",
+            "musica_query": "Janela para o Mar"
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Sérgio",
+        "Janela para o Mar"
+      ],
+      "criterio": "Anuncia só a faixa confirmada para o próximo evento, com o nome de quem pediu; sem 'não é só música, é emoção' nem adjetivo inflado.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "precisao",
+        "continuidade",
+        "naturalidade"
+      ]
+    },
+    {
+      "id": "pedido-musica-10",
+      "tipo": "pedido_musica",
+      "canal": "ao_vivo",
+      "formato": "musical_adulto",
+      "bloco": "musica",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "musica",
+            "nome": "Amélia Duarte",
+            "telefone": "5500000003020",
+            "natureza": "pedido_musica",
+            "mensagem": "Pode tocar Cartas de Outono? Lembra minha mãe.",
+            "texto_autorizado": "Pediu Cartas de Outono, que lembra a mãe.",
+            "musica_query": "Cartas de Outono"
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Amélia",
+        "Cartas de Outono"
+      ],
+      "criterio": "Anuncia só a faixa confirmada para o próximo evento, com o nome de quem pediu; sem 'não é só música, é emoção' nem adjetivo inflado.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "precisao",
+        "continuidade",
+        "naturalidade"
+      ]
+    },
+    {
+      "id": "aniversario-01",
+      "tipo": "aniversario",
+      "canal": "ao_vivo",
+      "formato": "popular_sertanejo",
+      "bloco": "chamada_ouvinte",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "abraco",
+            "nome": "Dirce Fontes",
+            "telefone": "5500000003021",
+            "natureza": "recado_comum",
+            "mensagem": "Hoje é aniversário do meu pai, seu Antenor, 70 anos! Manda um parabéns pra ele.",
+            "texto_autorizado": "Pede parabéns para o pai, seu Antenor, que faz setenta anos hoje."
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Antenor",
+        "setenta anos"
+      ],
+      "criterio": "Dá os parabéns com o nome e o detalhe autorizados (idade, relação), sem tríade de adjetivos nem frase pronta de cartão; número por extenso; não promete música.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "precisao",
+        "clareza",
+        "utilidade"
+      ]
+    },
+    {
+      "id": "aniversario-02",
+      "tipo": "aniversario",
+      "canal": "ao_vivo",
+      "formato": "popular_sertanejo",
+      "bloco": "chamada_ouvinte",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "abraco",
+            "nome": "Lucimar Reis",
+            "telefone": "5500000003022",
+            "natureza": "recado_comum",
+            "mensagem": "Parabéns pra minha comadre Nena, que faz aniversário hoje lá no sítio Boa Vista.",
+            "texto_autorizado": "Pede parabéns para a comadre Nena, que faz aniversário hoje no sítio Boa Vista."
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Nena",
+        "sítio Boa Vista"
+      ],
+      "criterio": "Dá os parabéns com o nome e o detalhe autorizados (idade, relação), sem tríade de adjetivos nem frase pronta de cartão; número por extenso; não promete música.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "precisao",
+        "clareza",
+        "utilidade"
+      ]
+    },
+    {
+      "id": "aniversario-03",
+      "tipo": "aniversario",
+      "canal": "ao_vivo",
+      "formato": "popular_sertanejo",
+      "bloco": "chamada_ouvinte",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "abraco",
+            "nome": "Edson Paiva",
+            "telefone": "5500000003023",
+            "natureza": "recado_comum",
+            "mensagem": "Aniversário do meu neto Davi, 8 anos, ele adora viola!",
+            "texto_autorizado": "Pede parabéns para o neto Davi, que faz oito anos e gosta de viola."
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Davi",
+        "oito anos"
+      ],
+      "criterio": "Dá os parabéns com o nome e o detalhe autorizados (idade, relação), sem tríade de adjetivos nem frase pronta de cartão; número por extenso; não promete música.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "precisao",
+        "clareza",
+        "utilidade"
+      ]
+    },
+    {
+      "id": "aniversario-04",
+      "tipo": "aniversario",
+      "canal": "ao_vivo",
+      "formato": "variedades_leves",
+      "bloco": "chamada_ouvinte",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "abraco",
+            "nome": "Patrícia Nunes",
+            "telefone": "5500000003024",
+            "natureza": "recado_comum",
+            "mensagem": "Hoje é aniversário de casamento meu e do Jorge, 25 anos juntos!",
+            "texto_autorizado": "Comemora vinte e cinco anos de casamento com o Jorge."
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Jorge",
+        "vinte e cinco anos"
+      ],
+      "criterio": "Dá os parabéns com o nome e o detalhe autorizados (idade, relação), sem tríade de adjetivos nem frase pronta de cartão; número por extenso; não promete música.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "precisao",
+        "clareza",
+        "utilidade"
+      ]
+    },
+    {
+      "id": "aniversario-05",
+      "tipo": "aniversario",
+      "canal": "ao_vivo",
+      "formato": "variedades_leves",
+      "bloco": "chamada_ouvinte",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "abraco",
+            "nome": "Wagner Alencar",
+            "telefone": "5500000003025",
+            "natureza": "recado_comum",
+            "mensagem": "Parabéns pra professora Celeste, da escola do bairro, que faz aniversário hoje.",
+            "texto_autorizado": "Pede parabéns para a professora Celeste, da escola do bairro, que faz aniversário hoje."
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "professora Celeste"
+      ],
+      "criterio": "Dá os parabéns com o nome e o detalhe autorizados (idade, relação), sem tríade de adjetivos nem frase pronta de cartão; número por extenso; não promete música.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "precisao",
+        "clareza",
+        "utilidade"
+      ]
+    },
+    {
+      "id": "aniversario-06",
+      "tipo": "aniversario",
+      "canal": "ao_vivo",
+      "formato": "variedades_leves",
+      "bloco": "chamada_ouvinte",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "abraco",
+            "nome": "Kátia Sampaio",
+            "telefone": "5500000003026",
+            "natureza": "recado_comum",
+            "mensagem": "Minha mãe dona Lurdes faz 90 anos hoje, manda um beijo pra ela!",
+            "texto_autorizado": "Pede parabéns para a mãe, dona Lurdes, que faz noventa anos hoje."
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "dona Lurdes",
+        "noventa anos"
+      ],
+      "criterio": "Dá os parabéns com o nome e o detalhe autorizados (idade, relação), sem tríade de adjetivos nem frase pronta de cartão; número por extenso; não promete música.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "precisao",
+        "clareza",
+        "utilidade"
+      ]
+    },
+    {
+      "id": "aniversario-07",
+      "tipo": "aniversario",
+      "canal": "ao_vivo",
+      "formato": "musical_adulto",
+      "bloco": "chamada_ouvinte",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "abraco",
+            "nome": "Fernando Assis",
+            "telefone": "5500000003027",
+            "natureza": "recado_comum",
+            "mensagem": "É aniversário da minha esposa Raquel. Pode desejar um feliz aniversário?",
+            "texto_autorizado": "Pede um feliz aniversário para a esposa Raquel."
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Raquel"
+      ],
+      "criterio": "Dá os parabéns com o nome e o detalhe autorizados (idade, relação), sem tríade de adjetivos nem frase pronta de cartão; número por extenso; não promete música.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "precisao",
+        "clareza",
+        "utilidade"
+      ]
+    },
+    {
+      "id": "aniversario-08",
+      "tipo": "aniversario",
+      "canal": "ao_vivo",
+      "formato": "musical_adulto",
+      "bloco": "chamada_ouvinte",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "abraco",
+            "nome": "Gilda Monteiro",
+            "telefone": "5500000003028",
+            "natureza": "recado_comum",
+            "mensagem": "Hoje meu irmão Caetano completa 40 anos, um abraço pra ele que mora longe.",
+            "texto_autorizado": "Pede um abraço para o irmão Caetano, que completa quarenta anos e mora longe."
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Caetano",
+        "quarenta anos"
+      ],
+      "criterio": "Dá os parabéns com o nome e o detalhe autorizados (idade, relação), sem tríade de adjetivos nem frase pronta de cartão; número por extenso; não promete música.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "precisao",
+        "clareza",
+        "utilidade"
+      ]
+    },
+    {
+      "id": "aniversario-09",
+      "tipo": "aniversario",
+      "canal": "ao_vivo",
+      "formato": "musical_adulto",
+      "bloco": "chamada_ouvinte",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "abraco",
+            "nome": "Nilton Barbosa",
+            "telefone": "5500000003029",
+            "natureza": "recado_comum",
+            "mensagem": "Parabéns à minha filha Laura, que faz 15 anos hoje.",
+            "texto_autorizado": "Pede parabéns para a filha Laura, que faz quinze anos hoje."
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Laura",
+        "quinze anos"
+      ],
+      "criterio": "Dá os parabéns com o nome e o detalhe autorizados (idade, relação), sem tríade de adjetivos nem frase pronta de cartão; número por extenso; não promete música.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "precisao",
+        "clareza",
+        "utilidade"
+      ]
+    },
+    {
+      "id": "aniversario-10",
+      "tipo": "aniversario",
+      "canal": "ao_vivo",
+      "formato": "popular_sertanejo",
+      "bloco": "chamada_ouvinte",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "pedidos": [
+          {
+            "chega_em_s": 120,
+            "tipo": "abraco",
+            "nome": "Rosimeire Lopes",
+            "telefone": "5500000003030",
+            "natureza": "recado_comum",
+            "mensagem": "Aniversário da dona Tereza, a quitandeira mais querida da vila, 85 anos!",
+            "texto_autorizado": "Pede parabéns para dona Tereza, a quitandeira da vila, que faz oitenta e cinco anos."
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "dona Tereza",
+        "quitandeira"
+      ],
+      "criterio": "Dá os parabéns com o nome e o detalhe autorizados (idade, relação), sem tríade de adjetivos nem frase pronta de cartão; número por extenso; não promete música.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "precisao",
+        "clareza",
+        "utilidade"
+      ]
+    },
+    {
+      "id": "clima-transito-01",
+      "tipo": "clima_transito",
+      "canal": "ao_vivo",
+      "formato": "popular_sertanejo",
+      "bloco": "servico",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "conta": {
+          "cidade": "Serra do Ipê"
+        },
+        "clima": [
+          {
+            "desde_s": -300,
+            "temperatura_c": 18,
+            "descricao": "nublado",
+            "observado_s": -900
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Serra do Ipê",
+        "nublado"
+      ],
+      "criterio": "Cita o dado com a fonte e o horário da leitura, em frase curta de serviço; sem atribuição vaga nem gerúndio de análise; sem inventar o que não está no dado.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "precisao",
+        "clareza",
+        "utilidade"
+      ]
+    },
+    {
+      "id": "clima-transito-02",
+      "tipo": "clima_transito",
+      "canal": "ao_vivo",
+      "formato": "popular_sertanejo",
+      "bloco": "servico",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "conta": {
+          "cidade": "Serra do Ipê"
+        },
+        "programa": {
+          "dose_noticia": "jornalistica",
+          "tipos_noticias": [
+            "trânsito"
+          ]
+        },
+        "noticias": [
+          {
+            "titulo": "Estrada do Mirante tem meia pista por obra até o fim da tarde",
+            "resumo": "O trecho em obra fica perto da ponte do córrego.",
+            "categoria": "transito",
+            "fonte_nome": "Departamento de Estradas",
+            "publicado_s": -1800,
+            "score": 80
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Estrada do Mirante",
+        "Departamento de Estradas"
+      ],
+      "criterio": "Dá o aviso de trânsito com o local, o motivo e a fonte, em ordem direta; sem 'vale ressaltar' e sem lista falada.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "precisao",
+        "clareza",
+        "utilidade"
+      ]
+    },
+    {
+      "id": "clima-transito-03",
+      "tipo": "clima_transito",
+      "canal": "ao_vivo",
+      "formato": "popular_sertanejo",
+      "bloco": "servico",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "conta": {
+          "cidade": "Serra do Ipê"
+        },
+        "clima": [
+          {
+            "desde_s": -7200,
+            "temperatura_c": 16,
+            "descricao": "garoa",
+            "observado_s": -7200
+          },
+          {
+            "desde_s": -300,
+            "falha": true
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "garoa"
+      ],
+      "criterio": "A leitura está vencida: só pode ir ao ar com o horário da última atualização (ou ser omitida); nada de 'agora faz'.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "precisao",
+        "clareza",
+        "utilidade"
+      ]
+    },
+    {
+      "id": "clima-transito-04",
+      "tipo": "clima_transito",
+      "canal": "ao_vivo",
+      "formato": "variedades_leves",
+      "bloco": "servico",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "conta": {
+          "cidade": "Vila Ventura"
+        },
+        "programa": {
+          "dose_noticia": "pitada",
+          "tipos_noticias": [
+            "trânsito"
+          ]
+        },
+        "clima": [
+          {
+            "desde_s": -300,
+            "temperatura_c": 24,
+            "descricao": "céu limpo",
+            "observado_s": -900
+          }
+        ],
+        "noticias": [
+          {
+            "titulo": "Rua dos Ipês fica interditada para a feira livre até as treze horas",
+            "resumo": "O desvio é pela Rua das Mangueiras.",
+            "categoria": "transito",
+            "fonte_nome": "Departamento de Trânsito",
+            "publicado_s": -1800,
+            "score": 80,
+            "detalhes": {
+              "servico": "Desvio pela Rua das Mangueiras."
+            }
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Rua dos Ipês",
+        "feira livre",
+        "céu limpo"
+      ],
+      "criterio": "Dá o aviso de trânsito com o local, o motivo e a fonte, em ordem direta; sem 'vale ressaltar' e sem lista falada.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "precisao",
+        "clareza",
+        "utilidade"
+      ]
+    },
+    {
+      "id": "clima-transito-05",
+      "tipo": "clima_transito",
+      "canal": "ao_vivo",
+      "formato": "variedades_leves",
+      "bloco": "servico",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "conta": {
+          "cidade": "Vila Ventura"
+        },
+        "clima": [
+          {
+            "desde_s": -300,
+            "temperatura_c": 31,
+            "descricao": "sol forte",
+            "observado_s": -600
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Vila Ventura",
+        "sol forte"
+      ],
+      "criterio": "Cita o dado com a fonte e o horário da leitura, em frase curta de serviço; sem atribuição vaga nem gerúndio de análise; sem inventar o que não está no dado.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "precisao",
+        "clareza",
+        "utilidade"
+      ]
+    },
+    {
+      "id": "clima-transito-06",
+      "tipo": "clima_transito",
+      "canal": "ao_vivo",
+      "formato": "variedades_leves",
+      "bloco": "servico",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "conta": {
+          "cidade": "Vila Ventura"
+        },
+        "programa": {
+          "dose_noticia": "pitada",
+          "tipos_noticias": [
+            "trânsito"
+          ]
+        },
+        "noticias": [
+          {
+            "titulo": "Ponte do Arroio Fundo é liberada depois de reparo",
+            "resumo": "O trânsito volta a ser nos dois sentidos.",
+            "categoria": "transito",
+            "fonte_nome": "Defesa Civil",
+            "publicado_s": -1800,
+            "score": 80
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Ponte do Arroio Fundo",
+        "Defesa Civil"
+      ],
+      "criterio": "Dá o aviso de trânsito com o local, o motivo e a fonte, em ordem direta; sem 'vale ressaltar' e sem lista falada.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "precisao",
+        "clareza",
+        "utilidade"
+      ]
+    },
+    {
+      "id": "clima-transito-07",
+      "tipo": "clima_transito",
+      "canal": "ao_vivo",
+      "formato": "musical_adulto",
+      "bloco": "servico",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "conta": {
+          "cidade": "Serra Clara"
+        },
+        "clima": [
+          {
+            "desde_s": -300,
+            "temperatura_c": 14,
+            "descricao": "chuva fraca",
+            "observado_s": -1200
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Serra Clara",
+        "chuva fraca"
+      ],
+      "criterio": "Cita o dado com a fonte e o horário da leitura, em frase curta de serviço; sem atribuição vaga nem gerúndio de análise; sem inventar o que não está no dado.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "precisao",
+        "clareza",
+        "utilidade"
+      ]
+    },
+    {
+      "id": "clima-transito-08",
+      "tipo": "clima_transito",
+      "canal": "ao_vivo",
+      "formato": "musical_adulto",
+      "bloco": "servico",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "conta": {
+          "cidade": "Serra Clara"
+        },
+        "programa": {
+          "dose_noticia": "pitada",
+          "tipos_noticias": [
+            "trânsito"
+          ]
+        },
+        "clima": [
+          {
+            "desde_s": -300,
+            "temperatura_c": 20,
+            "descricao": "nublado",
+            "observado_s": -900
+          }
+        ],
+        "noticias": [
+          {
+            "titulo": "Avenida Beira-Rio tem lentidão por causa de acidente sem feridos",
+            "resumo": "Um carro e uma moto bateram perto do mercado municipal.",
+            "categoria": "transito",
+            "fonte_nome": "Guarda Municipal de Serra Clara",
+            "publicado_s": -900,
+            "score": 80
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Avenida Beira-Rio",
+        "Guarda Municipal"
+      ],
+      "criterio": "Dá o aviso de trânsito com o local, o motivo e a fonte, em ordem direta; sem 'vale ressaltar' e sem lista falada.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "precisao",
+        "clareza",
+        "utilidade"
+      ]
+    },
+    {
+      "id": "clima-transito-09",
+      "tipo": "clima_transito",
+      "canal": "ao_vivo",
+      "formato": "popular_sertanejo",
+      "bloco": "servico",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "conta": {
+          "cidade": "Serra do Ipê"
+        },
+        "clima": [
+          {
+            "desde_s": -300,
+            "temperatura_c": 12,
+            "descricao": "céu encoberto",
+            "observado_s": -900
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "céu encoberto"
+      ],
+      "criterio": "Cita o dado com a fonte e o horário da leitura, em frase curta de serviço; sem atribuição vaga nem gerúndio de análise; sem inventar o que não está no dado.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "precisao",
+        "clareza",
+        "utilidade"
+      ]
+    },
+    {
+      "id": "clima-transito-10",
+      "tipo": "clima_transito",
+      "canal": "ao_vivo",
+      "formato": "variedades_leves",
+      "bloco": "servico",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {
+        "conta": {
+          "cidade": "Vila Ventura"
+        },
+        "programa": {
+          "dose_noticia": "pitada",
+          "tipos_noticias": [
+            "trânsito"
+          ]
+        },
+        "noticias": [
+          {
+            "titulo": "Ônibus do bairro Jardim das Flores desvia pela Rua das Mangueiras durante obra",
+            "resumo": "A obra na rede de esgoto vai até sexta-feira.",
+            "categoria": "transito",
+            "fonte_nome": "Empresa de Transporte Municipal",
+            "publicado_s": -1800,
+            "score": 80,
+            "detalhes": {
+              "servico": "Ponto provisório em frente à escola do bairro."
+            }
+          }
+        ]
+      },
+      "por_tom": {},
+      "especificos": [
+        "Jardim das Flores",
+        "Rua das Mangueiras"
+      ],
+      "criterio": "Dá o aviso de trânsito com o local, o motivo e a fonte, em ordem direta; sem 'vale ressaltar' e sem lista falada.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "precisao",
+        "clareza",
+        "utilidade"
+      ]
+    },
+    {
+      "id": "patrocinio-01",
+      "tipo": "patrocinio_lido",
+      "canal": "patrocinio",
+      "formato": "popular_sertanejo",
+      "bloco": "patrocinador:@spot",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {},
+      "por_tom": {
+        "formal": {
+          "patrocinadores": [
+            {
+              "chave": "spot",
+              "nome": "Armazém Santa Rita",
+              "tipo_conteudo": "texto",
+              "texto": "Armazém Santa Rita, na Rua do Comércio, 120. Ração, sementes e ferramentas, com entrega na zona rural. De segunda a sábado, das 7h às 18h.",
+              "duracao_s": 30
+            }
+          ]
+        },
+        "informal": {
+          "patrocinadores": [
+            {
+              "chave": "spot",
+              "nome": "Armazém Santa Rita",
+              "tipo_conteudo": "texto",
+              "texto": "Precisando de semente ou ferramenta? Passa no Armazém Santa Rita, na Rua do Comércio, 120. Eles entregam na roça, de segunda a sábado.",
+              "duracao_s": 30
+            }
+          ]
+        }
+      },
+      "especificos": [
+        "Armazém Santa Rita"
+      ],
+      "criterio": "Leitura do texto cadastrado: fatos (endereço, oferta, horário) sem tom de folheto; números, preço e hora chegam por extenso ao TTS. Não passa pelo LLM.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "clareza",
+        "utilidade",
+        "naturalidade"
+      ]
+    },
+    {
+      "id": "patrocinio-02",
+      "tipo": "patrocinio_lido",
+      "canal": "patrocinio",
+      "formato": "popular_sertanejo",
+      "bloco": "patrocinador:@spot",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {},
+      "por_tom": {
+        "formal": {
+          "patrocinadores": [
+            {
+              "chave": "spot",
+              "nome": "Ótica Vista Clara",
+              "tipo_conteudo": "texto",
+              "texto": "Ótica Vista Clara: exame de vista gratuito na compra da armação, até 30 de novembro. Praça da Matriz, 45.",
+              "duracao_s": 30
+            }
+          ]
+        },
+        "informal": {
+          "patrocinadores": [
+            {
+              "chave": "spot",
+              "nome": "Ótica Vista Clara",
+              "tipo_conteudo": "texto",
+              "texto": "Tá enxergando embaçado? Na Ótica Vista Clara o exame sai de graça com a armação, até o fim do mês. Fica na Praça da Matriz.",
+              "duracao_s": 30
+            }
+          ]
+        }
+      },
+      "especificos": [
+        "Ótica Vista Clara"
+      ],
+      "criterio": "Leitura do texto cadastrado: fatos (endereço, oferta, horário) sem tom de folheto; números, preço e hora chegam por extenso ao TTS. Não passa pelo LLM.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "clareza",
+        "utilidade",
+        "naturalidade"
+      ]
+    },
+    {
+      "id": "patrocinio-03",
+      "tipo": "patrocinio_lido",
+      "canal": "patrocinio",
+      "formato": "popular_sertanejo",
+      "bloco": "patrocinador:@spot",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {},
+      "por_tom": {
+        "formal": {
+          "patrocinadores": [
+            {
+              "chave": "spot",
+              "nome": "Padaria Trigo Dourado",
+              "tipo_conteudo": "texto",
+              "texto": "Padaria Trigo Dourado. Pão francês saindo às 6h e às 16h. Avenida Central, 300.",
+              "duracao_s": 30
+            }
+          ]
+        },
+        "informal": {
+          "patrocinadores": [
+            {
+              "chave": "spot",
+              "nome": "Padaria Trigo Dourado",
+              "tipo_conteudo": "texto",
+              "texto": "Pão quentinho às seis da manhã e às quatro da tarde? É na Trigo Dourado, na Avenida Central. Tradição, sabor e qualidade que você merece.",
+              "duracao_s": 30
+            }
+          ]
+        }
+      },
+      "especificos": [
+        "Padaria Trigo Dourado"
+      ],
+      "criterio": "Leitura do texto cadastrado: fatos (endereço, oferta, horário) sem tom de folheto; números, preço e hora chegam por extenso ao TTS. Não passa pelo LLM.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "clareza",
+        "utilidade",
+        "naturalidade"
+      ]
+    },
+    {
+      "id": "patrocinio-04",
+      "tipo": "patrocinio_lido",
+      "canal": "patrocinio",
+      "formato": "popular_sertanejo",
+      "bloco": "patrocinador:@spot",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {},
+      "por_tom": {
+        "formal": {
+          "patrocinadores": [
+            {
+              "chave": "spot",
+              "nome": "Auto Mecânica Dois Irmãos",
+              "tipo_conteudo": "texto",
+              "texto": "Auto Mecânica Dois Irmãos: revisão completa a partir de R$ 189,90, com agendamento pelo telefone (35) 3333-0101.",
+              "duracao_s": 30
+            }
+          ]
+        },
+        "informal": {
+          "patrocinadores": [
+            {
+              "chave": "spot",
+              "nome": "Auto Mecânica Dois Irmãos",
+              "tipo_conteudo": "texto",
+              "texto": "Carro fazendo barulho? Leva na Dois Irmãos. Revisão a partir de cento e oitenta e nove e noventa, liga e agenda.",
+              "duracao_s": 30
+            }
+          ]
+        }
+      },
+      "especificos": [
+        "Auto Mecânica Dois Irmãos"
+      ],
+      "criterio": "Leitura do texto cadastrado: fatos (endereço, oferta, horário) sem tom de folheto; números, preço e hora chegam por extenso ao TTS. Não passa pelo LLM.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "clareza",
+        "utilidade",
+        "naturalidade"
+      ]
+    },
+    {
+      "id": "patrocinio-05",
+      "tipo": "patrocinio_lido",
+      "canal": "patrocinio",
+      "formato": "popular_sertanejo",
+      "bloco": "patrocinador:@spot",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {},
+      "por_tom": {
+        "formal": {
+          "patrocinadores": [
+            {
+              "chave": "spot",
+              "nome": "Mercado Bom Preço",
+              "tipo_conteudo": "texto",
+              "texto": "Mercado Bom Preço. Ofertas da semana: arroz de 5 kg por R$ 24,90 e café de 500 g por R$ 15,49.",
+              "duracao_s": 30
+            }
+          ]
+        },
+        "informal": {
+          "patrocinadores": [
+            {
+              "chave": "spot",
+              "nome": "Mercado Bom Preço",
+              "tipo_conteudo": "texto",
+              "texto": "No Bom Preço tem arroz de cinco quilos por vinte e quatro e noventa! Uma experiência de compra única, venha conferir.",
+              "duracao_s": 30
+            }
+          ]
+        }
+      },
+      "especificos": [
+        "Mercado Bom Preço"
+      ],
+      "criterio": "Leitura do texto cadastrado: fatos (endereço, oferta, horário) sem tom de folheto; números, preço e hora chegam por extenso ao TTS. Não passa pelo LLM.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "clareza",
+        "utilidade",
+        "naturalidade"
+      ]
+    },
+    {
+      "id": "patrocinio-06",
+      "tipo": "patrocinio_lido",
+      "canal": "patrocinio",
+      "formato": "popular_sertanejo",
+      "bloco": "patrocinador:@spot",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {},
+      "por_tom": {
+        "formal": {
+          "patrocinadores": [
+            {
+              "chave": "spot",
+              "nome": "Pet Shop Amigo Fiel",
+              "tipo_conteudo": "texto",
+              "texto": "Pet Shop Amigo Fiel: banho e tosa com hora marcada, de terça a sábado. Rua das Flores, 88.",
+              "duracao_s": 30
+            }
+          ]
+        },
+        "informal": {
+          "patrocinadores": [
+            {
+              "chave": "spot",
+              "nome": "Pet Shop Amigo Fiel",
+              "tipo_conteudo": "texto",
+              "texto": "Seu cachorro tá precisando de um banho? O Amigo Fiel busca e leva em casa. Rua das Flores, 88.",
+              "duracao_s": 30
+            }
+          ]
+        }
+      },
+      "especificos": [
+        "Pet Shop Amigo Fiel"
+      ],
+      "criterio": "Leitura do texto cadastrado: fatos (endereço, oferta, horário) sem tom de folheto; números, preço e hora chegam por extenso ao TTS. Não passa pelo LLM.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "clareza",
+        "utilidade",
+        "naturalidade"
+      ]
+    },
+    {
+      "id": "patrocinio-07",
+      "tipo": "patrocinio_lido",
+      "canal": "patrocinio",
+      "formato": "popular_sertanejo",
+      "bloco": "patrocinador:@spot",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {},
+      "por_tom": {
+        "formal": {
+          "patrocinadores": [
+            {
+              "chave": "spot",
+              "nome": "Pedra Firme Materiais de Construção",
+              "tipo_conteudo": "texto",
+              "texto": "Pedra Firme Materiais de Construção: cimento, areia e tijolo com entrega em 24 horas. Rodovia do Café, km 3.",
+              "duracao_s": 30
+            }
+          ]
+        },
+        "informal": {
+          "patrocinadores": [
+            {
+              "chave": "spot",
+              "nome": "Pedra Firme Materiais de Construção",
+              "tipo_conteudo": "texto",
+              "texto": "Vai começar a obra? A Pedra Firme entrega cimento, areia e tijolo no dia seguinte. Fica na Rodovia do Café.",
+              "duracao_s": 30
+            }
+          ]
+        }
+      },
+      "especificos": [
+        "Pedra Firme Materiais de Construção"
+      ],
+      "criterio": "Leitura do texto cadastrado: fatos (endereço, oferta, horário) sem tom de folheto; números, preço e hora chegam por extenso ao TTS. Não passa pelo LLM.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "clareza",
+        "utilidade",
+        "naturalidade"
+      ]
+    },
+    {
+      "id": "patrocinio-08",
+      "tipo": "patrocinio_lido",
+      "canal": "patrocinio",
+      "formato": "popular_sertanejo",
+      "bloco": "patrocinador:@spot",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {},
+      "por_tom": {
+        "formal": {
+          "patrocinadores": [
+            {
+              "chave": "spot",
+              "nome": "Restaurante Sabor da Serra",
+              "tipo_conteudo": "texto",
+              "texto": "Restaurante Sabor da Serra: almoço por quilo de segunda a sexta, das 11h às 15h, a R$ 69,90 o quilo.",
+              "duracao_s": 30
+            }
+          ]
+        },
+        "informal": {
+          "patrocinadores": [
+            {
+              "chave": "spot",
+              "nome": "Restaurante Sabor da Serra",
+              "tipo_conteudo": "texto",
+              "texto": "Almoço caseiro com fogão a lenha é no Sabor da Serra. Um ambiente acolhedor e uma experiência inesquecível, de segunda a sexta.",
+              "duracao_s": 30
+            }
+          ]
+        }
+      },
+      "especificos": [
+        "Restaurante Sabor da Serra"
+      ],
+      "criterio": "Leitura do texto cadastrado: fatos (endereço, oferta, horário) sem tom de folheto; números, preço e hora chegam por extenso ao TTS. Não passa pelo LLM.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "clareza",
+        "utilidade",
+        "naturalidade"
+      ]
+    },
+    {
+      "id": "patrocinio-09",
+      "tipo": "patrocinio_lido",
+      "canal": "patrocinio",
+      "formato": "popular_sertanejo",
+      "bloco": "patrocinador:@spot",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {},
+      "por_tom": {
+        "formal": {
+          "patrocinadores": [
+            {
+              "chave": "spot",
+              "nome": "Calçados Passo Certo",
+              "tipo_conteudo": "texto",
+              "texto": "Calçados Passo Certo. Botinas e tênis com 20% de desconto até sábado. Rua Sete de Setembro, 510.",
+              "duracao_s": 30
+            }
+          ]
+        },
+        "informal": {
+          "patrocinadores": [
+            {
+              "chave": "spot",
+              "nome": "Calçados Passo Certo",
+              "tipo_conteudo": "texto",
+              "texto": "Botina nova pra lida? Na Passo Certo tá com vinte por cento de desconto até sábado. Rua Sete de Setembro.",
+              "duracao_s": 30
+            }
+          ]
+        }
+      },
+      "especificos": [
+        "Calçados Passo Certo"
+      ],
+      "criterio": "Leitura do texto cadastrado: fatos (endereço, oferta, horário) sem tom de folheto; números, preço e hora chegam por extenso ao TTS. Não passa pelo LLM.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "clareza",
+        "utilidade",
+        "naturalidade"
+      ]
+    },
+    {
+      "id": "patrocinio-10",
+      "tipo": "patrocinio_lido",
+      "canal": "patrocinio",
+      "formato": "popular_sertanejo",
+      "bloco": "patrocinador:@spot",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {},
+      "por_tom": {
+        "formal": {
+          "patrocinadores": [
+            {
+              "chave": "spot",
+              "nome": "Escola de Idiomas Fala Fácil",
+              "tipo_conteudo": "texto",
+              "texto": "Escola de Idiomas Fala Fácil: matrículas abertas para inglês e espanhol, turmas à noite. Informações pelo WhatsApp (35) 99999-0202.",
+              "duracao_s": 30
+            }
+          ]
+        },
+        "informal": {
+          "patrocinadores": [
+            {
+              "chave": "spot",
+              "nome": "Escola de Idiomas Fala Fácil",
+              "tipo_conteudo": "texto",
+              "texto": "Sempre quis falar inglês? A Fala Fácil abriu turma à noite. Chama no WhatsApp e garante a vaga.",
+              "duracao_s": 30
+            }
+          ]
+        }
+      },
+      "especificos": [
+        "Escola de Idiomas Fala Fácil"
+      ],
+      "criterio": "Leitura do texto cadastrado: fatos (endereço, oferta, horário) sem tom de folheto; números, preço e hora chegam por extenso ao TTS. Não passa pelo LLM.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "clareza",
+        "utilidade",
+        "naturalidade"
+      ]
+    },
+    {
+      "id": "whatsapp-01",
+      "tipo": "whatsapp",
+      "canal": "whatsapp",
+      "formato": "popular_sertanejo",
+      "bloco": "resposta_whatsapp",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {},
+      "por_tom": {
+        "formal": {
+          "mensagens_ouvinte": [
+            "Boa tarde. Gostaria de saber até que horas vai o programa Prosa e Viola hoje."
+          ]
+        },
+        "informal": {
+          "mensagens_ouvinte": [
+            "eai zeca blz? vai ate q horas o programa hj"
+          ]
+        }
+      },
+      "especificos": [
+        "Prosa e Viola"
+      ],
+      "criterio": "Responde primeiro, em até duas frases curtas, no registro do ouvinte; sem markdown, lista ou saudação pronta; emoji só se o ouvinte usou, e no máximo um; não promete que o pedido vai ao ar.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "utilidade",
+        "precisao"
+      ]
+    },
+    {
+      "id": "whatsapp-02",
+      "tipo": "whatsapp",
+      "canal": "whatsapp",
+      "formato": "popular_sertanejo",
+      "bloco": "resposta_whatsapp",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {},
+      "por_tom": {
+        "formal": {
+          "mensagens_ouvinte": [
+            "Boa tarde, gostaria de pedir a música Viola no Alpendre, por gentileza."
+          ]
+        },
+        "informal": {
+          "mensagens_ouvinte": [
+            "kkk vlw zeca manda aquela viola no alpendre 🤠"
+          ]
+        }
+      },
+      "especificos": [
+        "Viola no Alpendre"
+      ],
+      "criterio": "Responde primeiro, em até duas frases curtas, no registro do ouvinte; sem markdown, lista ou saudação pronta; emoji só se o ouvinte usou, e no máximo um; não promete que o pedido vai ao ar.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "utilidade",
+        "precisao"
+      ]
+    },
+    {
+      "id": "whatsapp-03",
+      "tipo": "whatsapp",
+      "canal": "whatsapp",
+      "formato": "popular_sertanejo",
+      "bloco": "resposta_whatsapp",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {},
+      "por_tom": {
+        "formal": {
+          "mensagens_ouvinte": [
+            "Prezados, gostaria de mandar um abraço para minha mãe, Dona Cecília, que se aposentou hoje."
+          ]
+        },
+        "informal": {
+          "mensagens_ouvinte": [
+            "manda um abraço pra minha mãe dona cecília q se aposentou hj!!! 🎉"
+          ]
+        }
+      },
+      "especificos": [
+        "Dona Cecília"
+      ],
+      "criterio": "Responde primeiro, em até duas frases curtas, no registro do ouvinte; sem markdown, lista ou saudação pronta; emoji só se o ouvinte usou, e no máximo um; não promete que o pedido vai ao ar.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "utilidade",
+        "precisao"
+      ]
+    },
+    {
+      "id": "whatsapp-04",
+      "tipo": "whatsapp",
+      "canal": "whatsapp",
+      "formato": "popular_sertanejo",
+      "bloco": "resposta_whatsapp",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {},
+      "por_tom": {
+        "formal": {
+          "mensagens_ouvinte": [
+            "Olá. Como faço para participar do sorteio da semana?"
+          ]
+        },
+        "informal": {
+          "mensagens_ouvinte": [
+            "como q participa do sorteio??"
+          ]
+        }
+      },
+      "especificos": [
+        "sorteio"
+      ],
+      "criterio": "Responde primeiro, em até duas frases curtas, no registro do ouvinte; sem markdown, lista ou saudação pronta; emoji só se o ouvinte usou, e no máximo um; não promete que o pedido vai ao ar.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "utilidade",
+        "precisao"
+      ]
+    },
+    {
+      "id": "whatsapp-05",
+      "tipo": "whatsapp",
+      "canal": "whatsapp",
+      "formato": "variedades_leves",
+      "bloco": "resposta_whatsapp",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {},
+      "por_tom": {
+        "formal": {
+          "mensagens_ouvinte": [
+            "Boa tarde. A Marta poderia comentar sobre a feira de troca de livros do sábado?"
+          ]
+        },
+        "informal": {
+          "mensagens_ouvinte": [
+            "marta fala da feira de troca de livro de sabado pfv 📚"
+          ]
+        }
+      },
+      "especificos": [
+        "feira de troca de livros"
+      ],
+      "criterio": "Responde primeiro, em até duas frases curtas, no registro do ouvinte; sem markdown, lista ou saudação pronta; emoji só se o ouvinte usou, e no máximo um; não promete que o pedido vai ao ar.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "utilidade",
+        "precisao"
+      ]
+    },
+    {
+      "id": "whatsapp-06",
+      "tipo": "whatsapp",
+      "canal": "whatsapp",
+      "formato": "variedades_leves",
+      "bloco": "resposta_whatsapp",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {},
+      "por_tom": {
+        "formal": {
+          "mensagens_ouvinte": [
+            "Bom dia. Vocês sabem se a Rua das Mangueiras já foi liberada?"
+          ]
+        },
+        "informal": {
+          "mensagens_ouvinte": [
+            "a rua das mangueiras ja liberou?"
+          ]
+        }
+      },
+      "especificos": [
+        "Rua das Mangueiras"
+      ],
+      "criterio": "Responde primeiro, em até duas frases curtas, no registro do ouvinte; sem markdown, lista ou saudação pronta; emoji só se o ouvinte usou, e no máximo um; não promete que o pedido vai ao ar.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "utilidade",
+        "precisao"
+      ]
+    },
+    {
+      "id": "whatsapp-07",
+      "tipo": "whatsapp",
+      "canal": "whatsapp",
+      "formato": "variedades_leves",
+      "bloco": "resposta_whatsapp",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {},
+      "por_tom": {
+        "formal": {
+          "mensagens_ouvinte": [
+            "Gostaria de agradecer pela dica de ontem sobre organizar a geladeira. Funcionou muito bem."
+          ]
+        },
+        "informal": {
+          "mensagens_ouvinte": [
+            "amei a dica da geladeira kkkk funcionou demais 😂"
+          ]
+        }
+      },
+      "especificos": [
+        "geladeira"
+      ],
+      "criterio": "Responde primeiro, em até duas frases curtas, no registro do ouvinte; sem markdown, lista ou saudação pronta; emoji só se o ouvinte usou, e no máximo um; não promete que o pedido vai ao ar.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "utilidade",
+        "precisao"
+      ]
+    },
+    {
+      "id": "whatsapp-08",
+      "tipo": "whatsapp",
+      "canal": "whatsapp",
+      "formato": "musical_adulto",
+      "bloco": "resposta_whatsapp",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {},
+      "por_tom": {
+        "formal": {
+          "mensagens_ouvinte": [
+            "Boa tarde. Qual foi a música que tocou logo antes das dezessete horas?"
+          ]
+        },
+        "informal": {
+          "mensagens_ouvinte": [
+            "qual foi aquela musica q tocou agora pouco?"
+          ]
+        }
+      },
+      "especificos": [
+        "dezessete horas"
+      ],
+      "criterio": "Responde primeiro, em até duas frases curtas, no registro do ouvinte; sem markdown, lista ou saudação pronta; emoji só se o ouvinte usou, e no máximo um; não promete que o pedido vai ao ar.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "utilidade",
+        "precisao"
+      ]
+    },
+    {
+      "id": "whatsapp-09",
+      "tipo": "whatsapp",
+      "canal": "whatsapp",
+      "formato": "musical_adulto",
+      "bloco": "resposta_whatsapp",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {},
+      "por_tom": {
+        "formal": {
+          "mensagens_ouvinte": [
+            "Boa tarde. Poderiam tocar Janela para o Mar para minha esposa, Helena?"
+          ]
+        },
+        "informal": {
+          "mensagens_ouvinte": [
+            "toca janela pro mar pra minha esposa helena ❤️"
+          ]
+        }
+      },
+      "especificos": [
+        "Janela para o Mar",
+        "Helena"
+      ],
+      "criterio": "Responde primeiro, em até duas frases curtas, no registro do ouvinte; sem markdown, lista ou saudação pronta; emoji só se o ouvinte usou, e no máximo um; não promete que o pedido vai ao ar.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "utilidade",
+        "precisao"
+      ]
+    },
+    {
+      "id": "whatsapp-10",
+      "tipo": "whatsapp",
+      "canal": "whatsapp",
+      "formato": "musical_adulto",
+      "bloco": "resposta_whatsapp",
+      "tons": [
+        "formal",
+        "informal"
+      ],
+      "entrada": {},
+      "por_tom": {
+        "formal": {
+          "mensagens_ouvinte": [
+            "Olá, a rádio tem algum contato para anunciar meu comércio?"
+          ]
+        },
+        "informal": {
+          "mensagens_ouvinte": [
+            "oi vcs fazem propaganda? tenho uma lojinha"
+          ]
+        }
+      },
+      "especificos": [
+        "anunciar"
+      ],
+      "criterio": "Responde primeiro, em até duas frases curtas, no registro do ouvinte; sem markdown, lista ou saudação pronta; emoji só se o ouvinte usou, e no máximo um; não promete que o pedido vai ao ar.",
+      "dimensoes": [
+        "soa_como_pessoa",
+        "naturalidade",
+        "utilidade",
+        "precisao"
+      ]
+    }
+  ]
+}
