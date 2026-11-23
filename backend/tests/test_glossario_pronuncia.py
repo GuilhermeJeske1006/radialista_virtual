@@ -86,3 +86,48 @@ def test_api_da_radio_limpa_o_glossario_e_recusa_excesso():
     assert limpo.glossario_pronuncia == {"Kelly": "Quéli"}
     with pytest.raises(ValidationError):
         RadioContaRequest(glossario_pronuncia={f"t{i}": "p" for i in range(MAX_TERMOS_RADIO + 1)})
+
+
+def test_api_sugere_termos_dos_textos_da_radio_sem_os_cadastrados(client, account, auth_headers, db_session):
+    """Sugestões a partir do que a rádio já tem: nome, cidade, bairros, patrocinadores, radialistas e músicas."""
+    import datetime
+
+    from app.models.musica_historico import MusicaHistorico
+    from app.models.patrocinador import Patrocinador
+    from app.models.programa import Programa
+    from app.models.radio_config import RadioConfig
+
+    account.nome_radio = "Rádio Serra FM"
+    account.conhecimento_local = {"bairros": ["Vila Kennedy"], "pontos_referencia": [], "eventos_recorrentes": [],
+                                  "expressoes_regionais": [], "gentilico": ""}
+    account.glossario_pronuncia = {"Wesley": "Uésli"}
+    radio_config = RadioConfig(account_id=account.id, timezone="America/Sao_Paulo", nome_locutor="Kelly")
+    db_session.add_all([radio_config, Patrocinador(account_id=account.id, nome="Kiwi Calçados")])
+    db_session.commit()
+    programa = Programa(radio_config_id=radio_config.id, nome="Tarde", horario_inicio=datetime.time(10, 0),
+                        horario_fim=datetime.time(12, 0), estrutura_blocos=[], musicas_permitidas=["Phelipe Lima"])
+    db_session.add(programa)
+    db_session.commit()
+    db_session.add(MusicaHistorico(programa_id=programa.id, video_id="v1", titulo="Wesley Safadão - Camarote",
+                                   canal="Wesley Safadão", query="camarote", query_normalizada="camarote",
+                                   origem="ia"))
+    db_session.commit()
+
+    resposta = client.get("/config/radio/glossario/sugestoes", headers=auth_headers(account.id))
+    assert resposta.status_code == 200
+    termos = resposta.json()["termos"]
+    assert {"FM", "Kennedy", "Kiwi", "Kelly", "Phelipe"} <= set(termos)
+    assert "Wesley" not in termos  # já está no glossário
+
+
+def test_api_de_sugestoes_nao_mistura_contas(client, account, auth_headers, db_session):
+    from app.models.account import Account
+    from app.models.patrocinador import Patrocinador
+
+    outra = Account(nome_radio="Outra")
+    db_session.add(outra)
+    db_session.commit()
+    db_session.add(Patrocinador(account_id=outra.id, nome="Yakult Kids"))
+    db_session.commit()
+    termos = client.get("/config/radio/glossario/sugestoes", headers=auth_headers(account.id)).json()["termos"]
+    assert "Yakult" not in termos and "Kids" not in termos

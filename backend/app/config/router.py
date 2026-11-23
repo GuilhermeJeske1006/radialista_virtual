@@ -11,7 +11,7 @@ from sqlalchemy.orm.attributes import flag_modified
 from app.live.pecas_reserva import aprovar, normalizar_pecas
 from app.live.bancada import validar_papel_bancada
 from app.live.cortes import cortes_do_as_run
-from app.live.revisao import RevisaoInvalida, decidir_no_banco
+from app.live.revisao import RevisaoInvalida, decidir_no_banco, expirar_vencidas
 from app.live.relatorio_programa import montar_relatorio
 from app.auth.dependencies import get_current_account
 from app.db.database import get_db
@@ -686,6 +686,43 @@ def atualizar_radio(
     db.commit()
     db.refresh(account)
     return account
+
+
+def _textos_para_sugestao(db: Session, account: Account) -> list[str]:
+    """Textos que a rádio já tem e o TTS vai ler: identidade, lugar, patrocinadores, locutores e músicas."""
+    from app.models.patrocinador import Patrocinador
+
+    local = account.conhecimento_local or {}
+    textos = [account.nome_radio or "", account.slogan or "", account.cidade or ""]
+    for chave in ("bairros", "pontos_referencia", "eventos_recorrentes"):
+        textos += [str(item) for item in (local.get(chave) or [])]
+    textos += [p.nome for p in db.query(Patrocinador).filter_by(account_id=account.id)]
+    radialistas = db.query(RadioConfig).filter_by(account_id=account.id).all()
+    textos += [r.nome_locutor or "" for r in radialistas]
+    programas = db.query(Programa).filter(Programa.radio_config_id.in_([r.id for r in radialistas])).all() \
+        if radialistas else []
+    for programa in programas:
+        textos += list(programa.musicas_permitidas or [])
+    if programas:
+        musicas = (
+            db.query(MusicaHistorico.canal, MusicaHistorico.titulo)
+            .filter(MusicaHistorico.programa_id.in_([p.id for p in programas]))
+            .order_by(MusicaHistorico.criado_em.desc())
+            .limit(200)
+            .all()
+        )
+        textos += [texto for linha in musicas for texto in linha]
+    return textos
+
+
+@router.get("/radio/glossario/sugestoes")
+def sugerir_glossario(account: Account = Depends(get_current_account), db: Session = Depends(get_db)):
+    """F9: termos que o TTS tende a errar (siglas, nomes com w/y/k/ph) nos textos da própria rádio, sem os que já
+    estão no glossário. Heurística: quem decide a pronúncia é quem cadastra."""
+    from app.tts.glossario import sugerir_termos
+
+    termos = sugerir_termos(_textos_para_sugestao(db, account), (account.glossario_pronuncia or {}).keys())
+    return {"termos": termos}
 
 
 @router.get("/radialistas", response_model=list[RadialistaResponse])
@@ -1467,6 +1504,28 @@ def relatorio_pos_programa(
     return {"programa_id": programa.id, **montar_relatorio(resumo)}
 
 
+@router.get("/programas/{programa_id}/relatorio")
+def relatorio_do_dia(
+    programa_id: int,
+    data: datetime.date | None = None,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Relatório pós-programa (F11 item 2) do dia `data` (padrão: hoje no fuso da rádio), montado do banco: as-run
+    confirmado pelo player, promessas e pedidos do dia. `nao_medido`: seções que o banco não guarda."""
+    from zoneinfo import ZoneInfo
+
+    from app.live.resumo_programa import NAO_MEDIDO, resumo_do_dia
+
+    programa = _buscar_programa(db, account, programa_id)
+    radio_config = db.get(RadioConfig, programa.radio_config_id)
+    timezone = (radio_config.timezone if radio_config else None) or "America/Sao_Paulo"
+    dia = data or datetime.datetime.now(ZoneInfo(timezone)).date()
+    resumo, as_run = resumo_do_dia(db, account.id, programa, programa.radio_config_id, dia, timezone)
+    return {"programa_id": programa.id, "data": dia.isoformat(), "as_run": as_run, "nao_medido": list(NAO_MEDIDO),
+            **montar_relatorio(resumo)}
+
+
 def _falas_revisao_json(linhas) -> list[dict]:
     return [
         {"id": fala.id, "categoria": fala.categoria, "texto": fala.texto, "rota": fala.rota, "motivo": fala.motivo,
@@ -1502,8 +1561,9 @@ def listar_falas_revisao(
     account: Account = Depends(get_current_account),
     db: Session = Depends(get_db),
 ):
-    """Falas que aguardam decisão (F12). Sem `estado`, traz todas."""
+    """Falas que aguardam decisão (F12). Sem `estado`, traz todas. Antes, marca como expiradas as vencidas."""
     _buscar_programa(db, account, programa_id)
+    expirar_vencidas(db, account.id, programa_id, datetime.datetime.now(datetime.timezone.utc))
     consulta = db.query(FalaEmRevisao).filter_by(programa_id=programa_id, account_id=account.id)
     if estado:
         consulta = consulta.filter_by(estado=estado)

@@ -617,3 +617,43 @@ def test_prewarm_guarda_os_campos_de_duracao(monkeypatch, db_session, account, r
     assert (payload["duracao_fala_s"], payload["duracao_fala_estimada_s"], payload["fala_ajuste"]) == (
         8.4, 7.9, "encurtada")
     assert payload["orcamento_fala_s"]["fonte"] == "relogio"
+
+
+@freeze_time("2026-11-10 15:12:00")
+def test_f13_bancada_com_papeis_cabe_no_orcamento_do_relogio(
+    client, account, auth_headers, com_relogio, db_session, monkeypatch
+):
+    """F13: a conversa da bancada (com papéis de turno) passa pelo mesmo corte do multi-voz ao orçamento da etapa do
+    relógio; o tempo total da conversa não estoura a etapa, sem chamada extra ao LLM."""
+    import json
+
+    from app.live.bancada import instrucao_de_turnos
+    from app.models.programa_radialista import ProgramaRadialista
+
+    radialista, programa = com_relogio
+    _abertura_feita(programa)
+    radialista.nome_locutor = "Ze"
+    convidada = RadioConfig(account_id=account.id, nome_locutor="Maria", timezone="America/Sao_Paulo")
+    db_session.add(convidada)
+    db_session.flush()
+    db_session.add(ProgramaRadialista(programa_id=programa.id, radio_config_id=convidada.id,
+                                      papel_bancada="contraponto"))
+    db_session.commit()
+    linhas = [{"locutor": "Ze", "texto": "Maria, a feira mudou de lugar."},
+              {"locutor": "Maria", "texto": "Mudou, mas ficou mais longe."},
+              {"locutor": "Ze", "texto": "Longe para quem?"}, {"locutor": "Maria", "texto": "Para quem vai a pé."},
+              {"locutor": "Ze", "texto": "Justo."}, {"locutor": "Maria", "texto": "Pois é."}]
+    llm: list[str] = []
+    monkeypatch.setattr("app.live.router.gerar_dialogo_multivoz",
+                        lambda system, msg: llm.append(system) or json.dumps({"linhas": linhas}))
+    chamadas: list[dict] = []
+    monkeypatch.setattr("app.live.router.tts_habilitado", lambda *a: True)
+    monkeypatch.setattr("app.live.router.sintetizar_audio", _sintese_falsa(chamadas, 12.0))
+    dados = client.post(_url(radialista.id, programa.id), headers=auth_headers(account.id),
+                        json={"total_falas": 3, "historico": ["musica: faixa anterior"], "incluir_audio": False,
+                              "inicio_previsto": "2026-11-10T12:12:00-03:00"}).json()
+    assert len(llm) == 1 and instrucao_de_turnos() in llm[0]
+    maximo = dados["duracao_alvo_segundos"][1]
+    assert len(dados["falas"]) < len(linhas)
+    assert dados["duracao_fala_s"] <= maximo  # o corte retira linhas do fim até caber no máximo da etapa
+    assert dados["fala_ajuste"] == "encurtada"

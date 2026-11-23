@@ -392,3 +392,35 @@ def test_i16_prompt_mostra_a_hora_prevista(account, radialista_e_programa, monke
     with freeze_time("2026-11-10 16:20:00"):
         assert "13:45" in montar_system_prompt(account, radialista, programa, agora=previsto)
         assert "13:20" in montar_system_prompt(account, radialista, programa)
+
+
+PECA_ESTOURO = "O papo rendeu, e a gente segue na próxima."
+
+
+@freeze_time("2026-11-10 15:15:48")
+@pytest.mark.parametrize("texto_peca,usa_peca", [
+    (PECA_ESTOURO, True),
+    ("Esta peça de reserva é longa demais para caber no fechamento curto do relógio, " * 3, False),
+])
+def test_f11_estouro_usa_a_peca_aprovada_que_cabe_sem_chamar_o_llm(
+    client, account, auth_headers, com_relogio, db_session, monkeypatch, texto_peca, usa_peca
+):
+    """F11 (item 3): no "debate estourou" a peça de reserva "estouro" aprovada fecha o assunto, se couber no
+    orçamento do fechamento curto (texto aprovado não é cortado). Sem peça que caiba, o LLM fecha como antes."""
+    from app.live.relogio import PRESETS
+
+    radialista, programa, _ = com_relogio
+    programa.relogio_hora = PRESETS["C"].model_dump()
+    programa.pecas_reserva = [{"id": 5, "tipo": "estouro", "texto": texto_peca.strip(), "aprovada": True}]
+    db_session.commit()
+    _marcar(programa, "0:0:fala:abertura")
+    prompts = _prompts(monkeypatch, "Fica a dica: devagar se vai longe.")
+    dados = _post(client, account, auth_headers, radialista, programa, inicio_previsto="2026-11-10T12:15:48-03:00",
+                  historico=["comentario: falávamos de hábitos simples"])
+    assert dados["relogio"]["acao"] == "fechamento_curto"
+    if usa_peca:
+        assert dados["fala"] == PECA_ESTOURO
+        assert prompts == []
+    else:
+        assert dados["fala"] == "Fica a dica: devagar se vai longe."
+        assert len(prompts) == 1

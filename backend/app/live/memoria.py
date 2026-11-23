@@ -7,6 +7,7 @@ privados antigos, então quem os importa segue igual.
 """
 
 import re
+from collections.abc import Callable, Sequence
 
 from app.util.texto import sem_acento as _sem_acento
 
@@ -75,18 +76,28 @@ def palavras_normalizadas(texto: str) -> set[str]:
     return {p for p in sem_pontuacao.split() if p}
 
 
-def fala_semelhante_no_historico(fala: str, historico_falas: list[str]) -> str | None:
+def _sem_frases(texto: str, ignorar: Callable[[str], bool] | None) -> str:
+    if ignorar is None:
+        return texto
+    return " ".join(frase for frase in frases(texto) if not ignorar(frase))
+
+
+def fala_semelhante_no_historico(fala: str, historico_falas: list[str],
+                                 ignorar: Callable[[str], bool] | None = None) -> str | None:
     """Rede de seguranca em runtime: mesmo com as instrucoes de variacao no prompt, o LLM as
     vezes ainda produz uma fala quase igual a uma de varios blocos atras (janela enviada ao
     prompt so cobre as ultimas falas). Compara por sobreposicao de palavras contra o historico
     da sessao pro mesmo tipo de bloco; devolve a fala anterior que colidiu (pra citar no retry),
     ou None se nao achou repeticao.
+
+    `ignorar(frase)`: frases que saem da comparação dos dois lados. F8 (passo 3): a reorientação ("Você está
+    no ...") é repetição permitida e não pode, sozinha, fazer duas falas parecerem iguais.
     """
-    palavras_fala = palavras_normalizadas(fala)
+    palavras_fala = palavras_normalizadas(_sem_frases(fala, ignorar))
     if len(palavras_fala) < _MIN_PALAVRAS_SIMILARIDADE:
         return None
     for anterior in historico_falas:
-        palavras_anterior = palavras_normalizadas(anterior)
+        palavras_anterior = palavras_normalizadas(_sem_frases(anterior, ignorar))
         if len(palavras_anterior) < _MIN_PALAVRAS_SIMILARIDADE:
             continue
         uniao = palavras_fala | palavras_anterior
@@ -169,3 +180,32 @@ def repeticao_estrutura(textos: list[str], seguidas: int = 3) -> int:
         if janela[0] != "outra" and len(set(janela)) == 1:
             contagem += 1
     return contagem
+
+
+# Linha do histórico que o painel manda: "tipo: fala" + sufixo opcional com as músicas do bloco.
+_SUFIXO_MUSICAS_RE = re.compile(r"\s*\[Música\(s\) tocada\(s\) nesse bloco:.*\]\s*$")
+_TIPOS_SEM_LOCUCAO = ("vinheta", "patrocinador")
+
+
+def textos_do_historico(historico: Sequence[str]) -> list[str]:
+    """Falas do histórico do painel, da mais antiga para a mais recente, sem o tipo, sem o sufixo de músicas e sem
+    blocos de texto fixo (vinheta, patrocinador) ou vazios (música sem locução)."""
+    textos: list[str] = []
+    for linha in historico:
+        tipo, separador, resto = (linha or "").partition(":")
+        if not separador:
+            continue
+        texto = _SUFIXO_MUSICAS_RE.sub("", resto).strip()
+        if texto and not _sem_acento(tipo.strip().lower()).startswith(_TIPOS_SEM_LOCUCAO):
+            textos.append(texto)
+    return textos
+
+
+def abertura_repetida(textos: Sequence[str], seguidas: int = 2) -> str | None:
+    """Classe de abertura (diferente de "outra") das `seguidas` últimas falas, quando todas abrem igual; senão None.
+    Alimenta o aviso do prompt (F8, passo 2): a próxima fala não deve ser a terceira seguida com a mesma estrutura."""
+    if len(textos) < seguidas:
+        return None
+    classes = {abertura_da_fala(texto) for texto in textos[-seguidas:]}
+    classe = classes.pop() if len(classes) == 1 else "outra"
+    return None if classe == "outra" else classe

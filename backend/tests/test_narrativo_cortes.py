@@ -1,7 +1,27 @@
 """F14: quadro narrativo (instrução no bloco de quadro fixo) e cortes do as-run."""
 
+import datetime
+
+import pytest
+from freezegun import freeze_time
+
 from app.live.cortes import cortes_do_as_run
 from app.live.narrativo import eh_quadro_narrativo, instrucao_narrativa
+from app.models.programa import Programa
+from app.models.radio_config import RadioConfig
+from tests.test_live_router import AGORA_UTC, _url_proxima
+
+
+@pytest.fixture()
+def programa_com_quadro(db_session, account):
+    radio_config = RadioConfig(account_id=account.id, timezone="America/Sao_Paulo")
+    db_session.add(radio_config)
+    db_session.commit()
+    programa = Programa(radio_config_id=radio_config.id, nome="Programa Principal",
+                        horario_inicio=datetime.time(10, 0), horario_fim=datetime.time(14, 0), estrutura_blocos=[])
+    db_session.add(programa)
+    db_session.commit()
+    return radio_config, programa
 
 
 def _ev(ordem, tipo="fala", status="confirmado", pedido_id=None):
@@ -22,9 +42,27 @@ def test_instrucao_narrativa_traz_as_quatro_partes_nessa_ordem():
     assert ordem == sorted(ordem)
 
 
-def test_prompt_de_quadro_narrativo_recebe_a_instrucao():
-    from app.live import prompt_emissao
-    assert prompt_emissao.eh_quadro_narrativo is eh_quadro_narrativo  # ligado no prompt
+@pytest.mark.parametrize("quadro,narrativo", [("História do bairro", True), ("Curiosidade das 10", False)])
+def test_proxima_poe_a_instrucao_narrativa_so_no_quadro_narrativo(
+    client, account, auth_headers, programa_com_quadro, db_session, monkeypatch, quadro, narrativo
+):
+    """O system do /proxima traz a instrução de quatro passos no quadro narrativo e não em outro quadro fixo."""
+    radio_config, programa = programa_com_quadro
+    programa.estrutura_blocos = [quadro]
+    programa.quadros_fixos = {quadro: ["a padaria que voltou a abrir"]}
+    programa.ia_pode_adicionar_blocos = False
+    db_session.commit()
+    monkeypatch.setattr("app.live.router.classificar_categoria_bloco", lambda nome: "comentario")
+    monkeypatch.setattr("app.live.router.classificar_tema_fala", lambda texto: "")
+    prompts: list[str] = []
+    monkeypatch.setattr("app.live.router.gerar_resposta",
+                        lambda system, msg: prompts.append(system) or "Dona Rosa reabriu a padaria da esquina.")
+    with freeze_time(AGORA_UTC):
+        resposta = client.post(_url_proxima(radio_config.id, programa.id), json={"historico": [], "total_falas": 1},
+                               headers=auth_headers(account.id))
+    assert resposta.status_code == 200
+    assert f"quadro fixo '{quadro}'" in prompts[0]
+    assert (instrucao_narrativa() in prompts[0]) is narrativo
 
 
 def test_corte_de_falas_confirmadas_sem_pedido_aceita_musica_no_meio():

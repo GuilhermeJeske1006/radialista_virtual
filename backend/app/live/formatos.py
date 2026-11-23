@@ -464,10 +464,11 @@ def direcao_formato(formato, tipo: str, primeira: bool = False,
 
 
 def linhas_do_formato(formato, *, programa: str, tipo: str, primeira: bool, quadro: bool = False,
-                      retorno: bool = False, publico: str = "") -> list[str]:
+                      retorno: bool = False, publico: str = "", reorientacao_vencida: bool = False) -> list[str]:
     """Seção do formato no prompt do bloco (§6.9): programa, formato, promessa e público (só quando preenchido); a
     promessa do formato acima do perfil do horário; participação; temas que exigem revisão humana; e, nos papéis de
-    `PAPEIS_REORIENTACAO` (quadro fixo, retorno do intervalo), a reorientação. Vazia no `padrao`."""
+    `PAPEIS_REORIENTACAO` (quadro fixo, retorno do intervalo) ou quando passou o `reorientacao_s` do formato desde a
+    última (`reorientacao_vencida`, F8 passo 3), a reorientação. Vazia no `padrao`."""
     formato = resolver_formato(formato)
     if formato.id == ID_PADRAO:
         return []
@@ -483,9 +484,23 @@ def linhas_do_formato(formato, *, programa: str, tipo: str, primeira: bool, quad
         linhas.append(SECAO_TEMAS.format(temas=", ".join(formato.temas_revisao)))
     papel = "quadro" if quadro else _papel_pelo_tipo(tipo, primeira)
     papeis = {"*" if papel == "quadro" and not quadro else papel, *(("retorno",) if retorno else ())}
-    if papeis & set(PAPEIS_REORIENTACAO):
+    if (papeis & set(PAPEIS_REORIENTACAO)) or (reorientacao_vencida and formato.reorientacao_s):
         linhas.append(SECAO_REORIENTACAO)
     return linhas
+
+
+def pede_reorientacao(formato, *, tipo: str, primeira: bool, quadro: bool = False, retorno: bool = False,
+                      reorientacao_vencida: bool = False) -> bool:
+    """Se a seção do formato pede a reorientação neste bloco (mesma regra de `linhas_do_formato`)."""
+    return SECAO_REORIENTACAO in linhas_do_formato(formato, programa="", tipo=tipo, primeira=primeira, quadro=quadro,
+                                                   retorno=retorno, reorientacao_vencida=reorientacao_vencida)
+
+
+def reorientacao_vencida(formato, desde_reorientacao_s: float | None) -> bool:
+    """F8 (passo 3): passou o intervalo do formato desde a última reorientação. Sem memória (None), não pede."""
+    formato = resolver_formato(formato)
+    return bool(formato.reorientacao_s) and desde_reorientacao_s is not None \
+        and desde_reorientacao_s >= formato.reorientacao_s
 
 
 # ---------------------------------------------------------------------------------------------------------

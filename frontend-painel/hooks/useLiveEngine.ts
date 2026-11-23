@@ -148,10 +148,6 @@ export function segundosParaInicio(programa: Programa, timezone: string): number
   return restante > 0 ? restante : null;
 }
 
-function escolher(lista: string[], fallback: string) {
-  return lista.length > 0 ? lista[Math.floor(Math.random() * lista.length)] : fallback;
-}
-
 function _semAcento(texto: string): string {
   return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
@@ -189,22 +185,13 @@ export function gerarFalaLocal(
     const roteiroFormato = roteiroDoFormato(programa);
     tipo = roteiroFormato[(totalFalas - 1) % roteiroFormato.length];
   }
-  const genero = escolher(programa.generos_musicais, "os sucessos da nossa programacao");
-  const musica = escolher(programa.musicas_permitidas, genero);
-  const assunto = escolher(
-    programa.assuntos_ao_vivo.length ? programa.assuntos_ao_vivo : programa.topicos_permitidos,
-    "a rotina da cidade"
-  );
-
+  // Este fallback não toca música nem traz assunto: as falas só reorientam, sem anunciar o que não vai ao ar.
   const falas: Record<string, string> = {
-    abertura: `Muito bem, aqui e ${nome}. ${reorientacao} Bora de ${assunto} e boa musica.`,
-    musica: `Toca ai ${musica}. ${reorientacao}`,
-    comentario: `Sobre ${assunto}: fica comigo. ${reorientacao}`,
-    noticia: `${reorientacao} Fica com a gente e boa musica.`,
-    chamada_ouvinte: `Manda seu recado ou pede sua musica no WhatsApp. ${reorientacao}`,
+    abertura: `Muito bem, aqui é ${nome}. ${reorientacao} Obrigado pela companhia.`,
+    chamada_ouvinte: `Manda seu recado pelo WhatsApp da rádio. ${reorientacao}`,
   };
 
-  const falaGenerica = `Seguimos com o bloco de ${tipo.replace(/_/g, " ")}. ${reorientacao}`;
+  const falaGenerica = `${reorientacao} Obrigado pela companhia.`;
   return { tipo, fala: falas[tipo] ?? falaGenerica };
 }
 

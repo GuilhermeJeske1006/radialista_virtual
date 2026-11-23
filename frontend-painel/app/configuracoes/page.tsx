@@ -7,6 +7,7 @@ import { RADIO_PERFIL_VAZIO, RadioPerfil, TipoRadio } from "../../lib/types";
 import { LocufySpin } from "../../components/LocufyLogo";
 import TagInput from "../../components/TagInput";
 import WhatsAppConexao from "../../components/WhatsAppConexao";
+import GlossarioPronunciaRadio from "../../components/GlossarioPronunciaRadio";
 import { useAvisoAlteracoes } from "../../lib/useAvisoAlteracoes";
 
 export default function ConfiguracoesPage() {
@@ -280,6 +281,13 @@ export default function ConfiguracoesPage() {
           onChange={(tags) =>
             setRadio({ ...radio, biblia_radio: { ...radio.biblia_radio, habitos_trabalho: tags } })
           }
+        />
+
+        <hr className="border-border my-5" />
+        <h2 className="font-display text-base font-bold text-fg mb-1">Glossário de pronúncia</h2>
+        <GlossarioPronunciaRadio
+          valor={radio.glossario_pronuncia ?? {}}
+          onChange={(glossario) => setRadio({ ...radio, glossario_pronuncia: glossario })}
         />
 
         {erro && <p role="alert" className="text-sm text-laranja mt-4">{erro}</p>}

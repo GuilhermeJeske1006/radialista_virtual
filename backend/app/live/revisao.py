@@ -5,7 +5,8 @@ uma fala substituta neutra (sem conteudo). O original nunca vai ao ar nesta etap
 conferencia; levar a fala aprovada ao ar depende de a fala ser reproduzida no ao vivo (fora desta etapa).
 
 Prazo: a decisao vale ate `PRAZO_MINUTOS` depois da geracao. Passado o prazo, a fala expira e nao pode mais ser
-aprovada, porque o bloco ja saiu do ar (a rotina do relogio segue).
+aprovada, porque o bloco ja saiu do ar (a rotina do relogio segue). O estado `expirada` e gravado por
+`expirar_vencidas`, chamado na listagem e na decisao.
 """
 
 from __future__ import annotations
@@ -75,13 +76,31 @@ def registrar(db: Session, account_id: int, programa_id: int, categoria: str, te
     return linha
 
 
+def expirar_vencidas(db: Session, account_id: int, programa_id: int, agora: datetime.datetime) -> int:
+    """Marca como expirada a fala que aguardava decisão e passou do prazo. Sem job: roda na listagem e na decisão,
+    os únicos pontos em que o estado é lido. Devolve quantas expiraram."""
+    vencidas = [
+        linha for linha in db.query(FalaEmRevisao).filter_by(account_id=account_id, programa_id=programa_id,
+                                                              estado=AGUARDANDO)
+        if linha.prazo_em is not None and _utc(agora) > _utc(linha.prazo_em)
+    ]
+    for linha in vencidas:
+        linha.estado = EXPIRADA
+    if vencidas:
+        db.commit()
+    return len(vencidas)
+
+
 def decidir_no_banco(db: Session, account_id: int, programa_id: int, fala_id: int, acao: str,
                      agora: datetime.datetime) -> FalaEmRevisao | None:
+    expirar_vencidas(db, account_id, programa_id, agora)
     linha = db.query(FalaEmRevisao).filter_by(id=fala_id, account_id=account_id, programa_id=programa_id).first()
     if linha is None:
         return None
     if linha.prazo_em is None:
         raise RevisaoInvalida(f"fala sem decisão possível (estado {linha.estado})")
+    if linha.estado == EXPIRADA:
+        raise RevisaoInvalida("fora do prazo: o bloco já saiu do ar")
     linha.estado = decidir(linha.estado, linha.prazo_em, agora, acao)
     linha.decidido_em = agora
     db.commit()

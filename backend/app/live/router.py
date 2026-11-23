@@ -138,6 +138,7 @@ from app.live.validacao_fala import (
 )
 from app.live import promessas_repo
 from app.live.participacao import pedido_sem_mencao
+from app.live.pecas_reserva import escolher_reserva
 from app.live.promessas import PromessaRef, a_registrar_no_texto, dita, garantir_contingencia
 from app.live.roteiro import (  # noqa: F401 -- reexportados
     _LIMIAR_ENCERRAMENTO_MIN,
@@ -147,7 +148,7 @@ from app.live.roteiro import (  # noqa: F401 -- reexportados
     EntradaEmissao,
     decidir_bloco,
 )
-from app.live.formatos import FalaNoAr, Formato, avisos_da_fala, eh_quadro_fixo, formato_do_programa
+from app.live.formatos import FalaNoAr, Formato, avisos_da_fala, eh_quadro_fixo, formato_do_programa, reorienta
 from app.live.direcao_voz import tom_musical
 from app.live.song_service import dividir_artista_titulo, esquecer_video_catalogado, resolver_musica_catalogada
 from app.live.spotify import buscar_faixas_por_categoria
@@ -802,6 +803,35 @@ def _ultimo_tom(programa_id: int) -> str | None:
 
 def _registrar_ultimo_tom(programa_id: int, tom: str) -> None:
     redis_client.set(f"ultimo_tom:{programa_id}", tom, ex=_TTL_SESSAO_AO_VIVO)
+
+
+def _ultima_reorientacao(programa_id: int) -> datetime.datetime | None:
+    """F8 (passo 3): instante (UTC) da última fala deste programa que reorientou quem chegou ("Você está no ...")."""
+    valor = redis_client.get(f"ultima_reorientacao:{programa_id}")
+    try:
+        return datetime.datetime.fromisoformat(valor) if valor else None
+    except ValueError:
+        return None
+
+
+def _pecas_reserva_usadas(programa_id: int, ocorrencia: str | None) -> frozenset[int]:
+    """F11 (item 3): ids das peças de reserva já ditas nesta ocorrência do programa (cada peça vai ao ar uma vez)."""
+    if not ocorrencia:
+        return frozenset()
+    return frozenset(int(i) for i in redis_client.smembers(f"pecas_reserva_usadas:{programa_id}:{ocorrencia}") or ())
+
+
+def _registrar_peca_usada(programa_id: int, ocorrencia: str | None, peca_id: int) -> None:
+    if not ocorrencia:
+        return
+    chave = f"pecas_reserva_usadas:{programa_id}:{ocorrencia}"
+    redis_client.sadd(chave, str(peca_id))
+    redis_client.expire(chave, _TTL_SESSAO_AO_VIVO)
+
+
+def _registrar_reorientacao(programa_id: int, instante: datetime.datetime) -> None:
+    redis_client.set(f"ultima_reorientacao:{programa_id}", instante.astimezone(datetime.timezone.utc).isoformat(),
+                     ex=_TTL_SESSAO_AO_VIVO)
 
 
 def _historico_musicas(programa_id: int) -> tuple[set[str], set[str], dict[str, int]]:
@@ -2398,6 +2428,8 @@ def _registrar_promessas(db: Session, ctx: ContextoEmissao, fala: str, devolvido
         resolvidas += promessas_repo.resolver(db, cumpridas, "cumprida", "cumprida no bloco")
         for contingencia in chamadas.contingencias:
             if dita(contingencia.texto, fala):
+                if contingencia.peca_id is not None:
+                    _registrar_peca_usada(ctx.programa.id, chamadas.ocorrencia, contingencia.peca_id)
                 resolvidas += promessas_repo.resolver(db, [contingencia.promessa_id], "cancelada",
                                                       f"contingencia:{contingencia.motivo}",
                                                       contingencia=contingencia.texto)
@@ -2552,7 +2584,8 @@ def _gerar_proxima_fala(
         return _resposta_so_musica(decisao, resolucao.musica, programa, cfg_relogio)
 
     ctx = montar_contexto(entrada, decisao, resolucao, portas)
-    gerada = gerar_fala(ctx, montar_prompt(ctx), portas, checar_pre=_checagem_pre(ctx))
+    gerada = _gerada_da_peca_de_estouro(ctx) or gerar_fala(ctx, montar_prompt(ctx), portas,
+                                                           checar_pre=_checagem_pre(ctx))
     tipo, categoria = ctx.tipo, ctx.categoria
     musica, musicas_bloco, nao_resolvidas = _musicas_do_bloco(db, ctx, resolucao.musica, gerada.fala,
                                                               gerada.quantidade, dados.historico)
@@ -2584,6 +2617,7 @@ def _gerar_proxima_fala(
                     [v.ref_id for v in sintese.violacoes])
     _registrar_coerencia_formato(ctx, fala, sintese.duracao_fala_s if sintese.duracao_fala_s is not None
                                  else duracao_fala_estimada_s)
+    _registrar_memoria_reorientacao(ctx, fala)
     logger.info("live_proxima_pronta request_id=%s programa_id=%s tipo=%s audio_status=%s total_ms=%s", request_id,
                 programa.id, tipo, sintese.audio_status, round((time.perf_counter() - inicio_request) * 1000))
 
@@ -2648,10 +2682,41 @@ def _registrar_coerencia_formato(ctx: ContextoEmissao, fala: str, duracao_s: flo
         bloco=ctx.tipo, categoria=ctx.categoria, texto=fala, duracao_s=duracao_s or 0.0, primeira=ctx.primeira_fala,
         quadro=eh_quadro_fixo(programa, ctx.tipo), retorno=retorno,
         teto_s=plano.orcamento_s[1] if plano is not None and plano.orcamento_s else None,
-    ), nomes=(programa.nome, getattr(ctx.account, "nome_radio", "") or ""))
+        desde_reorientacao_s=ctx.memoria.desde_reorientacao_s,
+    ), nomes=_nomes_reorientacao(ctx))
     if avisos:
         logger.info("live_formato_aviso request_id=%s programa_id=%s formato=%s tipo=%s avisos=%s", ctx.request_id,
                     programa.id, ctx.formato.id, ctx.categoria, sorted({a.codigo for a in avisos}))
+
+
+def _gerada_da_peca_de_estouro(ctx: ContextoEmissao) -> FalaGerada | None:
+    """F11 (item 3): no "debate estourou" (plano `fechamento_curto` do relógio), a peça de reserva "estouro" aprovada
+    e ainda não dita nesta ocorrência fecha o assunto, sem chamar o LLM. Só quando cabe no orçamento do fechamento:
+    o texto aprovado vai ao ar inteiro, nunca encurtado. Diálogo multi-voz segue com o LLM."""
+    plano = ctx.tempo.plano
+    if plano is None or plano.instrucao != "fechamento_curto" or ctx.multi_voz or not plano.orcamento_s:
+        return None
+    peca = escolher_reserva(getattr(ctx.programa, "pecas_reserva", None) or [], "estouro", ctx.chamadas.pecas_usadas)
+    if peca is None or estimar_duracao_s(peca["texto"], ctx.wpm_fala) > plano.orcamento_s[1]:
+        return None
+    _registrar_peca_usada(ctx.programa.id, ctx.chamadas.ocorrencia, peca["id"])
+    logger.info("live_peca_reserva request_id=%s programa_id=%s tipo=estouro peca_id=%s", ctx.request_id,
+                ctx.programa.id, peca["id"])
+    return FalaGerada(falas_bloco=[], fala=peca["texto"], quantidade=1, ajuste="nenhum", preservar=[peca["texto"]],
+                      manter_frase=None, manter_ultima=False, pode_cortar=False)
+
+
+def _nomes_reorientacao(ctx: ContextoEmissao) -> tuple[str, str]:
+    return ctx.programa.nome, getattr(ctx.account, "nome_radio", "") or ""
+
+
+def _registrar_memoria_reorientacao(ctx: ContextoEmissao, fala: str) -> None:
+    """F8 (passo 3): a abertura do programa e toda fala que reorienta (nome do programa ou da rádio) viram a última
+    reorientação, só nos formatos com `reorientacao_s`. O instante é o de ir ao ar (relógio), não o da geração."""
+    if not ctx.formato.reorientacao_s or not fala.strip():
+        return
+    if ctx.primeira_fala or reorienta(fala, _nomes_reorientacao(ctx)):
+        _registrar_reorientacao(ctx.programa.id, ctx.tempo.instante)
 
 
 @router.get("/{radialista_id}/programas/{programa_id}/preparo")
