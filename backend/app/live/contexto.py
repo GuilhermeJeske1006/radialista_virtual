@@ -175,6 +175,10 @@ class Memoria:
     tom_anterior: str | None = None
     temas_usados: tuple[str, ...] = ()
     tema_callback: str | None = None
+    # F8 (passo 2): classe de abertura das duas últimas falas do histórico, quando repetida; None sem repetição.
+    abertura_repetida: str | None = None
+    # F8 (passo 3): segundos desde a última reorientação no ar; None sem memória ou formato sem reorientação.
+    desde_reorientacao_s: float | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -451,6 +455,8 @@ def _hora_certa_por_extenso(agora: datetime.datetime) -> str:
 
 
 from app.live.memoria import aberturas_e_fechamentos as _aberturas_e_fechamentos  # noqa: E402
+from app.live.memoria import abertura_repetida as _abertura_repetida  # noqa: E402
+from app.live.memoria import textos_do_historico as _textos_do_historico  # noqa: E402
 from app.live.memoria import primeira_frase as _primeira_frase  # noqa: E402,F401 -- reexportado (router e testes)
 from app.live.memoria import ultima_frase as _ultima_frase  # noqa: E402,F401 -- reexportado (router e testes)
 
@@ -624,6 +630,10 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
     pedido_ouvinte = PedidoRef.de(resolucao.pedido_ouvinte, novo) if resolucao.pedido_ouvinte is not None else None
     pedido_recente = PedidoRef.de(resolucao.pedido_recente, novo) if resolucao.pedido_recente is not None else None
     instante = plano.instante if plano is not None else agora_local.astimezone(datetime.timezone.utc)
+    # Memória da estrutura e da reorientação (F8): só leituras (histórico do painel e uma chave do Redis).
+    abertura_rep = _abertura_repetida(_textos_do_historico(entrada.dados.historico))
+    ultima_reorientacao = portas.ultima_reorientacao(programa.id) if formato.reorientacao_s else None
+    desde_reorientacao_s = (instante - ultima_reorientacao).total_seconds() if ultima_reorientacao else None
     # Promessas e participação (F4): só leituras do banco, depois de todos os sorteios; nenhuma chave no Redis.
     ocorrencia = plano.ocorrencia.chave if plano is not None else chave_ocorrencia(programa, radialista.timezone,
                                                                                    instante)
@@ -674,7 +684,8 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
         memoria=Memoria(historico=tuple(entrada.dados.historico), historico_prompt=resolucao.historico_prompt,
                         ultima_categoria=ultima_categoria, falas_categoria=tuple(falas_categoria),
                         aberturas=tuple(aberturas), fechamentos=tuple(fechamentos), tom_anterior=tom_anterior,
-                        temas_usados=tuple(temas_usados), tema_callback=tema_callback),
+                        temas_usados=tuple(temas_usados), tema_callback=tema_callback,
+                        abertura_repetida=abertura_rep, desde_reorientacao_s=desde_reorientacao_s),
         variacoes=Variacoes(verbo_identificacao=verbo, transicao=transicao, formato_comentario=formato_comentario,
                             convite_ouvinte=convite, expressao_regional=expressao_regional, quadro_fixo=quadro,
                             assunto_sugerido=sugerido, assunto=decisao.assunto, mudanca_de_ideia=mudanca_de_ideia,

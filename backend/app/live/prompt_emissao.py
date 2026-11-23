@@ -16,7 +16,14 @@ import dataclasses
 from typing import TYPE_CHECKING
 
 from app.dados.fontes import bloco_de_dados, extra_faixa, extra_ouvinte, no_bloco
-from app.live.formatos import direcao_formato, eh_quadro_fixo, linhas_do_formato
+from app.live.formatos import (
+    direcao_formato,
+    eh_quadro_fixo,
+    linhas_do_formato,
+    pede_reorientacao,
+    reorienta,
+    reorientacao_vencida,
+)
 from app.live.narrativo import eh_quadro_narrativo, instrucao_narrativa
 from app.live.persona import linhas_da_persona
 from app.live.direcao_voz import instrucao_energia
@@ -307,10 +314,19 @@ def _memoria(ctx: "ContextoEmissao") -> list[str]:
             "obrigatório toda vez, só quando render um gancho real; e nunca repita a mesma frase de opinião "
             "sobre música usada num bloco anterior."
         )
-    if m.aberturas:
+    reorientando = _pede_reorientacao(ctx)
+    # F8 (passo 3): quando a reorientação é pedida, o início que reorienta não entra na lista do que não repetir.
+    aberturas = [a for a in m.aberturas if not (reorientando and reorienta(a, _nomes(ctx)))]
+    if aberturas:
         linhas.append(
             "Não comece esta fala com um início parecido a estes já usados neste mesmo tipo de bloco: "
-            f"{' | '.join(m.aberturas)}."
+            f"{' | '.join(aberturas)}."
+        )
+    # F8 (passo 2): a estrutura, não só as palavras. A identificação pedida pela reorientação é exceção.
+    if m.abertura_repetida and not (reorientando and m.abertura_repetida == "identificacao"):
+        linhas.append(
+            f"As duas últimas falas abriram com {_DESCRICAO_ABERTURA.get(m.abertura_repetida, m.abertura_repetida)}. "
+            "Abra esta com outra construção, não só com outras palavras."
         )
     if m.fechamentos:
         linhas.append(
@@ -602,16 +618,42 @@ def _duracao(ctx: "ContextoEmissao") -> list[str]:
     return linhas
 
 
+_DESCRICAO_ABERTURA = {
+    "saudacao": "saudação (\"bom dia\", \"oi, gente\")",
+    "identificacao": "identificação da rádio ou do programa (\"Você está na...\")",
+    "retomada": "retomada (\"Seguimos\", \"Continuamos\")",
+    "agradecimento": "agradecimento (\"Que bom\", \"Obrigado\")",
+    "chamada": "chamada (\"Vamos\", \"Bora\", \"Agora\")",
+    "pergunta": "pergunta",
+}
+
+
+def _nomes(ctx: "ContextoEmissao") -> tuple[str, str]:
+    return ctx.programa.nome, getattr(ctx.account, "nome_radio", "") or ""
+
+
+def _retorno(ctx: "ContextoEmissao") -> bool:
+    plano = ctx.tempo.plano
+    return ctx.memoria.ultima_categoria == "patrocinador" or (
+        plano is not None and getattr(plano.etapa, "tipo_efetivo", None) == "retorno")
+
+
+def _pede_reorientacao(ctx: "ContextoEmissao") -> bool:
+    return pede_reorientacao(
+        ctx.formato, tipo=ctx.tipo, primeira=ctx.primeira_fala, quadro=eh_quadro_fixo(ctx.programa, ctx.tipo),
+        retorno=_retorno(ctx), reorientacao_vencida=reorientacao_vencida(ctx.formato, ctx.memoria.desde_reorientacao_s),
+    )
+
+
 def _formato(ctx: "ContextoEmissao") -> list[str]:
     """F6 (§6.9, D10): a identidade do programa no formato (promessa, público, participação, temas que exigem revisão
     e a reorientação nos blocos de retomada, identificação, retorno e quadro). Nenhuma linha no `padrao`."""
-    plano, programa = ctx.tempo.plano, ctx.programa
-    retorno = ctx.memoria.ultima_categoria == "patrocinador" or (
-        plano is not None and getattr(plano.etapa, "tipo_efetivo", None) == "retorno")
+    programa = ctx.programa
     return linhas_do_formato(
         ctx.formato, programa=programa.nome, tipo=ctx.tipo, primeira=ctx.primeira_fala,
-        quadro=eh_quadro_fixo(programa, ctx.tipo), retorno=retorno,
+        quadro=eh_quadro_fixo(programa, ctx.tipo), retorno=_retorno(ctx),
         publico=getattr(programa, "publico_alvo", "") or "",
+        reorientacao_vencida=reorientacao_vencida(ctx.formato, ctx.memoria.desde_reorientacao_s),
     )
 
 

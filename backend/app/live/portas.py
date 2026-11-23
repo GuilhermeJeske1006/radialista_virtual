@@ -56,6 +56,7 @@ class PortasEmissao:
     historico_temas: Funcao
     temas_recentes_da_radio: Funcao
     ultimo_tom: Funcao
+    ultima_reorientacao: Funcao
     fio_condutor: Funcao
     proximo_assunto: Funcao
     pipeline_tem_estoque: Funcao
@@ -97,6 +98,7 @@ class PortasEmissao:
         "historico_temas": "_historico_temas",
         "temas_recentes_da_radio": "_temas_recentes_da_radio",
         "ultimo_tom": "_ultimo_tom",
+        "ultima_reorientacao": "_ultima_reorientacao",
         "fio_condutor": "_fio_condutor",
         "buscar_roster": "_buscar_roster",
         "ajuste_energia_meio_programa": "_ajuste_energia_meio_programa",

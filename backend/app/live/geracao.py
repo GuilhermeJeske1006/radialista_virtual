@@ -79,6 +79,7 @@ def _limpar_fala(fala: str) -> str:
     return texto
 
 
+from app.live.formatos import reorienta  # noqa: E402
 from app.live.memoria import fala_semelhante_no_historico as _fala_semelhante_no_historico  # noqa: E402
 _TAG_BLOCO_MUSICAS = re.compile(r"\[BLOCO_MUSICAS:\s*(\d)\]\s*$")
 
@@ -202,7 +203,11 @@ def gerar_fala(ctx, prompt: PromptEmissao, portas: PortasEmissao,
     )
     motivos = MotivosRevisao(
         # Rede de seguranca: fala parecida com uma recente do mesmo tipo de bloco nesta sessao.
-        fala_parecida=_fala_semelhante_no_historico(fala, list(ctx.memoria.falas_categoria)),
+        # F8: a reorientação ("Você está no ...") é repetição permitida e sai da comparação.
+        fala_parecida=_fala_semelhante_no_historico(
+            fala, list(ctx.memoria.falas_categoria),
+            ignorar=lambda frase: reorienta(frase, (programa.nome, getattr(ctx.account, "nome_radio", "") or "")),
+        ),
         excedeu_duracao=excedeu_duracao,
         estimada_s=estimada_inicial,
         revisar_orcamento=excedeu_orcamento or excedeu_duracao,

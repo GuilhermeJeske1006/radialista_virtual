@@ -147,7 +147,7 @@ from app.live.roteiro import (  # noqa: F401 -- reexportados
     EntradaEmissao,
     decidir_bloco,
 )
-from app.live.formatos import FalaNoAr, Formato, avisos_da_fala, eh_quadro_fixo, formato_do_programa
+from app.live.formatos import FalaNoAr, Formato, avisos_da_fala, eh_quadro_fixo, formato_do_programa, reorienta
 from app.live.direcao_voz import tom_musical
 from app.live.song_service import dividir_artista_titulo, esquecer_video_catalogado, resolver_musica_catalogada
 from app.live.spotify import buscar_faixas_por_categoria
@@ -802,6 +802,20 @@ def _ultimo_tom(programa_id: int) -> str | None:
 
 def _registrar_ultimo_tom(programa_id: int, tom: str) -> None:
     redis_client.set(f"ultimo_tom:{programa_id}", tom, ex=_TTL_SESSAO_AO_VIVO)
+
+
+def _ultima_reorientacao(programa_id: int) -> datetime.datetime | None:
+    """F8 (passo 3): instante (UTC) da última fala deste programa que reorientou quem chegou ("Você está no ...")."""
+    valor = redis_client.get(f"ultima_reorientacao:{programa_id}")
+    try:
+        return datetime.datetime.fromisoformat(valor) if valor else None
+    except ValueError:
+        return None
+
+
+def _registrar_reorientacao(programa_id: int, instante: datetime.datetime) -> None:
+    redis_client.set(f"ultima_reorientacao:{programa_id}", instante.astimezone(datetime.timezone.utc).isoformat(),
+                     ex=_TTL_SESSAO_AO_VIVO)
 
 
 def _historico_musicas(programa_id: int) -> tuple[set[str], set[str], dict[str, int]]:
@@ -2584,6 +2598,7 @@ def _gerar_proxima_fala(
                     [v.ref_id for v in sintese.violacoes])
     _registrar_coerencia_formato(ctx, fala, sintese.duracao_fala_s if sintese.duracao_fala_s is not None
                                  else duracao_fala_estimada_s)
+    _registrar_memoria_reorientacao(ctx, fala)
     logger.info("live_proxima_pronta request_id=%s programa_id=%s tipo=%s audio_status=%s total_ms=%s", request_id,
                 programa.id, tipo, sintese.audio_status, round((time.perf_counter() - inicio_request) * 1000))
 
@@ -2648,10 +2663,24 @@ def _registrar_coerencia_formato(ctx: ContextoEmissao, fala: str, duracao_s: flo
         bloco=ctx.tipo, categoria=ctx.categoria, texto=fala, duracao_s=duracao_s or 0.0, primeira=ctx.primeira_fala,
         quadro=eh_quadro_fixo(programa, ctx.tipo), retorno=retorno,
         teto_s=plano.orcamento_s[1] if plano is not None and plano.orcamento_s else None,
-    ), nomes=(programa.nome, getattr(ctx.account, "nome_radio", "") or ""))
+        desde_reorientacao_s=ctx.memoria.desde_reorientacao_s,
+    ), nomes=_nomes_reorientacao(ctx))
     if avisos:
         logger.info("live_formato_aviso request_id=%s programa_id=%s formato=%s tipo=%s avisos=%s", ctx.request_id,
                     programa.id, ctx.formato.id, ctx.categoria, sorted({a.codigo for a in avisos}))
+
+
+def _nomes_reorientacao(ctx: ContextoEmissao) -> tuple[str, str]:
+    return ctx.programa.nome, getattr(ctx.account, "nome_radio", "") or ""
+
+
+def _registrar_memoria_reorientacao(ctx: ContextoEmissao, fala: str) -> None:
+    """F8 (passo 3): a abertura do programa e toda fala que reorienta (nome do programa ou da rádio) viram a última
+    reorientação, só nos formatos com `reorientacao_s`. O instante é o de ir ao ar (relógio), não o da geração."""
+    if not ctx.formato.reorientacao_s or not fala.strip():
+        return
+    if ctx.primeira_fala or reorienta(fala, _nomes_reorientacao(ctx)):
+        _registrar_reorientacao(ctx.programa.id, ctx.tempo.instante)
 
 
 @router.get("/{radialista_id}/programas/{programa_id}/preparo")
