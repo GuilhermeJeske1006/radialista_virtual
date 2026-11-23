@@ -2,7 +2,7 @@
 
 import { informarBloco } from "../lib/blocosReproduzidos";
 import { confirmarParticipacao } from "../lib/participacoes";
-import { relatarAsRun } from "../lib/asRun";
+import { relatarAsRun, statusAsRunDoBloco, type ResultadoBloco } from "../lib/asRun";
 import { esperarTransicao, pausaAntesDoBloco, reproduzirGrupoDeFalas } from "../lib/continuidadeAudio";
 import { FilaPreparo } from "../lib/filaPreparo";
 import { RecuperacaoAoVivo } from "../lib/recuperacaoAoVivo";
@@ -1697,10 +1697,6 @@ export function useLiveEngine() {
         } else {
           duracaoBlocoSegundos += await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala, () => {
             falaDoBlocoConcluida = true;
-            // F11: fim natural do audio = foi ao ar (o as-run so conta quando o player confirma)
-            if (radialistaIdRef.current && programaIdRef.current) {
-              relatarAsRun(radialistaIdRef.current, programaIdRef.current, novaFala.as_run_evento_id, "confirmado").catch(() => {});
-            }
           });
         }
         // bloco pode ter mais de uma musica (o agente decidiu emendar) --
@@ -1756,9 +1752,16 @@ export function useLiveEngine() {
     }
 
     if (heartbeatBloco) clearInterval(heartbeatBloco);
+    const resultadoBloco: ResultadoBloco = participacaoConcluida && falaDoBlocoConcluida ? "concluido" :
+      execucaoAtualRef.current !== minhaExecucao || !programaAtivoRef.current ? "interrompido" : "falhou";
+    // F11: o as-run só conta como ao ar o que o player relata, em todo tipo de bloco (fala, multi-voz,
+    // vinheta, patrocinador, música).
+    const statusAsRun = statusAsRunDoBloco(resultadoBloco);
+    if (statusAsRun && radialistaIdRef.current && programaIdRef.current) {
+      relatarAsRun(radialistaIdRef.current, programaIdRef.current, novaFala.as_run_evento_id, statusAsRun).catch(() => {});
+    }
     try {
-      await informarBloco(novaFala, participacaoConcluida && falaDoBlocoConcluida ? "concluido" :
-        execucaoAtualRef.current !== minhaExecucao || !programaAtivoRef.current ? "interrompido" : "falhou");
+      await informarBloco(novaFala, resultadoBloco);
     } catch {
       setErro("O resultado deste bloco não foi confirmado. O contexto do atendimento não foi atualizado.");
     }

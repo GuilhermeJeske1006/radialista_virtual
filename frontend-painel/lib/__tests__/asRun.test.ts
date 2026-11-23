@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const apiFetch = vi.fn();
 vi.mock("../api", () => ({ apiFetch: (...args: unknown[]) => apiFetch(...args) }));
 
-import { relatarAsRun } from "../asRun";
+import { relatarAsRun, statusAsRunDoBloco } from "../asRun";
 
 describe("relatarAsRun (F11 item 1)", () => {
   beforeEach(() => apiFetch.mockReset().mockResolvedValue({ id: 7, status: "confirmado" }));
@@ -19,5 +19,16 @@ describe("relatarAsRun (F11 item 1)", () => {
   it("sem id de evento não chama a API (resposta antiga, sem as-run)", async () => {
     expect(await relatarAsRun(3, 5, null, "confirmado")).toBeNull();
     expect(apiFetch).not.toHaveBeenCalled();
+  });
+});
+
+describe("statusAsRunDoBloco", () => {
+  it("bloco tocado até o fim vira confirmado; erro vira falhou", () => {
+    expect(statusAsRunDoBloco("concluido")).toBe("confirmado");
+    expect(statusAsRunDoBloco("falhou")).toBe("falhou");
+  });
+
+  it("bloco interrompido (pausa ou pular) não é relatado: fica enviado", () => {
+    expect(statusAsRunDoBloco("interrompido")).toBeNull();
   });
 });
