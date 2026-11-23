@@ -11,7 +11,13 @@ function programa(overrides: Partial<Programa> = {}): Programa {
   return { ...PROGRAMA_VAZIO, id: 1, radio_config_id: 1, nome: "Tarde Sertaneja", ...overrides };
 }
 
-const PROMESSAS = [/volto com mais/i, /trago certinho/i, /eu leio aqui/i, /assim que a fonte/i];
+const PROMESSAS = [
+  /volto com mais/i, /trago certinho/i, /eu leio aqui/i, /assim que a fonte/i,
+  // o fallback não toca música nem traz assunto: não pode anunciar nenhum dos dois
+  /\btoca a[ií]\b/i, /boa m[uú]sica/i, /fica comigo/i, /\bbora de\b/i,
+];
+// sem acento a voz lê errado ("aqui e" vira conjunção)
+const SEM_ACENTO = [/\baqui e\b/, /\bmusica\b/, /\bprogramacao\b/];
 
 describe("gerarFalaLocal", () => {
   it.each(["musical_companhia", "musical_adulto"])("musical (%s): identificação curta com o nome do programa", (perfil) => {
@@ -46,10 +52,14 @@ describe("gerarFalaLocal", () => {
   });
 
   it("nenhuma fala de emergência promete conteúdo (D22) e todas reorientam com o nome do programa", () => {
-    const p = programa({ estrutura_blocos: ["abertura", "musica", "comentario", "noticia", "chamada_ouvinte", "retomada"] });
+    const p = programa({
+      estrutura_blocos: ["abertura", "musica", "comentario", "noticia", "chamada_ouvinte", "retomada"],
+      generos_musicais: ["sertanejo"], musicas_permitidas: ["Estrada Aberta"], topicos_permitidos: ["feira"],
+    });
     for (let total = 0; total < 6; total += 1) {
       const { fala } = gerarFalaLocal(radialista, p, total, "Rádio Serra");
       for (const promessa of PROMESSAS) expect(fala, fala).not.toMatch(promessa);
+      for (const erro of SEM_ACENTO) expect(fala, fala).not.toMatch(erro);
       expect(fala, fala).toContain("Tarde Sertaneja");
       expect(fala, fala).toContain("Rádio Serra");
     }
