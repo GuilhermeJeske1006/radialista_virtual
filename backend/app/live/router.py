@@ -138,6 +138,7 @@ from app.live.validacao_fala import (
 )
 from app.live import promessas_repo
 from app.live.participacao import pedido_sem_mencao
+from app.live.pecas_reserva import escolher_reserva
 from app.live.promessas import PromessaRef, a_registrar_no_texto, dita, garantir_contingencia
 from app.live.roteiro import (  # noqa: F401 -- reexportados
     _LIMIAR_ENCERRAMENTO_MIN,
@@ -2583,7 +2584,8 @@ def _gerar_proxima_fala(
         return _resposta_so_musica(decisao, resolucao.musica, programa, cfg_relogio)
 
     ctx = montar_contexto(entrada, decisao, resolucao, portas)
-    gerada = gerar_fala(ctx, montar_prompt(ctx), portas, checar_pre=_checagem_pre(ctx))
+    gerada = _gerada_da_peca_de_estouro(ctx) or gerar_fala(ctx, montar_prompt(ctx), portas,
+                                                           checar_pre=_checagem_pre(ctx))
     tipo, categoria = ctx.tipo, ctx.categoria
     musica, musicas_bloco, nao_resolvidas = _musicas_do_bloco(db, ctx, resolucao.musica, gerada.fala,
                                                               gerada.quantidade, dados.historico)
@@ -2685,6 +2687,23 @@ def _registrar_coerencia_formato(ctx: ContextoEmissao, fala: str, duracao_s: flo
     if avisos:
         logger.info("live_formato_aviso request_id=%s programa_id=%s formato=%s tipo=%s avisos=%s", ctx.request_id,
                     programa.id, ctx.formato.id, ctx.categoria, sorted({a.codigo for a in avisos}))
+
+
+def _gerada_da_peca_de_estouro(ctx: ContextoEmissao) -> FalaGerada | None:
+    """F11 (item 3): no "debate estourou" (plano `fechamento_curto` do relógio), a peça de reserva "estouro" aprovada
+    e ainda não dita nesta ocorrência fecha o assunto, sem chamar o LLM. Só quando cabe no orçamento do fechamento:
+    o texto aprovado vai ao ar inteiro, nunca encurtado. Diálogo multi-voz segue com o LLM."""
+    plano = ctx.tempo.plano
+    if plano is None or plano.instrucao != "fechamento_curto" or ctx.multi_voz or not plano.orcamento_s:
+        return None
+    peca = escolher_reserva(getattr(ctx.programa, "pecas_reserva", None) or [], "estouro", ctx.chamadas.pecas_usadas)
+    if peca is None or estimar_duracao_s(peca["texto"], ctx.wpm_fala) > plano.orcamento_s[1]:
+        return None
+    _registrar_peca_usada(ctx.programa.id, ctx.chamadas.ocorrencia, peca["id"])
+    logger.info("live_peca_reserva request_id=%s programa_id=%s tipo=estouro peca_id=%s", ctx.request_id,
+                ctx.programa.id, peca["id"])
+    return FalaGerada(falas_bloco=[], fala=peca["texto"], quantidade=1, ajuste="nenhum", preservar=[peca["texto"]],
+                      manter_frase=None, manter_ultima=False, pode_cortar=False)
 
 
 def _nomes_reorientacao(ctx: ContextoEmissao) -> tuple[str, str]:
