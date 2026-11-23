@@ -47,6 +47,21 @@ def test_corte_comeca_e_termina_em_fala():
     assert cortes_do_as_run(eventos) == []
 
 
+def test_corte_reconhece_os_tipos_que_a_proxima_grava_no_as_run():
+    """O /proxima grava o tipo do bloco (abertura, comentario, Música Sertaneja...), nunca "fala"."""
+    eventos = [_ev(1, "vinheta"), _ev(2, "abertura"), _ev(3, "Música Sertaneja"), _ev(4, "comentario"),
+               _ev(5, "patrocinador"), _ev(6, "servico"), _ev(7, "intervalo"), _ev(8, "Notícia local")]
+    cortes = cortes_do_as_run(eventos)
+    assert [(c["ordem_inicio"], c["ordem_fim"]) for c in cortes] == [(2, 6)]
+    assert cortes[0]["tipos"] == ["abertura", "Música Sertaneja", "comentario", "patrocinador", "servico"]
+
+
+def test_bloco_de_fala_com_texto_vazio_nao_abre_nem_fecha_corte():
+    eventos = [{**_ev(1, "comentario"), "texto": "  "}, _ev(2, "comentario"), _ev(3, "noticia"),
+               {**_ev(4, "comentario"), "texto": ""}]
+    assert [(c["ordem_inicio"], c["ordem_fim"]) for c in cortes_do_as_run(eventos)] == [(2, 3)]
+
+
 def test_corte_respeita_tamanho_maximo_sem_sobrepor():
     eventos = [_ev(i) for i in range(1, 11)]
     cortes = cortes_do_as_run(eventos, maximo=4)
@@ -60,9 +75,10 @@ def test_api_lista_cortes_do_as_run(client, account, auth_headers, db_session):
     from tests.test_config_relogio import _criar_programa
     _, programa = _criar_programa(client, auth_headers, account.id)
     agora = dt.datetime.now(dt.timezone.utc)
-    for ordem, tipo in [(1, "fala"), (2, "fala"), (3, "musica")]:
+    for ordem, tipo, texto in [(1, "abertura", "Bom dia!"), (2, "comentario", "Hoje tem feira."), (3, "musica", ""),
+                               (4, "comentario", "")]:
         db_session.add(AsRunEvento(account_id=account.id, programa_id=programa["id"], ordem=ordem, tipo=tipo,
-                                   texto="", status="confirmado", criado_em=agora))
+                                   texto=texto, status="confirmado", criado_em=agora))
     db_session.commit()
     resposta = client.get(f"/config/programas/{programa['id']}/cortes", headers=auth_headers(account.id))
     assert resposta.status_code == 200

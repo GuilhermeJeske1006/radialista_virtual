@@ -5,19 +5,35 @@ Um corte é uma sequência contígua de eventos CONFIRMADOS (ver app.live.as_run
 - não tem evento "falhou" nem pedido de ouvinte no meio (pedido depende de contexto que não sai no corte);
 - tem entre `minimo` e `maximo` eventos.
 Os cortes não se sobrepõem: o primeiro válido ganha.
+
+O as-run guarda o tipo do bloco como o /proxima devolve (abertura, comentario, "Música Sertaneja", vinheta...),
+não "fala". Fala é todo bloco que não é música, vinheta, patrocinador nem intervalo e que tem texto.
 """
 
 from __future__ import annotations
 
+import unicodedata
 from collections.abc import Sequence
 from typing import Any
 
 MINIMO_EVENTOS = 2
 MAXIMO_EVENTOS = 6
 
+# Prefixo do tipo (sem acento, minúsculo) dos blocos sem locução própria.
+_PREFIXOS_SEM_FALA = ("musica", "vinheta", "patrocinador", "intervalo")
+
+
+def _normalizar(tipo: str) -> str:
+    sem_acento = unicodedata.normalize("NFKD", tipo).encode("ascii", "ignore").decode("ascii")
+    return sem_acento.strip().lower()
+
 
 def _e_fala(evento: dict[str, Any]) -> bool:
-    return evento.get("tipo") == "fala"
+    tipo = _normalizar(evento.get("tipo") or "")
+    if not tipo or tipo.startswith(_PREFIXOS_SEM_FALA):
+        return False
+    # Sem a chave "texto" (chamador antigo), vale só o tipo; com ela, bloco cortado ou vazio não é fala.
+    return "texto" not in evento or bool((evento.get("texto") or "").strip())
 
 
 def _valido_no_meio(evento: dict[str, Any]) -> bool:

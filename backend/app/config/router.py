@@ -1490,7 +1490,8 @@ def listar_cortes(
         .order_by(AsRunEvento.ordem.asc())
         .all()
     )
-    eventos = [{"ordem": ev.ordem, "tipo": ev.tipo, "status": ev.status, "pedido_id": ev.pedido_id} for ev in linhas]
+    eventos = [{"ordem": ev.ordem, "tipo": ev.tipo, "texto": ev.texto, "status": ev.status, "pedido_id": ev.pedido_id}
+               for ev in linhas]
     return cortes_do_as_run(eventos)
 
 
