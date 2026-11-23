@@ -621,7 +621,7 @@ def _rodar(cenario: Cenario, client, account, auth_headers, db_session, monkeypa
     monkeypatch.setattr("app.live.router.resumir_contexto_musica",
                         lambda titulo, canal, descricao, tags, ano: f"Contexto: {descricao}" if descricao else "")
     monkeypatch.setattr("app.live.router._registrar_tema_em_background", lambda pid, texto: temas_bg.append(texto))
-    monkeypatch.setattr("app.live.router.sugerir_musica_do_genero", lambda genero: "")
+    monkeypatch.setattr("app.live.router.sugerir_musica_do_genero", lambda genero, **kw: "")
     monkeypatch.setattr("app.live.router.buscar_faixas_por_categoria", lambda genero, excluir_titulos=None: [])
     monkeypatch.setattr("app.llm.prompt_builder.obter_clima_atual", lambda cidade: None)
     # F5: a porta nova do clima (app.live.portas); a conta tem cidade e iria à rede sem isto.

@@ -1338,7 +1338,7 @@ def test_escolher_query_musica_sugestao_llm_cataloga_e_reutiliza_youtube(
     programa.generos_musicais = ["Sertanejo"]
     db_session.commit()
 
-    monkeypatch.setattr("app.live.router.sugerir_musica_do_genero", lambda genero: "Jorge & Mateus - Propaganda")
+    monkeypatch.setattr("app.live.router.sugerir_musica_do_genero", lambda genero, **kw: "Jorge & Mateus - Propaganda")
     monkeypatch.setattr("app.live.song_service.obter_fim_seguro", lambda video_id, duracao: None)
 
     chamadas = []
@@ -1451,7 +1451,7 @@ def test_escolher_query_musica_sugestao_llm_grava_confianca_baixa(
     programa.generos_musicais = ["Sertanejo"]
     db_session.commit()
 
-    monkeypatch.setattr("app.live.router.sugerir_musica_do_genero", lambda genero: "Jorge & Mateus - Propaganda")
+    monkeypatch.setattr("app.live.router.sugerir_musica_do_genero", lambda genero, **kw: "Jorge & Mateus - Propaganda")
     monkeypatch.setattr("app.live.song_service.obter_fim_seguro", lambda video_id, duracao: None)
     monkeypatch.setattr(
         "app.live.song_service.buscar_musica",
@@ -1522,7 +1522,7 @@ def test_buscar_musica_para_bloco_usa_fallback_curado_quando_tudo_falha(
         return [("Jorge & Mateus", "Propaganda"), ("Gusttavo Lima", "Balada")]
 
     monkeypatch.setattr("app.live.router.buscar_faixas_por_categoria", _fake_faixas)
-    monkeypatch.setattr("app.live.router.sugerir_musica_do_genero", lambda genero: "")
+    monkeypatch.setattr("app.live.router.sugerir_musica_do_genero", lambda genero, **kw: "")
     monkeypatch.setattr("app.live.router.buscar_musica", lambda *args, **kwargs: None)
     monkeypatch.setattr("app.live.song_service.obter_fim_seguro", lambda video_id, duracao: None)
     monkeypatch.setattr(
@@ -1574,7 +1574,7 @@ def test_buscar_musica_para_bloco_descarta_canal_fora_do_genero(
     db_session.commit()
 
     monkeypatch.setattr("app.live.router.buscar_faixas_por_categoria", lambda genero, excluir_titulos=None: [])
-    monkeypatch.setattr("app.live.router.sugerir_musica_do_genero", lambda genero: "")
+    monkeypatch.setattr("app.live.router.sugerir_musica_do_genero", lambda genero, **kw: "")
     resultados = iter([
         MusicaEncontrada(video_id="funk1", titulo="Envolver", canal="Anitta"),
         MusicaEncontrada(video_id="sert1", titulo="Liberdade Provisoria", canal="Henrique e Juliano - Topic"),

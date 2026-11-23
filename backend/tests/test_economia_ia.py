@@ -216,3 +216,19 @@ def test_identificar_conta_isenta_desliga_cobranca_da_request():
             assert atual.get().faturavel is faturavel
         finally:
             atual.reset(token)
+
+
+def test_escolher_faixa_do_programa_usa_indice_do_llm_e_cai_em_none(monkeypatch):
+    faixas = [("A", "x"), ("B", "y"), ("C", "z")]
+    monkeypatch.setattr(llm, "gerar_classificacao", lambda sistema, msg, **kw: "Faixa 2")
+    assert llm.escolher_faixa_do_programa(faixas, "Programa: Manha") == 1
+    monkeypatch.setattr(llm, "gerar_classificacao", lambda sistema, msg, **kw: "9")
+    assert llm.escolher_faixa_do_programa(faixas, "Programa: Manha") is None
+    assert llm.escolher_faixa_do_programa(faixas[:1], "ctx") is None
+
+
+def test_sugerir_musica_envia_contexto_e_recentes(monkeypatch):
+    capturado = {}
+    monkeypatch.setattr(llm, "gerar_classificacao", lambda sistema, msg, **kw: capturado.update(msg=msg) or "A - B")
+    assert llm.sugerir_musica_do_genero("pop", contexto="Programa: Manha", evitar=["Hit (Canal)"]) == "A - B"
+    assert "Programa: Manha" in capturado["msg"] and "Hit (Canal)" in capturado["msg"]

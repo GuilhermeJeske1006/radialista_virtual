@@ -2,6 +2,7 @@ from typing import Literal
 import base64
 import dataclasses
 import datetime
+from zoneinfo import ZoneInfo
 from app.whatsapp.transmissao import acompanhar_geracao
 import logging
 import math
@@ -162,6 +163,7 @@ from app.llm.client import (
     gerar_resposta,  # noqa: F401 -- porta
     itens_fora_do_genero,
     resumir_contexto_musica,
+    escolher_faixa_do_programa,
     sugerir_musica_do_genero,
 )
 from app.llm.noticias import PesquisaNoticias, pesquisar_noticias  # noqa: F401 -- porta
@@ -1050,6 +1052,36 @@ def _pedidos_publico_mais_frequentes(db: Session, programa_id: int) -> list[tupl
     return list(linhas)
 
 
+def _contexto_musical_programa(programa: Programa) -> str:
+    """Resumo do programa no ar (nome, descricao, tom, topicos, criterios, horario) pra a escolha
+    da faixa ter nexo com o programa, nao so' com o genero."""
+    agora = datetime.datetime.now(ZoneInfo("America/Sao_Paulo"))
+    partes = [f"Programa: {programa.nome}"]
+    if programa.descricao:
+        partes.append(f"Descricao: {programa.descricao}")
+    if programa.tom:
+        partes.append(f"Tom: {programa.tom}")
+    if programa.topicos_permitidos:
+        partes.append("Assuntos: " + ", ".join(programa.topicos_permitidos[:8]))
+    if programa.criterios_busca_musicas:
+        partes.append(f"Criterios de musica: {programa.criterios_busca_musicas}")
+    partes.append(f"Horario agora: {agora:%H:%M}")
+    return "\n".join(partes)
+
+
+def _faixas_recentes_programa(db: Session, programa_id: int, limite: int = 20) -> list[str]:
+    """Titulo/canal das ultimas faixas tocadas no programa (persistente entre transmissoes), pra
+    mandar de lista de 'nao repita' ao LLM."""
+    linhas = (
+        db.query(MusicaHistorico.titulo, MusicaHistorico.canal)
+        .filter(MusicaHistorico.programa_id == programa_id)
+        .order_by(MusicaHistorico.criado_em.desc())
+        .limit(limite)
+        .all()
+    )
+    return [f"{titulo} ({canal})" for titulo, canal in linhas]
+
+
 def _escolher_query_musica(
     db: Session,
     programa: Programa,
@@ -1116,7 +1148,9 @@ def _escolher_query_musica(
         if _ja_tocada(item):
             continue
         candidatos.append(item)
-        pesos.append((total_permitidas - indice) * _PESO_POSICAO_ADMIN)
+        # peso so' levemente decrescente: antes (N-i)*3 fazia o 1o item da lista tocar N vezes
+        # mais que o ultimo, e o programa girava sempre em torno das mesmas 2-3 faixas.
+        pesos.append((1 + (total_permitidas - indice) / max(total_permitidas, 1)) * _PESO_POSICAO_ADMIN)
         origens.append("admin")
 
     for query_normalizada, contagem in _pedidos_publico_mais_frequentes(db, programa.id):
@@ -1142,13 +1176,22 @@ def _escolher_query_musica(
         # buscar_faixas_por_categoria em app.live.spotify) e' mais confiavel que texto livre da
         # LLM, que as vezes "inventa" combinacao artista+musica que nao existe. So' cai pro LLM
         # quando a integracao esta' desativada (sem credenciais) ou o genero nao tem match la'.
+        contexto = _contexto_musical_programa(programa)
+        recentes = _faixas_recentes_programa(db, programa.id)
         faixas_spotify = buscar_faixas_por_categoria(genero, excluir_titulos=titulos_tocados)
         if faixas_spotify:
-            artista, titulo = random.choice(faixas_spotify)
+            # artista que ja tocou na sessao sai do pool (quando sobra pool): a lista cacheada
+            # tem poucos artistas e o sorteio uniforme repetia sempre os mesmos.
+            canais = [c.lower() for c in (canais_tocados or {})]
+            variadas = [f for f in faixas_spotify if not any(f[0].lower() in c for c in canais)]
+            pool = variadas if len(variadas) >= 3 else faixas_spotify
+            pool = random.sample(pool, min(len(pool), 12))
+            indice = escolher_faixa_do_programa(pool, contexto)
+            artista, titulo = pool[indice] if indice is not None else random.choice(pool)
             sugestao = f"{artista} - {titulo}"
             return sugestao, None, _via_catalogo(sugestao, "spotify")
 
-        sugestao = sugerir_musica_do_genero(genero)
+        sugestao = sugerir_musica_do_genero(genero, contexto=contexto, evitar=recentes)
         if sugestao:
             return sugestao, None, _via_catalogo(sugestao, "llm_texto_livre")
         return f"{genero} musica", genero, None

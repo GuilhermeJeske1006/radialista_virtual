@@ -1,4 +1,5 @@
 import logging
+import re
 
 from anthropic import Anthropic
 
@@ -312,11 +313,13 @@ _SUGESTAO_MUSICA_SYSTEM_PROMPT = (
     "explicacao. Escolha sempre uma faixa avulsa (nunca um disco, playlist, coletanea ou 'os "
     "melhores de'), de preferencia bem popular, pra maximizar a chance dela existir com faixa "
     "propria (nao so' em compilacao) numa busca de video. Sempre uma musica CANTADA, com voz e "
-    "letra -- nunca instrumental."
+    "letra -- nunca instrumental. Se vier o contexto do programa, escolha uma faixa que combine "
+    "com o clima, o horario e o assunto dele. Varie: nao devolva sempre o maior sucesso do genero; "
+    "alterne artistas e epocas, e nunca repita as faixas listadas como recentes."
 )
 
 
-def sugerir_musica_do_genero(genero: str) -> str:
+def sugerir_musica_do_genero(genero: str, contexto: str = "", evitar: list[str] | tuple[str, ...] = ()) -> str:
     """Sugere uma musica avulsa (artista + titulo) real dentro de um genero, pra virar query de
     busca no YouTube (ver _escolher_query_musica em app.live.router). Sem isso, a query generica
     '{genero} musica' quase sempre so' encontra playlist/coletanea/top-n no YouTube -- que o
@@ -324,13 +327,48 @@ def sugerir_musica_do_genero(genero: str) -> str:
     bloco de musica do programa fica sem nada pra tocar. Nunca deve derrubar o ao vivo: qualquer
     falha ou resposta vazia cai em string vazia, e o caller usa a query generica de genero como
     ultimo recurso.
+
+    `contexto` (programa, tom, horario, criterios) liga a escolha ao que esta' no ar e `evitar`
+    (faixas recentes) quebra a convergencia pro mesmo "maior sucesso" do genero toda vez.
     """
+    mensagem = genero
+    if contexto:
+        mensagem += f"\n\nContexto do programa:\n{contexto}"
+    if evitar:
+        mensagem += "\n\nNao repita nem sugira estas (tocaram ha pouco):\n" + "\n".join(f"- {e}" for e in evitar)
     try:
-        resposta = gerar_classificacao(_SUGESTAO_MUSICA_SYSTEM_PROMPT, genero)
+        resposta = gerar_classificacao(_SUGESTAO_MUSICA_SYSTEM_PROMPT, mensagem)
     except Exception:
         logger.warning("Falha ao sugerir musica do genero: genero=%r", genero, exc_info=True)
         return ""
     return resposta.strip().strip('"')
+
+
+_ESCOLHA_FAIXA_SYSTEM_PROMPT = (
+    "Voce e' o musical de uma radio. Recebe o contexto do programa no ar (nome, descricao, tom, "
+    "horario, criterios) e uma lista numerada de faixas candidatas reais. Escolha UMA que melhor "
+    "combine com o clima, o horario e o assunto do programa. Prefira faixas menos obvias quando "
+    "todas encaixam igual. Responda so' com o numero da faixa, sem mais nada."
+)
+
+
+def escolher_faixa_do_programa(faixas: list[tuple[str, str]], contexto: str) -> int | None:
+    """Indice (base 0) da faixa que mais combina com o programa no ar, entre candidatas reais
+    (ver buscar_faixas_por_categoria). None em qualquer falha/resposta invalida -- o caller cai
+    pro sorteio simples, nunca trava o ao vivo."""
+    if len(faixas) < 2 or not contexto:
+        return None
+    linhas = "\n".join(f"{n}) {artista} - {titulo}" for n, (artista, titulo) in enumerate(faixas, 1))
+    try:
+        resposta = gerar_classificacao(_ESCOLHA_FAIXA_SYSTEM_PROMPT, f"Contexto do programa:\n{contexto}\n\nFaixas:\n{linhas}")
+    except Exception:
+        logger.warning("Falha ao escolher faixa pelo contexto do programa", exc_info=True)
+        return None
+    achado = re.search(r"\d+", resposta)
+    if not achado:
+        return None
+    indice = int(achado.group()) - 1
+    return indice if 0 <= indice < len(faixas) else None
 
 
 _GENERO_ARTISTA_SYSTEM_PROMPT = (
