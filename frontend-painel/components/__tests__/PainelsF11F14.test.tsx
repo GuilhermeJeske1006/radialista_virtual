@@ -8,7 +8,7 @@ vi.mock("../../lib/api", async () => {
 });
 
 import { ApiError } from "../../lib/api";
-import FalasRevisaoPanel from "../FalasRevisaoPanel";
+import FalasRevisaoPanel, { INTERVALO_ATUALIZACAO_REVISAO_MS } from "../FalasRevisaoPanel";
 import CortesProgramaPanel from "../CortesProgramaPanel";
 import PecasReservaSection from "../PecasReservaSection";
 
@@ -45,6 +45,22 @@ describe("FalasRevisaoPanel (F12)", () => {
     apiFetch.mockResolvedValueOnce([]);
     render(<FalasRevisaoPanel programaId={3} />);
     expect(await screen.findByText("Nenhuma fala aguardando revisão.")).toBeTruthy();
+  });
+
+  it("recarrega sozinha a cada intervalo: fala nova aparece e a vencida some", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const nova = { ...FALA, id: 8, texto: "Fala que chegou depois." };
+      apiFetch.mockResolvedValueOnce([FALA]).mockResolvedValueOnce([nova]);
+      render(<FalasRevisaoPanel programaId={3} />);
+      expect(await screen.findByText("Texto original da fala.")).toBeTruthy();
+      await vi.advanceTimersByTimeAsync(INTERVALO_ATUALIZACAO_REVISAO_MS);
+      expect(await screen.findByText("Fala que chegou depois.")).toBeTruthy();
+      expect(screen.queryByText("Texto original da fala.")).toBeNull();
+      expect(apiFetch).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

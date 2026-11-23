@@ -124,11 +124,51 @@ def test_api_lista_e_rejeita_fora_do_prazo(client, account, auth_headers, progra
     db_session.add(linha)
     db_session.commit()
     url = f"/config/programas/{programa.id}/falas-revisao"
-    listada = client.get(f"{url}?estado=aguardando_revisao", headers=auth_headers(account.id)).json()
+    with freeze_time(AGORA + datetime.timedelta(minutes=5)):
+        listada = client.get(f"{url}?estado=aguardando_revisao", headers=auth_headers(account.id)).json()
     assert [f["id"] for f in listada] == [linha.id]
-    # Sem freeze_time o relógio real é de 2026+ (muito depois do prazo de 2026-08-10): recusa com 409.
+    # Sem freeze_time o relógio real é muito depois do prazo de 2026-08-10: recusa com 409.
     recusada = client.post(f"{url}/{linha.id}/aprovar", headers=auth_headers(account.id))
     assert recusada.status_code == 409
+
+
+def test_fala_vencida_sai_de_aguardando_como_expirada(client, account, auth_headers, programa_com_topico,
+                                                      db_session):
+    """Sem job: a listagem e a decisão marcam como expirada a fala cujo prazo passou."""
+    _, programa = programa_com_topico
+    vencida = FalaEmRevisao(account_id=account.id, programa_id=programa.id, categoria="plantao", texto="velha",
+                            rota="revisao", motivo="revisao", estado="aguardando_revisao",
+                            criado_em=AGORA, prazo_em=AGORA + datetime.timedelta(minutes=20))
+    no_prazo = FalaEmRevisao(account_id=account.id, programa_id=programa.id, categoria="plantao", texto="nova",
+                             rota="revisao", motivo="revisao", estado="aguardando_revisao",
+                             criado_em=AGORA + datetime.timedelta(minutes=15),
+                             prazo_em=AGORA + datetime.timedelta(minutes=35))
+    db_session.add_all([vencida, no_prazo])
+    db_session.commit()
+    url = f"/config/programas/{programa.id}/falas-revisao"
+    with freeze_time(AGORA + datetime.timedelta(minutes=21)):
+        aguardando = client.get(f"{url}?estado=aguardando_revisao", headers=auth_headers(account.id)).json()
+        todas = {f["texto"]: f["estado"] for f in client.get(url, headers=auth_headers(account.id)).json()}
+        recusada = client.post(f"{url}/{vencida.id}/aprovar", headers=auth_headers(account.id))
+    assert [f["texto"] for f in aguardando] == ["nova"]
+    assert todas == {"velha": "expirada", "nova": "aguardando_revisao"}
+    assert recusada.status_code == 409
+
+
+def test_decidir_fora_do_prazo_grava_expirada(db_session, account, programa_com_topico):
+    from app.live.revisao import decidir_no_banco
+
+    _, programa = programa_com_topico
+    linha = FalaEmRevisao(account_id=account.id, programa_id=programa.id, categoria="plantao", texto="x",
+                          rota="revisao", motivo="revisao", estado="aguardando_revisao",
+                          criado_em=AGORA, prazo_em=AGORA + datetime.timedelta(minutes=20))
+    db_session.add(linha)
+    db_session.commit()
+    with pytest.raises(RevisaoInvalida):
+        decidir_no_banco(db_session, account.id, programa.id, linha.id, "aprovar",
+                         AGORA + datetime.timedelta(minutes=21))
+    db_session.refresh(linha)
+    assert linha.estado == "expirada"
 
 
 def test_api_fala_inexistente_404(client, account, auth_headers, programa_com_topico):

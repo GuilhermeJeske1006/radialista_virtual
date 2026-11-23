@@ -11,7 +11,7 @@ from sqlalchemy.orm.attributes import flag_modified
 from app.live.pecas_reserva import aprovar, normalizar_pecas
 from app.live.bancada import validar_papel_bancada
 from app.live.cortes import cortes_do_as_run
-from app.live.revisao import RevisaoInvalida, decidir_no_banco
+from app.live.revisao import RevisaoInvalida, decidir_no_banco, expirar_vencidas
 from app.live.relatorio_programa import montar_relatorio
 from app.auth.dependencies import get_current_account
 from app.db.database import get_db
@@ -1502,8 +1502,9 @@ def listar_falas_revisao(
     account: Account = Depends(get_current_account),
     db: Session = Depends(get_db),
 ):
-    """Falas que aguardam decisão (F12). Sem `estado`, traz todas."""
+    """Falas que aguardam decisão (F12). Sem `estado`, traz todas. Antes, marca como expiradas as vencidas."""
     _buscar_programa(db, account, programa_id)
+    expirar_vencidas(db, account.id, programa_id, datetime.datetime.now(datetime.timezone.utc))
     consulta = db.query(FalaEmRevisao).filter_by(programa_id=programa_id, account_id=account.id)
     if estado:
         consulta = consulta.filter_by(estado=estado)

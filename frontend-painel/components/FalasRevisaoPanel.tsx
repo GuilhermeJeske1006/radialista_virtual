@@ -8,6 +8,9 @@ import type { FalaRevisao } from "../lib/types";
 // a fala não vai ao ar daqui. Decisão só vale dentro do prazo (ver backend app/live/revisao.py).
 type Props = { programaId: number };
 
+// Falas novas chegam durante o programa e cada uma vale só até o prazo: a lista se atualiza sozinha.
+export const INTERVALO_ATUALIZACAO_REVISAO_MS = 30_000;
+
 function formatarPrazo(iso: string | null): string {
   if (!iso) return "sem prazo";
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -24,7 +27,11 @@ export default function FalasRevisaoPanel({ programaId }: Props) {
       .catch((err) => setErro(err instanceof ApiError ? err.message : "Erro ao carregar falas em revisão"));
   }, [programaId]);
 
-  useEffect(carregar, [carregar]);
+  useEffect(() => {
+    carregar();
+    const intervalo = setInterval(carregar, INTERVALO_ATUALIZACAO_REVISAO_MS);
+    return () => clearInterval(intervalo);
+  }, [carregar]);
 
   async function decidir(fala: FalaRevisao, acao: "aprovar" | "rejeitar") {
     setDecidindoId(fala.id);
