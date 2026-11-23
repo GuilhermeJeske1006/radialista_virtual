@@ -30,9 +30,17 @@ Calcule com um script Python em pasta temporária fora do repositório e registr
 | `aviso_oralidade` | contagem do verificador `app/live/oralidade.py` (se existir) |
 | `abertura_repetida` | mesma estrutura de abertura em 3 falas seguidas |
 | `silencio_s` | soma de lacunas entre `fim` e próximo `inicio` |
+| `vazamento_grave` | falas com placeholder, recusa, identidade de IA, data de corte, markdown, emoji ou link (`app/live/sinais_ia.vazamentos`, H1) |
+| `sinais_ia_media` | média da nota de sinais de IA por fala (`app/live/sinais_ia.pontuar`, H4) |
+| `sinais_ia_p90` | percentil 90 da mesma nota (posto mais próximo); ler junto com `sinais_ia_falas` (n pequeno ≈ máximo) |
+| `bordao_repetido` | bordão (até a H8, o slogan da conta) acima de 1 vez em 30 min (`app/live/memoria.bordoes_repetidos`, H5) |
 
 Qualquer valor > 0 em `anuncio_sem_confirmacao`, `promessa_vencida` ou `pedido_indevido` reprova,
-independentemente das notas.
+independentemente das notas. A partir da H1, `vazamento_grave > 0` também reprova. As quatro
+métricas de humanização valem `None` enquanto o detector da frente dona não existir: `None` significa
+"não se aplica", nunca zero. Para comparar antes e depois, recalcule as duas pontas com o mesmo
+detector: `backend/scripts/recalcular_humanizacao.py --as-run <arquivo>` (a linha de base da H0 guarda
+os textos, não os números).
 
 ## 2. Rubrica (julgamento, notas 1–5)
 
@@ -47,6 +55,7 @@ tipo). Leia a fala em voz alta mentalmente, no contexto do evento anterior e do 
 | Continuidade | liga o que passou ao próximo evento correto | desconexa ou errada |
 | Naturalidade | intenção muda de forma compreensível | padrão mecânico ou teatral |
 | Precisão | só fatos com fonte e válidos | inventa ou infere |
+| Soa como pessoa | não dá para dizer que é IA | tique de chatbot evidente (frase de atendimento, ressalva, tríade, fechamento-resumo, bordão repetido) |
 
 Regras do juiz:
 - Avalie o texto, não o modelo que gerou; não premie fala longa.

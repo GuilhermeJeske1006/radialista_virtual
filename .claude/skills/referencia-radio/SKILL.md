@@ -78,6 +78,31 @@ Trocar sinônimos não resolve repetição: variar a estrutura (abertura, gancho
 Reorientar quem acabou de sintonizar ("Você está no …") é repetição permitida, em frequência
 definida pelo formato.
 
+## Sinais de IA na fala
+
+Plano: `docs/plano-humanizacao-fala.md`. Corpus rotulado: `backend/tests/fixtures/humanizacao/corpus.json`
+(vazamento, sinal, não corrigir e sequências de bordão). Conjunto de 60 entradas nos dois tons:
+`docs/benchmarks/2026-11-23-humanizacao/casos.json`. Detector único no backend (`app/live/sinais_ia.py`,
+H1/H4); o simulador e os scripts importam o mesmo módulo, nunca uma cópia.
+
+- **Vazamento (bloqueio, nunca vai ao ar):** placeholder (`[NOME DO OUVINTE]`, `[artista]` minúsculo,
+  `{nome}`, `<bairro>`, FULANO, XXX), recusa do modelo, "como uma inteligência artificial", data de
+  corte ("até minha última atualização"), markdown, emoji no ar, link. Sem correção possível, entra a
+  fala de transição neutra, nunca o texto ruim.
+- **Sinal (pontua; acima do limite, reescrita única):** frase de atendimento ("espero ter ajudado",
+  "fico à disposição"), importância inflada, ressalva ("vale ressaltar"), conectivo de redação no
+  começo da frase, vocabulário de IA em sentido abstrato, "se destaca como" no lugar do "é", folheto
+  no patrocínio, paralelismo negativo ("não é só X, é Y"), tríade genérica, gerúndio de análise no
+  fim da frase, fechamento-resumo, atribuição vaga ("especialistas apontam"), travessão (H2 normaliza).
+  "Ademais", "outrossim" e "bem como" já são da oralidade (F7): não contar duas vezes.
+- **Não corrigir:** tom formal correto de notícia, um "além disso" isolado em fala longa, mistura de
+  casual e formal, reorientação na frequência do formato, tags v3 permitidas (`[laughs]`, `[pause]`),
+  palavra do léxico em sentido literal ("jornada de trabalho", "cenário" de teatro, "mergulhar" na
+  piscina), "na última atualização da Defesa Civil, às quinze horas", "fechando o programa de hoje",
+  um emoji no WhatsApp quando o ouvinte usou. O peso vem da densidade e da repetição, não da palavra.
+- **Bordão (D4):** slogan, traço marcante e frase de identificação contam; cada um no máximo 1 vez a
+  cada 30 min (configurável). Até a H8, o simulador usa só o slogan da conta.
+
 ## Relógios de referência (soma exata de 60 min)
 
 - A — Musical com companhia: música 50min15s, fala/identidade 3min45s, intervalos 6 min.
