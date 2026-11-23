@@ -1,0 +1,4 @@
+musical_adulto exit=0
+popular_sertanejo exit=0
+variedades_leves exit=0
+fim

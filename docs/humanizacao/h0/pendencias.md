@@ -2,17 +2,11 @@
 
 Fora do escopo da H0 ou dependentes de outra frente. Cada item diz quem resolve.
 
-## Achado que bloqueia o portão §7.2 (não causado pela H0)
+## Achado do portão §7.2 (resolvido)
 
-- **14 testes byte a byte da F5 e da F6 falham desde `301717d`** (direção de energia por programa), antes de qualquer
-  mudança da H0: `test_simulacao_f5.py::test_s1_sem_dado_o_ar_e_o_da_linha_de_base` e
-  `test_simulacao_f6.py::test_s1_formato_programa_e_a_f5_byte_a_byte`, nas variantes de `musical_adulto` (4 cada) e de
-  `popular_sertanejo` com relógio (3 cada). O as-run de hoje grava `"tom": "calmo"` onde o arquivo de
-  `docs/melhoria-radio/f5/simulacao/` tem `"neutro"`. Conferido: em `4fbd0fa` (commit anterior) os mesmos testes passam;
-  em `371b786`, sem nenhuma mudança da H0, falham. A auditoria da H0 supunha esses testes verdes. A H0 não regravou
-  os as-runs da F5 (regra da frente: não mexer nas fixtures da F5/F6). Decisão do orquestrador ou do usuário:
-  regravar a linha de base da F5 com a direção de voz (e registrar a mudança de `tom` como intencional) ou ajustar
-  `301717d`.
+- **14 testes byte a byte da F5 e da F6 falhavam desde `301717d`** (campo `tom` da direção de energia). Resolvido em
+  `3cabff7`: a mudança de `tom` foi aceita como intencional, as gravações da F5 foram regravadas e a F6 passou a ter
+  gravações próprias em `docs/melhoria-radio/f6/simulacao/programa/`. Não é mais bloqueio.
 
 ## Executor e adaptadores do conjunto
 
@@ -63,3 +57,17 @@ Fora do escopo da H0 ou dependentes de outra frente. Cada item diz quem resolve.
 
 - `travessao` ficou com 5 textos (a auditoria previa 4) para cumprir o mínimo de 5 por categoria de sinal. Total: 159
   textos e 8 sequências.
+
+## Simulação LLM: abertura musical abaixo do mínimo (aceito, registrado)
+
+- **Caso.** `musical_adulto`, bloco 2 (abertura), rodada LLM `docs/humanizacao/h0/simulacao/llm/musical_adulto_antes_correcao/`.
+  A primeira versão tinha ~63 palavras (dentro de 20–30 s). A validação de promessas (`promessa_sem_evento`) removeu
+  duas frases ("daqui a pouco", "meia hora"). Sobraram 34 palavras: 12,6 s previstos, 14,07 s medidos, abaixo do
+  mínimo de 20 s. Aviso `fora_da_unidade` no as-run, `coerencia_automatica` False.
+- **Por que passa.** `app/live/validacao_fala.py::corrigir`: a fala encurtada só vira `fala_neutra` se a reserva
+  neutra for mais longa que a restante (`fragmento`). Aqui não era, e o teto de 2 chamadas por fala já estava usado.
+- **Decisão (usuário).** Opção 1: reforçar a função `abertura` do formato musical (`app/live/formatos.py`) para não
+  prometer retorno ("daqui a pouco", "meia hora", "depois do intervalo") e preencher com apresentação. Opção 4: aceitar
+  o caso e registrar aqui; o aviso `fora_da_unidade` já o torna visível no as-run.
+- **Pendente.** Medir se a mudança de prompt reduz a ocorrência na próxima rodada LLM do musical (custo: 7–8 chamadas,
+  com aprovação). Até lá, a coerência do musical na simulação LLM continua reprovada por esse item.
