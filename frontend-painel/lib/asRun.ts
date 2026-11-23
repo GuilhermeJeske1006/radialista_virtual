@@ -4,6 +4,16 @@ import { apiFetch } from "./api";
 // ou deu erro ("falhou"). Sem esse relato o evento fica "enviado" e não conta como ao ar.
 export type StatusAsRunPlayer = "confirmado" | "falhou";
 
+export type ResultadoBloco = "concluido" | "interrompido" | "falhou";
+
+// O mesmo resultado que o player informa à transmissão (informarBloco) decide o as-run: tocou até o fim
+// confirma, erro falha. Interrompido (pausa, pular) não é relatado e fica "enviado": não foi ao ar inteiro.
+export function statusAsRunDoBloco(resultado: ResultadoBloco): StatusAsRunPlayer | null {
+  if (resultado === "concluido") return "confirmado";
+  if (resultado === "falhou") return "falhou";
+  return null;
+}
+
 export async function relatarAsRun(
   radialistaId: number,
   programaId: number,

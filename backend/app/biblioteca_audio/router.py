@@ -130,12 +130,15 @@ async def criar_item(
     nome: str | None = Form(None),
     categoria_id: int | None = Form(None),
     cor: str | None = Form(None),
+    uso: str = Form("generica"),
     arquivos: list[UploadFile] = File(...),
     account: Account = Depends(get_current_account),
     db: Session = Depends(get_db),
 ):
     if not arquivos:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nenhum arquivo de audio enviado")
+    if uso not in USOS_VALIDOS:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uso invalido")
 
     categoria_valida = _validar_categoria(db, account, categoria_id)
     usar_nome_informado = bool(nome) and len(arquivos) == 1
@@ -144,7 +147,7 @@ async def criar_item(
     for arquivo in arquivos:
         nome_item = nome if usar_nome_informado else (Path(arquivo.filename or "").stem or "Sem nome")
         item = BibliotecaAudioItem(
-            account_id=account.id, nome=nome_item, categoria_id=categoria_valida, cor=cor or None
+            account_id=account.id, nome=nome_item, categoria_id=categoria_valida, cor=cor or None, uso=uso
         )
         item.audio_path, item.audio_nome_original, item.duracao_segundos = await _salvar_audio(arquivo, account.id)
         db.add(item)
@@ -167,13 +170,14 @@ async def atualizar_item(
     cor: str | None = Form(None),
     ordem: int = Form(0),
     ativo: bool = Form(True),
-    uso: str = Form("generica"),
+    # Sem o campo, mantém o uso gravado: um save que não conhece `uso` não pode desfazer a marcação de promoção.
+    uso: str | None = Form(None),
     arquivo: UploadFile | None = File(None),
     account: Account = Depends(get_current_account),
     db: Session = Depends(get_db),
 ):
     item = _buscar_item(db, account, item_id)
-    if uso not in USOS_VALIDOS:
+    if uso is not None and uso not in USOS_VALIDOS:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uso invalido")
 
     item.nome = nome
@@ -181,7 +185,8 @@ async def atualizar_item(
     item.cor = cor or None
     item.ordem = ordem
     item.ativo = ativo
-    item.uso = uso
+    if uso is not None:
+        item.uso = uso
 
     if arquivo is not None:
         _remover_audio(item.audio_path)

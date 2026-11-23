@@ -16,7 +16,35 @@ export type BibliotecaAudioItem = {
   texto?: string | null;
   status?: StatusVinheta;
   origem?: "auto" | "manual";
+  // F10: "promocao" não toca logo depois de bloco de notícia; "generica" toca em qualquer ponto.
+  uso?: UsoVinheta;
 };
+
+export type UsoVinheta = "generica" | "promocao";
+
+export type CamposFormVinheta = {
+  nome: string;
+  categoria_id: number | null;
+  cor: string;
+  ordem: number;
+  ativo: boolean;
+  uso: UsoVinheta;
+  arquivo: File | null;
+};
+
+// Corpo do POST (criação) e do PUT (edição) de /biblioteca-audio. O POST aceita vários áudios e lê o campo
+// `arquivos`; o PUT troca um só e lê `arquivo`.
+export function dadosFormVinheta(campos: CamposFormVinheta, criando: boolean): FormData {
+  const dados = new FormData();
+  dados.set("nome", campos.nome);
+  if (campos.categoria_id !== null) dados.set("categoria_id", String(campos.categoria_id));
+  if (campos.cor) dados.set("cor", campos.cor);
+  dados.set("ordem", String(campos.ordem));
+  dados.set("ativo", String(campos.ativo));
+  dados.set("uso", campos.uso);
+  if (campos.arquivo) dados.set(criando ? "arquivos" : "arquivo", campos.arquivo);
+  return dados;
+}
 
 export type PapelVinheta = "abertura" | "passagem" | "encerramento";
 export type StatusVinheta = "pendente" | "gerando" | "pronta" | "erro";

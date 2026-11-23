@@ -80,6 +80,33 @@ def test_topico_proibido_troca_fala_por_substituta_e_guarda_o_original(
 
 
 @freeze_time("2026-08-10 15:00:00")
+def test_fala_bloqueada_nao_leva_o_audio_do_texto_original(
+    client, account, auth_headers, programa_com_topico, db_session, monkeypatch
+):
+    """Com incluir_audio (caminho do preparo antecipado), o áudio sintetizado é do texto original. A resposta
+    não pode carregar esse áudio junto com a substituta: o player tocaria a fala barrada."""
+    from tests.test_live_validacao_proxima import _mp3
+
+    radio_config, programa = programa_com_topico
+    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: FALA_PROIBIDA)
+    monkeypatch.setattr("app.live.router.tts_habilitado", lambda *a: True)
+    sinteses: list[str] = []
+    monkeypatch.setattr("app.live.router.sintetizar_audio",
+                        lambda texto, *a, **k: sinteses.append(texto) or _mp3(5.0))
+    resposta = client.post(_url_proxima(radio_config.id, programa.id),
+                           json={"historico": [], "total_falas": 0, "incluir_audio": True},
+                           headers=auth_headers(account.id))
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert sinteses, "o teste precisa passar pela síntese embutida"
+    assert corpo["fala"] in FALAS_SUBSTITUTAS
+    assert corpo["audio_base64"] is None
+    assert corpo["audios_falas_base64"] is None
+    assert corpo["audio_status"] == "pendente"  # o player sintetiza a substituta pelo /tts
+    assert corpo["duracao_fala_s"] is None
+
+
+@freeze_time("2026-08-10 15:00:00")
 def test_fala_normal_segue_sem_revisao(client, account, auth_headers, programa_com_topico, db_session, monkeypatch):
     radio_config, programa = programa_com_topico
     monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: "Bom dia, pessoal da rádio.")
