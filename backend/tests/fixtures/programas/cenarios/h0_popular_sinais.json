@@ -1,0 +1,184 @@
+{
+  "id": "h0_popular_sinais",
+  "formato": "popular_sertanejo",
+  "descricao": "H0 (humanização da fala), cenário dedicado: o popular_sertanejo com sinais de IA injetados pelo dublê do LLM, todos copiados do corpus (tests/fixtures/humanizacao/corpus.json). Três vazamentos (identidade de IA na fala 2, recusa na 6 e cabeçalho markdown na 9), um sinal denso na fala 8 e o slogan da conta nas falas 1, 2 e 5, dentro de trinta minutos. Mantém a promessa da linha de base na fala 4.",
+  "relogio": "A",
+  "timezone": "America/Sao_Paulo",
+  "inicio": "2026-11-10T14:00:00-03:00",
+  "unidade_fala": {
+    "min": 20,
+    "max": 60,
+    "fonte": "skill referencia-radio, tabela 'Unidades de fala iniciais por formato' (hipótese de projeto): popular/sertanejo, entrada"
+  },
+  "orcamento_ref_s": {
+    "padrao": {
+      "min": 20,
+      "max": 60,
+      "alvo": 35,
+      "fonte": "skill referencia-radio, tabela 'Unidades de fala iniciais por formato' (hipótese de projeto): popular/sertanejo, entrada"
+    },
+    "musica": {
+      "min": 20,
+      "max": 60,
+      "alvo": 25,
+      "fonte": "skill referencia-radio, tabela 'Unidades de fala iniciais por formato' (hipótese de projeto): popular/sertanejo, entrada"
+    },
+    "chamada_ouvinte": {
+      "min": 20,
+      "max": 60,
+      "alvo": 30,
+      "fonte": "skill referencia-radio, tabela 'Unidades de fala iniciais por formato' (hipótese de projeto): popular/sertanejo, entrada"
+    },
+    "encerramento": {
+      "min": 20,
+      "max": 60,
+      "alvo": 30,
+      "fonte": "skill referencia-radio, tabela 'Unidades de fala iniciais por formato' (hipótese de projeto): popular/sertanejo, entrada"
+    }
+  },
+  "conta": {
+    "nome_radio": "Rádio Ipê Dourado",
+    "slogan": "A viola que acompanha o seu dia",
+    "frequencia": "",
+    "cidade": "",
+    "atendimento_ouvinte_ativo": true
+  },
+  "radialista": {
+    "nome_locutor": "Zeca Porteira",
+    "personalidade": "Animado, prosa boa, respeitoso.",
+    "timezone": "America/Sao_Paulo"
+  },
+  "programa": {
+    "dias_semana": [],
+    "horario_inicio": "14:00",
+    "horario_fim": "15:00",
+    "ativo": true,
+    "ia_pode_adicionar_blocos": false,
+    "dose_noticia": "nenhuma",
+    "pode_pesquisar": false,
+    "tipos_noticias": [],
+    "fontes_noticias": [],
+    "musicas_bloqueadas": [],
+    "nome": "Prosa e Viola",
+    "descricao": "Sertanejo de raiz e romântico, com recado de ouvinte e prosa curta.",
+    "tom": "animado e acolhedor, prosa de interior, sem exagero",
+    "estrutura_blocos": [
+      "abertura",
+      "musica",
+      "musica",
+      "chamada_ouvinte",
+      "musica",
+      "comentario",
+      "musica",
+      "patrocinador:@spot"
+    ],
+    "perfil_programacao": "padrao",
+    "perfil": "musical",
+    "generos_musicais": [
+      "sertanejo"
+    ],
+    "musicas_permitidas": [],
+    "assuntos_ao_vivo": [],
+    "quadros_fixos": {}
+  },
+  "catalogo": "popular_sertanejo",
+  "vinhetas": [
+    {
+      "papel": "encerramento",
+      "texto": "Prosa e Viola, na Rádio Ipê Dourado.",
+      "duracao_s": null,
+      "com_audio": false
+    }
+  ],
+  "patrocinadores": [
+    {
+      "chave": "spot",
+      "nome": "Armazém Boa Colheita",
+      "tipo_conteudo": "audio",
+      "texto": "Armazém Boa Colheita: tudo para a sua roça, com atendimento de vizinho.",
+      "duracao_s": 30
+    }
+  ],
+  "pedidos": [
+    {
+      "chega_em_s": 300,
+      "tipo": "musica",
+      "nome": "Lurdinha Campos",
+      "telefone": "5500000000201",
+      "natureza": "pedido_musica",
+      "musica_query": "Café de Coador",
+      "mensagem": "Manda Café de Coador para a turma da cozinha!",
+      "texto_autorizado": "Pediu Café de Coador para a turma da cozinha."
+    },
+    {
+      "chega_em_s": 700,
+      "tipo": "abraco",
+      "nome": "Seu Ditinho",
+      "telefone": "5500000000202",
+      "natureza": "recado_comum",
+      "mensagem": "Um abraço para a turma da oficina mecânica.",
+      "texto_autorizado": "Mandou um abraço para a turma da oficina."
+    },
+    {
+      "chega_em_s": 1300,
+      "tipo": "musica",
+      "nome": "Rosa Bezerra",
+      "telefone": "5500000000203",
+      "natureza": "pedido_musica",
+      "musica_query": "Moda da Ponte Caída",
+      "mensagem": "Toca Moda da Ponte Caída, por favor.",
+      "texto_autorizado": "Pediu Moda da Ponte Caída."
+    },
+    {
+      "chega_em_s": 2000,
+      "tipo": "sorteio",
+      "nome": "Valdo Cunha",
+      "telefone": "5500000000204",
+      "natureza": "participacao_sorteio",
+      "mensagem": "Quero participar do sorteio!",
+      "texto_autorizado": "Quer participar do sorteio da semana."
+    }
+  ],
+  "injecoes": [
+    {
+      "fala": 4,
+      "tipo": "promessa",
+      "frase": "Daqui a pouco tem mais recado de ouvinte por aqui."
+    },
+    {
+      "fala": 1,
+      "tipo": "bordao",
+      "frase": "A viola que acompanha o seu dia."
+    },
+    {
+      "fala": 2,
+      "tipo": "bordao",
+      "frase": "A viola que acompanha o seu dia."
+    },
+    {
+      "fala": 2,
+      "tipo": "vazamento",
+      "frase": "Como uma inteligência artificial, eu não tenho lembranças de infância."
+    },
+    {
+      "fala": 5,
+      "tipo": "bordao",
+      "frase": "A viola que acompanha o seu dia."
+    },
+    {
+      "fala": 6,
+      "tipo": "vazamento",
+      "frase": "Desculpe, mas não posso ajudar com isso."
+    },
+    {
+      "fala": 8,
+      "tipo": "sinal_ia",
+      "frase": "Vale ressaltar que a festa da colheita é um verdadeiro marco histórico, reforçando a importância da nossa tradição. Em resumo, uma celebração de alegria, música e união."
+    },
+    {
+      "fala": 9,
+      "tipo": "vazamento",
+      "frase": "## Momento de prosa\nA conversa de hoje é sobre café passado na hora."
+    }
+  ]
+}
