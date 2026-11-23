@@ -148,6 +148,7 @@ from app.live.roteiro import (  # noqa: F401 -- reexportados
     decidir_bloco,
 )
 from app.live.formatos import FalaNoAr, Formato, avisos_da_fala, eh_quadro_fixo, formato_do_programa
+from app.live.direcao_voz import tom_musical
 from app.live.song_service import dividir_artista_titulo, esquecer_video_catalogado, resolver_musica_catalogada
 from app.live.spotify import buscar_faixas_por_categoria
 from app.llm.client import (
@@ -2205,8 +2206,10 @@ def _sintetizar_voz_unica(db: Session, entrada: EntradaEmissao, ctx: ContextoEmi
     request_id, programa_id = ctx.request_id, ctx.programa.id
     if sintese.falas_bloco or categoria == "patrocinador" or not sintese.fala.strip():
         return
-    sintese.tom = ctx.formato.comportamento.tom_tts or _tom_sintese_do_bloco(
-        tipo, ctx.participacao.pedido_ouvinte.natureza if ctx.participacao.pedido_ouvinte is not None else None
+    sintese.tom = ctx.formato.comportamento.tom_tts or tom_musical(
+        ctx.programa, categoria, _tom_sintese_do_bloco(
+            tipo, ctx.participacao.pedido_ouvinte.natureza if ctx.participacao.pedido_ouvinte is not None else None
+        ),
     )
     _registrar_ultimo_tom(programa_id, sintese.tom)
     if not dados.incluir_audio:
@@ -2293,7 +2296,9 @@ def _sintetizar_multivoz(db: Session, entrada: EntradaEmissao, ctx: ContextoEmis
     if not sintese.falas_bloco or not tts_habilitado(radialista.voz_id):
         return
     natureza = ctx.participacao.pedido_ouvinte.natureza if ctx.participacao.pedido_ouvinte is not None else None
-    tom_multivoz = _tom_sintese_do_bloco(tipo, natureza)
+    tom_multivoz = ctx.formato.comportamento.tom_tts or tom_musical(
+        ctx.programa, ctx.categoria, _tom_sintese_do_bloco(tipo, natureza)
+    )
     _registrar_ultimo_tom(programa_id, tom_multivoz)
     inicio_tts_multivoz = time.perf_counter()
     parametros_por_voz = _preparar_parametros_multivoz(db, account.id, sintese.falas_bloco)

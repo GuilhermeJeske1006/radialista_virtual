@@ -629,6 +629,31 @@ def test_tom_integrado_usa_direcao_editorial_do_bloco():
 
 
 @freeze_time(AGORA_UTC)
+@pytest.mark.parametrize("tom,persona,esperado", [
+    ("animado e descontraído", None, "energico"),
+    ("calmo e acolhedor", None, "calmo"),
+    ("calmo", {"energia": 5}, "energico"),
+])
+def test_programa_musical_entrega_tom_configurado_ao_player(
+    client, account, auth_headers, db_session, radialista_e_programa, monkeypatch, tom, persona, esperado
+):
+    radio, programa = radialista_e_programa
+    programa.perfil_programacao = "musical_companhia"
+    programa.tom, programa.persona = tom, persona
+    db_session.commit()
+    prompts = []
+    monkeypatch.setattr("app.live.router.gerar_resposta", lambda system, msg: prompts.append(system) or "Boa tarde!")
+    monkeypatch.setattr("app.live.router.tts_habilitado", lambda *_: True)
+    monkeypatch.setattr("app.live.router.sintetizar_audio", lambda *_a, **_k: pytest.fail("áudio adiado"))
+    resposta = client.post(_url_proxima(radio.id, programa.id),
+                           json={"total_falas": 0, "incluir_audio": False}, headers=auth_headers(account.id))
+    assert resposta.status_code == 200
+    assert resposta.json()["tom"] == esperado
+    assert resposta.json()["audio_status"] == "pendente"
+    assert bool(prompts and "sorriso na voz" in prompts[0]) == (esperado == "energico")
+
+
+@freeze_time(AGORA_UTC)
 @pytest.mark.parametrize("codigo", ["RuntimeError", "orcamento_ia_esgotado"])
 def test_proxima_informa_falha_de_audio_sem_forcar_segunda_sintese(
     client, account, auth_headers, radialista_e_programa, monkeypatch, codigo

@@ -208,7 +208,7 @@ FLAGS = [
     ("contexto.py:642 (convite)", "comportamento.convite", "qualquer_bloco", "so_chamada"),
     ("contexto.py:692, geracao.py:258, router.py:2093 (uma faixa)", "comportamento.uma_faixa_por_bloco",
      False, True),
-    ("router.py:2170 (tom do TTS)", "comportamento.tom_tts", None, "neutro"),
+    ("router.py:2170 (tom do TTS por programa/bloco)", "comportamento.tom_tts", None, None),
     ("prompt_builder.py:400, router.py:745 (blocos extras)", "comportamento.ia_pode_adicionar_blocos", True, False),
     ("relogio.py:835, :868 (preenchimento)", "comportamento.preenchimento_relogio", True, False),
     ("router.py:748-753 (abertura depois do intervalo, D17)", "comportamento.abertura_apos_intervalo",

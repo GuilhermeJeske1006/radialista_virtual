@@ -130,7 +130,7 @@ COMPORTAMENTO_PADRAO = Comportamento(
 )
 COMPORTAMENTO_MUSICAL = Comportamento(
     ciclo="musical", musica_sem_fala=True, uma_faixa_por_bloco=True, multivoz=False, naturalidade_encenada=False,
-    hora_e_marco=False, convite="so_chamada", tom_tts="neutro", ia_pode_adicionar_blocos=False,
+    hora_e_marco=False, convite="so_chamada", tom_tts=None, ia_pode_adicionar_blocos=False,
     preenchimento_relogio=False, abertura_apos_intervalo=False,
 )
 

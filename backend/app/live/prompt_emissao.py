@@ -19,6 +19,7 @@ from app.dados.fontes import bloco_de_dados, extra_faixa, extra_ouvinte, no_bloc
 from app.live.formatos import direcao_formato, eh_quadro_fixo, linhas_do_formato
 from app.live.narrativo import eh_quadro_narrativo, instrucao_narrativa
 from app.live.persona import linhas_da_persona
+from app.live.direcao_voz import instrucao_energia
 from app.live.promessas import descrever_agenda, instrucoes_do_bloco, situacao_do_contexto
 from app.live.orcamento import contar_pausas, palavras_max
 from app.live.prompts import (
@@ -167,7 +168,10 @@ def _abertura_do_system(ctx: "ContextoEmissao") -> list[str]:
         "um dado surpreendente. Nem toda fala precisa desse tipo de pausa; ela só funciona se for rara "
         "e vier no momento certo (no máximo uma vez por fala, quando fizer sentido) -- espalhar em todo ponto "
         "final destrói o efeito e some com o ritmo real de rádio.",
-        _PROSODIA_BLOCO.get(
+        (
+            "Este bloco é o ENCERRAMENTO do programa musical: despedida calorosa, grata e animada, "
+            "com ritmo vivo e assinatura firme. Feche a ideia com clareza, sem arrastar a voz."
+        ) if categoria == "encerramento" and instrucao_energia(ctx.programa, categoria) else _PROSODIA_BLOCO.get(
             categoria,
             f"Este bloco é '{tipo}': ajuste tom e ritmo conforme o conteúdo, mantendo a identidade do programa.",
         ),
@@ -177,9 +181,12 @@ def _abertura_do_system(ctx: "ContextoEmissao") -> list[str]:
 def _ritmo_e_naturalidade(ctx: "ContextoEmissao") -> list[str]:
     linhas: list[str] = []
     categoria, ultima_categoria, v = ctx.categoria, ctx.memoria.ultima_categoria, ctx.variacoes
+    direcao_energia = instrucao_energia(ctx.programa, categoria)
+    if direcao_energia:
+        linhas.append(direcao_energia)
     if v.transicao:
         linhas.append(v.transicao)
-    if categoria != "encerramento" and ultima_categoria is not None:
+    if not direcao_energia and categoria != "encerramento" and ultima_categoria is not None:
         # Frente K.3: a ENTRADA de um bloco (logo apos a transicao) tem ritmo diferente do meio dele.
         linhas.append(
             "O ritmo não é uniforme do início ao fim do bloco: a primeira frase, logo na entrada "
@@ -187,7 +194,7 @@ def _ritmo_e_naturalidade(ctx: "ContextoEmissao") -> list[str]:
             "o ritmo normal do bloco a partir da segunda frase em diante, em vez de já entrar "
             "acelerado como quem começa no meio de uma ideia."
         )
-    if ctx.tipo != "encerramento" and ctx.tempo.ajuste_energia:
+    if not direcao_energia and ctx.tipo != "encerramento" and ctx.tempo.ajuste_energia:
         linhas.append(ctx.tempo.ajuste_energia)
 
     if categoria not in _CATEGORIAS_NOTICIA_LIKE and ctx.formato.comportamento.naturalidade_encenada:
@@ -240,7 +247,7 @@ def _ritmo_e_naturalidade(ctx: "ContextoEmissao") -> list[str]:
     # Modelo de voz do programa (combinação escolhida), não só o padrão global: Flash não usa tags.
     if ctx.modelo_com_tags and categoria not in _CATEGORIAS_NOTICIA_LIKE:
         linhas.append(INSTRUCAO_TAGS_V3)
-        if ultima_categoria is not None:
+        if ultima_categoria is not None and not direcao_energia:
             linhas.append(
                 "Se usar uma tag logo na primeira frase (a entrada do bloco, ver ritmo mais medido acima), "
                 "ela pode ser diferente da tag usada mais adiante na mesma fala -- ex.: [calm] pra segurar a "
