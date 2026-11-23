@@ -504,13 +504,43 @@ Conferência de que as frentes surtiram efeito depois do merge em `master` (`9f9
   no preparo antecipado (F12), cortes sempre vazios (F14), confirmação do as-run só em um tipo de bloco (F11) e `uso` da
   vinheta desfeito a cada save (F10). Também corrigido: criar vinheta pela tela de vinhetagem dava 422 (campo `arquivo`
   em vez de `arquivos`).
-- **Código que existe mas não roda no fluxo real**: `escolher_reserva` (F11), `app/postprod/loudness.py` (F10),
-  `app/tts/glossario.py::sugerir_termos` (F9), `memoria.repeticao_estrutura` e a classificação de abertura e fechamento
-  (F8, só o simulador usa), reorientação periódica (F8: o `/proxima` chama `avisos_da_fala` sem `desde_reorientacao_s`).
-- **Ainda não feito**: tela do glossário da rádio e etapa de STT (F9); passos 2c, 3 e 4 da F8; ramp (F10); expiração das
-  falas em revisão (F12); tempo da bancada no relógio (F13); tela do quadro narrativo (F14).
-- **Painel**: o fallback local `gerarFalaLocal` (`hooks/useLiveEngine.ts`) segue sem acento ("aqui e", "musica") e
-  promete conteúdo ("Toca ai ...", "Fica com a gente e boa musica").
-- **Pendente de aprovação de custo**: rubrica do juiz com texto real (F7, F8, F13) e a redução de avisos de oralidade
-  (F7) dependem de `--modo llm`.
+- Na validação ficaram fora do fluxo real ou por fazer: `escolher_reserva`, `loudness.py`, `sugerir_termos`, repetição
+  por estrutura e reorientação periódica (só o simulador usava), tela do glossário, expiração das falas em revisão, tempo
+  da bancada no relógio, tela do quadro narrativo e a fala de emergência do painel. O que foi resolvido está na seção
+  seguinte.
 - Humanização (H0): ver [`docs/humanizacao/RELATORIO.md`](../humanizacao/RELATORIO.md).
+
+### Pendências fechadas depois da validação (23/11/2026, branch `melhoria/pendencias-f8-f14`)
+
+Decisões do usuário: os itens que exigem API paga ficam pendentes; o ramp (F10, item 2) fica como não aplicável.
+
+| Frente | Item | Como ficou | Commit |
+|---|---|---|---|
+| F8 | Passo 2: repetição por estrutura | A memória lê o histórico do painel; com as duas últimas falas abrindo com a mesma estrutura, o prompt pede outra construção. Sem chamada extra ao LLM. | `b56c3f2` |
+| F8 | Passo 3: reorientação periódica | O Redis guarda o instante da última reorientação por programa (formatos com `reorientacao_s`); vencido o intervalo, a seção do formato pede a reorientação em qualquer bloco. A reorientação sai da lista de aberturas, da checagem de estrutura e da similaridade. O aviso `live_formato_aviso` passa a ter a memória. | `b56c3f2` |
+| F8 | Passo 4: persistir correções | Já atendido: correção no ar fica em `noticia_historico` com ângulo `correcao` (`app/live/router.py`, teste `test_news_integracao_router.py::test_correcao_pendente_tem_prioridade_sobre_pauta_normal`), e promessas em `promessas_no_ar` (F4). A pendência anterior estava errada. | — |
+| F9 | Tela do glossário da rádio e sugestões | `GET /config/radio/glossario/sugestoes` (`sugerir_termos` sobre nome, cidade, bairros, patrocinadores, locutores e músicas da conta); seção "Glossário de pronúncia" em Configuração, com "Sugerir termos". Conferido no painel local. | `4cc60f6` |
+| F11 | Item 2: relatório no painel | `GET /config/programas/{id}/relatorio?data=` monta o resumo do dia do banco (as-run confirmado, promessas, pedidos); orçamento e hard time vão em `nao_medido`. Seção "Relatório do programa" no formulário. No painel local, o relatório de 21/11 mostra 3 de 20 blocos confirmados, o defeito do as-run corrigido em `48ab684`. | `6c0e10d` |
+| F11 | Item 3: peças de reserva no ar | Contingência de promessa (pedido, informação, quadro com entrevista ou convidado) usa a peça aprovada do tipo `pedido`, `fonte` ou `convidado`; o "debate estourou" do relógio fecha com a peça `estouro` que cabe no orçamento, sem LLM. Cada peça vai ao ar uma vez por ocorrência. | `1ec3bd6`, `b843f93` |
+| F12 | Expiração | Sem job: a listagem e a decisão marcam como `expirada` a fala vencida; a tela de revisão recarrega a cada 30 s. | `90cc901` |
+| F13 | Tempo da bancada no relógio | O corte do multi-voz ao orçamento da etapa já valia; teste fixa que a bancada com papéis não estoura a etapa. | `174f509` |
+| F14 | Quadro narrativo | Teste pelo `/proxima` no lugar do teste que só conferia o import; a tela de quadros marca o quadro "Narrativo"/"História" e explica como criar. | `908d952` |
+| Painel | Fala de emergência | Sem anunciar música ou assunto e com acento. | `3a0ec46` |
+
+Portão desta rodada: ruff limpo; vitest 420/420; `tsc` ok; simulação fake dos três perfis igual à do `master` byte a
+byte (as mudanças da F8 só alteram o prompt, que o dublê não lê); goldens de `/proxima` intactos; pytest completo
+**2551 passed, 3 skipped**, 0 falhas, cobertura 89% (antes: 2519).
+
+Ainda pendentes:
+- **Paga, aguardando aprovação**: rubrica do juiz com texto real (F7 clareza e naturalidade, F8 "nenhuma abertura
+  igual em 3 seguidas", F13 "resposta ao turno anterior"), redução de avisos de oralidade (F7) e verificação de pronúncia
+  por STT (F9).
+- **F10, item 2 (ramp)**: não aplicável por decisão do usuário. A análise de áudio só detecta silêncio, não o início do
+  vocal; o ao vivo segue falando antes da música, que é o caminho previsto pelo plano sem essa medida.
+- **F10, item 3 (loudness no as-run)**: `app/postprod/loudness.py` segue só nos testes. No simulador o TTS é um dublê
+  silencioso, então a medida sairia vazia; a medida útil é em produção (LUFS das vinhetas e áudios de patrocinador
+  contra o alvo do perfil de pós-produção da fala), o que pede gravar a medida por arquivo e uma tela.
+- **F11, peça de reserva "áudio falhou"**: texto aprovado não tem como ir ao ar quando a voz está fora. A contingência
+  de áudio segue sendo a vinheta de passagem gravada (`GET /live/.../reserva`). Para usar a peça, seria preciso
+  sintetizá-la na aprovação (uma chamada de TTS por aprovação).
+- **F12**: a fala aprovada continua sem caminho para ir ao ar (por desenho: aprovar só libera para conferência).
