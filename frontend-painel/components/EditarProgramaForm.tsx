@@ -678,6 +678,7 @@ export default function EditarProgramaForm({
             <FalasRevisaoPanel programaId={idEfetivo} />
             <hr className="border-border" />
             <CortesProgramaPanel programaId={idEfetivo} />
+            <hr className="border-border" />
             <RelatorioProgramaPanel programaId={idEfetivo} />
           </>
         )}
