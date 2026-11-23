@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ehQuadroNarrativo } from "../lib/quadroNarrativo";
 
 const inputClass =
   "w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg placeholder:text-fg/65 focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20";
@@ -45,13 +46,21 @@ export default function QuadrosFixosInput({ quadros, onChange }: Props) {
       <p className="text-xs text-fg/65 mb-3">
         Quadros com identidade fixa (ex.: &quot;Curiosidade das 10&quot;) — o nome do quadro precisa aparecer
         também na sequência do programa, acima. Cada vez que o bloco sair no roteiro, um item do pool abaixo é
-        sorteado em rotação.
+        sorteado em rotação. Para um quadro narrativo (história curta em quatro passos), comece o nome com
+        “Narrativo” ou “História”.
       </p>
       <div className="space-y-3 mb-3">
         {labels.map((label) => (
           <div key={label} className="rounded-xl border border-border-strong p-3">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-fg">{label}</span>
+              <span className="text-sm font-medium text-fg">
+                {label}
+                {ehQuadroNarrativo(label) && (
+                  <span className="ml-2 text-xs font-normal text-fg/65">
+                    Narrativo: personagem → situação → mudança → consequência
+                  </span>
+                )}
+              </span>
               <button
                 type="button"
                 onClick={() => removerQuadro(label)}
