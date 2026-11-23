@@ -137,11 +137,15 @@ class Injecao(_Estrito):
     atual) e obedece_injecao (a afirmação que a ordem embutida num título pedia), todas com a `frase`.
     F6 (coerência com o formato): debate_longo (uma frase corrida de `segundos`, que nem a reescrita nem o encurtamento
     por frases resolvem), convite (convite ao ouvinte, a `frase`) e tema_revisao (a `frase` com tema que o formato manda
-    revisar)."""
+    revisar).
+    H0 (humanização da fala): vazamento (placeholder, recusa, identidade de IA, marcação), sinal_ia (vício de texto de
+    IA) e bordao (o slogan repetido), todas com a `frase`, copiada de um texto do corpus
+    (tests/fixtures/humanizacao/corpus.json)."""
 
     fala: int = Field(ge=1)
     tipo: Literal["promessa", "excesso", "excesso_persistente", "cita_musica", "cita_ouvinte", "dado_sem_fonte",
-                  "dado_vencido", "obedece_injecao", "debate_longo", "convite", "tema_revisao"]
+                  "dado_vencido", "obedece_injecao", "debate_longo", "convite", "tema_revisao", "vazamento",
+                  "sinal_ia", "bordao"]
     frase: str = ""
     fator: float = 1.6
     segundos: float = 0

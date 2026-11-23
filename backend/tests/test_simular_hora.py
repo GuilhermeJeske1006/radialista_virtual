@@ -360,6 +360,173 @@ def test_metricas_em_as_run_artificial():
 
 
 # ---------------------------------------------------------------------------------------------
+# H0 (humanização da fala): métricas com o detector do backend, importado na hora
+# ---------------------------------------------------------------------------------------------
+
+CHAVES_HUMANIZACAO = ("vazamento_grave", "sinais_ia_media", "sinais_ia_p90", "bordao_repetido")
+
+
+@pytest.fixture
+def sem_detectores_h0(monkeypatch):
+    """Estado da H0: app.live.sinais_ia (H1/H4) e memoria.bordoes_repetidos (H5) não existem."""
+    from app.live import memoria
+
+    monkeypatch.setitem(sys.modules, "app.live.sinais_ia", None)
+    monkeypatch.delattr(memoria, "bordoes_repetidos", raising=False)
+
+
+@pytest.fixture
+def detectores_h0_duble(monkeypatch):
+    """Detectores dublês no lugar dos que a H1, a H4 e a H5 vão criar: `vazamentos` acusa "[", `pontuar` devolve a nota
+    de `notas` (0 para texto fora dela) e `bordoes_repetidos` guarda os argumentos e devolve `bordao`."""
+    import types
+
+    from app.live import memoria
+
+    estado = {"notas": {}, "bordao": 0, "chamadas_bordao": [], "textos_pontuados": []}
+    modulo = types.ModuleType("app.live.sinais_ia")
+
+    def pontuar(texto):
+        estado["textos_pontuados"].append(texto)
+        return types.SimpleNamespace(nota=estado["notas"].get(texto, 0.0), violacoes=[])
+
+    modulo.vazamentos = lambda texto: ["["] if "[" in texto else []
+    modulo.pontuar = pontuar
+
+    def bordoes_repetidos(falas, bordoes, *, janela_s, maximo):
+        estado["chamadas_bordao"].append({"falas": falas, "bordoes": bordoes, "janela_s": janela_s, "maximo": maximo})
+        return estado["bordao"]
+
+    monkeypatch.setitem(sys.modules, "app.live.sinais_ia", modulo)
+    monkeypatch.setattr(memoria, "bordoes_repetidos", bordoes_repetidos, raising=False)
+    return estado
+
+
+def test_metricas_humanizacao_sem_detector_valem_none(sem_detectores_h0):
+    from scripts.simulacao.metricas import metricas_humanizacao
+
+    as_run = _as_run_artificial()
+    copia = json.loads(json.dumps(as_run))
+    m = metricas_humanizacao(as_run, bordoes=["Rádio Serra Clara"])
+    assert {k: m[k] for k in CHAVES_HUMANIZACAO} == dict.fromkeys(CHAVES_HUMANIZACAO)
+    # n medido (fato 9 da auditoria): as falas com texto, mesmo sem detector.
+    assert m["sinais_ia_falas"] == 5
+    assert as_run == copia  # função pura: não anota o as-run
+
+
+def test_metricas_humanizacao_com_detector_duble(detectores_h0_duble):
+    from scripts.simulacao.metricas import metricas_humanizacao
+
+    as_run = _as_run_artificial()
+    falas = _falas(as_run)
+    falas[1]["texto"] = "Um alô para [NOME DO OUVINTE], que ouve do trabalho."
+    detectores_h0_duble["notas"] = {falas[0]["texto"]: 10.0, falas[1]["texto"]: 35.5, falas[3]["texto"]: 20.0}
+    detectores_h0_duble["bordao"] = 2
+    m = metricas_humanizacao(as_run, bordoes=["Rádio Serra Clara", ""])
+    assert m["vazamento_grave"] == 1
+    assert m["sinais_ia_media"] == pytest.approx(13.1)  # (10 + 35,5 + 0 + 20 + 0) / 5
+    assert m["sinais_ia_p90"] == pytest.approx(35.5)    # posto ceil(0,9 x 5) = 5
+    assert m["sinais_ia_falas"] == 5
+    assert m["bordao_repetido"] == 2
+    (chamada,) = detectores_h0_duble["chamadas_bordao"]
+    assert chamada["falas"] == [(float(f["inicio_s"]), f["texto"]) for f in falas]
+    assert chamada["bordoes"] == ["Rádio Serra Clara"]
+    from scripts.simulacao.metricas import CONFIG_METRICAS
+
+    assert (chamada["janela_s"], chamada["maximo"]) == (1800, 1) == (
+        CONFIG_METRICAS["humanizacao"]["bordao"]["janela_s"], CONFIG_METRICAS["humanizacao"]["bordao"]["maximo"])
+
+
+def test_metricas_humanizacao_ignoram_fala_vazia(detectores_h0_duble):
+    from scripts.simulacao.metricas import metricas_humanizacao
+
+    as_run = _as_run_artificial()
+    falas = _falas(as_run)
+    falas[0]["texto"] = "   "
+    falas[2]["texto"] = ""
+    m = metricas_humanizacao(as_run)
+    assert m["sinais_ia_falas"] == 3
+    assert "" not in detectores_h0_duble["textos_pontuados"] and "   " not in detectores_h0_duble["textos_pontuados"]
+    assert len(detectores_h0_duble["chamadas_bordao"][0]["falas"]) == 3
+    sem_falas = _as_run_artificial()
+    sem_falas["eventos"] = [e for e in sem_falas["eventos"] if e["tipo"] != "fala"]
+    vazio = metricas_humanizacao(sem_falas)
+    assert (vazio["sinais_ia_media"], vazio["sinais_ia_p90"], vazio["vazamento_grave"], vazio["sinais_ia_falas"]) == (
+        None, None, 0, 0)
+
+
+def test_percentil_posto_mais_proximo():
+    from scripts.simulacao.metricas import _percentil
+
+    assert _percentil([], 90) is None
+    assert _percentil([7.0], 90) == 7.0
+    assert _percentil([float(v) for v in range(10, 0, -1)], 90) == 9.0  # posto ceil(0,9 x 10) = 9
+    assert _percentil([float(v) for v in range(1, 21)], 90) == 18.0
+    assert _percentil([1.0, 2.0, 3.0], 90) == 3.0
+
+
+def test_metricas_humanizacao_detector_parcial(monkeypatch):
+    """H1 pronta e H4 ainda não: o módulo existe só com `vazamentos`; a média fica None, o vazamento é contado."""
+    import types
+
+    from app.live import memoria
+    from scripts.simulacao.metricas import metricas_humanizacao
+
+    modulo = types.ModuleType("app.live.sinais_ia")
+    modulo.vazamentos = lambda texto: []
+    monkeypatch.setitem(sys.modules, "app.live.sinais_ia", modulo)
+    monkeypatch.delattr(memoria, "bordoes_repetidos", raising=False)
+    m = metricas_humanizacao(_as_run_artificial())
+    assert m["vazamento_grave"] == 0
+    assert (m["sinais_ia_media"], m["sinais_ia_p90"], m["bordao_repetido"]) == (None, None, None)
+
+
+def test_detector_so_engole_a_falta_do_proprio_modulo(monkeypatch):
+    import types
+
+    from scripts.simulacao import metricas
+
+    def import_quebrado(nome):
+        raise ModuleNotFoundError("No module named 'dependencia_interna'", name="dependencia_interna")
+
+    monkeypatch.setattr(metricas, "importlib", types.SimpleNamespace(import_module=import_quebrado))
+    with pytest.raises(ModuleNotFoundError, match="dependencia_interna"):
+        metricas._detector("app.live.sinais_ia", "vazamentos")
+    with pytest.raises(ModuleNotFoundError):
+        metricas.metricas_humanizacao(_as_run_artificial())
+
+    def import_ausente(nome):
+        raise ModuleNotFoundError(f"No module named '{nome}'", name=nome)
+
+    monkeypatch.setattr(metricas, "importlib", types.SimpleNamespace(import_module=import_ausente))
+    assert metricas._detector("app.live.sinais_ia", "vazamentos") is None
+
+
+def test_duble_llm_injeta_as_frases_da_h0():
+    from scripts.simulacao.dubles import DubleLLM, EstadoChamada
+    from scripts.simulacao.fixtures import Injecao, carregar_fixture
+
+    frases = {
+        "vazamento": "Desculpe, mas não posso ajudar com isso.",
+        "sinal_ia": "Vale ressaltar que a festa é um verdadeiro marco histórico.",
+        "bordao": "A viola que acompanha o seu dia.",
+    }
+    injecoes = [Injecao(fala=n, tipo=tipo, frase=frase) for n, (tipo, frase) in enumerate(frases.items(), start=1)]
+    fixture = carregar_fixture("popular_sertanejo").model_copy(update={"injecoes": injecoes})
+    estado = EstadoChamada()
+    duble = DubleLLM(fixture, estado, wpm=145, semente=7)
+    for n, (tipo, frase) in enumerate(frases.items(), start=1):
+        estado.nova_chamada(bloco_n=n, total_falas=n - 1)
+        texto = duble.gerar_resposta("prompt", "Tipo do próximo bloco: comentario.\n")
+        assert texto.endswith(frase), (tipo, texto)
+        assert duble.contadores[f"injecao_{tipo}"] == 1
+    # A revisão da mesma fala repete a frase, como as injeções da F6.
+    texto = duble.gerar_resposta("prompt\nReescreva com no máximo 40 palavras, preservando os fatos.",
+                                 "Tipo do próximo bloco: comentario.\n")
+    assert texto.endswith(frases["bordao"]) and duble.contadores["injecao_bordao"] == 2
+
+
+# ---------------------------------------------------------------------------------------------
 # Integração (pelo /proxima real)
 # ---------------------------------------------------------------------------------------------
 
@@ -524,6 +691,33 @@ def test_injecoes_aparecem_nas_metricas(simulacoes):
     assert variedades["ouvinte_inexistente"] == 0
 
 
+@pytest.mark.parametrize("perfil", PERFIS)
+def test_resumo_tem_as_metricas_de_humanizacao(simulacoes, perfil):
+    """H0: as quatro chaves no topo do resumo.json, None enquanto o detector da frente dona não existir (H1, H4, H5)."""
+    saida = simulacoes[perfil]["saida"]
+    resumo = json.loads((saida / "resumo.json").read_text(encoding="utf-8"))
+    for chave in CHAVES_HUMANIZACAO:
+        assert chave in resumo, chave
+        assert resumo[chave] is None or isinstance(resumo[chave], (int, float)), (chave, resumo[chave])
+    assert resumo["sinais_ia_falas"] == len(
+        [e for e in simulacoes[perfil]["resultado"].as_run["eventos"] if e["tipo"] == "fala" and e["texto"].strip()])
+
+
+def test_metricas_de_humanizacao_so_acrescentam_chaves(simulacoes, monkeypatch):
+    """Caracterização (portão §7.4): sem as métricas da H0, o as-run e as chaves que já existiam são os mesmos."""
+    from scripts.simulacao import metricas
+    from scripts.simular_hora import simular
+
+    base = simulacoes["popular_sertanejo"]["resultado"]
+    monkeypatch.setattr(metricas, "metricas_humanizacao", lambda as_run, **_: {})
+    sem_h0 = simular("popular_sertanejo")
+    assert sem_h0.as_run == base.as_run
+    novas = set(CHAVES_HUMANIZACAO) | {"sinais_ia_falas"}
+    assert set(base.resumo) - set(sem_h0.resumo) == novas
+    antigas = {k: v for k, v in _resumo_comparavel(base.resumo).items() if k not in novas}
+    assert antigas == _resumo_comparavel(sem_h0.resumo)
+
+
 def test_dubles_cobrem_alvos_existentes(simulacoes, db_session):
     import importlib
 
@@ -577,6 +771,8 @@ def test_cli_modo_fake_grava_saidas(tmp_path):
     resumo = json.loads((tmp_path / "saida" / "resumo.json").read_text(encoding="utf-8"))
     assert resumo["tentativas_rede"] == 0
     assert "musical_adulto" in processo.stdout
+    # H0: a linha-resumo traz as métricas de humanização (None até a H1 e a H4).
+    assert "vazamento_grave=" in processo.stdout and "sinais_ia_media=" in processo.stdout
 
 
 def test_casos_de_avaliacao_cobrem_as_regras():

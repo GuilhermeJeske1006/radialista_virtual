@@ -8,11 +8,14 @@ sem eles (as-runs antigos ou artificiais), vale a regra da F0 (promessa de músi
 Dado sem fonte e vencido: desde a F5, o detector do backend (app.dados.checagem.afirmacoes e checar_fala) sobre a
 fala que foi ao ar e os dados do bloco gravados no as-run, no instante em que a fala começou.
 Abertura repetida continua heurística da F0 (F8). Coerência com o formato (F6): `metricas_formato` só leva o as-run
-para `app.live.formatos.coerencia` (convite, tema, reorientação e unidade são detectados lá, não aqui). Este módulo
+para `app.live.formatos.coerencia` (convite, tema, reorientação e unidade são detectados lá, não aqui).
+Humanização da fala (H0): `metricas_humanizacao` chama os detectores que a H1 (vazamentos), a H4 (pontuação de sinais
+de IA) e a H5 (bordões) criam no backend; enquanto o módulo ou a função não existir, a métrica vale None. Este módulo
 não importa app.* no carregamento.
 """
 
 import collections
+import importlib
 import re
 import unicodedata
 
@@ -36,6 +39,19 @@ CONFIG_METRICAS = {
     "tipos_silencio": ["bloco_vazio", "erro"],
     # F5: fuso só para o texto da instrução do validador (a checagem não depende dele).
     "dados": {"tz": "America/Sao_Paulo"},
+    # H0 (docs/humanizacao/h0/auditoria.md §5.3): (módulo, função) do backend que cada métrica usa, importados na
+    # hora. Contratos: vazamentos(texto) -> list (H1); pontuar(texto).nota (H4);
+    # bordoes_repetidos(falas: list[tuple[inicio_s, texto]], bordoes, *, janela_s, maximo) -> int (H5, proposto).
+    "humanizacao": {
+        "detectores": {
+            "vazamentos": ("app.live.sinais_ia", "vazamentos"),
+            "pontuar": ("app.live.sinais_ia", "pontuar"),
+            "bordoes_repetidos": ("app.live.memoria", "bordoes_repetidos"),
+        },
+        # Plano, H5 item 2: cada bordão no máximo `maximo` vez a cada `janela_s` (configurável por rádio na H5/H8).
+        "bordao": {"janela_s": 1800, "maximo": 1},
+        "percentil": 90,
+    },
 }
 
 
@@ -534,6 +550,54 @@ def calcular_metricas(as_run: dict, config: dict | None = None) -> dict:
         "pedidos": _pedidos(as_run.get("pedidos") or []),
         "eventos_por_tipo": dict(sorted(collections.Counter(e["tipo"] for e in eventos).items())),
         "falas_por_bloco": dict(sorted(collections.Counter(f["bloco"] for f in falas).items())),
+    }
+
+
+def _detector(modulo: str, nome: str):
+    """A função `nome` do módulo do backend, ou None enquanto a frente dona não a criou (módulo ou função ausente).
+    Só o ModuleNotFoundError do próprio módulo vira None: um import quebrado dentro dele sobe. `import_module` consulta
+    sys.modules, então o teste troca o módulo por um dublê (ou por None, que simula a ausência)."""
+    try:
+        carregado = importlib.import_module(modulo)
+    except ModuleNotFoundError as erro:
+        if erro.name != modulo:
+            raise
+        return None
+    return getattr(carregado, nome, None)
+
+
+def _percentil(valores: list[float], percentil: int) -> float | None:
+    """Posto mais próximo: ordenadas[ceil(percentil/100 · n) − 1], em aritmética inteira. None sem valores."""
+    if not valores:
+        return None
+    ordenadas = sorted(valores)
+    return ordenadas[max(0, -(-percentil * len(ordenadas) // 100) - 1)]
+
+
+def metricas_humanizacao(as_run: dict, *, bordoes=(), config: dict | None = None) -> dict:
+    """Métricas da humanização da fala (H0), planas, para o topo do resumo.json. Função pura (não anota o as-run); lê
+    só as falas com texto. Cada métrica vale None enquanto o detector dela não existir no backend:
+    - vazamento_grave: falas com vazamento (H1);
+    - sinais_ia_media e sinais_ia_p90: nota de sinais de IA por fala, média e percentil (H4);
+    - bordao_repetido: ocorrências de bordão acima do limite na janela (H5); `bordoes` vem do chamador (o slogan da
+      conta até a H8, DH0-3);
+    - sinais_ia_falas: quantas falas entraram na conta (o p90 de poucas falas é quase o máximo; fato 9)."""
+    config = config or CONFIG_METRICAS
+    cfg = config["humanizacao"]
+    falas = [e for e in as_run["eventos"] if e["tipo"] in config["tipos_fala"] and (e.get("texto") or "").strip()]
+    textos = [f["texto"] for f in falas]
+    detectores = {chave: _detector(modulo, nome) for chave, (modulo, nome) in cfg["detectores"].items()}
+    vazamentos, pontuar, bordoes_repetidos = (detectores[c] for c in ("vazamentos", "pontuar", "bordoes_repetidos"))
+    notas = [float(pontuar(texto).nota) for texto in textos] if pontuar else []
+    p90 = _percentil(notas, cfg["percentil"])
+    return {
+        "vazamento_grave": sum(1 for texto in textos if vazamentos(texto)) if vazamentos else None,
+        "sinais_ia_media": round(sum(notas) / len(notas), 1) if notas else None,
+        "sinais_ia_p90": round(p90, 1) if p90 is not None else None,
+        "sinais_ia_falas": len(textos),
+        "bordao_repetido": bordoes_repetidos(
+            [(float(f["inicio_s"]), f["texto"]) for f in falas], [b for b in bordoes if b],
+            janela_s=cfg["bordao"]["janela_s"], maximo=cfg["bordao"]["maximo"]) if bordoes_repetidos else None,
     }
 
 

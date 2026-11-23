@@ -60,6 +60,8 @@ TIPOS_CITAVEIS = ("clima", "noticia", "servico", "transito", "aviso", "agenda", 
 INJECOES_DADO = ("dado_sem_fonte", "dado_vencido")
 # F6: injeções de coerência com o formato que só acrescentam a frase da fixture (convite, tema que exige revisão).
 INJECOES_FRASE_F6 = ("convite", "tema_revisao")
+# H0: vazamento, sinal de IA e bordão, também só a frase da fixture (copiada do corpus de humanização).
+INJECOES_FRASE_H0 = ("vazamento", "sinal_ia", "bordao")
 
 _BASES_CATEGORIA = (
     "musica", "noticia", "escalada", "servico", "plantao", "reporter",
@@ -263,7 +265,7 @@ class DubleLLM:
             elif injecao.tipo == "obedece_injecao":
                 extras.append(injecao.frase)
                 self.contadores["injecao_obedece"] += 1
-            elif injecao.tipo in INJECOES_FRASE_F6:
+            elif injecao.tipo in INJECOES_FRASE_F6 + INJECOES_FRASE_H0:
                 extras.append(injecao.frase)
                 self.contadores[f"injecao_{injecao.tipo}"] += 1
 

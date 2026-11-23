@@ -30,6 +30,11 @@ llm e completo sem --confirmo-custo rodam só o modo fake, imprimem a estimativa
 Só passe --confirmo-custo com aprovação explícita do usuário. Códigos de saída: 0 simulação concluída
 (as métricas não mudam o código), 2 erro ou tentativa de rede no modo fake, 3 falta confirmação.
 
+Humanização da fala (H0): resumo.json ganha vazamento_grave, sinais_ia_media, sinais_ia_p90 e bordao_repetido (None
+enquanto o detector do backend não existir) e sinais_ia_falas (falas com texto medidas), de
+scripts/simulacao/metricas.py (metricas_humanizacao); scripts/recalcular_humanizacao.py recalcula sobre um as_run.json
+gravado.
+
 Saída: <saida>/as_run.json e <saida>/resumo.json, mais uma linha-resumo no stdout. Desenho completo em
 docs/melhoria-radio/f0/auditoria.md (§5). Este arquivo não importa app.* no topo: o ambiente (variáveis,
 fakeredis) é preparado antes, em main().
@@ -246,6 +251,9 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
             "contadores": chamadas_dubles,
         },
         **{k: v for k, v in calculadas.items() if k != "pedidos"},
+        # H0: vazamento_grave, sinais_ia_media, sinais_ia_p90 e bordao_repetido (None até a H1, a H4 e a H5); o bordão
+        # antes da H8 é o slogan da conta (DH0-3). Só no resumo: o as-run não muda.
+        **metricas.metricas_humanizacao(as_run, bordoes=[fixture.conta.slogan]),
         "pedidos": calculadas["pedidos"],
         "wpm_observado": _wpm_observado(falas) if modo == "completo" else None,
         "observacoes": OBSERVACOES,
@@ -344,7 +352,8 @@ def _linha_resumo(resumo: dict) -> str:
         f"estouro_max_pct={resumo['estouro_max_pct']} acima_teto={resumo['acima_teto_orcamento']} "
         f"max_llm_por_fala={resumo['orcamento_fala']['max_chamadas_llm_por_fala']} "
         f"max_sinteses_por_fala={resumo['orcamento_fala']['max_sinteses_por_fala']} "
-        f"formato={resumo['formato']['id']} coerencia_automatica={resumo['formato']['coerencia_automatica']}"
+        f"formato={resumo['formato']['id']} coerencia_automatica={resumo['formato']['coerencia_automatica']} "
+        f"vazamento_grave={resumo['vazamento_grave']} sinais_ia_media={resumo['sinais_ia_media']}"
     )
 
 
