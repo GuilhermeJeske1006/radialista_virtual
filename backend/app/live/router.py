@@ -2457,6 +2457,13 @@ def _aplicar_revisao(db: Session, account: Account, radialista_id: int, programa
     registrar_revisao(db, account.id, programa_id, resposta.tipo, resposta.fala, rota, agora)
     resposta.fala = substituta(agora.second)
     resposta.falas = None  # multi-voz traria o texto original de novo
+    # Com incluir_audio (preparo antecipado), o áudio já sintetizado é do texto original: descartado, o
+    # player sintetiza a substituta pelo /tts. "falhou"/"indisponivel" ficam como estão (não repetir).
+    resposta.audio_base64 = None
+    resposta.audios_falas_base64 = None
+    resposta.duracao_fala_s = None
+    if resposta.audio_status == "pronto":
+        resposta.audio_status = "pendente"
     return resposta
 
 
