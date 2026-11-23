@@ -71,6 +71,8 @@ export type RadioPerfil = {
   tipo_radio: string;
   conhecimento_local: ConhecimentoLocal;
   biblia_radio: BibliaRadio;
+  // F9: glossário de pronúncia da rádio (termo -> como soa); a voz sobrescreve o mesmo termo.
+  glossario_pronuncia?: Record<string, string>;
 };
 
 export type RadioConta = RadioPerfil & {
@@ -87,6 +89,7 @@ export const RADIO_PERFIL_VAZIO: RadioPerfil = {
   tipo_radio: "",
   conhecimento_local: CONHECIMENTO_LOCAL_VAZIO,
   biblia_radio: BIBLIA_RADIO_VAZIA,
+  glossario_pronuncia: {},
 };
 
 // Catalogo fechado de tipos de radio -- ver backend/app/llm/tipos_radio.py (fonte da

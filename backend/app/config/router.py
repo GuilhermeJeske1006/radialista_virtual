@@ -688,6 +688,43 @@ def atualizar_radio(
     return account
 
 
+def _textos_para_sugestao(db: Session, account: Account) -> list[str]:
+    """Textos que a rádio já tem e o TTS vai ler: identidade, lugar, patrocinadores, locutores e músicas."""
+    from app.models.patrocinador import Patrocinador
+
+    local = account.conhecimento_local or {}
+    textos = [account.nome_radio or "", account.slogan or "", account.cidade or ""]
+    for chave in ("bairros", "pontos_referencia", "eventos_recorrentes"):
+        textos += [str(item) for item in (local.get(chave) or [])]
+    textos += [p.nome for p in db.query(Patrocinador).filter_by(account_id=account.id)]
+    radialistas = db.query(RadioConfig).filter_by(account_id=account.id).all()
+    textos += [r.nome_locutor or "" for r in radialistas]
+    programas = db.query(Programa).filter(Programa.radio_config_id.in_([r.id for r in radialistas])).all() \
+        if radialistas else []
+    for programa in programas:
+        textos += list(programa.musicas_permitidas or [])
+    if programas:
+        musicas = (
+            db.query(MusicaHistorico.canal, MusicaHistorico.titulo)
+            .filter(MusicaHistorico.programa_id.in_([p.id for p in programas]))
+            .order_by(MusicaHistorico.criado_em.desc())
+            .limit(200)
+            .all()
+        )
+        textos += [texto for linha in musicas for texto in linha]
+    return textos
+
+
+@router.get("/radio/glossario/sugestoes")
+def sugerir_glossario(account: Account = Depends(get_current_account), db: Session = Depends(get_db)):
+    """F9: termos que o TTS tende a errar (siglas, nomes com w/y/k/ph) nos textos da própria rádio, sem os que já
+    estão no glossário. Heurística: quem decide a pronúncia é quem cadastra."""
+    from app.tts.glossario import sugerir_termos
+
+    termos = sugerir_termos(_textos_para_sugestao(db, account), (account.glossario_pronuncia or {}).keys())
+    return {"termos": termos}
+
+
 @router.get("/radialistas", response_model=list[RadialistaResponse])
 def listar_radialistas(account: Account = Depends(get_current_account), db: Session = Depends(get_db)):
     return db.query(RadioConfig).filter_by(account_id=account.id).order_by(RadioConfig.id.asc()).all()
