@@ -1,7 +1,9 @@
 # Relatório — plano de melhoria de rádio
 
 Execução de [`docs/plano-melhoria-radio.md`](../plano-melhoria-radio.md) frente por frente
-(auditar → implementar → testar → avaliar → portão). Branches encadeadas, sem push.
+(auditar → implementar → testar → avaliar → portão). Branches encadeadas; desde 23/11/2026 todas as frentes
+(F0–F14) e a H0 estão em `master` e em produção (ver [Validação pós-integração](#validação-pós-integração-em-master-23112026)).
+As menções a "sem push" nas seções abaixo descrevem o estado de cada frente quando ela foi registrada.
 
 Linha de base: [`baseline.md`](baseline.md) — ruff 0 avisos, pytest 1120/1120, cobertura 85%,
 vitest 300/300. `npm run lint` do painel já falhava antes do plano (`next lint` não existe no
@@ -400,58 +402,115 @@ Next 16); não conta como regressão.
   - **Painel (CRUD do glossário da rádio)**: não feito. O backend já aceita e devolve o campo.
 - Detalhes em [`f9/testes.md`](f9/testes.md).
 
-### F10 — Direção de som — PARCIAL (loudness por segmento pronta; itens 1 e 2 aguardam decisão)
+### F10 — Direção de som — PARCIAL (item 1 feito; ramp e loudness fora do fluxo)
 
-- Branch: `melhoria/f10-direcao-som` (a partir de `melhoria/f9-glossario`). Sem push.
-- Commit: `a9faee3` (módulo de loudness, testes e auditoria).
+- Branch: `melhoria/f10-direcao-som` (a partir de `melhoria/f9-glossario`), em `master` desde `22cbb21`.
+- Commits: `a9faee3` (módulo de loudness, testes e auditoria), `8cb69e5` (item 1).
 - Entregas:
+  - **Item 1**: vinheta com `uso = "promocao"` não toca logo depois de bloco de notícia (`app/live/roteiro.py`, ligado ao
+    `/proxima`); coluna `biblioteca_audio_itens.uso` (`generica` | `promocao`). A regra cobre todo bloco de natureza
+    noticiosa, não só notícia grave.
   - **Item 3**: `app/postprod/loudness.py` mede a loudness integrada (LUFS, ffmpeg `ebur128`) e calcula a diferença de
     cada segmento para a fala. Sem alvo universal. Testes: 6 dB de ganho viram 6 LUFS de diferença; arquivo inexistente
     devolve None.
 - Portão (ver [`f10/portao.md`](f10/portao.md)): suíte completa **2353 passed, 3 skipped**, 0 falhas, cobertura 89%; ruff ok.
+- Corrigido em 23/11/2026 (`fix/validacao-f10-f14`): o painel não tinha campo para `uso` e o `PUT /biblioteca-audio/{id}`
+  gravava `generica` quando o campo não vinha, então todo save pelo painel desfazia a promoção. Agora o PUT mantém o valor
+  gravado quando o campo falta, o POST aceita `uso`, e a tela de vinhetagem tem o campo "Uso no ao vivo". Na mesma
+  tela, criar vinheta dava 422 (anterior ao plano): o formulário mandava o áudio em `arquivo` e o POST lê `arquivos`.
+  O corpo agora sai de `lib/bibliotecaAudio.ts::dadosFormVinheta`, com teste.
 - Pendências:
-  - **Item 1** (notícia grave sem sweeper de promoção): precisa decidir quais vinhetas são promoção e se a regra proíbe
-    adjacência ou só o sweeper. A inserção em `app/vinhetas/estrutura.py` é por índice.
   - **Item 2** (ramp): conceito ausente no código. Precisa decidir se é fala sobre a introdução com início de vocal medido.
-  - **Relatório de loudness no `as_run.json`**: não integrado.
-- Detalhes em [`f10/auditoria.md`](f10/auditoria.md).
+  - **Loudness**: `app/postprod/loudness.py` só é usado pelos testes; não vai ao `as_run.json` nem à pós-produção.
+- Detalhes em [`f10/auditoria.md`](f10/auditoria.md) (a seção "Decisões pedidas" é anterior a `8cb69e5`).
 
-### F11 — Produção antes, durante e depois — PARCIAL (relatório pós-programa pronto; itens 1 e 3 aguardam decisão)
+### F11 — Produção antes, durante e depois — PARCIAL (as-run e peças de reserva gravados; reserva e relatório fora do ar)
 
-- Branch: `melhoria/f11-producao` (a partir de `melhoria/f10-direcao-som`). Sem push.
-- Commit: `5e55978` (relatório, testes e auditoria).
+- Branch: `melhoria/f11-producao` (a partir de `melhoria/f10-direcao-som`), em `master` desde `22cbb21`.
+- Commits: `67d3215` (relatório e auditoria; `5e55978` era o hash na branch antes do rebase), `8d6969b` (as-run e endpoint
+  do relatório), `4e35181` (peças de reserva), `4464fbc` (tela das peças).
 - Entregas:
-  - **Item 2**: `app/live/relatorio_programa.py::montar_relatorio` sobre o resumo do programa: promessas (cumpridas, vencidas,
-    canceladas), orçamento, avisos de oralidade, pedidos, repetição de estrutura e hard time. Alertas para críticos
-    (anúncio sem confirmação, pedido indevido, dado sem fonte, promessa vencida) e sugestões de continuidade por regra.
-    Sem endpoint nem tela no painel ainda.
+  - **Item 1, as-run persistente**: tabela `as_run_eventos`; o `/proxima` grava cada bloco como `enviado` e devolve
+    `as_run_evento_id`; o player confirma por `POST /live/{r}/programas/{p}/as-run/{id}` (`confirmado` | `falhou`).
+  - **Item 2, relatório pós-programa**: `app/live/relatorio_programa.py::montar_relatorio` e `POST
+    /config/programas/{id}/relatorio`, que recebe o resumo montado pelo cliente. Alertas para críticos e sugestões de
+    continuidade por regra.
+  - **Item 3, peças de reserva**: catálogo por programa (convidado, fonte, pedido, áudio, estouro) com aprovação
+    (`GET/PUT /config/programas/{id}/pecas-reserva`, `POST .../aprovar`) e seção "Peças de reserva" no painel.
 - Portão (ver [`f11/portao.md`](f11/portao.md)): suíte completa **2357 passed, 3 skipped**, 0 falhas, cobertura 89%; ruff ok.
+- Corrigido em 23/11/2026 (`fix/validacao-f10-f14`): o player só confirmava o bloco de fala com música e voz única; fala
+  sem música, multi-voz, vinheta e patrocinador ficavam `enviado` para sempre (no banco local, 3 de 20 eventos
+  confirmados). Agora todo bloco é relatado ao terminar, pelo mesmo resultado que o player já informa à transmissão:
+  tocou até o fim vira `confirmado`, erro vira `falhou`, interrompido (pausa ou pular) não é relatado.
 - Pendências:
-  - **Item 1** (as-run persistente do que foi ao ar): precisa decidir o ponto de confirmação (player ou envio) e aceitar
-    a tabela `as_run_eventos`.
-  - **Item 3** (contingência com peça de reserva aprovada): precisa decidir quem aprova a peça e onde ela fica.
-  - **Relatório no painel**: endpoint e tela não feitos.
-- Detalhes em [`f11/auditoria.md`](f11/auditoria.md).
+  - **Peças de reserva não vão ao ar**: `app/live/pecas_reserva.py::escolher_reserva` só é chamada pelos testes; o
+    `GET /live/.../reserva` ainda serve a identificação gravada antiga.
+  - **Relatório**: nenhuma tela chama o endpoint, e ele não lê o as-run gravado (depende do resumo do cliente).
+- Detalhes em [`f11/auditoria.md`](f11/auditoria.md) (a seção "Decisões pedidas" é anterior a `8d6969b` e `4e35181`).
 
-### F12–F14 — Expansão — PARCIAL (backend das três frentes; painel e juiz LLM pendentes)
+### F12–F14 — Expansão — PARCIAL (backend e telas prontos; juiz LLM, expiração e tempo da bancada pendentes)
 
-- Branch: `melhoria/f12-14-expansao` (a partir de `melhoria/f11-producao`), publicada no `origin` até `3ac5511`.
-- Commits: `dc1124d` (roteamento), `af15a4b` (F12 revisão), `f411d7a` (F13 bancada), `3ac5511` (F14 narrativo e cortes).
+- Branch: `melhoria/f12-14-expansao` (a partir de `melhoria/f11-producao`), em `master` desde `6cfbfbc`.
+- Commits: `dc1124d` (roteamento), `af15a4b` (F12 revisão), `f411d7a` (F13 bancada), `3ac5511` (F14 narrativo e cortes),
+  `4464fbc` (telas de bancada, falas em revisão e cortes).
 - Entregas:
   - **F12, revisão humana**: rota `automatico` / `revisao` / `proibido` (`app/live/roteamento_revisao.py`) ligada ao
     `/proxima`. Fala em revisão ou proibida sai como substituta neutra; o original fica em `falas_em_revisao` com estado
     `aguardando_revisao` ou `bloqueado`. Decisão (aprovar/rejeitar) só dentro de 20 min; depois, 409. Aprovar não leva a fala
-    ao ar.
+    ao ar. Tela "Falas aguardando revisão" no formulário do programa.
   - **F13, bancada**: papéis fixos (`mediador`, `comentarista`, `contraponto`) em `ProgramaRadialista.papel_bancada`;
-    ordem de turnos e regra de resposta ao turno anterior no prompt, só quando há papel definido.
+    ordem de turnos e regra de resposta ao turno anterior no prompt, só quando há papel definido. Seletor "Papel na
+    bancada" na seção de radialistas do programa.
   - **F14, narrativo e cortes**: quadro narrativo como quadro fixo (label `narrativo*`/`historia*`) com instrução
-    personagem → situação → mudança → consequência; cortes do as-run (`GET /config/programas/{id}/cortes`).
+    personagem → situação → mudança → consequência; cortes do as-run (`GET /config/programas/{id}/cortes`) e seção
+    "Cortes" no formulário do programa.
 - Portão (ver [`f12-14/portao.md`](f12-14/portao.md)): suíte completa **2435 passed, 3 skipped**, 0 falhas, EXIT 0 em
   `3ac5511`; ruff limpo.
+- Corrigido em 23/11/2026 (`fix/validacao-f10-f14`):
+  - **F12, fala barrada ia ao ar em áudio**: no preparo antecipado (`app/live/prewarm.py`, `incluir_audio=True`) o
+    áudio era sintetizado do texto original e `_aplicar_revisao` trocava só o texto; o painel tocava o `audio_base64`
+    pronto. Agora a resposta descarta `audio_base64`, `audios_falas_base64` e `duracao_fala_s` e volta `audio_status`
+    de `pronto` para `pendente`, e o painel sintetiza a substituta pelo `/tts`.
+  - **F14, cortes sempre vazios**: `cortes_do_as_run` só aceitava eventos de tipo `"fala"`, mas o as-run guarda o tipo
+    do bloco (`abertura`, `comentario`, `servico`...). Agora é fala todo bloco que não é música, vinheta, patrocinador
+    nem intervalo e tem texto. Junto com a confirmação do player (F11), os cortes passam a aparecer.
 - Pendências:
-  - **F12**: tela de aprovação no painel; job de expiração (hoje a expiração só é checada na decisão).
-  - **F13**: tempo total da bancada dentro do relógio; juiz com LLM para "resposta ao que acabou de ser dito" ≥ 4/5
-    (precisa de aprovação de custo); tela para escolher o papel.
-  - **F14**: tela de cortes e de quadro narrativo; teste do prompt narrativo só verifica o import (fraco); corte usa
-    heurística sem duração no as-run.
-- Detalhes em [`f12-14/auditoria.md`](f12-14/auditoria.md).
+  - **F12**: job de expiração (hoje a expiração só é checada na decisão; fala vencida segue listada como
+    `aguardando_revisao`); a tela carrega uma vez, sem atualização periódica.
+  - **F13**: tempo total da bancada dentro do relógio (só o corte geral do multi-voz ao orçamento do bloco); juiz com LLM
+    para "resposta ao que acabou de ser dito" ≥ 4/5 (precisa de aprovação de custo).
+  - **F14**: tela de quadro narrativo (hoje só pelo prefixo do nome); teste do prompt narrativo só verifica o import
+    (fraco); corte usa heurística sem duração no as-run.
+- Detalhes em [`f12-14/auditoria.md`](f12-14/auditoria.md) (a seção "Decisões pedidas" é anterior a `4464fbc`).
+
+## Validação pós-integração em master (23/11/2026)
+
+Conferência de que as frentes surtiram efeito depois do merge em `master` (`9f96e1f`).
+
+- **Integração e produção**: todas as branches de melhoria estão em `master`, igual a `origin/master`. O deploy de
+  `9f96e1f` passou (ruff, pytest, tsc, vitest, `next build`, imagens no GHCR, `deploy.sh` saudável). A API de produção
+  expõe o mesmo contrato do HEAD: 169 rotas e 143 schemas, nenhuma diferença (rotas de relógio, formatos, cortes,
+  revisão, peças de reserva, relatório e as-run presentes; `persona`, `relogio_hora`, `papel_bancada`,
+  `glossario_pronuncia`, `validacao_fala` e `dados` nos schemas). Banco de produção não conferido (SSH sem permissão
+  nesta sessão).
+- **Simulação fake no HEAD** (9 rodadas: 3 perfis × normal, painel antigo e voz 120): números iguais à linha de base da
+  H0. Contra a F0: encerramento no ar não → sim nos três perfis; hard times perdidos 3 → 0; anúncio sem confirmação
+  1 → 0; promessa vencida 1 → 0; pedido indevido 1/1/4 → 0; fora do orçamento 4% → 0; 0 tentativas de rede e 0 erros HTTP.
+  Limites já conhecidos mantidos: voz 120 atrasa o hard time do popular em 12,1 s e deixa o variedades com 6,7% fora do
+  orçamento.
+- **Painel local (código do HEAD)**: formato com promessa, unidade e temas de revisão, relógio, persona, papel na bancada,
+  peças de reserva, falas em revisão e cortes aparecem no formulário do programa, sem erro no console.
+- **Defeitos achados e corrigidos** na branch `fix/validacao-f10-f14` (detalhe nas frentes acima): áudio da fala barrada
+  no preparo antecipado (F12), cortes sempre vazios (F14), confirmação do as-run só em um tipo de bloco (F11) e `uso` da
+  vinheta desfeito a cada save (F10). Também corrigido: criar vinheta pela tela de vinhetagem dava 422 (campo `arquivo`
+  em vez de `arquivos`).
+- **Código que existe mas não roda no fluxo real**: `escolher_reserva` (F11), `app/postprod/loudness.py` (F10),
+  `app/tts/glossario.py::sugerir_termos` (F9), `memoria.repeticao_estrutura` e a classificação de abertura e fechamento
+  (F8, só o simulador usa), reorientação periódica (F8: o `/proxima` chama `avisos_da_fala` sem `desde_reorientacao_s`).
+- **Ainda não feito**: tela do glossário da rádio e etapa de STT (F9); passos 2c, 3 e 4 da F8; ramp (F10); expiração das
+  falas em revisão (F12); tempo da bancada no relógio (F13); tela do quadro narrativo (F14).
+- **Painel**: o fallback local `gerarFalaLocal` (`hooks/useLiveEngine.ts`) segue sem acento ("aqui e", "musica") e
+  promete conteúdo ("Toca ai ...", "Fica com a gente e boa musica").
+- **Pendente de aprovação de custo**: rubrica do juiz com texto real (F7, F8, F13) e a redução de avisos de oralidade
+  (F7) dependem de `--modo llm`.
+- Humanização (H0): ver [`docs/humanizacao/RELATORIO.md`](../humanizacao/RELATORIO.md).

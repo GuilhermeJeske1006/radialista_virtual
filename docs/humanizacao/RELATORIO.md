@@ -15,7 +15,12 @@ Atualizado em 2026-11-23. Plano: `docs/plano-humanizacao-fala.md`. Linha de base
   - `c0e36b5` sinais de IA nas skills, auditoria e pendências
   - `3cabff7` regravação da F5 e separação da F6 (direção de energia)
   - `cbbafcb` linha de base fake e relatório do portão
-- **Alterações não commitadas desta rodada** (ver seção "Alterações desde `cbbafcb`").
+- **Commits depois de `cbbafcb`** (as alterações listadas em "Alterações desde `cbbafcb`"): `39347fb` (simulador LLM
+  registra direção e aquece schemas do SDK), `9d2b2c5` (abertura do musical não promete retorno), `37142bb` (linha de
+  base LLM e relatório). Integrados em `master` por `dc4dc3a` e em produção desde `9f96e1f`.
+- **Validação pós-integração (23/11/2026):** a simulação fake no `master` repete número a número a linha de base desta
+  frente (tabela em `baseline.md`). A falha pré-existente de `test_live_router_duracao` foi corrigida em `27e7668`, e a
+  dependência do cliente HTTP do SDK no teste do freezegun em `9f96e1f`; o CI de `9f96e1f` passou inteiro.
 
 ### Portão (plano §7)
 
@@ -58,7 +63,7 @@ Detalhes e leitura por perfil: `docs/humanizacao/baseline.md`, seção "Linha de
   passou a proibir promessa de retorno e a pedir apresentação com a companhia. O caso fica registrado em
   `docs/humanizacao/h0/pendencias.md`. Aprovado pelo usuário.
 
-### Correções feitas nesta rodada (sem commit)
+### Correções feitas nesta rodada (commitadas em `39347fb` e `9d2b2c5`)
 
 1. **Rodada LLM falhava com `PydanticSchemaGenerationError`.** Causa: `freezegun` trocava `datetime.datetime` durante o
    `freeze_time` e o SDK anthropic montava o schema de `Container.expires_at` lazy dentro dele. Corrigido com
@@ -94,7 +99,8 @@ Detalhes e leitura por perfil: `docs/humanizacao/baseline.md`, seção "Linha de
   da unidade.
 - **Dependência de versão.** `anthropic` 0.110.0 na venv, fora do `requirements.txt` (`>=0.75.0`). Decidir o pin.
 - **Teste pré-existente** `test_live_router_duracao::test_tts_com_perfil_mede_devolve_cabecalho_e_grava_ritmo`
-  (`assert (1, 24.0, 'abertura') == (1, 24, 'padrao')`). Já falhava no `371b786`; não é da H0.
+  (`assert (1, 24.0, 'abertura') == (1, 24, 'padrao')`). Já falhava no `371b786`; não é da H0. Resolvido em `27e7668`
+  (o teste passou a esperar a categoria `abertura`).
 - **Custo.** Cerca de 68 chamadas LLM pagas nesta frente (incluindo tentativas com falha). O valor em dólar fica no painel
   da Anthropic.
 
