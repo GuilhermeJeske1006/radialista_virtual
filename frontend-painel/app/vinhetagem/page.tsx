@@ -7,7 +7,7 @@ import Modal from "../../components/Modal";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import VoiceSelect from "../../components/VoiceSelect";
 import { apiFetch, apiFetchForm, apiFetchBlob, ApiError } from "../../lib/api";
-import { BibliotecaAudioItem, formatarDuracao, temAudio } from "../../lib/bibliotecaAudio";
+import { BibliotecaAudioItem, UsoVinheta, dadosFormVinheta, formatarDuracao, temAudio } from "../../lib/bibliotecaAudio";
 import { CategoriaVinheta, Patrocinador, Radialista } from "../../lib/types";
 import { LocufySpin } from "../../components/LocufyLogo";
 
@@ -32,6 +32,7 @@ type FormInsercao = {
   tipo_conteudo: "texto" | "audio";
   texto: string;
   voz_id: string | null;
+  uso: UsoVinheta;
 };
 
 function novaInsercaoVazia(tipo: "biblioteca" | "propaganda", categoriaId: number | null): FormInsercao {
@@ -47,6 +48,7 @@ function novaInsercaoVazia(tipo: "biblioteca" | "propaganda", categoriaId: numbe
     tipo_conteudo: "texto",
     texto: "",
     voz_id: null,
+    uso: "generica",
   };
 }
 
@@ -200,6 +202,7 @@ export default function VinhetagemPage() {
       tipo_conteudo: "texto",
       texto: "",
       voz_id: null,
+      uso: item.uso ?? "generica",
     });
   }
 
@@ -216,6 +219,7 @@ export default function VinhetagemPage() {
       tipo_conteudo: p.tipo_conteudo,
       texto: p.texto ?? "",
       voz_id: p.voz_id ?? null,
+      uso: "generica",
     });
   }
 
@@ -231,16 +235,12 @@ export default function VinhetagemPage() {
 
     try {
       if (formInsercao.tipo === "biblioteca") {
-        if (formInsercao.cor) dados.set("cor", formInsercao.cor);
-        dados.set("ordem", String(formInsercao.ordem));
-        dados.set("ativo", String(formInsercao.ativo));
-        if (formInsercao.arquivo) dados.set("arquivo", formInsercao.arquivo);
-
+        const corpoVinheta = dadosFormVinheta(formInsercao, formInsercao.id === null);
         if (formInsercao.id === null) {
           if (!formInsercao.arquivo) throw new ApiError(400, "Selecione um arquivo de áudio");
-          await apiFetchForm<BibliotecaAudioItem>("/biblioteca-audio", dados, "POST");
+          await apiFetchForm<BibliotecaAudioItem[]>("/biblioteca-audio", corpoVinheta, "POST");
         } else {
-          await apiFetchForm<BibliotecaAudioItem>(`/biblioteca-audio/${formInsercao.id}`, dados, "PUT");
+          await apiFetchForm<BibliotecaAudioItem>(`/biblioteca-audio/${formInsercao.id}`, corpoVinheta, "PUT");
         }
       } else {
         dados.set("tipo_conteudo", formInsercao.tipo_conteudo);
@@ -669,6 +669,18 @@ export default function VinhetagemPage() {
                   <p className="text-xs text-fg/65 mt-1.5">
                     {formInsercao.id !== null ? "Deixe em branco pra manter o áudio atual." : "Obrigatório."}
                   </p>
+                </div>
+                <div>
+                  <label htmlFor="vinhetagem-uso-no-ao-vivo" className={labelClass}>Uso no ao vivo</label>
+                  <select
+                    id="vinhetagem-uso-no-ao-vivo"
+                    value={formInsercao.uso}
+                    onChange={(e) => setFormInsercao({ ...formInsercao, uso: e.target.value as UsoVinheta })}
+                    className={inputClass}
+                  >
+                    <option value="generica">Genérica (toca em qualquer ponto)</option>
+                    <option value="promocao">Promoção (não toca logo depois de notícia)</option>
+                  </select>
                 </div>
                 {formInsercao.id !== null && (
                   <label className="flex items-center gap-1.5 text-sm text-fg/80">

@@ -141,6 +141,52 @@ def test_atualizar_item(client, account, auth_headers):
     assert corpo["ativo"] is False
 
 
+def test_criar_item_le_o_campo_arquivos_e_recusa_arquivo_no_singular(client, account, auth_headers):
+    """O POST aceita vários áudios em `arquivos`. A tela de vinhetagem mandava `arquivo` e a criação dava 422."""
+    singular = client.post("/biblioteca-audio", data={"nome": "V"},
+                           files={"arquivo": ("v.mp3", io.BytesIO(_mp3_sintetico()), "audio/mpeg")},
+                           headers=auth_headers(account.id))
+    assert singular.status_code == 422
+    plural = client.post("/biblioteca-audio", data={"nome": "V"},
+                         files={"arquivos": ("v.mp3", io.BytesIO(_mp3_sintetico()), "audio/mpeg")},
+                         headers=auth_headers(account.id))
+    assert plural.status_code == 201
+
+
+def test_atualizar_sem_campo_uso_mantem_o_uso_gravado(client, account, auth_headers):
+    """F10: um save que não manda `uso` (painel antigo, outro formulário) não pode voltar a promoção para genérica."""
+    criado = client.post(
+        "/biblioteca-audio",
+        data={"nome": "Promo", "uso": "promocao"},
+        files={"arquivos": ("promo.mp3", io.BytesIO(_mp3_sintetico()), "audio/mpeg")},
+        headers=auth_headers(account.id),
+    ).json()[0]
+    assert criado["uso"] == "promocao"
+
+    resposta = client.put(f"/biblioteca-audio/{criado['id']}", data={"nome": "Promo nova"},
+                          headers=auth_headers(account.id))
+    assert resposta.status_code == 200
+    assert resposta.json()["uso"] == "promocao"
+
+    resposta = client.put(f"/biblioteca-audio/{criado['id']}", data={"nome": "Promo nova", "uso": "generica"},
+                          headers=auth_headers(account.id))
+    assert resposta.json()["uso"] == "generica"
+
+
+def test_uso_invalido_recusado_na_criacao_e_na_edicao(client, account, auth_headers):
+    arquivo = {"arquivos": ("v.mp3", io.BytesIO(_mp3_sintetico()), "audio/mpeg")}
+    resposta = client.post("/biblioteca-audio", data={"nome": "V", "uso": "outro"}, files=arquivo,
+                           headers=auth_headers(account.id))
+    assert resposta.status_code == 400
+    criado = client.post("/biblioteca-audio", data={"nome": "V"},
+                         files={"arquivos": ("v.mp3", io.BytesIO(_mp3_sintetico()), "audio/mpeg")},
+                         headers=auth_headers(account.id)).json()[0]
+    assert criado["uso"] == "generica"
+    resposta = client.put(f"/biblioteca-audio/{criado['id']}", data={"nome": "V", "uso": "outro"},
+                          headers=auth_headers(account.id))
+    assert resposta.status_code == 400
+
+
 def test_atualizar_item_trocando_arquivo(client, account, auth_headers):
     criado = client.post(
         "/biblioteca-audio",
