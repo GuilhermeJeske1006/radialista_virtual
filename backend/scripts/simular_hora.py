@@ -87,6 +87,28 @@ class Resultado:
     resumo: dict
 
 
+def _aquecer_schemas_anthropic() -> None:
+    """Monta os schemas pydantic dos modelos do SDK antes do freeze_time.
+
+    O freezegun troca datetime.datetime por FakeDatetime. Se um modelo do SDK
+    (ex.: Container.expires_at) ainda não tiver schema, o pydantic o monta
+    dentro do relógio falso e falha com PydanticSchemaGenerationError no
+    primeiro parse de resposta da API (já cobrada). Montar antes evita isso.
+    """
+    import inspect
+
+    import anthropic.types as tipos
+    from anthropic._models import _get_extra_fields_type
+
+    import anthropic.types.beta as tipos_beta
+
+    for modulo in (tipos, tipos_beta):
+        for nome in dir(modulo):
+            classe = getattr(modulo, nome)
+            if inspect.isclass(classe) and hasattr(classe, "model_fields"):
+                _get_extra_fields_type(classe)
+
+
 def _commit_atual() -> str | None:
     try:
         saida = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, timeout=5,
@@ -128,6 +150,7 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
     import app.main  # noqa: F401 -- carrega o app (e o Sentry) antes do freeze_time: módulo importado durante o
     # congelamento é varrido pelo freezegun na saída, o que dispara imports preguiçosos (numpy.testing) com o
     # relógio já desfeito e deixa o datetime falso preso no Sentry.
+    _aquecer_schemas_anthropic()
     from app.auth.security import criar_token
     from app.config.redis_client import redis_client
     from scripts.simulacao import ambiente, metricas

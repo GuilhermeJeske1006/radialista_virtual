@@ -15,7 +15,11 @@ import time
 
 import pytest
 
+from anthropic.resources.messages import Messages as _Messages
+
 from app.live.formato import contar_palavras, orcamento_fala
+
+_MESSAGES_CREATE_ORIGINAL = _Messages.create  # antes do autouse _sem_api_anthropic do conftest
 
 BACKEND = pathlib.Path(__file__).resolve().parents[1]
 DIR_PROGRAMAS = BACKEND / "tests" / "fixtures" / "programas"
@@ -869,3 +873,55 @@ def test_cli_relogio_backend_e_padrao_fixture(tmp_path):
     resumo = json.loads((tmp_path / "saida" / "resumo.json").read_text(encoding="utf-8"))
     assert resumo["config"]["relogio_backend"] == "fixture" and resumo["config"]["inicio_previsto"] is True
     assert "fim_antecipado_s=" in processo.stdout
+
+
+def test_parse_resposta_anthropic_sob_freeze_time_apos_aquecer(monkeypatch):
+    """Regressão: o freezegun trocava datetime.datetime e o SDK falhava ao montar
+    Container.expires_at (PydanticSchemaGenerationError) no primeiro parse com relógio falso."""
+    import datetime as dt
+
+    import anthropic
+    import httpx
+    from freezegun import freeze_time
+
+    import scripts.simular_hora as sh
+
+    msg = {"id": "m", "type": "message", "role": "assistant", "model": "claude-opus-5",
+           "content": [{"type": "text", "text": "oi"}], "stop_reason": "end_turn",
+           "stop_sequence": None, "usage": {"input_tokens": 1, "output_tokens": 1},
+           "container": {"id": "c", "expires_at": "2026-11-23T10:00:00Z"}}
+    cliente = anthropic.Anthropic(api_key="sk-teste", max_retries=0,
+                                  http_client=httpx.Client(transport=httpx.MockTransport(
+                                      lambda r: httpx.Response(200, json=msg))))
+    import anthropic.resources.messages as rm
+
+    # conftest troca Messages.create por um stub de rede; restaura o original só neste teste.
+    monkeypatch.setattr(rm.Messages, "create", _MESSAGES_CREATE_ORIGINAL)
+    sh._aquecer_schemas_anthropic()
+    with freeze_time(dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc)):
+        resposta = cliente.messages.create(model="claude-opus-5", max_tokens=8,
+                                           messages=[{"role": "user", "content": "oi"}])
+    assert resposta.content[0].text == "oi"
+    assert resposta.container.id == "c"
+
+
+def test_espiao_llm_registra_direcao_do_formato_no_canal_lateral():
+    """Regressão: nos modos pagos o espião de gerar_resposta não registrava a instrução, e o item
+    instrucao_no_prompt saía 0% mesmo com a direção do formato no system."""
+    from scripts.simulacao.dubles import DubleLLM, EstadoChamada, _EspiaoTexto
+    from scripts.simulacao.fixtures import carregar_fixture
+    from app.live.formatos import resolver_formato
+
+    musical = carregar_fixture("musical_adulto").model_copy(update={"injecoes": []})
+    direcao = resolver_formato(musical.programa.get("perfil_programacao")).direcao_cabecalho
+    estado = EstadoChamada()
+    duble = DubleLLM(musical, estado, wpm=145, semente=7)
+    espiao = _EspiaoTexto(lambda system_prompt, mensagem_usuario: "oi", "gerar_resposta", duble)
+
+    estado.nova_chamada(bloco_n=1, total_falas=2)
+    espiao(f"{direcao} resto do system", "Tipo do próximo bloco: musica.")
+    espiao(f"{direcao} resto do system", "Tipo do próximo bloco: musica.")  # revisão: não recontar
+    estado.nova_chamada(bloco_n=2, total_falas=2)
+    espiao("system sem direção", "Tipo do próximo bloco: musica.")
+
+    assert duble.instrucao() == {"blocos": 2, "com_formato": 1, "com_outro": 0}

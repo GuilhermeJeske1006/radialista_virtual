@@ -732,6 +732,10 @@ class _EspiaoTexto:
         if estado.chamada_id != self.llm._chamada_vista:
             self.llm._chamada_vista = estado.chamada_id
             contadores["falas"] += 1
+            if self.nome == "gerar_resposta":
+                # Mesmo canal lateral do DubleLLM._gerar (modo fake): sem isto o formato sai 0% no modo llm.
+                system = kwargs.get("system_prompt", args[0] if args else "")
+                self.llm._registrar_instrucao(system or "")
         else:
             contadores["revisoes"] += 1
         return self.original(*args, **kwargs)
