@@ -1504,6 +1504,28 @@ def relatorio_pos_programa(
     return {"programa_id": programa.id, **montar_relatorio(resumo)}
 
 
+@router.get("/programas/{programa_id}/relatorio")
+def relatorio_do_dia(
+    programa_id: int,
+    data: datetime.date | None = None,
+    account: Account = Depends(get_current_account),
+    db: Session = Depends(get_db),
+):
+    """Relatório pós-programa (F11 item 2) do dia `data` (padrão: hoje no fuso da rádio), montado do banco: as-run
+    confirmado pelo player, promessas e pedidos do dia. `nao_medido`: seções que o banco não guarda."""
+    from zoneinfo import ZoneInfo
+
+    from app.live.resumo_programa import NAO_MEDIDO, resumo_do_dia
+
+    programa = _buscar_programa(db, account, programa_id)
+    radio_config = db.get(RadioConfig, programa.radio_config_id)
+    timezone = (radio_config.timezone if radio_config else None) or "America/Sao_Paulo"
+    dia = data or datetime.datetime.now(ZoneInfo(timezone)).date()
+    resumo, as_run = resumo_do_dia(db, account.id, programa, programa.radio_config_id, dia, timezone)
+    return {"programa_id": programa.id, "data": dia.isoformat(), "as_run": as_run, "nao_medido": list(NAO_MEDIDO),
+            **montar_relatorio(resumo)}
+
+
 def _falas_revisao_json(linhas) -> list[dict]:
     return [
         {"id": fala.id, "categoria": fala.categoria, "texto": fala.texto, "rota": fala.rota, "motivo": fala.motivo,

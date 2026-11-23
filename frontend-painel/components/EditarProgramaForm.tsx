@@ -11,6 +11,7 @@ import RadialistasProgramaSection from "./RadialistasProgramaSection";
 import PecasReservaSection from "./PecasReservaSection";
 import FalasRevisaoPanel from "./FalasRevisaoPanel";
 import CortesProgramaPanel from "./CortesProgramaPanel";
+import RelatorioProgramaPanel from "./RelatorioProgramaPanel";
 import FontesNoticiaSection from "./FontesNoticiaSection";
 import DescobertaFontesPrograma from "./DescobertaFontesPrograma";
 import PautaDoDiaSection from "./PautaDoDiaSection";
@@ -677,6 +678,7 @@ export default function EditarProgramaForm({
             <FalasRevisaoPanel programaId={idEfetivo} />
             <hr className="border-border" />
             <CortesProgramaPanel programaId={idEfetivo} />
+            <RelatorioProgramaPanel programaId={idEfetivo} />
           </>
         )}
 
