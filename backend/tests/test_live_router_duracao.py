@@ -538,7 +538,8 @@ def test_tts_com_perfil_mede_devolve_cabecalho_e_grava_ritmo(client, account, au
     assert r.content == audio
     assert float(r.headers["X-Duracao-Fala-S"]) == pytest.approx(15.0, abs=0.1)
     linha = db_session.query(RitmoVoz).one()
-    assert (linha.amostras, linha.palavras, linha.categoria) == (1, 24, "padrao")
+    # palavras é float na coluna (RitmoVoz.palavras); após o musical com música antes, o bloco é "abertura" (h0).
+    assert (linha.amostras, linha.palavras, linha.categoria) == (1, 24, "abertura")
     assert "live_fala_duracao" in caplog.text and "origem=tts" in caplog.text
     assert "excesso_pct=25" in caplog.text  # 15 s contra o máximo de 12 s guardado pelo /proxima
     # O mesmo áudio de novo (cache de TTS) não vira segunda amostra.
