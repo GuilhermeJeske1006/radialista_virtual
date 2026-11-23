@@ -395,7 +395,9 @@ _RETOMADA = "Faça uma retomada breve; o programa já está em andamento."
 
 
 @pytest.mark.parametrize("tipo, primeira, funcao, meta", [
-    ("abertura", True, "Receba o ouvinte e apresente o programa uma única vez.", (20, 30, 65)),
+    ("abertura", True, "Receba o ouvinte e apresente o programa uma única vez, com a companhia que a música faz. "
+     "Não prometa retorno nem intervalo ('daqui a pouco', 'meia hora', 'depois do intervalo'): a "
+     "abertura chega ao tamanho da unidade só com apresentação e o que o ouvinte vai ouvir agora.", (20, 30, 65)),
     ("Abertura", False, _RETOMADA, (6, 12, 25)),
     ("retomada", False, _RETOMADA, (6, 12, 25)),
     ("identificação", False, "Diga apenas o nome da rádio ou do programa e uma assinatura curta.", (3, 7, 14)),

@@ -177,7 +177,9 @@ MUSICAL_ADULTO = Formato(
     # Etapas de fala longa do relógio viram retomada curta: a música ocupa o centro.
     blocos_relogio={tipo: "retomada" for tipo in ("link", "curadoria", "conversa", "quadro", "entrevista", "resumo")},
     funcoes={
-        "abertura": "Receba o ouvinte e apresente o programa uma única vez.",
+        "abertura": "Receba o ouvinte e apresente o programa uma única vez, com a companhia que a música faz. "
+                    "Não prometa retorno nem intervalo ('daqui a pouco', 'meia hora', 'depois do intervalo'): a "
+                    "abertura chega ao tamanho da unidade só com apresentação e o que o ouvinte vai ouvir agora.",
         "retomada": "Faça uma retomada breve; o programa já está em andamento.",
         "identificacao": "Diga apenas o nome da rádio ou do programa e uma assinatura curta.",
         "musica": "Anuncie brevemente a faixa confirmada e o pedido real, quando fornecido.",
