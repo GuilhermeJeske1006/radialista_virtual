@@ -1,0 +1,3196 @@
+{
+  "versao": 1,
+  "fonte": "docs/plano-humanizacao-fala.md (H0, entrega 1) e docs/humanizacao/h0/auditoria.md §5.1; léxico, padrões e 'O que não corrigir' de docs/Locufy — Plano de humanização da fala.md; oralidade de docs/pesquisa-radio-locufy.md §5.",
+  "regras": {
+    "grupos": {
+      "vazamento": "Texto que nunca pode ir ao ar (ou ao WhatsApp) como está: placeholder, recusa do modelo, identidade de IA, data de corte, marcação, emoji no ar e link. A H1 bloqueia ou limpa; esperado.vazamento é sempre true.",
+      "sinal": "Vício de texto de IA que soa como chatbot ou redação, sem ser constrangedor sozinho. A H4 pontua e, acima do limite (D5), pede reescrita; a H2 normaliza o travessão para a voz.",
+      "nao_corrigir": "Texto correto que o detector não pode punir: formal de notícia, transição isolada, mistura de registro, reorientação permitida e armadilhas (parecem sinal, não são)."
+    },
+    "categorias": {
+      "placeholder": {
+        "grupo": "vazamento",
+        "acao": "bloquear",
+        "frente": "H1",
+        "descricao": "Colchete (maiúsculo ou minúsculo, fora das tags v3), chaves, sinal de menor e maior, FULANO, XXX, NOME DO."
+      },
+      "recusa": {
+        "grupo": "vazamento",
+        "acao": "bloquear",
+        "frente": "H1",
+        "descricao": "Recusa do modelo lida no ar ou mandada ao ouvinte."
+      },
+      "identidade_ia": {
+        "grupo": "vazamento",
+        "acao": "bloquear",
+        "frente": "H1",
+        "descricao": "O locutor se apresenta como IA, modelo, assistente ou robô."
+      },
+      "data_corte": {
+        "grupo": "vazamento",
+        "acao": "bloquear",
+        "frente": "H1",
+        "descricao": "Menção à data de corte ou ao treinamento do modelo."
+      },
+      "markdown": {
+        "grupo": "vazamento",
+        "acao": "limpar",
+        "frente": "H1",
+        "descricao": "Cabeçalho, lista, citação, link markdown, ênfase e crase."
+      },
+      "emoji": {
+        "grupo": "vazamento",
+        "acao": "limpar",
+        "frente": "H1 e H2",
+        "descricao": "Emoji no texto que vai ao ar (no WhatsApp a regra é outra)."
+      },
+      "url": {
+        "grupo": "vazamento",
+        "acao": "limpar",
+        "frente": "H1",
+        "descricao": "Endereço com https:// no texto falado."
+      },
+      "atendimento": {
+        "grupo": "sinal",
+        "acao": "reescrever",
+        "frente": "H4 e H6",
+        "descricao": "Frase de chatbot ou de atendimento automático."
+      },
+      "importancia_inflada": {
+        "grupo": "sinal",
+        "acao": "reescrever",
+        "frente": "H4",
+        "descricao": "Importância e legado exagerados."
+      },
+      "ressalva": {
+        "grupo": "sinal",
+        "acao": "reescrever",
+        "frente": "H4",
+        "descricao": "Ressalva de redação: 'vale ressaltar', 'é importante ressaltar'."
+      },
+      "conectivo_redacao": {
+        "grupo": "sinal",
+        "acao": "pontuar",
+        "frente": "H4",
+        "descricao": "Conectivo de redação no começo da frase, sem os termos que já são da F7 (ademais, outrossim, bem como)."
+      },
+      "vocabulario_ia": {
+        "grupo": "sinal",
+        "acao": "pontuar",
+        "frente": "H4",
+        "descricao": "Vocabulário típico de IA em sentido abstrato."
+      },
+      "evitar_e": {
+        "grupo": "sinal",
+        "acao": "pontuar",
+        "frente": "H4",
+        "descricao": "Troca do verbo 'é' por 'se destaca como', 'representa', 'serve como'."
+      },
+      "folheto": {
+        "grupo": "sinal",
+        "acao": "reescrever",
+        "frente": "H4 e H7",
+        "descricao": "Clichê publicitário no texto de patrocínio."
+      },
+      "paralelismo_negativo": {
+        "grupo": "sinal",
+        "acao": "pontuar",
+        "frente": "H4",
+        "descricao": "'Não é só X, é Y' e variações."
+      },
+      "triade": {
+        "grupo": "sinal",
+        "acao": "pontuar",
+        "frente": "H4",
+        "descricao": "Enumeração de três adjetivos ou ideias genéricas."
+      },
+      "gerundio_final": {
+        "grupo": "sinal",
+        "acao": "pontuar",
+        "frente": "H4",
+        "descricao": "Análise superficial com gerúndio no fim da frase."
+      },
+      "fechamento_resumo": {
+        "grupo": "sinal",
+        "acao": "pontuar",
+        "frente": "H4",
+        "descricao": "Fechamento que resume a fala ('em resumo', 'concluindo')."
+      },
+      "atribuicao_vaga": {
+        "grupo": "sinal",
+        "acao": "reescrever",
+        "frente": "H4",
+        "descricao": "Atribuição sem fonte: 'especialistas apontam', 'estudos mostram'."
+      },
+      "travessao": {
+        "grupo": "sinal",
+        "acao": "normalizar",
+        "frente": "H2",
+        "descricao": "Travessão, meia-risca ou ' -- ' entre orações, que viram pausa estranha na voz."
+      },
+      "noticia_formal": {
+        "grupo": "nao_corrigir",
+        "acao": "nenhuma",
+        "frente": "H1 e H4",
+        "descricao": "Notícia formal e correta, com fonte e horário."
+      },
+      "conectivo_isolado": {
+        "grupo": "nao_corrigir",
+        "acao": "nenhuma",
+        "frente": "H4",
+        "descricao": "Um 'além disso' sozinho numa fala longa."
+      },
+      "mistura_registro": {
+        "grupo": "nao_corrigir",
+        "acao": "nenhuma",
+        "frente": "H4",
+        "descricao": "Casual e formal juntos, natural no rádio."
+      },
+      "reorientacao": {
+        "grupo": "nao_corrigir",
+        "acao": "nenhuma",
+        "frente": "H5",
+        "descricao": "'Você está na…' para quem acabou de sintonizar (repetição permitida)."
+      },
+      "armadilha": {
+        "grupo": "nao_corrigir",
+        "acao": "nenhuma",
+        "frente": "H1 e H4",
+        "descricao": "Parece sinal ou vazamento e não é; o rótulo `armadilha` diz qual."
+      }
+    },
+    "categorias_sequencia": {
+      "bordao": "Slogan ou bordão repetido em janela de tempo (D4; limite da H5).",
+      "reorientacao": "Reorientação na frequência do formato: estrutura repetida, mas permitida (F8 passo 3).",
+      "abertura": "Mesma construção de abertura em falas seguidas.",
+      "naturalidade_encenada": "O mesmo recurso de naturalidade (hesitação, autocorreção) em várias falas.",
+      "fechamento": "O mesmo fechamento em várias falas.",
+      "controle": "Controle negativo: nada se repete."
+    },
+    "armadilhas": {
+      "tag_v3_permitida": "Tag de direção vocal da lista do eleven_v3 (app.tts.client._TAGS_V3_PERMITIDAS).",
+      "nao_posso_deixar_de": "'Não posso deixar de' é agradecimento, não recusa.",
+      "ia_como_assunto": "Inteligência artificial como assunto da notícia, não identidade do locutor.",
+      "ultima_atualizacao_com_fonte": "'Na última atualização' com fonte e horário é o dado vencido bem dito (F5).",
+      "jornada_literal": "'Jornada de trabalho' em sentido literal.",
+      "cenario_literal": "'Cenário' de teatro.",
+      "representa_literal": "'Representa' em sentido literal (mandato).",
+      "vale_a_pena": "'Vale a pena' é coloquial, não ressalva.",
+      "importante_instrucao": "'É importante levar…' é instrução concreta de serviço.",
+      "gerundio_legitimo": "Gerúndio de rádio: 'fechando o programa de hoje'.",
+      "fulano_coloquial": "'fulano' coloquial em minúsculas, não placeholder.",
+      "triade_factual": "Três itens factuais da previsão, com fonte.",
+      "dominio_falado": "Endereço dito por extenso ('ponto com ponto br'), não URL.",
+      "emoji_espelhado": "Um emoji no WhatsApp quando o ouvinte usou (contexto.ouvinte_usou_emoji).",
+      "nao_e_so_factual": "'Não é só no centro' com fonte: informação, não paralelismo de efeito.",
+      "mergulhar_literal": "'Mergulhar' em piscina.",
+      "a_disposicao_literal": "'Fica à disposição de quem…' sobre um serviço, não fecho de atendimento."
+    },
+    "tags_v3_permitidas": [
+      "calm",
+      "excited",
+      "laughs",
+      "pause",
+      "sarcastic",
+      "sighs",
+      "whispers"
+    ],
+    "esperado": {
+      "vazamento": "true só no grupo vazamento: a H1 bloqueia ou limpa (100% do grupo).",
+      "acima_do_limite": "true nos textos densos de sinal (três ou mais categorias); false em todo 'não corrigir'; null nos sinais isolados e nos vazamentos (os pesos são da H4 e da D5)."
+    },
+    "esperado_sequencia": {
+      "bordao_repetido": "Ocorrências de um bordão que acham, nos janela_s anteriores, `maximo` ou mais ocorrências do mesmo bordão (regra da H5). null: a D4 decide se a frase conta como bordão.",
+      "repeticao_estrutura": "app.live.memoria.repeticao_estrutura(textos, 3) de hoje (F8 passo 2).",
+      "repeticao_proibida": "repeticao_estrutura descontada a reorientação na frequência do formato (F8 passo 3, H5). null: depende de decisão da H5.",
+      "naturalidade_repetida": "Usos do mesmo recurso de naturalidade encenada acima de 1 por janela (achado 3; H5)."
+    },
+    "bordao": {
+      "janela_s": 1800,
+      "maximo": 1
+    },
+    "observacao": "Textos originais, escritos para este corpus antes de qualquer regex; nenhum transcreve ou imita radialista real. Rádios, programas, locutores, bairros, estabelecimentos e ouvintes são fictícios. Algarismo só no grupo vazamento e nos canais patrocinio e whatsapp. As respostas fixas de app/whatsapp/atendimento.py não entram (mudam na H6). `trechos` marca o que o detector deve apontar (ou, na armadilha, o que ele não pode punir)."
+  },
+  "textos": [
+    {
+      "id": "vaz-placeholder-01",
+      "grupo": "vazamento",
+      "categorias": [
+        "placeholder"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Um alô para [NOME DO OUVINTE], que ouve a gente do trabalho.",
+      "trechos": [
+        "[NOME DO OUVINTE]"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-placeholder-02",
+      "grupo": "vazamento",
+      "categorias": [
+        "placeholder"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Quem canta agora é [artista], numa gravação de estúdio.",
+      "trechos": [
+        "[artista]"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-placeholder-03",
+      "grupo": "vazamento",
+      "categorias": [
+        "placeholder"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Parabéns para {nome}, que faz aniversário hoje lá no bairro!",
+      "trechos": [
+        "{nome}"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-placeholder-04",
+      "grupo": "vazamento",
+      "categorias": [
+        "placeholder"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A feira de artesanato acontece na praça do bairro <bairro> durante toda a tarde.",
+      "trechos": [
+        "<bairro>"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-placeholder-05",
+      "grupo": "vazamento",
+      "categorias": [
+        "placeholder"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Esse recado vai para o FULANO, que quer mandar um beijo pra mãe.",
+      "trechos": [
+        "FULANO"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-placeholder-06",
+      "grupo": "vazamento",
+      "categorias": [
+        "placeholder"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "O mutirão começa às XXX horas, na quadra da escola.",
+      "trechos": [
+        "XXX"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-placeholder-07",
+      "grupo": "vazamento",
+      "categorias": [
+        "placeholder"
+      ],
+      "canal": "whatsapp",
+      "tom": "informal",
+      "texto": "Oi, NOME DO OUVINTE! Seu recado chegou e a equipe vai ler.",
+      "trechos": [
+        "NOME DO OUVINTE"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-placeholder-08",
+      "grupo": "vazamento",
+      "categorias": [
+        "placeholder"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Nesta [INSERIR DATA], a biblioteca abre mais cedo para os estudantes.",
+      "trechos": [
+        "[INSERIR DATA]"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-placeholder-09",
+      "grupo": "vazamento",
+      "categorias": [
+        "placeholder"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Um abraço especial para [nome autorizado] e para toda a família.",
+      "trechos": [
+        "[nome autorizado]"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-placeholder-10",
+      "grupo": "vazamento",
+      "categorias": [
+        "placeholder"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Valeu, {nome_ouvinte}, pela mensagem de hoje cedo!",
+      "trechos": [
+        "{nome_ouvinte}"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-recusa-01",
+      "grupo": "vazamento",
+      "categorias": [
+        "recusa"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Desculpe, mas não posso ajudar com isso.",
+      "trechos": [
+        "Desculpe, mas não posso ajudar com isso."
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-recusa-02",
+      "grupo": "vazamento",
+      "categorias": [
+        "recusa"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Infelizmente não consigo atender a esse pedido. Mas a música continua por aqui.",
+      "trechos": [
+        "Infelizmente não consigo atender a esse pedido."
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-recusa-03",
+      "grupo": "vazamento",
+      "categorias": [
+        "recusa"
+      ],
+      "canal": "whatsapp",
+      "tom": "formal",
+      "texto": "Sinto muito, mas não posso fornecer esse tipo de informação.",
+      "trechos": [
+        "Sinto muito, mas não posso fornecer esse tipo de informação."
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-recusa-04",
+      "grupo": "vazamento",
+      "categorias": [
+        "recusa"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Peço desculpas, mas não tenho como responder a essa pergunta.",
+      "trechos": [
+        "Peço desculpas, mas não tenho como responder a essa pergunta."
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-recusa-05",
+      "grupo": "vazamento",
+      "categorias": [
+        "recusa"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Não posso falar sobre esse assunto, desculpa. Bora pra próxima?",
+      "trechos": [
+        "Não posso falar sobre esse assunto, desculpa."
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-recusa-06",
+      "grupo": "vazamento",
+      "categorias": [
+        "recusa"
+      ],
+      "canal": "whatsapp",
+      "tom": "informal",
+      "texto": "Desculpa, não posso te ajudar com isso por aqui.",
+      "trechos": [
+        "Desculpa, não posso te ajudar com isso por aqui."
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-identidade-01",
+      "grupo": "vazamento",
+      "categorias": [
+        "identidade_ia"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Como uma inteligência artificial, eu não tenho lembranças de infância.",
+      "trechos": [
+        "Como uma inteligência artificial"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-identidade-02",
+      "grupo": "vazamento",
+      "categorias": [
+        "identidade_ia"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Sou um modelo de linguagem, então não sei como está a rua aí na sua janela.",
+      "trechos": [
+        "Sou um modelo de linguagem"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-identidade-03",
+      "grupo": "vazamento",
+      "categorias": [
+        "identidade_ia"
+      ],
+      "canal": "whatsapp",
+      "tom": "informal",
+      "texto": "Eu sou uma IA e não consigo ouvir áudio, mas pode escrever que eu leio.",
+      "trechos": [
+        "Eu sou uma IA"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-identidade-04",
+      "grupo": "vazamento",
+      "categorias": [
+        "identidade_ia"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Enquanto assistente virtual, não tenho acesso à programação de amanhã.",
+      "trechos": [
+        "Enquanto assistente virtual"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-identidade-05",
+      "grupo": "vazamento",
+      "categorias": [
+        "identidade_ia"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Na minha condição de inteligência artificial, eu não durmo, então a madrugada é toda nossa.",
+      "trechos": [
+        "Na minha condição de inteligência artificial"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-data-corte-01",
+      "grupo": "vazamento",
+      "categorias": [
+        "data_corte"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Até a minha última atualização, a ponte da estrada velha ainda estava em obras.",
+      "trechos": [
+        "Até a minha última atualização"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-data-corte-02",
+      "grupo": "vazamento",
+      "categorias": [
+        "data_corte"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Meus dados vão até 2025, então posso estar por fora dessa novidade.",
+      "trechos": [
+        "Meus dados vão até 2025"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-data-corte-03",
+      "grupo": "vazamento",
+      "categorias": [
+        "data_corte"
+      ],
+      "canal": "whatsapp",
+      "tom": "formal",
+      "texto": "Segundo minhas informações até o início de 2025, o festival acontecia em agosto.",
+      "trechos": [
+        "Segundo minhas informações até o início de 2025"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-data-corte-04",
+      "grupo": "vazamento",
+      "categorias": [
+        "data_corte"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Não tenho acesso a informações em tempo real, mas o jogo já deve ter começado.",
+      "trechos": [
+        "Não tenho acesso a informações em tempo real"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-data-corte-05",
+      "grupo": "vazamento",
+      "categorias": [
+        "data_corte"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Pelo que eu sei até a data do meu treinamento, a feira era no sábado.",
+      "trechos": [
+        "até a data do meu treinamento"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-markdown-01",
+      "grupo": "vazamento",
+      "categorias": [
+        "markdown"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "## Momento de prosa\nA conversa de hoje é sobre café passado na hora.",
+      "trechos": [
+        "## Momento de prosa"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-markdown-02",
+      "grupo": "vazamento",
+      "categorias": [
+        "markdown"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Hoje tem três dicas pra sua horta:\n- regar cedo\n- usar adubo de casca\n- tirar o mato toda semana",
+      "trechos": [
+        "- regar cedo",
+        "- usar adubo de casca",
+        "- tirar o mato toda semana"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-markdown-03",
+      "grupo": "vazamento",
+      "categorias": [
+        "markdown"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Para a matrícula, leve:\n1. documento com foto\n2. comprovante de residência\n3. carteira de vacinação",
+      "trechos": [
+        "1. documento com foto",
+        "2. comprovante de residência",
+        "3. carteira de vacinação"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-markdown-04",
+      "grupo": "vazamento",
+      "categorias": [
+        "markdown",
+        "url"
+      ],
+      "canal": "whatsapp",
+      "tom": "formal",
+      "texto": "A programação completa está [neste link](https://www.radioserraclara.com.br/grade).",
+      "trechos": [
+        "[neste link](https://www.radioserraclara.com.br/grade)",
+        "https://www.radioserraclara.com.br/grade"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-markdown-05",
+      "grupo": "vazamento",
+      "categorias": [
+        "markdown"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "> Dica do dia: quem chega cedo pega a melhor banca da feira.",
+      "trechos": [
+        "> Dica do dia:"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-markdown-06",
+      "grupo": "vazamento",
+      "categorias": [
+        "markdown"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A biblioteca municipal abre **amanhã** em horário especial.",
+      "trechos": [
+        "**amanhã**"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-markdown-07",
+      "grupo": "vazamento",
+      "categorias": [
+        "markdown"
+      ],
+      "canal": "whatsapp",
+      "tom": "informal",
+      "texto": "Anotado! *Seu recado* vai pra equipe do programa.",
+      "trechos": [
+        "*Seu recado*"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-markdown-08",
+      "grupo": "vazamento",
+      "categorias": [
+        "markdown"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "`Hora da prosa` começando agora, com muita gente boa ouvindo.",
+      "trechos": [
+        "`Hora da prosa`"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-emoji-01",
+      "grupo": "vazamento",
+      "categorias": [
+        "emoji"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Boa tarde, gente bonita! ☀️ A tarde tá só começando.",
+      "trechos": [
+        "☀️"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-emoji-02",
+      "grupo": "vazamento",
+      "categorias": [
+        "emoji"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Parabéns pra dona Cida, que completa mais um ano de vida hoje! 🎉🎂",
+      "trechos": [
+        "🎉🎂"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-emoji-03",
+      "grupo": "vazamento",
+      "categorias": [
+        "emoji"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A campanha do agasalho segue até sexta-feira na escola do bairro. 🧥",
+      "trechos": [
+        "🧥"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-emoji-04",
+      "grupo": "vazamento",
+      "categorias": [
+        "emoji"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Que música boa pra embalar o fim de tarde 🎶❤️",
+      "trechos": [
+        "🎶❤️"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-emoji-05",
+      "grupo": "vazamento",
+      "categorias": [
+        "emoji"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Obrigado pela companhia nesta manhã 🙏",
+      "trechos": [
+        "🙏"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-url-01",
+      "grupo": "vazamento",
+      "categorias": [
+        "url"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "As inscrições estão abertas em https://www.prefeituraserradoipe.com.br/inscricoes até o fim do mês.",
+      "trechos": [
+        "https://www.prefeituraserradoipe.com.br/inscricoes"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-url-02",
+      "grupo": "vazamento",
+      "categorias": [
+        "url"
+      ],
+      "canal": "whatsapp",
+      "tom": "informal",
+      "texto": "Pode mandar seu pedido pelo site: https://www.radioipedourado.com.br/pedidos",
+      "trechos": [
+        "https://www.radioipedourado.com.br/pedidos"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-url-03",
+      "grupo": "vazamento",
+      "categorias": [
+        "url"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Quer ver as fotos da festa? Tá tudo em https://www.vilaventura.com.br/fotos, corre lá!",
+      "trechos": [
+        "https://www.vilaventura.com.br/fotos"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "vaz-url-04",
+      "grupo": "vazamento",
+      "categorias": [
+        "url"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Mais detalhes no endereço https://www.radioserraclara.com.br/agenda.",
+      "trechos": [
+        "https://www.radioserraclara.com.br/agenda"
+      ],
+      "esperado": {
+        "vazamento": true,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-atendimento-01",
+      "grupo": "sinal",
+      "categorias": [
+        "atendimento"
+      ],
+      "canal": "whatsapp",
+      "tom": "formal",
+      "texto": "Seu recado foi anotado. Espero ter ajudado!",
+      "trechos": [
+        "Espero ter ajudado!"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-atendimento-02",
+      "grupo": "sinal",
+      "categorias": [
+        "atendimento"
+      ],
+      "canal": "whatsapp",
+      "tom": "informal",
+      "texto": "Recebi seu recado, valeu! Fico à disposição pra qualquer coisa.",
+      "trechos": [
+        "Fico à disposição"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-atendimento-03",
+      "grupo": "sinal",
+      "categorias": [
+        "atendimento"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Esse foi o recado da Dona Lurdes. Posso ajudar em algo mais?",
+      "trechos": [
+        "Posso ajudar em algo mais?"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-atendimento-04",
+      "grupo": "sinal",
+      "categorias": [
+        "atendimento"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Ótima pergunta! O mercado municipal abre aos domingos pela manhã.",
+      "trechos": [
+        "Ótima pergunta!"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-atendimento-05",
+      "grupo": "sinal",
+      "categorias": [
+        "atendimento"
+      ],
+      "canal": "whatsapp",
+      "tom": "formal",
+      "texto": "Olá! Que ótimo receber sua mensagem! Vou passar para a produção do programa.",
+      "trechos": [
+        "Que ótimo receber sua mensagem!"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-atendimento-06",
+      "grupo": "sinal",
+      "categorias": [
+        "atendimento"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Se precisar de mais alguma coisa, é só chamar! Agora vamos de música.",
+      "trechos": [
+        "Se precisar de mais alguma coisa, é só chamar!"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-importancia-01",
+      "grupo": "sinal",
+      "categorias": [
+        "importancia_inflada"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A reforma da praça é um verdadeiro testemunho do amor desta cidade pelo seu povo.",
+      "trechos": [
+        "um verdadeiro testemunho"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-importancia-02",
+      "grupo": "sinal",
+      "categorias": [
+        "importancia_inflada"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A nova linha de ônibus é um marco histórico para o bairro.",
+      "trechos": [
+        "um marco histórico"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-importancia-03",
+      "grupo": "sinal",
+      "categorias": [
+        "importancia_inflada"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "A feira do produtor tem um papel fundamental na vida da nossa gente.",
+      "trechos": [
+        "papel fundamental"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-importancia-04",
+      "grupo": "sinal",
+      "categorias": [
+        "importancia_inflada"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "O festival de inverno deixa um legado duradouro para as próximas gerações.",
+      "trechos": [
+        "legado duradouro"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-importancia-05",
+      "grupo": "sinal",
+      "categorias": [
+        "importancia_inflada"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "A festa da colheita celebra a rica herança cultural da nossa região.",
+      "trechos": [
+        "rica herança cultural"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-ressalva-01",
+      "grupo": "sinal",
+      "categorias": [
+        "ressalva"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "É importante ressaltar que a biblioteca fecha mais cedo nesta sexta.",
+      "trechos": [
+        "É importante ressaltar que"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-ressalva-02",
+      "grupo": "sinal",
+      "categorias": [
+        "ressalva"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Vale ressaltar que o estacionamento da feira não cobra nada.",
+      "trechos": [
+        "Vale ressaltar que"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-ressalva-03",
+      "grupo": "sinal",
+      "categorias": [
+        "ressalva"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Vale destacar que a apresentação da banda da escola é aberta ao público.",
+      "trechos": [
+        "Vale destacar que"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-ressalva-04",
+      "grupo": "sinal",
+      "categorias": [
+        "ressalva"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "É fundamental lembrar que o prazo da matrícula termina nesta semana.",
+      "trechos": [
+        "É fundamental lembrar que"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-ressalva-05",
+      "grupo": "sinal",
+      "categorias": [
+        "ressalva"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Cabe lembrar que a coleta de recicláveis passa às quintas.",
+      "trechos": [
+        "Cabe lembrar que"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-conectivo-01",
+      "grupo": "sinal",
+      "categorias": [
+        "conectivo_redacao"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A quermesse abre no sábado à tarde. Nesse sentido, a organização pede que todos cheguem cedo.",
+      "trechos": [
+        "Nesse sentido,"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-conectivo-02",
+      "grupo": "sinal",
+      "categorias": [
+        "conectivo_redacao"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A rua da igreja ganhou calçada nova. Diante disso, o caminho para o centro ficou mais seguro.",
+      "trechos": [
+        "Diante disso,"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-conectivo-03",
+      "grupo": "sinal",
+      "categorias": [
+        "conectivo_redacao"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "O mercado ampliou o horário. Dessa forma, quem trabalha até tarde também consegue fazer compras.",
+      "trechos": [
+        "Dessa forma,"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-conectivo-04",
+      "grupo": "sinal",
+      "categorias": [
+        "conectivo_redacao"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A escola abriu novas turmas de violão. Por conseguinte, a procura pelas aulas aumentou.",
+      "trechos": [
+        "Por conseguinte,"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-conectivo-05",
+      "grupo": "sinal",
+      "categorias": [
+        "conectivo_redacao"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Tem festa junina na praça. Além disso, tem quadrilha das crianças. Além disso, tem fogueira à noite.",
+      "trechos": [
+        "Além disso,"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-vocabulario-01",
+      "grupo": "sinal",
+      "categorias": [
+        "vocabulario_ia"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Vamos mergulhar nas histórias que fazem desta tarde algo especial.",
+      "trechos": [
+        "mergulhar"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-vocabulario-02",
+      "grupo": "sinal",
+      "categorias": [
+        "vocabulario_ia"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "A cena musical da cidade está mais vibrante do que nunca.",
+      "trechos": [
+        "vibrante"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-vocabulario-03",
+      "grupo": "sinal",
+      "categorias": [
+        "vocabulario_ia"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "É crucial que a gente cuide da praça, que é de todos.",
+      "trechos": [
+        "crucial"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-vocabulario-04",
+      "grupo": "sinal",
+      "categorias": [
+        "vocabulario_ia"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "O novo cenário cultural da região mostra uma tapeçaria de ritmos.",
+      "trechos": [
+        "cenário",
+        "tapeçaria"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-vocabulario-05",
+      "grupo": "sinal",
+      "categorias": [
+        "vocabulario_ia"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A prefeitura quer fomentar e potencializar o comércio do bairro.",
+      "trechos": [
+        "fomentar",
+        "potencializar"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-evitar-e-01",
+      "grupo": "sinal",
+      "categorias": [
+        "evitar_e"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "A padaria da esquina se destaca como o ponto de encontro do bairro.",
+      "trechos": [
+        "se destaca como"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-evitar-e-02",
+      "grupo": "sinal",
+      "categorias": [
+        "evitar_e"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "O coreto da praça se configura como um espaço de convivência.",
+      "trechos": [
+        "se configura como"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-evitar-e-03",
+      "grupo": "sinal",
+      "categorias": [
+        "evitar_e"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Essa canção representa a saudade de quem mora longe.",
+      "trechos": [
+        "representa"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-evitar-e-04",
+      "grupo": "sinal",
+      "categorias": [
+        "evitar_e"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A biblioteca serve como refúgio para quem gosta de silêncio.",
+      "trechos": [
+        "serve como"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-evitar-e-05",
+      "grupo": "sinal",
+      "categorias": [
+        "evitar_e"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "O festival se posiciona como o maior encontro de violeiros da serra.",
+      "trechos": [
+        "se posiciona como"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-folheto-01",
+      "grupo": "sinal",
+      "categorias": [
+        "folheto"
+      ],
+      "canal": "patrocinio",
+      "tom": "formal",
+      "texto": "Restaurante Sabor da Serra: ambiente acolhedor e moderno, com qualidade e excelência em cada prato.",
+      "trechos": [
+        "ambiente acolhedor",
+        "qualidade e excelência"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-folheto-02",
+      "grupo": "sinal",
+      "categorias": [
+        "folheto"
+      ],
+      "canal": "patrocinio",
+      "tom": "formal",
+      "texto": "Ótica Vista Clara oferece uma experiência única para você enxergar o mundo de um jeito novo.",
+      "trechos": [
+        "uma experiência única"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-folheto-03",
+      "grupo": "sinal",
+      "categorias": [
+        "folheto"
+      ],
+      "canal": "patrocinio",
+      "tom": "informal",
+      "texto": "Pousada Recanto do Vale, com paisagens de tirar o fôlego a 20 minutos do centro.",
+      "trechos": [
+        "de tirar o fôlego"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-folheto-04",
+      "grupo": "sinal",
+      "categorias": [
+        "folheto"
+      ],
+      "canal": "patrocinio",
+      "tom": "informal",
+      "texto": "Padaria Trigo Dourado: o melhor pão da cidade, com o carinho que você merece. Aberta das 6h às 20h.",
+      "trechos": [
+        "com o carinho que você merece"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-folheto-05",
+      "grupo": "sinal",
+      "categorias": [
+        "folheto"
+      ],
+      "canal": "patrocinio",
+      "tom": "formal",
+      "texto": "Mercado Bom Preço, onde cada compra é uma experiência inesquecível. Arroz de 5 kg por R$ 24,90.",
+      "trechos": [
+        "uma experiência inesquecível"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-paralelismo-01",
+      "grupo": "sinal",
+      "categorias": [
+        "paralelismo_negativo"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Não é apenas música, é companhia para a sua tarde.",
+      "trechos": [
+        "Não é apenas música, é companhia"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-paralelismo-02",
+      "grupo": "sinal",
+      "categorias": [
+        "paralelismo_negativo"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Isso não é só uma feira, é um encontro de gerações.",
+      "trechos": [
+        "não é só uma feira, é um encontro"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-paralelismo-03",
+      "grupo": "sinal",
+      "categorias": [
+        "paralelismo_negativo"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Não se trata de uma simples festa, mas de uma tradição que une a cidade.",
+      "trechos": [
+        "Não se trata de uma simples festa, mas de"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-paralelismo-04",
+      "grupo": "sinal",
+      "categorias": [
+        "paralelismo_negativo"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Mais do que um programa, uma família que se encontra todo dia.",
+      "trechos": [
+        "Mais do que um programa,"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-paralelismo-05",
+      "grupo": "sinal",
+      "categorias": [
+        "paralelismo_negativo"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "O rádio não fala apenas com você, ele fala por você.",
+      "trechos": [
+        "não fala apenas com você, ele fala por você"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-triade-01",
+      "grupo": "sinal",
+      "categorias": [
+        "triade"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Alegria, energia e muita música para a sua tarde!",
+      "trechos": [
+        "Alegria, energia e muita música"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-triade-02",
+      "grupo": "sinal",
+      "categorias": [
+        "triade"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Uma tarde de sol, sorriso e boas lembranças.",
+      "trechos": [
+        "sol, sorriso e boas lembranças"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-triade-03",
+      "grupo": "sinal",
+      "categorias": [
+        "triade"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A festa promete comida, dança e diversão para toda a família.",
+      "trechos": [
+        "comida, dança e diversão"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-triade-04",
+      "grupo": "sinal",
+      "categorias": [
+        "triade"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Com carinho, respeito e dedicação, a gente segue com você.",
+      "trechos": [
+        "carinho, respeito e dedicação"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-triade-05",
+      "grupo": "sinal",
+      "categorias": [
+        "triade"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Música que inspira, emociona e transforma.",
+      "trechos": [
+        "inspira, emociona e transforma"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-gerundio-01",
+      "grupo": "sinal",
+      "categorias": [
+        "gerundio_final"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A prefeitura reformou a quadra do bairro, reforçando a importância do esporte para os jovens.",
+      "trechos": [
+        "reforçando a importância do esporte para os jovens"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-gerundio-02",
+      "grupo": "sinal",
+      "categorias": [
+        "gerundio_final"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A feira volta no domingo, destacando o trabalho dos produtores da região.",
+      "trechos": [
+        "destacando o trabalho dos produtores da região"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-gerundio-03",
+      "grupo": "sinal",
+      "categorias": [
+        "gerundio_final"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "O coral da escola se apresentou na praça, mostrando o talento das crianças.",
+      "trechos": [
+        "mostrando o talento das crianças"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-gerundio-04",
+      "grupo": "sinal",
+      "categorias": [
+        "gerundio_final"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A biblioteca ganhou livros novos, contribuindo para a formação dos leitores.",
+      "trechos": [
+        "contribuindo para a formação dos leitores"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-gerundio-05",
+      "grupo": "sinal",
+      "categorias": [
+        "gerundio_final"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "O bairro organizou um mutirão de limpeza, evidenciando o espírito de comunidade.",
+      "trechos": [
+        "evidenciando o espírito de comunidade"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-fechamento-01",
+      "grupo": "sinal",
+      "categorias": [
+        "fechamento_resumo"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Hoje a conversa foi sobre receitas de família. Em resumo, cozinhar é um jeito de lembrar quem a gente ama.",
+      "trechos": [
+        "Em resumo,"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-fechamento-02",
+      "grupo": "sinal",
+      "categorias": [
+        "fechamento_resumo"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Falamos de horta e de sementes. Em suma, cuidar da terra é cuidar da gente.",
+      "trechos": [
+        "Em suma,"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-fechamento-03",
+      "grupo": "sinal",
+      "categorias": [
+        "fechamento_resumo"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Resumindo: foi uma tarde de boas histórias e boa música.",
+      "trechos": [
+        "Resumindo:"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-fechamento-04",
+      "grupo": "sinal",
+      "categorias": [
+        "fechamento_resumo"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "No fim das contas, o que importa é estar junto de quem a gente gosta.",
+      "trechos": [
+        "No fim das contas, o que importa é"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-fechamento-05",
+      "grupo": "sinal",
+      "categorias": [
+        "fechamento_resumo"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Concluindo, a festa foi um sucesso graças a cada um de vocês.",
+      "trechos": [
+        "Concluindo,"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-atribuicao-01",
+      "grupo": "sinal",
+      "categorias": [
+        "atribuicao_vaga"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Especialistas apontam que dormir cedo melhora o humor.",
+      "trechos": [
+        "Especialistas apontam"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-atribuicao-02",
+      "grupo": "sinal",
+      "categorias": [
+        "atribuicao_vaga"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Muita gente diz que o pastel da feira de domingo é o melhor da região.",
+      "trechos": [
+        "Muita gente diz que"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-atribuicao-03",
+      "grupo": "sinal",
+      "categorias": [
+        "atribuicao_vaga"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Estudos mostram que ouvir música diminui o estresse.",
+      "trechos": [
+        "Estudos mostram"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-atribuicao-04",
+      "grupo": "sinal",
+      "categorias": [
+        "atribuicao_vaga"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Dizem por aí que o inverno deste ano vai ser dos bravos.",
+      "trechos": [
+        "Dizem por aí"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-atribuicao-05",
+      "grupo": "sinal",
+      "categorias": [
+        "atribuicao_vaga"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Segundo especialistas, caminhar depois do almoço faz bem para a digestão.",
+      "trechos": [
+        "Segundo especialistas"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-travessao-01",
+      "grupo": "sinal",
+      "categorias": [
+        "travessao"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "A feira volta no sábado — e com barraca nova de queijo.",
+      "trechos": [
+        "—"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-travessao-02",
+      "grupo": "sinal",
+      "categorias": [
+        "travessao"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A biblioteca abre mais cedo – e fecha mais tarde – durante as férias.",
+      "trechos": [
+        "–"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-travessao-03",
+      "grupo": "sinal",
+      "categorias": [
+        "travessao"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Tem bolo de fubá na quermesse -- e o café é por conta da casa.",
+      "trechos": [
+        " -- "
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-travessao-04",
+      "grupo": "sinal",
+      "categorias": [
+        "travessao"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Essa é para quem está na estrada — e para quem espera em casa.",
+      "trechos": [
+        "—"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-travessao-05",
+      "grupo": "sinal",
+      "categorias": [
+        "travessao"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "O pão de queijo da feira acabou cedo — sinal de que estava bom.",
+      "trechos": [
+        "—"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": null
+      }
+    },
+    {
+      "id": "sin-denso-01",
+      "grupo": "sinal",
+      "categorias": [
+        "ressalva",
+        "importancia_inflada",
+        "gerundio_final",
+        "fechamento_resumo",
+        "triade"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Vale ressaltar que a festa da colheita é um verdadeiro marco histórico, reforçando a importância da nossa tradição. Em resumo, uma celebração de alegria, música e união.",
+      "trechos": [
+        "Vale ressaltar que",
+        "um verdadeiro marco histórico",
+        "reforçando a importância da nossa tradição",
+        "Em resumo,",
+        "alegria, música e união"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": true
+      }
+    },
+    {
+      "id": "sin-denso-02",
+      "grupo": "sinal",
+      "categorias": [
+        "atendimento",
+        "ressalva",
+        "vocabulario_ia"
+      ],
+      "canal": "whatsapp",
+      "tom": "informal",
+      "texto": "Ótima pergunta! Vale destacar que nossa programação é vibrante e diversificada. Espero ter ajudado! Fico à disposição.",
+      "trechos": [
+        "Ótima pergunta!",
+        "Vale destacar que",
+        "vibrante",
+        "Espero ter ajudado!",
+        "Fico à disposição."
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": true
+      }
+    },
+    {
+      "id": "sin-denso-03",
+      "grupo": "sinal",
+      "categorias": [
+        "paralelismo_negativo",
+        "vocabulario_ia",
+        "conectivo_redacao",
+        "triade"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Não é apenas um programa, é uma jornada! Além disso, é crucial mergulhar nesse cenário de alegria, energia e emoção.",
+      "trechos": [
+        "Não é apenas um programa, é uma jornada",
+        "jornada",
+        "Além disso,",
+        "crucial",
+        "mergulhar",
+        "cenário",
+        "alegria, energia e emoção"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": true
+      }
+    },
+    {
+      "id": "sin-denso-04",
+      "grupo": "sinal",
+      "categorias": [
+        "evitar_e",
+        "folheto",
+        "gerundio_final",
+        "triade"
+      ],
+      "canal": "patrocinio",
+      "tom": "formal",
+      "texto": "Restaurante Sabor da Serra se destaca como referência, oferecendo uma experiência única em um ambiente acolhedor. Qualidade, sabor e tradição que você merece.",
+      "trechos": [
+        "se destaca como",
+        "oferecendo uma experiência única em um ambiente acolhedor",
+        "uma experiência única",
+        "ambiente acolhedor",
+        "Qualidade, sabor e tradição"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": true
+      }
+    },
+    {
+      "id": "sin-denso-05",
+      "grupo": "sinal",
+      "categorias": [
+        "atribuicao_vaga",
+        "evitar_e",
+        "importancia_inflada",
+        "gerundio_final",
+        "conectivo_redacao",
+        "ressalva"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Especialistas apontam que a feira representa um papel fundamental para a economia local, fomentando o comércio. Nesse sentido, é importante ressaltar sua relevância.",
+      "trechos": [
+        "Especialistas apontam",
+        "representa",
+        "papel fundamental",
+        "fomentando o comércio",
+        "Nesse sentido,",
+        "é importante ressaltar"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": true
+      }
+    },
+    {
+      "id": "nao-noticia-01",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "noticia_formal"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A Secretaria de Obras informou, às dez horas, que a rua do Comércio fica interditada até o fim da tarde para a troca da rede de água.",
+      "trechos": [],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-noticia-02",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "noticia_formal"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Segundo a Defesa Civil, a previsão para esta noite é de tempo firme, sem chuva. A atualização foi divulgada às catorze horas.",
+      "trechos": [],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-noticia-03",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "noticia_formal"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A prefeitura de Serra do Ipê abriu inscrições para o curso gratuito de informática. As aulas serão à noite, na biblioteca municipal, de acordo com o edital publicado hoje pela manhã.",
+      "trechos": [],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-noticia-04",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "noticia_formal"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "O Departamento de Estradas liberou, ao meio-dia, a pista da estrada do Mirante nos dois sentidos.",
+      "trechos": [],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-noticia-05",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "noticia_formal"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "De acordo com a Secretaria de Saúde, a campanha de vacinação contra a gripe segue nos postos do centro até sexta-feira.",
+      "trechos": [],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-noticia-06",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "noticia_formal"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A cooperativa regional anunciou nesta manhã que a coleta de leite passa a ser diária nos sítios da zona rural.",
+      "trechos": [],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-noticia-07",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "noticia_formal"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "O Corpo de Bombeiros controlou, por volta das quinze horas, um princípio de incêndio num terreno baldio do bairro Alto da Serra. Ninguém ficou ferido.",
+      "trechos": [],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-noticia-08",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "noticia_formal"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Conforme boletim da companhia de energia divulgado às dezesseis horas, o fornecimento já foi restabelecido em todo o bairro Jardim das Flores.",
+      "trechos": [],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-noticia-09",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "noticia_formal"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A Câmara Municipal aprovou, na sessão desta manhã, o projeto que cria a feira noturna na praça central. A medida ainda depende da sanção do prefeito.",
+      "trechos": [],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-noticia-10",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "noticia_formal"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "O instituto de meteorologia informou, às treze horas, que a temperatura deve cair à noite, com mínima prevista de doze graus.",
+      "trechos": [],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-conectivo-01",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "conectivo_isolado"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "A feira de sábado vai ter barraca de queijo e de verdura fresca, tudo de produtor daqui da região. Além disso, o estacionamento da praça fica liberado até o meio-dia, então dá pra ir com calma e escolher com tranquilidade.",
+      "trechos": [
+        "Além disso,"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-conectivo-02",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "conectivo_isolado"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Quem passou pela avenida hoje viu que a calçada nova ficou pronta, com rampa e piso tátil para quem tem deficiência visual. Além disso, a prefeitura plantou mudas de ipê ao longo do canteiro, e em poucos anos a avenida deve ficar bem mais fresca no verão.",
+      "trechos": [
+        "Além disso,"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-conectivo-03",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "conectivo_isolado"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "O mutirão de limpeza do rio começa cedo no domingo e qualquer pessoa pode ajudar, basta levar luva e garrafa de água. Além disso, a associação de moradores vai servir um café da manhã simples para os voluntários, na sede do bairro.",
+      "trechos": [
+        "Além disso,"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-conectivo-04",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "conectivo_isolado"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Tem gente que guarda a receita do bolo da avó num caderno velho, com mancha de gordura e letra apagada, e não troca por nada. Além disso, muita família tem aquela panela que passou de mãe para filha e que ninguém tem coragem de aposentar.",
+      "trechos": [
+        "Além disso,"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-conectivo-05",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "conectivo_isolado"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "O festival de inverno vai ter apresentação de viola e teatro de bonecos na praça, sempre no fim da tarde. Além disso, as barracas de comida ficam abertas até a noite, com caldo e pinhão para quem chegar depois do trabalho.",
+      "trechos": [
+        "Além disso,"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-mistura-01",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "mistura_registro"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Atenção, motorista: a Secretaria de Trânsito informou que a ponte do rio Claro fica fechada até as dezoito horas. Então, se der, vai pelo anel viário.",
+      "trechos": [],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-mistura-02",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "mistura_registro"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Segundo o boletim da Defesa Civil, a chuva deve voltar à noite. Ou seja, pega o guarda-chuva antes de sair, viu?",
+      "trechos": [],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-mistura-03",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "mistura_registro"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Olha só que coisa boa: a biblioteca municipal passa a abrir aos sábados, conforme comunicado oficial da prefeitura.",
+      "trechos": [],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-mistura-04",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "mistura_registro"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A gente sabe que segunda-feira pesa, né? Mas a feira do produtor confirmou funcionamento normal no período da tarde.",
+      "trechos": [],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-mistura-05",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "mistura_registro"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Pessoal, recado importante da companhia de água: haverá interrupção no abastecimento entre as nove e as quinze horas. Enche a caixa antes, tá?",
+      "trechos": [],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-mistura-06",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "mistura_registro"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Tá chegando a festa da colheita, e a organização informou que a entrada será franca para crianças de até doze anos.",
+      "trechos": [],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-reorientacao-01",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "reorientacao"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Você está na Rádio Ipê Dourado, e a tarde segue com viola e prosa boa.",
+      "trechos": [],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-reorientacao-02",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "reorientacao"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Você está ouvindo Tarde Serena, na Rádio Serra Clara.",
+      "trechos": [],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-reorientacao-03",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "reorientacao"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Você está na Rádio Vila Ventura. Se acabou de chegar, seja bem-vindo.",
+      "trechos": [],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-reorientacao-04",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "reorientacao"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Você está ouvindo Prosa e Viola, com Zeca Porteira.",
+      "trechos": [],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-reorientacao-05",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "reorientacao"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Para quem chegou agora: você está na Rádio Serra Clara, com música sem pressa para a sua tarde.",
+      "trechos": [],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      }
+    },
+    {
+      "id": "nao-armadilha-01",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "armadilha"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "E o cachorro roubou o pão da mesa [laughs] e saiu correndo pelo quintal.",
+      "trechos": [
+        "[laughs]"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      },
+      "armadilha": "tag_v3_permitida"
+    },
+    {
+      "id": "nao-armadilha-02",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "armadilha"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Respira fundo e solta o ar devagar. [pause] Pronto, a tarde ficou mais leve.",
+      "trechos": [
+        "[pause]"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      },
+      "armadilha": "tag_v3_permitida"
+    },
+    {
+      "id": "nao-armadilha-03",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "armadilha"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "[sighs] Segunda-feira de novo, mas a gente dá conta.",
+      "trechos": [
+        "[sighs]"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      },
+      "armadilha": "tag_v3_permitida"
+    },
+    {
+      "id": "nao-armadilha-04",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "armadilha"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Não posso deixar de agradecer a turma da cozinha comunitária, que serviu almoço para mais de cem pessoas hoje.",
+      "trechos": [
+        "Não posso deixar de agradecer"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      },
+      "armadilha": "nao_posso_deixar_de"
+    },
+    {
+      "id": "nao-armadilha-05",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "armadilha"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A escola estadual abriu um curso gratuito de inteligência artificial para adultos, segundo a Secretaria de Educação.",
+      "trechos": [
+        "inteligência artificial"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      },
+      "armadilha": "ia_como_assunto"
+    },
+    {
+      "id": "nao-armadilha-06",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "armadilha"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Na última atualização da Defesa Civil, às quinze horas, o nível do rio estava abaixo do alerta.",
+      "trechos": [
+        "Na última atualização da Defesa Civil, às quinze horas"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      },
+      "armadilha": "ultima_atualizacao_com_fonte"
+    },
+    {
+      "id": "nao-armadilha-07",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "armadilha"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Quem está encerrando a jornada de trabalho agora, boa volta para casa.",
+      "trechos": [
+        "jornada de trabalho"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      },
+      "armadilha": "jornada_literal"
+    },
+    {
+      "id": "nao-armadilha-08",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "armadilha"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "O grupo de teatro montou um cenário de papelão inteirinho para a peça das crianças.",
+      "trechos": [
+        "cenário de papelão"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      },
+      "armadilha": "cenario_literal"
+    },
+    {
+      "id": "nao-armadilha-09",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "armadilha"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "O vereador que representa o bairro Alto da Serra confirmou presença na reunião de moradores.",
+      "trechos": [
+        "representa o bairro"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      },
+      "armadilha": "representa_literal"
+    },
+    {
+      "id": "nao-armadilha-10",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "armadilha"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Vale a pena passar na feira cedo, que o pastel acaba rápido.",
+      "trechos": [
+        "Vale a pena"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      },
+      "armadilha": "vale_a_pena"
+    },
+    {
+      "id": "nao-armadilha-11",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "armadilha"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Para tomar a vacina, é importante levar documento com foto e a carteirinha.",
+      "trechos": [
+        "é importante levar documento com foto"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      },
+      "armadilha": "importante_instrucao"
+    },
+    {
+      "id": "nao-armadilha-12",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "armadilha"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Aqui é a Marta, fechando o Tarde em Casa de hoje.",
+      "trechos": [
+        "fechando o Tarde em Casa de hoje"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      },
+      "armadilha": "gerundio_legitimo"
+    },
+    {
+      "id": "nao-armadilha-13",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "armadilha"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "Sabe quando fulano chega na festa e já quer escolher a música? Pois é, todo mundo conhece um.",
+      "trechos": [
+        "fulano"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      },
+      "armadilha": "fulano_coloquial"
+    },
+    {
+      "id": "nao-armadilha-14",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "armadilha"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A previsão para amanhã é de chuva, vento e frio, segundo o instituto de meteorologia.",
+      "trechos": [
+        "chuva, vento e frio"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      },
+      "armadilha": "triade_factual"
+    },
+    {
+      "id": "nao-armadilha-15",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "armadilha"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "O endereço é radioipedourado ponto com ponto br, barra recados.",
+      "trechos": [
+        "radioipedourado ponto com ponto br"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      },
+      "armadilha": "dominio_falado"
+    },
+    {
+      "id": "nao-armadilha-16",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "armadilha"
+      ],
+      "canal": "whatsapp",
+      "tom": "informal",
+      "texto": "Recado anotado! Vai pra equipe do programa 😊",
+      "trechos": [
+        "😊"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      },
+      "armadilha": "emoji_espelhado",
+      "contexto": {
+        "ouvinte_usou_emoji": true
+      }
+    },
+    {
+      "id": "nao-armadilha-17",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "armadilha"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "Não é só no centro: a falta de água atinge também o bairro Jardim das Flores, segundo a companhia de saneamento.",
+      "trechos": [
+        "Não é só no centro"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      },
+      "armadilha": "nao_e_so_factual"
+    },
+    {
+      "id": "nao-armadilha-18",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "armadilha"
+      ],
+      "canal": "ao_vivo",
+      "tom": "informal",
+      "texto": "A piscina pública reabriu e a criançada já pode mergulhar de novo, informou a prefeitura.",
+      "trechos": [
+        "mergulhar"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      },
+      "armadilha": "mergulhar_literal"
+    },
+    {
+      "id": "nao-armadilha-19",
+      "grupo": "nao_corrigir",
+      "categorias": [
+        "armadilha"
+      ],
+      "canal": "ao_vivo",
+      "tom": "formal",
+      "texto": "A biblioteca fica à disposição de quem quiser estudar até as vinte horas.",
+      "trechos": [
+        "fica à disposição"
+      ],
+      "esperado": {
+        "vazamento": false,
+        "acima_do_limite": false
+      },
+      "armadilha": "a_disposicao_literal"
+    }
+  ],
+  "sequencias": [
+    {
+      "id": "seq-bordao-01",
+      "categorias": [
+        "bordao"
+      ],
+      "formato": "popular_sertanejo",
+      "bordoes": [
+        "A viola que acompanha o seu dia"
+      ],
+      "falas": [
+        {
+          "inicio_s": 0,
+          "texto": "Boa tarde! Prosa e Viola começa agora na Rádio Ipê Dourado. A viola que acompanha o seu dia."
+        },
+        {
+          "inicio_s": 600,
+          "texto": "Que tarde bonita para uma moda de viola. A viola que acompanha o seu dia."
+        },
+        {
+          "inicio_s": 1200,
+          "texto": "Café passado e rádio ligado, combinação que não falha. A viola que acompanha o seu dia."
+        }
+      ],
+      "esperado": {
+        "bordao_repetido": 2,
+        "repeticao_estrutura": 0,
+        "repeticao_proibida": 0,
+        "naturalidade_repetida": 0
+      },
+      "nota": "Slogan três vezes em vinte minutos: a segunda e a terceira passam do limite de uma vez a cada trinta."
+    },
+    {
+      "id": "seq-bordao-02",
+      "categorias": [
+        "bordao"
+      ],
+      "formato": "popular_sertanejo",
+      "bordoes": [
+        "A viola que acompanha o seu dia"
+      ],
+      "falas": [
+        {
+          "inicio_s": 0,
+          "texto": "Prosa e Viola está no ar. A viola que acompanha o seu dia."
+        },
+        {
+          "inicio_s": 2400,
+          "texto": "Mais uma moda boa para a sua tarde. A viola que acompanha o seu dia."
+        }
+      ],
+      "esperado": {
+        "bordao_repetido": 0,
+        "repeticao_estrutura": 0,
+        "repeticao_proibida": 0,
+        "naturalidade_repetida": 0
+      },
+      "nota": "Slogan duas vezes com quarenta minutos de intervalo: dentro do limite."
+    },
+    {
+      "id": "seq-bordao-03",
+      "categorias": [
+        "bordao"
+      ],
+      "formato": "popular_sertanejo",
+      "bordoes": [
+        "A viola que acompanha o seu dia"
+      ],
+      "falas": [
+        {
+          "inicio_s": 0,
+          "texto": "Prosa e Viola começa agora, com o Zeca na casa. A viola que acompanha o seu dia."
+        },
+        {
+          "inicio_s": 1500,
+          "texto": "Tarde de sol na serra e moda caipira no rádio. A viola que acompanha o seu dia."
+        },
+        {
+          "inicio_s": 4200,
+          "texto": "Quem chegou do serviço agora pode puxar a cadeira. A viola que acompanha o seu dia."
+        }
+      ],
+      "esperado": {
+        "bordao_repetido": 1,
+        "repeticao_estrutura": 0,
+        "repeticao_proibida": 0,
+        "naturalidade_repetida": 0
+      },
+      "nota": "Janela deslizante: só a segunda ocorrência tem outra nos trinta minutos anteriores."
+    },
+    {
+      "id": "seq-reorientacao-01",
+      "categorias": [
+        "reorientacao"
+      ],
+      "formato": "musical_adulto",
+      "bordoes": [],
+      "falas": [
+        {
+          "inicio_s": 0,
+          "texto": "Você está na Rádio Serra Clara, com Tarde Serena."
+        },
+        {
+          "inicio_s": 900,
+          "texto": "Você está na Rádio Serra Clara. A tarde segue sem pressa."
+        },
+        {
+          "inicio_s": 1800,
+          "texto": "Você está na Rádio Serra Clara, e a música continua."
+        }
+      ],
+      "esperado": {
+        "bordao_repetido": null,
+        "repeticao_estrutura": 1,
+        "repeticao_proibida": 0,
+        "naturalidade_repetida": 0
+      },
+      "nota": "Reorientação a cada quinze minutos (reorientacao_s do musical adulto): o detector da F8 conta uma janela, mas é repetição permitida. Se a reorientação conta como bordão (D4) fica para a H5."
+    },
+    {
+      "id": "seq-saudacao-01",
+      "categorias": [
+        "abertura"
+      ],
+      "formato": "variedades_leves",
+      "bordoes": [],
+      "falas": [
+        {
+          "inicio_s": 0,
+          "texto": "Boa tarde, gente! Tarde em Casa começa agora, com a Marta."
+        },
+        {
+          "inicio_s": 420,
+          "texto": "Boa tarde para quem chegou agora na Rádio Vila Ventura."
+        },
+        {
+          "inicio_s": 840,
+          "texto": "Boa tarde! Hoje a conversa é sobre a mesa do café da manhã."
+        }
+      ],
+      "esperado": {
+        "bordao_repetido": 0,
+        "repeticao_estrutura": 1,
+        "repeticao_proibida": 1,
+        "naturalidade_repetida": 0
+      },
+      "nota": "Mesma saudação em três falas seguidas: estrutura repetida e não permitida."
+    },
+    {
+      "id": "seq-naturalidade-01",
+      "categorias": [
+        "naturalidade_encenada"
+      ],
+      "formato": "variedades_leves",
+      "bordoes": [],
+      "falas": [
+        {
+          "inicio_s": 0,
+          "texto": "É... deixa eu ver aqui, a receita da semana é de bolo de cenoura."
+        },
+        {
+          "inicio_s": 300,
+          "texto": "Tem gente que guarda pote de sorvete para tudo, menos para sorvete."
+        },
+        {
+          "inicio_s": 600,
+          "texto": "É... deixa eu ver aqui, a dica de hoje é sobre organizar a gaveta de talheres."
+        },
+        {
+          "inicio_s": 900,
+          "texto": "É... deixa eu ver aqui, o assunto agora é o varal que nunca tem prendedor."
+        }
+      ],
+      "esperado": {
+        "bordao_repetido": 0,
+        "repeticao_estrutura": 0,
+        "repeticao_proibida": 0,
+        "naturalidade_repetida": 2
+      },
+      "nota": "A mesma hesitação encenada em três de quatro falas (achado 3 do plano): vira tique."
+    },
+    {
+      "id": "seq-fechamento-01",
+      "categorias": [
+        "fechamento"
+      ],
+      "formato": "popular_sertanejo",
+      "bordoes": [],
+      "falas": [
+        {
+          "inicio_s": 0,
+          "texto": "A tarde começou com viola boa e prosa curta. Fica com a gente."
+        },
+        {
+          "inicio_s": 700,
+          "texto": "Tem moda antiga e moda nova nesta hora. Fica com a gente."
+        },
+        {
+          "inicio_s": 1400,
+          "texto": "O café da tarde pede uma música mais calma. Fica com a gente."
+        },
+        {
+          "inicio_s": 2100,
+          "texto": "A serra está bonita e o rádio segue ligado. Fica com a gente."
+        }
+      ],
+      "esperado": {
+        "bordao_repetido": null,
+        "repeticao_estrutura": 0,
+        "repeticao_proibida": null,
+        "naturalidade_repetida": 0
+      },
+      "nota": "'Fica com a gente' em quatro falas seguidas: a D4 decide na H5 se é bordão; hoje só o fechamento repete."
+    },
+    {
+      "id": "seq-controle-01",
+      "categorias": [
+        "controle"
+      ],
+      "formato": "musical_adulto",
+      "bordoes": [],
+      "falas": [
+        {
+          "inicio_s": 0,
+          "texto": "Tarde Serena começa agora, na Rádio Serra Clara."
+        },
+        {
+          "inicio_s": 800,
+          "texto": "Que bom ter você por perto nesta hora mais calma."
+        },
+        {
+          "inicio_s": 1600,
+          "texto": "Seguimos com canções escolhidas para o fim de tarde."
+        },
+        {
+          "inicio_s": 2400,
+          "texto": "Tem quem ouça da cozinha e quem ouça da estrada."
+        }
+      ],
+      "esperado": {
+        "bordao_repetido": 0,
+        "repeticao_estrutura": 0,
+        "repeticao_proibida": 0,
+        "naturalidade_repetida": 0
+      },
+      "nota": "Controle negativo: aberturas variadas, sem bordão, sem hesitação."
+    }
+  ]
+}
