@@ -15,6 +15,10 @@ import pytest
 
 RAIZ = pathlib.Path(__file__).resolve().parents[2]
 F5 = RAIZ / "docs" / "melhoria-radio" / "f5" / "simulacao"
+# Desde a direção de energia (301717d) o formato programa dá tom próprio em musical e popular (um evento muda de
+# "calmo" para "energico"). Essas gravações ficam separadas; a F5 e o formato fixture não mudam.
+F6_PROGRAMA = RAIZ / "docs" / "melhoria-radio" / "f6" / "simulacao" / "programa"
+TOM_PROPRIO_PROGRAMA = {"musical_adulto", "popular_sertanejo"}
 PERFIS = ("musical_adulto", "popular_sertanejo", "variedades_leves")
 VARIANTES = {
     "relogio": dict(relogio_backend="fixture", wpm_real=145),
@@ -44,7 +48,8 @@ def _rodar(perfil: str, variante: str, formato: str = "fixture"):
 @pytest.mark.parametrize("perfil", PERFIS)
 def test_s1_formato_programa_e_a_f5_byte_a_byte(perfil, variante):
     resultado = _rodar(perfil, variante, "programa")
-    pasta = F5 / perfil if variante == "relogio" else F5 / perfil / variante
+    base = F6_PROGRAMA if perfil in TOM_PROPRIO_PROGRAMA else F5
+    pasta = base / perfil if variante == "relogio" else base / perfil / variante
     assert _json(resultado.as_run) == (pasta / "as_run.json").read_text(encoding="utf-8")
     assert resultado.resumo["config"]["formato"] == "programa"
     esperado = "musical_adulto" if perfil == "musical_adulto" else "padrao"

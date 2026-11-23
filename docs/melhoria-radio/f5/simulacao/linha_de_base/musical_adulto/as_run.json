@@ -175,7 +175,7 @@
       "sinteses_tts": 1,
       "texto": "Seguimos juntos em Tarde Serena. O rádio ligado e a tarde passando leve. A tarde fica melhor com música. Quem está em casa, bom descanso. Quem está no trabalho, bom trabalho. Obrigado por deixar o rádio ligado. Fica com a gente.",
       "tipo": "fala",
-      "tom": "neutro",
+      "tom": "calmo",
       "validacao_fala": null,
       "video_id": null
     },
@@ -527,7 +527,7 @@
       "sinteses_tts": 1,
       "texto": "A tarde continua na Rádio Serra Clara. Pouca conversa e muita canção, como combinado. A tarde fica melhor com música. Boa tarde.",
       "tipo": "fala",
-      "tom": "neutro",
+      "tom": "calmo",
       "validacao_fala": null,
       "video_id": null
     },
@@ -879,7 +879,7 @@
       "sinteses_tts": 1,
       "texto": "O WhatsApp da Rádio Serra Clara está aberto para o seu recado. Áudio curto também vale. Respira fundo, ajeita a cadeira e vem com a gente. Manda o seu.",
       "tipo": "fala",
-      "tom": "neutro",
+      "tom": "energico",
       "validacao_fala": {
         "acao": "mencao_removida",
         "violacoes": [
@@ -1240,7 +1240,7 @@
       "sinteses_tts": 1,
       "texto": "Tarde Serena segue com você. O som continua no ritmo da tarde. Obrigado por deixar o rádio ligado. Tarde boa para você.",
       "tipo": "fala",
-      "tom": "neutro",
+      "tom": "calmo",
       "validacao_fala": null,
       "video_id": null
     },
@@ -1762,7 +1762,7 @@
       "sinteses_tts": 1,
       "texto": "Rádio Serra Clara. Música sem pressa. Tudo calmo por aqui. Vem junto.",
       "tipo": "fala",
-      "tom": "neutro",
+      "tom": "calmo",
       "validacao_fala": null,
       "video_id": null
     },
@@ -1849,7 +1849,7 @@
       "sinteses_tts": 1,
       "texto": "Tarde Serena termina agora, e eu agradeço quem ficou até aqui. Foi uma tarde de música boa e conversa leve. Quem estava no trabalho, bom fim de expediente. Quem estava em casa, bom descanso. Obrigado e até logo.",
       "tipo": "fala",
-      "tom": "neutro",
+      "tom": "calmo",
       "validacao_fala": null,
       "video_id": null
     },

@@ -73,7 +73,7 @@
       "sinteses_tts": 1,
       "texto": "Que bom ter você por aqui: Tarde Serena começa agora na Rádio Serra Clara. A programação começa leve, do jeito que a tarde merece. Nem tudo precisa ser corrido, e a música lembra a gente disso. Quem liga o rádio nesta hora costuma querer um pouco de calma, e a gente entende. Uma tarde bem acompanhada passa diferente. Fica com a gente.",
       "tipo": "fala",
-      "tom": "neutro",
+      "tom": "calmo",
       "validacao_fala": null,
       "video_id": null
     },
@@ -275,7 +275,7 @@
       "sinteses_tts": 1,
       "texto": "Aqui é a Rádio Serra Clara. Música para a sua tarde. Vem junto.",
       "tipo": "fala",
-      "tom": "neutro",
+      "tom": "calmo",
       "validacao_fala": null,
       "video_id": null
     },
@@ -431,7 +431,7 @@
       "sinteses_tts": 1,
       "texto": "Tarde Serena segue com você. Seguimos sem pressa nenhuma. Aproveita.",
       "tipo": "fala",
-      "tom": "neutro",
+      "tom": "calmo",
       "validacao_fala": {
         "acao": "mencao_removida",
         "violacoes": [
@@ -642,7 +642,7 @@
       "sinteses_tts": 1,
       "texto": "Caio Ventania na Rádio Serra Clara. Com Caio Ventania. Fica com a gente.",
       "tipo": "fala",
-      "tom": "neutro",
+      "tom": "calmo",
       "validacao_fala": null,
       "video_id": null
     },
@@ -756,7 +756,7 @@
       "sinteses_tts": 1,
       "texto": "Quem pediu foi Joana Lis, e toca agora Farol Distante, de Trio Ventania. Obrigado pela companhia. Aproveita.",
       "tipo": "fala",
-      "tom": "neutro",
+      "tom": "calmo",
       "validacao_fala": null,
       "video_id": null
     },
@@ -864,7 +864,7 @@
       "sinteses_tts": 1,
       "texto": "Caio Ventania com você, em Tarde Serena. O rádio ligado e a tarde passando leve. Quem está no trabalho, bom trabalho. Aproveita.",
       "tipo": "fala",
-      "tom": "neutro",
+      "tom": "calmo",
       "validacao_fala": null,
       "video_id": null
     },
@@ -1066,7 +1066,7 @@
       "sinteses_tts": 1,
       "texto": "Aqui é a Rádio Serra Clara. A trilha da sua tarde. Boa tarde.",
       "tipo": "fala",
-      "tom": "neutro",
+      "tom": "calmo",
       "validacao_fala": null,
       "video_id": null
     },
@@ -1222,7 +1222,7 @@
       "sinteses_tts": 1,
       "texto": "Bom ter sua companhia na Rádio Serra Clara. Pouca conversa e muita canção, como combinado. A tarde fica melhor com música. Segue o som.",
       "tipo": "fala",
-      "tom": "neutro",
+      "tom": "calmo",
       "validacao_fala": null,
       "video_id": null
     },
