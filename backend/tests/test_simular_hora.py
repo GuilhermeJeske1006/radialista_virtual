@@ -875,32 +875,24 @@ def test_cli_relogio_backend_e_padrao_fixture(tmp_path):
     assert "fim_antecipado_s=" in processo.stdout
 
 
-def test_parse_resposta_anthropic_sob_freeze_time_apos_aquecer(monkeypatch):
-    """Regressão: o freezegun trocava datetime.datetime e o SDK falhava ao montar
-    Container.expires_at (PydanticSchemaGenerationError) no primeiro parse com relógio falso."""
+def test_parse_resposta_anthropic_sob_freeze_time_apos_aquecer():
+    """Regressão: o freezegun trocava datetime.datetime e o SDK falhava ao montar Container.expires_at
+    (PydanticSchemaGenerationError) no primeiro parse com relógio falso. Não depende da versão do SDK:
+    monta o modelo direto (mesmo caminho do parse), sem cliente HTTP."""
     import datetime as dt
 
-    import anthropic
-    import httpx
     from freezegun import freeze_time
 
     import scripts.simular_hora as sh
+    from anthropic.types import Message
 
     msg = {"id": "m", "type": "message", "role": "assistant", "model": "claude-opus-5",
            "content": [{"type": "text", "text": "oi"}], "stop_reason": "end_turn",
            "stop_sequence": None, "usage": {"input_tokens": 1, "output_tokens": 1},
            "container": {"id": "c", "expires_at": "2026-11-23T10:00:00Z"}}
-    cliente = anthropic.Anthropic(api_key="sk-teste", max_retries=0,
-                                  http_client=httpx.Client(transport=httpx.MockTransport(
-                                      lambda r: httpx.Response(200, json=msg))))
-    import anthropic.resources.messages as rm
-
-    # conftest troca Messages.create por um stub de rede; restaura o original só neste teste.
-    monkeypatch.setattr(rm.Messages, "create", _MESSAGES_CREATE_ORIGINAL)
     sh._aquecer_schemas_anthropic()
     with freeze_time(dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc)):
-        resposta = cliente.messages.create(model="claude-opus-5", max_tokens=8,
-                                           messages=[{"role": "user", "content": "oi"}])
+        resposta = Message.construct(**msg)
     assert resposta.content[0].text == "oi"
     assert resposta.container.id == "c"
 
