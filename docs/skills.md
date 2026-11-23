@@ -22,6 +22,7 @@ escrita à mão (sem origem externa) não entra no lock.
 | `speech-to-text` | `.claude/skills/` | `elevenlabs/skills` | sim | Transcrição com Scribe v2 (batch e realtime). Usada pra calcular WER nos benchmarks de combinações ([README](benchmarks/2026-09-25-combinacoes/README.md)) |
 | `llm-evaluation` | `.claude/skills/` | `wshobson/agents` | sim | Métricas automáticas, LLM-as-judge, A/B e benchmarks de apps com LLM. Padrão do juiz nos benchmarks de combinações |
 | `melhoria-radio` | `.claude/skills/` | escrita à mão | sim (só por `/melhoria-radio`) | Orquestra o [plano de melhoria de rádio](plano-melhoria-radio.md) frente por frente com os agentes `auditor-radio`, `implementador-locufy`, `testador-locufy` e `juiz-locucao` |
+| `humanizar-fala` | `.claude/skills/` | escrita à mão | sim (só por `/humanizar-fala`) | Orquestra o [plano de humanização da fala](plano-humanizacao-fala.md) (H0–H9) com os mesmos agentes do `/melhoria-radio`; relatórios em `docs/humanizacao/` |
 | `referencia-radio` | `.claude/skills/` | escrita à mão | sim | Resumo da [pesquisa de rádio](pesquisa-radio-locufy.md): vocabulário (relógio, espelho, hard time), unidades de fala por formato, regras editoriais e de oralidade |
 | `avaliar-locucao` | `.claude/skills/` | escrita à mão | sim | Avalia `as_run.json` da simulação de uma hora: métricas automáticas e rubrica de locução, antes x depois |
 | `frontend-design` | `.agents/skills/` | `anthropics/skills` | não | Direção visual pra UI nova ou redesenho (paleta, tipografia, layout fora do template) |

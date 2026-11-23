@@ -15,6 +15,13 @@ docker compose \
   -f "$ROOT_DIR/backend/docker-compose.dev.yml" \
   up -d --build
 
+echo "==> Preparando tarifas de referência para desenvolvimento..."
+docker compose \
+  -f "$ROOT_DIR/backend/docker-compose.yml" \
+  -f "$ROOT_DIR/backend/docker-compose.dev.yml" \
+  exec -T backend python - --ambiente-de-teste --somente-ausentes \
+  < "$ROOT_DIR/backend/scripts/publicar_tarifas_referencia.py"
+
 echo "==> Tudo no ar (dev):"
 echo "    wuzapi:   http://localhost:8080"
 echo "    backend:  http://localhost:8000  (uvicorn --reload)"
