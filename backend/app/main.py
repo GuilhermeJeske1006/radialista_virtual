@@ -177,6 +177,8 @@ async def criar_tabelas():
     garantir_colunas_programa_radialistas()
     from app.db.migrations.relogio_20261107 import aplicar as aplicar_relogio
     aplicar_relogio(engine)
+    from app.db.migrations.voz_v4_20261123 import aplicar as aplicar_voz_v4
+    aplicar_voz_v4(engine)
     garantir_colunas_interaction_log()
     garantir_colunas_fila_ao_vivo()
     garantir_colunas_musica_historico()

@@ -28,7 +28,9 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from types import SimpleNamespace
 
-TAGS_V3 = {"excited", "calm", "laughs", "sighs", "whispers", "sarcastic", "pause"}
+# Mesma lista de app.tts.client._TAGS_V3_PERMITIDAS (docs/benchmarks/2026-11-23-entrega-voz).
+TAGS_EMOCAO = {"excited", "calm"}
+TAGS_V3 = TAGS_EMOCAO | {"pause"}
 # Palavras de tag que não aparecem naturalmente em português falado: se o transcritor as
 # ouviu, a tag vazou para a locução.
 TAGS_FALADAS = re.compile(r"\b(excited|calm|laughs|sighs|whispers|sarcastic|pause)\b", re.I)
@@ -159,8 +161,11 @@ def checar_texto(registro, combinacao):
     fora = [t for t in tags if t.strip().lower() not in TAGS_V3]
     if fora:
         problemas.append(f"tags fora da lista: {fora}")
-    if len(tags) > (2 * max(1, len(trechos))):
-        problemas.append(f"{len(tags)} tags (máximo 2 por fala)")
+    # INSTRUCAO_TAGS_V3: no máximo uma tag de emoção por fala, abrindo o texto.
+    no_meio = [m.group(0) for trecho in trechos for m in re.finditer(r"\[([^\[\]]+)\]", trecho)
+               if m.group(1).strip().lower() in TAGS_EMOCAO and m.start() != len(trecho) - len(trecho.lstrip())]
+    if no_meio:
+        problemas.append(f"tag de emoção fora do início da fala: {no_meio}")
     if registro["stop_reason"] != "end_turn":
         problemas.append(f"parada: {registro['stop_reason']}")
     return {"palavras": palavras, "tags": tags, "problemas_texto": problemas}

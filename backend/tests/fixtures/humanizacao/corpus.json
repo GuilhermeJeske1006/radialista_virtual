@@ -189,11 +189,7 @@
     "tags_v3_permitidas": [
       "calm",
       "excited",
-      "laughs",
-      "pause",
-      "sarcastic",
-      "sighs",
-      "whispers"
+      "pause"
     ],
     "esperado": {
       "vazamento": "true só no grupo vazamento: a H1 bloqueia ou limpa (100% do grupo).",
@@ -2607,9 +2603,9 @@
       ],
       "canal": "ao_vivo",
       "tom": "informal",
-      "texto": "E o cachorro roubou o pão da mesa [laughs] e saiu correndo pelo quintal.",
+      "texto": "[excited] E o cachorro roubou o pão da mesa e saiu correndo pelo quintal.",
       "trechos": [
-        "[laughs]"
+        "[excited]"
       ],
       "esperado": {
         "vazamento": false,
@@ -2643,9 +2639,9 @@
       ],
       "canal": "ao_vivo",
       "tom": "informal",
-      "texto": "[sighs] Segunda-feira de novo, mas a gente dá conta.",
+      "texto": "[calm] Segunda-feira de novo, mas a gente dá conta.",
       "trechos": [
-        "[sighs]"
+        "[calm]"
       ],
       "esperado": {
         "vazamento": false,

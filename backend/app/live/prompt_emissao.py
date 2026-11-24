@@ -172,9 +172,11 @@ def _abertura_do_system(ctx: "ContextoEmissao") -> list[str]:
         "de áudio (ver _intervalo_transicao_ms), não precisa marcar isso na pontuação com reticências.",
         "Existe uma pausa longa especial (\"......\"), reservada pro meio de uma fala, bem antes de um ponto "
         "que precise de peso real -- uma notícia forte, o nome do ouvinte sorteado, o clímax de uma piada, "
-        "um dado surpreendente. Nem toda fala precisa desse tipo de pausa; ela só funciona se for rara "
-        "e vier no momento certo (no máximo uma vez por fala, quando fizer sentido) -- espalhar em todo ponto "
-        "final destrói o efeito e some com o ritmo real de rádio.",
+        "um dado surpreendente. Ela só vale entre duas frases: o que vem depois começa com letra maiúscula "
+        "(ex.: 'E o sorteado de hoje é...... Maria do Carmo!'). Nunca use no meio de uma frase que continua "
+        "em minúscula nem no fim da fala -- ali a voz corta a frase no meio. Nem toda fala precisa desse "
+        "tipo de pausa; ela só funciona se for rara e vier no momento certo (no máximo uma vez por fala, "
+        "quando fizer sentido) -- espalhar em todo ponto final destrói o efeito e some com o ritmo real de rádio.",
         (
             "Este bloco é o ENCERRAMENTO do programa musical: despedida calorosa, grata e animada, "
             "com ritmo vivo e assinatura firme. Feche a ideia com clareza, sem arrastar a voz."
@@ -216,7 +218,7 @@ def _ritmo_e_naturalidade(ctx: "ContextoEmissao") -> list[str]:
         # Frente K.4: depois de uma musica a abertura pode soltar reacao mais leve.
         if ultima_categoria == "musica":
             opcoes_fala_natural.append(
-                "uma reação curta e solta pro que acabou de tocar (\"boa\", \"aí sim\", uma risadinha breve)"
+                "uma reação curta e solta pro que acabou de tocar (\"boa\", \"aí sim\", \"que delícia\")"
             )
         linhas.append(
             "De vez em quando, pra soar mais espontâneo, use UM (e só um) destes recursos de fala natural -- "
@@ -252,14 +254,10 @@ def _ritmo_e_naturalidade(ctx: "ContextoEmissao") -> list[str]:
             "entendimento."
         )
     # Modelo de voz do programa (combinação escolhida), não só o padrão global: Flash não usa tags.
+    # Sem segunda tag no meio da fala: trocar [calm] por [excited] dentro dela faz a voz saltar de
+    # tom (docs/benchmarks/2026-11-23-entrega-voz); o TTS tira as do meio de qualquer forma.
     if ctx.modelo_com_tags and categoria not in _CATEGORIAS_NOTICIA_LIKE:
         linhas.append(INSTRUCAO_TAGS_V3)
-        if ultima_categoria is not None and not direcao_energia:
-            linhas.append(
-                "Se usar uma tag logo na primeira frase (a entrada do bloco, ver ritmo mais medido acima), "
-                "ela pode ser diferente da tag usada mais adiante na mesma fala -- ex.: [calm] pra segurar a "
-                "entrada e [excited] só quando o assunto pegar tração no meio da fala."
-            )
     return linhas
 
 

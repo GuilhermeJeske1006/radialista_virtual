@@ -42,8 +42,10 @@ def _chave(signature, args, kwargs):
     dados["conta"] = conta.id if conta else None
     dados["credencial"] = hashlib.sha256(settings.elevenlabs_api_key.encode()).hexdigest()
     digest = hashlib.sha256(json.dumps(dados, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
-    # Presets e capacidades por modelo mudaram: não reutilizar a leitura antiga.
-    return f"tts:audio:v2:{digest}"
+    # Versão sobe quando muda o que _preparar_sintese manda ao provedor para o mesmo texto de
+    # entrada: v2 presets e capacidades por modelo; v3 direção vocal só no início da fala e
+    # "......" só vira [pause] entre frases (docs/benchmarks/2026-11-23-entrega-voz).
+    return f"tts:audio:v3:{digest}"
 
 
 def _ler(chave):

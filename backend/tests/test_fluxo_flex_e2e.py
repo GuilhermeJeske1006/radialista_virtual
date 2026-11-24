@@ -67,6 +67,8 @@ def e2e(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, 'ia_medicao_habilitada', True)
     monkeypatch.setattr(settings, 'ia_orcamento_bloquear', True)
     monkeypatch.setattr(settings, 'elevenlabs_api_key', 'eleven-teste')
+    # O fluxo publica a tarifa do v3 (TARIFA_VOZ); o padrão do servidor precisa ter tarifa publicada.
+    monkeypatch.setattr(settings, 'elevenlabs_model', 'eleven_v3')
     stripe = MagicMock()
     monkeypatch.setattr('app.billing.router.cliente', lambda: stripe)
 
@@ -534,7 +536,8 @@ def test_catalogo_de_combinacoes_so_com_tarifas_e_preco_por_hora(e2e, monkeypatc
     # Só Premium tem texto (Opus) e voz (v3) publicados; Sonnet/Flash ainda não.
     assert [c['id'] for c in catalogo['combinacoes']] == ['premium']
     premium = catalogo['combinacoes'][0]
-    assert premium['recomendada'] and (premium['modelo_texto'], premium['modelo_voz']) == ('claude-opus-5', 'eleven_v3')
+    # A recomendada é a Premium v4 (docs/benchmarks/2026-11-23-entrega-voz); sem ela o painel parte da primeira.
+    assert not premium['recomendada'] and (premium['modelo_texto'], premium['modelo_voz']) == ('claude-opus-5', 'eleven_v3')
     # 6 min de fala/h: 12 gerações (1500/150 tokens), 36 classificações (500/32), 6000 caracteres.
     esperado = (calcular(TARIFA_TEXTO, {'entrada': 18000, 'saida': 1800})[1]
                 + calcular(TARIFA_CLASSIFICACAO, {'entrada': 18000, 'saida': 1152})[1]
@@ -571,12 +574,13 @@ def test_combinacoes_com_v4_entram_com_a_tarifa_publicada(e2e):
         e2e.client.post('/billing/admin/tarifas', json=tarifa, headers=e2e.root)
     catalogo = e2e.client.get('/billing/combinacoes', headers=e2e.user).json()
     combos = {c['id']: c for c in catalogo['combinacoes']}
-    # Cada v4 logo após a equivalente com v3: mesma tarifa de voz, mesmo preço por hora.
-    assert list(combos) == ['premium', 'premium_v4', 'equilibrada', 'equilibrada_v4', 'voz_premium',
-                            'voz_premium_v4', 'texto_premium', 'agil', 'essencial']
+    # Cada v4 logo antes da equivalente com v3: mesma tarifa de voz, mesmo preço por hora.
+    assert list(combos) == ['premium_v4', 'premium', 'equilibrada_v4', 'equilibrada', 'voz_premium_v4',
+                            'voz_premium', 'texto_premium', 'agil', 'essencial']
     assert (combos['premium_v4']['modelo_texto'], combos['premium_v4']['modelo_voz']) == ('claude-opus-5', 'eleven_v4')
     assert combos['premium_v4']['preco_hora_brl'] == combos['premium']['preco_hora_brl']
-    assert not combos['premium_v4']['recomendada'] and 'velocidade' in combos['premium_v4']['limitacoes']
+    assert combos['premium_v4']['recomendada'] and not combos['premium']['recomendada']
+    assert 'velocidade' in combos['premium_v4']['limitacoes']
     assert catalogo['modelos']['eleven_v4']['funcao'] == 'voz'
 
 

@@ -1,0 +1,4 @@
+# Áudios e transcrições brutas ficam locais (~155 MB); resultados.json guarda texto enviado,
+# transcrição e métricas de cada take. Regenerar: backend/scripts/avaliar_entrega_voz.py.
+*.mp3
+*.scribe.json

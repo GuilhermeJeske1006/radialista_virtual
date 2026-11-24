@@ -50,6 +50,7 @@ import random
 import subprocess
 import sys
 import time
+from unittest import mock
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
@@ -64,6 +65,8 @@ TTS = ("duble", "nenhum")
 # Voz do dublê de TTS no CLI: 145 palavras/min, o ritmo com que a F0/F1 mediam a fala e ~10% abaixo do
 # padrão do modelo v3 (162): a estimativa do backend começa otimista e a calibração tem o que corrigir.
 WPM_REAL_PADRAO = 145
+# Modelo de voz das linhas de base (F0 a H0): o ritmo sem calibração do backend depende dele.
+MODELO_VOZ_LINHA_DE_BASE = "eleven_v3"
 VERSAO_FORMATO = 1
 # Revisões por orçamento/repetição fazem o LLM real ser chamado mais vezes que o número de falas.
 FATOR_REVISOES_ESTIMADO = 1.2
@@ -125,14 +128,16 @@ def _gravar(caminho: pathlib.Path, dados: dict) -> None:
 def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = None, saida=None, relogio=None,
             antecedencia: int = 2, preparo_antecipado_s: float = 90, corte: str = "agendado",
             relogio_backend: str = "nenhum", inicio_previsto: bool = True, tts: str = "nenhum",
-            wpm_real: float | None = None, injecoes_extra=(), pedidos_extra=(), formato: str | None = None) -> Resultado:
+            wpm_real: float | None = None, injecoes_extra=(), pedidos_extra=(), formato: str | None = None,
+            modelo_voz: str | None = None) -> Resultado:
     """Roda uma hora de programa. `programa` aceita o id da fixture, o caminho ou um FixturePrograma.
 
     Pressupõe o ambiente pronto (main() ou tests/conftest.py). Guarda e restaura random global e
     app.dependency_overrides; limpa o fakeredis no início. `injecoes_extra` e `pedidos_extra` (só para testes,
     F4) somam injeções e pedidos aos da fixture sem mudar as três fixtures de linha de base. `formato` (F6): None ou
     "programa" mantém o perfil_programacao da fixture; "fixture" aplica o campo `formato` dela; senão, um id aceito pelo
-    catálogo (a referência de orçamento do as-run passa a ser a do catálogo nos dois últimos casos).
+    catálogo (a referência de orçamento do as-run passa a ser a do catálogo nos dois últimos casos). `modelo_voz` fixa o
+    modelo de voz da rodada (padrão: MODELO_VOZ_LINHA_DE_BASE), que dá o ritmo do backend sem calibração.
     """
     if modo not in MODOS:
         raise ValueError(f"modo inválido: {modo}")
@@ -168,6 +173,10 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
 
     inicio_parede = time.perf_counter()
     estado_random = random.getstate()
+    # Linhas de base medidas com o ritmo do v3; o padrão do servidor (v4) mudaria o roteiro do dublê.
+    from app.config.settings import settings as configuracao
+    modelo = mock.patch.object(configuracao, "elevenlabs_model", modelo_voz or MODELO_VOZ_LINHA_DE_BASE)
+    modelo.start()
     random.seed(semente)
     redis_client.flushall()
     engine, sessao = ambiente.criar_banco()
@@ -198,6 +207,7 @@ def simular(programa, modo: str = "fake", semente: int = 7, wpm: float | None = 
             contadores_llm = dict(dubles.llm.contadores)
             instrucao_formato = dubles.llm.instrucao()
     finally:
+        modelo.stop()
         random.setstate(estado_random)
         sessao.close()
         engine.dispose()
@@ -415,6 +425,8 @@ def _argumentos(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--formato", default="programa",
                         help="programa (perfil gravado na fixture, linhas de base), fixture (campo formato da fixture, "
                              "rodadas da F6) ou um id do catálogo de formatos")
+    parser.add_argument("--modelo-voz", default=MODELO_VOZ_LINHA_DE_BASE,
+                        help="modelo de voz da rodada; o ritmo sem calibração vem dele (padrão: o das linhas de base)")
     parser.add_argument("--confirmo-custo", action="store_true",
                         help="autoriza os modos pagos (só com aprovação explícita do usuário)")
     return parser.parse_args(argv)
@@ -439,7 +451,7 @@ def main(argv: list[str] | None = None) -> int:
             saida=None if pago_sem_confirmacao else args.saida, relogio=args.relogio,
             antecedencia=args.antecedencia, preparo_antecipado_s=args.preparo_antecipado_s, corte=args.corte,
             relogio_backend=args.relogio_backend, inicio_previsto=not args.sem_inicio_previsto,
-            tts=args.tts, wpm_real=args.wpm_real, formato=args.formato,
+            tts=args.tts, wpm_real=args.wpm_real, formato=args.formato, modelo_voz=args.modelo_voz,
         )
     except Exception as erro:  # noqa: BLE001 -- o CLI devolve código 2 com a causa
         print(f"erro na simulação: {type(erro).__name__}: {erro}", file=sys.stderr)

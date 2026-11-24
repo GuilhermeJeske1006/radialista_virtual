@@ -96,7 +96,8 @@ H1/H4); o simulador e os scripts importam o mesmo módulo, nunca uma cópia.
   fim da frase, fechamento-resumo, atribuição vaga ("especialistas apontam"), travessão (H2 normaliza).
   "Ademais", "outrossim" e "bem como" já são da oralidade (F7): não contar duas vezes.
 - **Não corrigir:** tom formal correto de notícia, um "além disso" isolado em fala longa, mistura de
-  casual e formal, reorientação na frequência do formato, tags v3 permitidas (`[laughs]`, `[pause]`),
+  casual e formal, reorientação na frequência do formato, tags v3 permitidas (`[excited]` ou `[calm]`
+  abrindo a fala, `[pause]`),
   palavra do léxico em sentido literal ("jornada de trabalho", "cenário" de teatro, "mergulhar" na
   piscina), "na última atualização da Defesa Civil, às quinze horas", "fechando o programa de hoje",
   um emoji no WhatsApp quando o ouvinte usou. O peso vem da densidade e da repetição, não da palavra.
