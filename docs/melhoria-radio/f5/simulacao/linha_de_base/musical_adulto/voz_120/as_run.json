@@ -103,7 +103,7 @@
       "inicio_previsto_s": 8.0,
       "inicio_s": 8.15,
       "musica_anunciada": [],
-      "musica_tocada": "Farol Distante - Trio Ventania",
+      "musica_tocada": "Rio Sem Margem - Dora Vilarejo",
       "musicas_bloco": [],
       "musicas_citadas": [],
       "n": 2,
@@ -189,20 +189,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 253.0,
-      "duracao_prevista_s": 253,
+      "duracao_prevista_backend_s": 219.0,
+      "duracao_prevista_s": 219,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:04:41-03:00",
-      "fim_s": 281.8,
+      "fim": "2026-11-10T14:04:07-03:00",
+      "fim_s": 247.8,
       "formato": "musical_adulto",
       "gerado_em_s": -90,
       "inicio": "2026-11-10T14:00:28-03:00",
       "inicio_previsto_s": 23.34,
       "inicio_s": 28.8,
       "musica_anunciada": [],
-      "musica_tocada": "Farol Distante - Trio Ventania",
+      "musica_tocada": "Rio Sem Margem - Dora Vilarejo",
       "musicas_bloco": [
-        "Farol Distante - Trio Ventania"
+        "Rio Sem Margem - Dora Vilarejo"
       ],
       "musicas_citadas": [],
       "n": 3,
@@ -262,7 +262,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-mad-26"
+      "video_id": "sim-mad-31"
     },
     {
       "audio_status": null,
@@ -274,20 +274,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 230.0,
-      "duracao_prevista_s": 230,
+      "duracao_prevista_backend_s": 226.0,
+      "duracao_prevista_s": 226,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:08:31-03:00",
-      "fim_s": 511.8,
+      "fim": "2026-11-10T14:07:53-03:00",
+      "fim_s": 473.8,
       "formato": "musical_adulto",
       "gerado_em_s": 8.0,
-      "inicio": "2026-11-10T14:04:41-03:00",
-      "inicio_previsto_s": 276.49,
-      "inicio_s": 281.8,
+      "inicio": "2026-11-10T14:04:07-03:00",
+      "inicio_previsto_s": 242.49,
+      "inicio_s": 247.8,
       "musica_anunciada": [],
-      "musica_tocada": "Jardim Suspenso - Otávio Pedregal",
+      "musica_tocada": "Chuva de Domingo - Rui Lamparina",
       "musicas_bloco": [
-        "Jardim Suspenso - Otávio Pedregal"
+        "Chuva de Domingo - Rui Lamparina"
       ],
       "musicas_citadas": [],
       "n": 4,
@@ -305,7 +305,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 3293.51,
+        "espaco_s": 3327.51,
         "etapa": {
           "fim": "2026-11-10T17:12:00Z",
           "hard_time": false,
@@ -318,7 +318,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:04:36.490000Z",
+        "inicio_previsto": "2026-11-10T17:04:02.490000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -339,7 +339,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 3293.51
+        "segundos_ate_hard_time": 3327.51
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -347,7 +347,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-mad-08"
+      "video_id": "sim-mad-11"
     },
     {
       "audio_status": null,
@@ -359,20 +359,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 264.0,
-      "duracao_prevista_s": 264,
+      "duracao_prevista_backend_s": 280.0,
+      "duracao_prevista_s": 280,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:12:55-03:00",
-      "fim_s": 775.8,
+      "fim": "2026-11-10T14:12:33-03:00",
+      "fim_s": 753.8,
       "formato": "musical_adulto",
       "gerado_em_s": 28.65,
-      "inicio": "2026-11-10T14:08:31-03:00",
-      "inicio_previsto_s": 506.49,
-      "inicio_s": 511.8,
+      "inicio": "2026-11-10T14:07:53-03:00",
+      "inicio_previsto_s": 468.49,
+      "inicio_s": 473.8,
       "musica_anunciada": [],
-      "musica_tocada": "Rua das Acácias - Duo Estrada Velha",
+      "musica_tocada": "Varanda de Pedra - Trio Ventania",
       "musicas_bloco": [
-        "Rua das Acácias - Duo Estrada Velha"
+        "Varanda de Pedra - Trio Ventania"
       ],
       "musicas_citadas": [],
       "n": 5,
@@ -390,7 +390,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 3063.51,
+        "espaco_s": 3101.51,
         "etapa": {
           "fim": "2026-11-10T17:12:00Z",
           "hard_time": false,
@@ -403,7 +403,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:08:26.490000Z",
+        "inicio_previsto": "2026-11-10T17:07:48.490000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -424,7 +424,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 3063.51
+        "segundos_ate_hard_time": 3101.51
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -432,7 +432,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-mad-01"
+      "video_id": "sim-mad-02"
     },
     {
       "audio_status": "pendente",
@@ -447,15 +447,15 @@
       "duracao_prevista_backend_s": 8.15,
       "duracao_prevista_s": 8.15,
       "fala_ajuste": "reescrita",
-      "fim": "2026-11-10T14:13:06-03:00",
-      "fim_s": 786.95,
+      "fim": "2026-11-10T14:12:44-03:00",
+      "fim_s": 764.95,
       "formato": "musical_adulto",
-      "gerado_em_s": 281.8,
-      "inicio": "2026-11-10T14:12:55-03:00",
-      "inicio_previsto_s": 775.8,
-      "inicio_s": 775.95,
+      "gerado_em_s": 247.8,
+      "inicio": "2026-11-10T14:12:33-03:00",
+      "inicio_previsto_s": 753.8,
+      "inicio_s": 753.95,
       "musica_anunciada": [],
-      "musica_tocada": "Estação Primavera - Clara Bromélia",
+      "musica_tocada": "Pássaro Sem Pressa - Helena Marés",
       "musicas_bloco": [],
       "musicas_citadas": [],
       "n": 6,
@@ -487,7 +487,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "fala",
-        "espaco_s": 2794.2,
+        "espaco_s": 2816.2,
         "etapa": {
           "fim": "2026-11-10T17:12:35Z",
           "hard_time": false,
@@ -500,7 +500,7 @@
           "tipo_efetivo": "link"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:12:55.800000Z",
+        "inicio_previsto": "2026-11-10T17:12:33.800000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -521,7 +521,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 2794.2
+        "segundos_ate_hard_time": 2816.2
       },
       "revisada": true,
       "sinteses_tts": 1,
@@ -541,20 +541,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 261.0,
-      "duracao_prevista_s": 261,
+      "duracao_prevista_backend_s": 252.0,
+      "duracao_prevista_s": 252,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:17:28-03:00",
-      "fim_s": 1048.1,
+      "fim": "2026-11-10T14:16:57-03:00",
+      "fim_s": 1017.1,
       "formato": "musical_adulto",
-      "gerado_em_s": 511.8,
-      "inicio": "2026-11-10T14:13:07-03:00",
-      "inicio_previsto_s": 784.1,
-      "inicio_s": 787.1,
+      "gerado_em_s": 473.8,
+      "inicio": "2026-11-10T14:12:45-03:00",
+      "inicio_previsto_s": 762.1,
+      "inicio_s": 765.1,
       "musica_anunciada": [],
-      "musica_tocada": "Estação Primavera - Clara Bromélia",
+      "musica_tocada": "Pássaro Sem Pressa - Helena Marés",
       "musicas_bloco": [
-        "Estação Primavera - Clara Bromélia"
+        "Pássaro Sem Pressa - Helena Marés"
       ],
       "musicas_citadas": [],
       "n": 7,
@@ -572,7 +572,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 2785.9,
+        "espaco_s": 2807.9,
         "etapa": {
           "fim": "2026-11-10T17:24:00Z",
           "hard_time": false,
@@ -585,7 +585,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:13:04.100000Z",
+        "inicio_previsto": "2026-11-10T17:12:42.100000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -606,7 +606,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 2785.9
+        "segundos_ate_hard_time": 2807.9
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -614,7 +614,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-mad-12"
+      "video_id": "sim-mad-16"
     },
     {
       "audio_status": null,
@@ -626,20 +626,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 236.0,
-      "duracao_prevista_s": 236,
+      "duracao_prevista_backend_s": 210.0,
+      "duracao_prevista_s": 210,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:21:24-03:00",
-      "fim_s": 1284.1,
+      "fim": "2026-11-10T14:20:27-03:00",
+      "fim_s": 1227.1,
       "formato": "musical_adulto",
-      "gerado_em_s": 775.8,
-      "inicio": "2026-11-10T14:17:28-03:00",
-      "inicio_previsto_s": 1045.25,
-      "inicio_s": 1048.1,
+      "gerado_em_s": 753.8,
+      "inicio": "2026-11-10T14:16:57-03:00",
+      "inicio_previsto_s": 1014.25,
+      "inicio_s": 1017.1,
       "musica_anunciada": [],
-      "musica_tocada": "Cartas de Outono - Dora Vilarejo",
+      "musica_tocada": "Bicicleta Azul - Conjunto Maré Mansa",
       "musicas_bloco": [
-        "Cartas de Outono - Dora Vilarejo"
+        "Bicicleta Azul - Conjunto Maré Mansa"
       ],
       "musicas_citadas": [],
       "n": 8,
@@ -657,7 +657,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 2524.75,
+        "espaco_s": 2555.75,
         "etapa": {
           "fim": "2026-11-10T17:24:00Z",
           "hard_time": false,
@@ -670,7 +670,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:17:25.250000Z",
+        "inicio_previsto": "2026-11-10T17:16:54.250000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -691,7 +691,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 2524.75
+        "segundos_ate_hard_time": 2555.75
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -699,7 +699,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-mad-07"
+      "video_id": "sim-mad-10"
     },
     {
       "audio_status": null,
@@ -711,20 +711,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 280.0,
-      "duracao_prevista_s": 280,
+      "duracao_prevista_backend_s": 278.0,
+      "duracao_prevista_s": 278,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:26:04-03:00",
-      "fim_s": 1564.1,
+      "fim": "2026-11-10T14:25:05-03:00",
+      "fim_s": 1505.1,
       "formato": "musical_adulto",
-      "gerado_em_s": 786.95,
-      "inicio": "2026-11-10T14:21:24-03:00",
-      "inicio_previsto_s": 1281.25,
-      "inicio_s": 1284.1,
+      "gerado_em_s": 764.95,
+      "inicio": "2026-11-10T14:20:27-03:00",
+      "inicio_previsto_s": 1224.25,
+      "inicio_s": 1227.1,
       "musica_anunciada": [],
-      "musica_tocada": "Varanda de Pedra - Trio Ventania",
+      "musica_tocada": "Lua no Telhado - Coral Alto",
       "musicas_bloco": [
-        "Varanda de Pedra - Trio Ventania"
+        "Lua no Telhado - Coral Alto"
       ],
       "musicas_citadas": [],
       "n": 9,
@@ -742,7 +742,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 2288.75,
+        "espaco_s": 2345.75,
         "etapa": {
           "fim": "2026-11-10T17:24:00Z",
           "hard_time": false,
@@ -755,7 +755,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:21:21.250000Z",
+        "inicio_previsto": "2026-11-10T17:20:24.250000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -776,7 +776,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 2288.75
+        "segundos_ate_hard_time": 2345.75
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -784,7 +784,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-mad-02"
+      "video_id": "sim-mad-03"
     },
     {
       "audio_status": "pendente",
@@ -799,15 +799,15 @@
       "duracao_prevista_backend_s": 10.74,
       "duracao_prevista_s": 10.74,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:26:18-03:00",
-      "fim_s": 1578.75,
+      "fim": "2026-11-10T14:25:19-03:00",
+      "fim_s": 1519.75,
       "formato": "musical_adulto",
-      "gerado_em_s": 1048.1,
-      "inicio": "2026-11-10T14:26:04-03:00",
-      "inicio_previsto_s": 1564.1,
-      "inicio_s": 1564.25,
+      "gerado_em_s": 1017.1,
+      "inicio": "2026-11-10T14:25:05-03:00",
+      "inicio_previsto_s": 1505.1,
+      "inicio_s": 1505.25,
       "musica_anunciada": [],
-      "musica_tocada": "Janela para o Mar - Tomás Ribeira",
+      "musica_tocada": "Varal de Estrelas - Dora Vilarejo",
       "musicas_bloco": [],
       "musicas_citadas": [],
       "n": 10,
@@ -839,7 +839,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "fala",
-        "espaco_s": 2005.9,
+        "espaco_s": 2064.9,
         "etapa": {
           "fim": "2026-11-10T17:28:00Z",
           "hard_time": false,
@@ -852,7 +852,7 @@
           "tipo_efetivo": "retorno"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:26:04.100000Z",
+        "inicio_previsto": "2026-11-10T17:25:05.100000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -873,7 +873,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 2005.9
+        "segundos_ate_hard_time": 2064.9
       },
       "revisada": false,
       "sinteses_tts": 1,
@@ -902,20 +902,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 246.0,
-      "duracao_prevista_s": 246,
+      "duracao_prevista_backend_s": 195.0,
+      "duracao_prevista_s": 195,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:30:24-03:00",
-      "fim_s": 1824.9,
+      "fim": "2026-11-10T14:28:34-03:00",
+      "fim_s": 1714.9,
       "formato": "musical_adulto",
-      "gerado_em_s": 1284.1,
-      "inicio": "2026-11-10T14:26:18-03:00",
-      "inicio_previsto_s": 1574.99,
-      "inicio_s": 1578.9,
+      "gerado_em_s": 1227.1,
+      "inicio": "2026-11-10T14:25:19-03:00",
+      "inicio_previsto_s": 1515.99,
+      "inicio_s": 1519.9,
       "musica_anunciada": [],
-      "musica_tocada": "Janela para o Mar - Tomás Ribeira",
+      "musica_tocada": "Varal de Estrelas - Dora Vilarejo",
       "musicas_bloco": [
-        "Janela para o Mar - Tomás Ribeira"
+        "Varal de Estrelas - Dora Vilarejo"
       ],
       "musicas_citadas": [],
       "n": 11,
@@ -933,7 +933,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 1995.01,
+        "espaco_s": 2054.01,
         "etapa": {
           "fim": "2026-11-10T17:40:00Z",
           "hard_time": false,
@@ -946,7 +946,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:26:14.990000Z",
+        "inicio_previsto": "2026-11-10T17:25:15.990000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -967,7 +967,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 1995.01
+        "segundos_ate_hard_time": 2054.01
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -975,42 +975,60 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-mad-05"
+      "video_id": "sim-mad-19"
     },
     {
-      "audio_status": null,
+      "audio_status": "pendente",
       "bloco": "musica",
       "bloco_n": 12,
       "categoria": "musica",
-      "chamadas_llm": 0,
+      "chamadas_llm": 1,
       "cortado": false,
       "cortado_s": 0.0,
-      "duracao_estimada_backend_s": null,
-      "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 249.0,
-      "duracao_prevista_s": 249,
-      "fala_ajuste": null,
-      "fim": "2026-11-10T14:34:33-03:00",
-      "fim_s": 2073.9,
+      "duracao_estimada_backend_s": 5.93,
+      "duracao_medida_s": 8.0,
+      "duracao_prevista_backend_s": 258.93,
+      "duracao_prevista_s": 5.93,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:28:42-03:00",
+      "fim_s": 1722.9,
       "formato": "musical_adulto",
-      "gerado_em_s": 1564.1,
-      "inicio": "2026-11-10T14:30:24-03:00",
-      "inicio_previsto_s": 1821.14,
-      "inicio_s": 1824.9,
-      "musica_anunciada": [],
-      "musica_tocada": "Ponte de Madeira - Helena Marés",
-      "musicas_bloco": [
-        "Ponte de Madeira - Helena Marés"
+      "gerado_em_s": 1505.1,
+      "inicio": "2026-11-10T14:28:34-03:00",
+      "inicio_previsto_s": 1711.14,
+      "inicio_s": 1714.9,
+      "musica_anunciada": [
+        "Farol Distante - Trio Ventania"
       ],
-      "musicas_citadas": [],
+      "musica_tocada": "Farol Distante - Trio Ventania",
+      "musicas_bloco": [
+        "Farol Distante - Trio Ventania"
+      ],
+      "musicas_citadas": [
+        "Farol Distante - Trio Ventania"
+      ],
       "n": 12,
-      "orcamento_ref_s": null,
-      "orcamento_s": null,
-      "palavras": 0,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 35.0,
+        "min": 10.0
+      },
+      "orcamento_s": {
+        "alvo": 6.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 8.0,
+        "min": 4.0
+      },
+      "palavras": 16,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
       "passos_roteiro": 1,
       "pausa_antes_s": 0.0,
-      "pedido_estado": "nao_atendido",
-      "pedido_estado_final": "nao_atendido",
+      "pedido_estado": "selecionado",
+      "pedido_estado_final": "executado",
       "pedido_id": 1,
       "pedido_tipo": "musica",
       "promessas": null,
@@ -1018,7 +1036,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 1748.86,
+        "espaco_s": 1858.86,
         "etapa": {
           "fim": "2026-11-10T17:40:00Z",
           "hard_time": false,
@@ -1031,7 +1049,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:30:21.140000Z",
+        "inicio_previsto": "2026-11-10T17:28:31.140000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1052,7 +1070,92 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 1748.86
+        "segundos_ate_hard_time": 1858.86
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "Esse pedido é de Joana Lis: Farol Distante, com Trio Ventania, toca agora. Obrigado pela companhia.",
+      "tipo": "fala",
+      "tom": "calmo",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": null,
+      "bloco": "musica",
+      "bloco_n": 12,
+      "categoria": "musica",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "duracao_estimada_backend_s": null,
+      "duracao_medida_s": null,
+      "duracao_prevista_backend_s": 258.93,
+      "duracao_prevista_s": 253,
+      "fala_ajuste": null,
+      "fim": "2026-11-10T14:32:55-03:00",
+      "fim_s": 1975.9,
+      "formato": "musical_adulto",
+      "gerado_em_s": 1505.1,
+      "inicio": "2026-11-10T14:28:42-03:00",
+      "inicio_previsto_s": 1711.14,
+      "inicio_s": 1722.9,
+      "musica_anunciada": [],
+      "musica_tocada": "Farol Distante - Trio Ventania",
+      "musicas_bloco": [
+        "Farol Distante - Trio Ventania"
+      ],
+      "musicas_citadas": [],
+      "n": 13,
+      "orcamento_ref_s": null,
+      "orcamento_s": null,
+      "palavras": 0,
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.0,
+      "pedido_estado": "selecionado",
+      "pedido_estado_final": "executado",
+      "pedido_id": 1,
+      "pedido_tipo": "musica",
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "musica",
+        "espaco_s": 1858.86,
+        "etapa": {
+          "fim": "2026-11-10T17:40:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:28:00Z",
+          "inicio_s": 1680,
+          "natureza": "ajustavel",
+          "rotulo": "Sequência musical C",
+          "tipo": "musica",
+          "tipo_efetivo": "musica"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:28:31.140000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          4,
+          8
+        ],
+        "origem_instante": "painel",
+        "preset": "A",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T18:00:00Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:59:30Z",
+          "inicio_s": 3570,
+          "natureza": "obrigatorio",
+          "rotulo": "Passagem de hora",
+          "tipo": "passagem",
+          "tipo_efetivo": "encerramento"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 1858.86
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1060,7 +1163,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-mad-04"
+      "video_id": "sim-mad-26"
     },
     {
       "audio_status": null,
@@ -1072,23 +1175,23 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 264.0,
-      "duracao_prevista_s": 264,
+      "duracao_prevista_backend_s": 285.0,
+      "duracao_prevista_s": 285,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:38:57-03:00",
-      "fim_s": 2337.9,
+      "fim": "2026-11-10T14:37:40-03:00",
+      "fim_s": 2260.9,
       "formato": "musical_adulto",
-      "gerado_em_s": 1578.75,
-      "inicio": "2026-11-10T14:34:33-03:00",
-      "inicio_previsto_s": 2070.14,
-      "inicio_s": 2073.9,
+      "gerado_em_s": 1519.75,
+      "inicio": "2026-11-10T14:32:55-03:00",
+      "inicio_previsto_s": 1970.07,
+      "inicio_s": 1975.9,
       "musica_anunciada": [],
-      "musica_tocada": "Café com Neblina - Duo Estrada Velha",
+      "musica_tocada": "Moinho Antigo - Otávio Pedregal",
       "musicas_bloco": [
-        "Café com Neblina - Duo Estrada Velha"
+        "Moinho Antigo - Otávio Pedregal"
       ],
       "musicas_citadas": [],
-      "n": 13,
+      "n": 14,
       "orcamento_ref_s": null,
       "orcamento_s": null,
       "palavras": 0,
@@ -1103,7 +1206,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 1499.86,
+        "espaco_s": 1599.93,
         "etapa": {
           "fim": "2026-11-10T17:40:00Z",
           "hard_time": false,
@@ -1116,7 +1219,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:34:30.140000Z",
+        "inicio_previsto": "2026-11-10T17:32:50.070000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1137,7 +1240,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 1499.86
+        "segundos_ate_hard_time": 1599.93
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1145,7 +1248,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-mad-13"
+      "video_id": "sim-mad-20"
     },
     {
       "audio_status": "pendente",
@@ -1155,23 +1258,23 @@
       "chamadas_llm": 1,
       "cortado": false,
       "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 8.15,
-      "duracao_medida_s": 11.0,
-      "duracao_prevista_backend_s": 8.15,
-      "duracao_prevista_s": 8.15,
+      "duracao_estimada_backend_s": 8.89,
+      "duracao_medida_s": 12.0,
+      "duracao_prevista_backend_s": 8.89,
+      "duracao_prevista_s": 8.89,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:39:09-03:00",
-      "fim_s": 2349.05,
+      "fim": "2026-11-10T14:37:53-03:00",
+      "fim_s": 2273.05,
       "formato": "musical_adulto",
-      "gerado_em_s": 1824.9,
-      "inicio": "2026-11-10T14:38:58-03:00",
-      "inicio_previsto_s": 2337.9,
-      "inicio_s": 2338.05,
+      "gerado_em_s": 1714.9,
+      "inicio": "2026-11-10T14:37:41-03:00",
+      "inicio_previsto_s": 2258.83,
+      "inicio_s": 2261.05,
       "musica_anunciada": [],
-      "musica_tocada": "Cais do Entardecer - Banda Fio de Prata",
+      "musica_tocada": "Jardim Suspenso - Otávio Pedregal",
       "musicas_bloco": [],
       "musicas_citadas": [],
-      "n": 14,
+      "n": 15,
       "orcamento_ref_s": {
         "fonte": "formato",
         "max": 35.0,
@@ -1184,7 +1287,7 @@
         "max": 12.0,
         "min": 6.0
       },
-      "palavras": 22,
+      "palavras": 24,
       "participacao": {
         "regras": [],
         "so_pelo_legado": false
@@ -1200,7 +1303,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "fala",
-        "espaco_s": 1232.1,
+        "espaco_s": 1311.17,
         "etapa": {
           "fim": "2026-11-10T17:41:00Z",
           "hard_time": false,
@@ -1213,7 +1316,7 @@
           "tipo_efetivo": "curadoria"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:38:57.900000Z",
+        "inicio_previsto": "2026-11-10T17:37:38.830000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1234,11 +1337,11 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 1232.1
+        "segundos_ate_hard_time": 1311.17
       },
       "revisada": false,
       "sinteses_tts": 1,
-      "texto": "Tarde Serena segue com você. O som continua no ritmo da tarde. Obrigado por deixar o rádio ligado. Tarde boa para você.",
+      "texto": "Caio Ventania com você, em Tarde Serena. Pouca conversa e muita canção, como combinado. Quem está no trabalho, bom trabalho. Obrigado por estar aqui.",
       "tipo": "fala",
       "tom": "calmo",
       "validacao_fala": null,
@@ -1254,23 +1357,23 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 274.0,
-      "duracao_prevista_s": 274,
+      "duracao_prevista_backend_s": 230.0,
+      "duracao_prevista_s": 230,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:43:43-03:00",
-      "fim_s": 2623.2,
+      "fim": "2026-11-10T14:41:43-03:00",
+      "fim_s": 2503.2,
       "formato": "musical_adulto",
-      "gerado_em_s": 2073.9,
-      "inicio": "2026-11-10T14:39:09-03:00",
-      "inicio_previsto_s": 2346.2,
-      "inicio_s": 2349.2,
+      "gerado_em_s": 1975.9,
+      "inicio": "2026-11-10T14:37:53-03:00",
+      "inicio_previsto_s": 2267.87,
+      "inicio_s": 2273.2,
       "musica_anunciada": [],
-      "musica_tocada": "Cais do Entardecer - Banda Fio de Prata",
+      "musica_tocada": "Jardim Suspenso - Otávio Pedregal",
       "musicas_bloco": [
-        "Cais do Entardecer - Banda Fio de Prata"
+        "Jardim Suspenso - Otávio Pedregal"
       ],
       "musicas_citadas": [],
-      "n": 15,
+      "n": 16,
       "orcamento_ref_s": null,
       "orcamento_s": null,
       "palavras": 0,
@@ -1285,7 +1388,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 1223.8,
+        "espaco_s": 1302.13,
         "etapa": {
           "fim": "2026-11-10T17:53:00Z",
           "hard_time": false,
@@ -1298,7 +1401,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:39:06.200000Z",
+        "inicio_previsto": "2026-11-10T17:37:47.870000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1319,7 +1422,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 1223.8
+        "segundos_ate_hard_time": 1302.13
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1327,7 +1430,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-mad-06"
+      "video_id": "sim-mad-08"
     },
     {
       "audio_status": null,
@@ -1339,105 +1442,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 210.0,
-      "duracao_prevista_s": 210,
+      "duracao_prevista_backend_s": 246.0,
+      "duracao_prevista_s": 246,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:47:13-03:00",
-      "fim_s": 2833.2,
+      "fim": "2026-11-10T14:45:49-03:00",
+      "fim_s": 2749.2,
       "formato": "musical_adulto",
-      "gerado_em_s": 2337.9,
-      "inicio": "2026-11-10T14:43:43-03:00",
-      "inicio_previsto_s": 2620.35,
-      "inicio_s": 2623.2,
+      "gerado_em_s": 2260.9,
+      "inicio": "2026-11-10T14:41:43-03:00",
+      "inicio_previsto_s": 2500.09,
+      "inicio_s": 2503.2,
       "musica_anunciada": [],
-      "musica_tocada": "Bicicleta Azul - Conjunto Maré Mansa",
+      "musica_tocada": "Janela para o Mar - Tomás Ribeira",
       "musicas_bloco": [
-        "Bicicleta Azul - Conjunto Maré Mansa"
-      ],
-      "musicas_citadas": [],
-      "n": 16,
-      "orcamento_ref_s": null,
-      "orcamento_s": null,
-      "palavras": 0,
-      "passos_roteiro": 1,
-      "pausa_antes_s": 0.0,
-      "pedido_estado": null,
-      "pedido_estado_final": null,
-      "pedido_id": null,
-      "pedido_tipo": null,
-      "promessas": null,
-      "promessas_abertas": [],
-      "promessas_fechadas": [],
-      "relogio": {
-        "acao": "musica",
-        "espaco_s": 949.65,
-        "etapa": {
-          "fim": "2026-11-10T17:53:00Z",
-          "hard_time": false,
-          "hora": 0,
-          "inicio": "2026-11-10T17:41:00Z",
-          "inicio_s": 2460,
-          "natureza": "ajustavel",
-          "rotulo": "Sequência musical D",
-          "tipo": "musica",
-          "tipo_efetivo": "musica"
-        },
-        "hora": 0,
-        "inicio_previsto": "2026-11-10T17:43:40.350000Z",
-        "inicio_previsto_aceito": true,
-        "obrigacoes": null,
-        "orcamento_s": [
-          4,
-          8
-        ],
-        "origem_instante": "painel",
-        "preset": "A",
-        "proximo_compromisso": {
-          "fim": "2026-11-10T18:00:00Z",
-          "hard_time": true,
-          "hora": 0,
-          "inicio": "2026-11-10T17:59:30Z",
-          "inicio_s": 3570,
-          "natureza": "obrigatorio",
-          "rotulo": "Passagem de hora",
-          "tipo": "passagem",
-          "tipo_efetivo": "encerramento"
-        },
-        "puladas": [],
-        "segundos_ate_hard_time": 949.65
-      },
-      "revisada": false,
-      "sinteses_tts": null,
-      "texto": "",
-      "tipo": "musica",
-      "tom": null,
-      "validacao_fala": null,
-      "video_id": "sim-mad-10"
-    },
-    {
-      "audio_status": null,
-      "bloco": "musica",
-      "bloco_n": 17,
-      "categoria": "musica",
-      "chamadas_llm": 0,
-      "cortado": false,
-      "cortado_s": 0.0,
-      "duracao_estimada_backend_s": null,
-      "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 195.0,
-      "duracao_prevista_s": 195,
-      "fala_ajuste": null,
-      "fim": "2026-11-10T14:50:28-03:00",
-      "fim_s": 3028.2,
-      "formato": "musical_adulto",
-      "gerado_em_s": 2349.05,
-      "inicio": "2026-11-10T14:47:13-03:00",
-      "inicio_previsto_s": 2830.35,
-      "inicio_s": 2833.2,
-      "musica_anunciada": [],
-      "musica_tocada": "Varal de Estrelas - Dora Vilarejo",
-      "musicas_bloco": [
-        "Varal de Estrelas - Dora Vilarejo"
+        "Janela para o Mar - Tomás Ribeira"
       ],
       "musicas_citadas": [],
       "n": 17,
@@ -1455,7 +1473,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 739.65,
+        "espaco_s": 1069.91,
         "etapa": {
           "fim": "2026-11-10T17:53:00Z",
           "hard_time": false,
@@ -1468,7 +1486,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:47:10.350000Z",
+        "inicio_previsto": "2026-11-10T17:41:40.090000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1489,7 +1507,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 739.65
+        "segundos_ate_hard_time": 1069.91
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1497,32 +1515,32 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-mad-19"
+      "video_id": "sim-mad-05"
     },
     {
       "audio_status": null,
       "bloco": "musica",
-      "bloco_n": 18,
+      "bloco_n": 17,
       "categoria": "musica",
       "chamadas_llm": 0,
       "cortado": false,
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 248.0,
-      "duracao_prevista_s": 248,
+      "duracao_prevista_backend_s": 249.0,
+      "duracao_prevista_s": 249,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:54:36-03:00",
-      "fim_s": 3276.2,
+      "fim": "2026-11-10T14:49:58-03:00",
+      "fim_s": 2998.2,
       "formato": "musical_adulto",
-      "gerado_em_s": 2623.2,
-      "inicio": "2026-11-10T14:50:28-03:00",
-      "inicio_previsto_s": 3028.2,
-      "inicio_s": 3028.2,
+      "gerado_em_s": 2273.05,
+      "inicio": "2026-11-10T14:45:49-03:00",
+      "inicio_previsto_s": 2746.09,
+      "inicio_s": 2749.2,
       "musica_anunciada": [],
-      "musica_tocada": "Porto das Gaivotas - Tomás Ribeira",
+      "musica_tocada": "Ponte de Madeira - Helena Marés",
       "musicas_bloco": [
-        "Porto das Gaivotas - Tomás Ribeira"
+        "Ponte de Madeira - Helena Marés"
       ],
       "musicas_citadas": [],
       "n": 18,
@@ -1540,7 +1558,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 541.8,
+        "espaco_s": 823.91,
         "etapa": {
           "fim": "2026-11-10T17:53:00Z",
           "hard_time": false,
@@ -1553,7 +1571,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:50:28.200000Z",
+        "inicio_previsto": "2026-11-10T17:45:46.090000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1574,7 +1592,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 541.8
+        "segundos_ate_hard_time": 823.91
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1582,32 +1600,32 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-mad-29"
+      "video_id": "sim-mad-04"
     },
     {
       "audio_status": null,
       "bloco": "musica",
-      "bloco_n": 19,
+      "bloco_n": 18,
       "categoria": "musica",
       "chamadas_llm": 0,
       "cortado": false,
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 267.0,
-      "duracao_prevista_s": 267,
+      "duracao_prevista_backend_s": 264.0,
+      "duracao_prevista_s": 264,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:59:03-03:00",
-      "fim_s": 3543.2,
+      "fim": "2026-11-10T14:54:22-03:00",
+      "fim_s": 3262.2,
       "formato": "musical_adulto",
-      "gerado_em_s": 2833.2,
-      "inicio": "2026-11-10T14:54:36-03:00",
-      "inicio_previsto_s": 3276.2,
-      "inicio_s": 3276.2,
+      "gerado_em_s": 2503.2,
+      "inicio": "2026-11-10T14:49:58-03:00",
+      "inicio_previsto_s": 2998.2,
+      "inicio_s": 2998.2,
       "musica_anunciada": [],
-      "musica_tocada": "Sal da Maré - Tomás Ribeira",
+      "musica_tocada": "Café com Neblina - Duo Estrada Velha",
       "musicas_bloco": [
-        "Sal da Maré - Tomás Ribeira"
+        "Café com Neblina - Duo Estrada Velha"
       ],
       "musicas_citadas": [],
       "n": 19,
@@ -1625,20 +1643,20 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 293.8,
+        "espaco_s": 571.8,
         "etapa": {
-          "fim": "2026-11-10T17:56:00Z",
+          "fim": "2026-11-10T17:53:00Z",
           "hard_time": false,
           "hora": 0,
-          "inicio": "2026-11-10T17:53:00Z",
-          "inicio_s": 3180,
+          "inicio": "2026-11-10T17:41:00Z",
+          "inicio_s": 2460,
           "natureza": "ajustavel",
-          "rotulo": "Intervalo",
-          "tipo": "intervalo",
+          "rotulo": "Sequência musical D",
+          "tipo": "musica",
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:54:36.200000Z",
+        "inicio_previsto": "2026-11-10T17:49:58.200000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1659,7 +1677,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 293.8
+        "segundos_ate_hard_time": 571.8
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1667,7 +1685,92 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-mad-17"
+      "video_id": "sim-mad-13"
+    },
+    {
+      "audio_status": null,
+      "bloco": "musica",
+      "bloco_n": 19,
+      "categoria": "musica",
+      "chamadas_llm": 0,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "duracao_estimada_backend_s": null,
+      "duracao_medida_s": null,
+      "duracao_prevista_backend_s": 269.0,
+      "duracao_prevista_s": 269,
+      "fala_ajuste": null,
+      "fim": "2026-11-10T14:58:51-03:00",
+      "fim_s": 3531.2,
+      "formato": "musical_adulto",
+      "gerado_em_s": 2749.2,
+      "inicio": "2026-11-10T14:54:22-03:00",
+      "inicio_previsto_s": 3262.2,
+      "inicio_s": 3262.2,
+      "musica_anunciada": [],
+      "musica_tocada": "Sobrado Amarelo - Conjunto Maré Mansa",
+      "musicas_bloco": [
+        "Sobrado Amarelo - Conjunto Maré Mansa"
+      ],
+      "musicas_citadas": [],
+      "n": 20,
+      "orcamento_ref_s": null,
+      "orcamento_s": null,
+      "palavras": 0,
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.0,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "musica",
+        "espaco_s": 307.8,
+        "etapa": {
+          "fim": "2026-11-10T17:56:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:53:00Z",
+          "inicio_s": 3180,
+          "natureza": "ajustavel",
+          "rotulo": "Intervalo",
+          "tipo": "intervalo",
+          "tipo_efetivo": "musica"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:54:22.200000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          4,
+          8
+        ],
+        "origem_instante": "painel",
+        "preset": "A",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T18:00:00Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:59:30Z",
+          "inicio_s": 3570,
+          "natureza": "obrigatorio",
+          "rotulo": "Passagem de hora",
+          "tipo": "passagem",
+          "tipo_efetivo": "encerramento"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 307.8
+      },
+      "revisada": false,
+      "sinteses_tts": null,
+      "texto": "",
+      "tipo": "musica",
+      "tom": null,
+      "validacao_fala": null,
+      "video_id": "sim-mad-22"
     },
     {
       "audio_status": "pendente",
@@ -1677,23 +1780,23 @@
       "chamadas_llm": 1,
       "cortado": false,
       "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 4.44,
+      "duracao_estimada_backend_s": 6.0,
       "duracao_medida_s": 6.0,
-      "duracao_prevista_backend_s": 4.44,
+      "duracao_prevista_backend_s": 6.0,
       "duracao_prevista_s": 4.44,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:59:09-03:00",
-      "fim_s": 3549.35,
+      "fim": "2026-11-10T14:58:57-03:00",
+      "fim_s": 3537.35,
       "formato": "musical_adulto",
-      "gerado_em_s": 3028.2,
-      "inicio": "2026-11-10T14:59:03-03:00",
-      "inicio_previsto_s": 3543.2,
-      "inicio_s": 3543.35,
+      "gerado_em_s": 2998.2,
+      "inicio": "2026-11-10T14:58:51-03:00",
+      "inicio_previsto_s": 3531.2,
+      "inicio_s": 3531.35,
       "musica_anunciada": [],
       "musica_tocada": null,
       "musicas_bloco": [],
       "musicas_citadas": [],
-      "n": 20,
+      "n": 21,
       "orcamento_ref_s": {
         "fonte": "formato",
         "max": 35.0,
@@ -1722,7 +1825,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "reserva",
-        "espaco_s": 26.8,
+        "espaco_s": 38.8,
         "etapa": {
           "fim": "2026-11-10T17:59:30Z",
           "hard_time": false,
@@ -1735,7 +1838,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:59:03.200000Z",
+        "inicio_previsto": "2026-11-10T17:58:51.200000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1756,11 +1859,11 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 26.8
+        "segundos_ate_hard_time": 38.8
       },
       "revisada": false,
       "sinteses_tts": 1,
-      "texto": "Rádio Serra Clara. Música sem pressa. Tudo calmo por aqui. Vem junto.",
+      "texto": "Rádio Serra Clara. Música para a sua tarde. Bom te ter aqui.",
       "tipo": "fala",
       "tom": "calmo",
       "validacao_fala": null,
@@ -1774,23 +1877,23 @@
       "chamadas_llm": 1,
       "cortado": false,
       "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 16.0,
-      "duracao_medida_s": 16.0,
-      "duracao_prevista_backend_s": 25.0,
-      "duracao_prevista_s": 11.85,
+      "duracao_estimada_backend_s": 18.0,
+      "duracao_medida_s": 18.0,
+      "duracao_prevista_backend_s": 27.0,
+      "duracao_prevista_s": 13.33,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:59:25-03:00",
-      "fim_s": 3565.7,
+      "fim": "2026-11-10T14:59:15-03:00",
+      "fim_s": 3555.7,
       "formato": "musical_adulto",
-      "gerado_em_s": 3276.2,
-      "inicio": "2026-11-10T14:59:09-03:00",
-      "inicio_previsto_s": 3547.79,
-      "inicio_s": 3549.7,
+      "gerado_em_s": 3262.2,
+      "inicio": "2026-11-10T14:58:57-03:00",
+      "inicio_previsto_s": 3537.35,
+      "inicio_s": 3537.7,
       "musica_anunciada": [],
       "musica_tocada": null,
       "musicas_bloco": [],
       "musicas_citadas": [],
-      "n": 21,
+      "n": 22,
       "orcamento_ref_s": {
         "fonte": "formato",
         "max": 35.0,
@@ -1803,7 +1906,7 @@
         "max": 18.0,
         "min": 10.0
       },
-      "palavras": 32,
+      "palavras": 36,
       "participacao": {
         "regras": [],
         "so_pelo_legado": false
@@ -1819,7 +1922,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "encerramento",
-        "espaco_s": 52.21,
+        "espaco_s": 62.65,
         "etapa": {
           "fim": "2026-11-10T18:00:00Z",
           "hard_time": true,
@@ -1832,7 +1935,7 @@
           "tipo_efetivo": "encerramento"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:59:07.790000Z",
+        "inicio_previsto": "2026-11-10T17:58:57.350000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1847,7 +1950,7 @@
       },
       "revisada": false,
       "sinteses_tts": 1,
-      "texto": "Tarde Serena termina agora, e eu agradeço quem ficou até aqui. Foi uma tarde de música boa e conversa leve. Quem estava no trabalho, bom fim de expediente. Obrigado e até logo.",
+      "texto": "A nossa hora juntos termina agora. A tarde ficou melhor com a sua companhia. Cuide de você e de quem está por perto. Foi uma alegria fazer esta trilha com você. Até amanhã, no mesmo horário.",
       "tipo": "fala",
       "tom": "calmo",
       "validacao_fala": null,
@@ -1863,21 +1966,21 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 25.0,
+      "duracao_prevista_backend_s": 27.0,
       "duracao_prevista_s": 9.0,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:59:34-03:00",
-      "fim_s": 3574.7,
+      "fim": "2026-11-10T14:59:24-03:00",
+      "fim_s": 3564.7,
       "formato": "musical_adulto",
-      "gerado_em_s": 3276.2,
-      "inicio": "2026-11-10T14:59:25-03:00",
-      "inicio_previsto_s": 3547.79,
-      "inicio_s": 3565.7,
+      "gerado_em_s": 3262.2,
+      "inicio": "2026-11-10T14:59:15-03:00",
+      "inicio_previsto_s": 3537.35,
+      "inicio_s": 3555.7,
       "musica_anunciada": [],
       "musica_tocada": null,
       "musicas_bloco": [],
       "musicas_citadas": [],
-      "n": 22,
+      "n": 23,
       "orcamento_ref_s": null,
       "orcamento_s": null,
       "palavras": 9,
@@ -1892,7 +1995,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "encerramento",
-        "espaco_s": 52.21,
+        "espaco_s": 62.65,
         "etapa": {
           "fim": "2026-11-10T18:00:00Z",
           "hard_time": true,
@@ -1905,7 +2008,7 @@
           "tipo_efetivo": "encerramento"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:59:07.790000Z",
+        "inicio_previsto": "2026-11-10T17:58:57.350000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1952,18 +2055,18 @@
   },
   "pedidos": [
     {
-      "atendido": false,
-      "atendido_em_s": null,
+      "atendido": true,
+      "atendido_em_s": 1975.9,
       "bloco_n": 12,
       "chega_em_s": 1500.0,
-      "estado_final": "nao_atendido",
-      "estado_selecao": "nao_atendido",
-      "gerado_em_s": 1564.1,
+      "estado_final": "executado",
+      "estado_selecao": "selecionado",
+      "gerado_em_s": 1505.1,
       "id": 1,
       "musica_query": "Farol Distante",
       "nome": "Joana Lis",
       "tipo": "musica",
-      "tocou_em_s": 1824.9
+      "tocou_em_s": 1714.9
     }
   ],
   "programa": "musical_adulto",

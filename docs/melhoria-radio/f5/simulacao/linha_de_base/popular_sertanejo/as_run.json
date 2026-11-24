@@ -194,20 +194,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 276.0,
-      "duracao_prevista_s": 276,
+      "duracao_prevista_backend_s": 251.0,
+      "duracao_prevista_s": 251,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:08:42-03:00",
-      "fim_s": 522.43,
+      "fim": "2026-11-10T14:08:17-03:00",
+      "fim_s": 497.43,
       "formato": "popular_sertanejo",
       "gerado_em_s": 0.0,
       "inicio": "2026-11-10T14:04:06-03:00",
       "inicio_previsto_s": 243.04,
       "inicio_s": 246.43,
       "musica_anunciada": [],
-      "musica_tocada": "Sanfona e Lamparina - Neném do Cerrado",
+      "musica_tocada": "Poeira na Botina - Zé Ribeirão e Tião",
       "musicas_bloco": [
-        "Sanfona e Lamparina - Neném do Cerrado"
+        "Poeira na Botina - Zé Ribeirão e Tião"
       ],
       "musicas_citadas": [],
       "n": 3,
@@ -267,7 +267,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-pse-14"
+      "video_id": "sim-pse-02"
     },
     {
       "audio_status": null,
@@ -279,20 +279,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 257.0,
-      "duracao_prevista_s": 257,
+      "duracao_prevista_backend_s": 220.0,
+      "duracao_prevista_s": 220,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:12:59-03:00",
-      "fim_s": 779.43,
+      "fim": "2026-11-10T14:11:57-03:00",
+      "fim_s": 717.43,
       "formato": "popular_sertanejo",
       "gerado_em_s": 32.28,
-      "inicio": "2026-11-10T14:08:42-03:00",
-      "inicio_previsto_s": 519.04,
-      "inicio_s": 522.43,
+      "inicio": "2026-11-10T14:08:17-03:00",
+      "inicio_previsto_s": 494.04,
+      "inicio_s": 497.43,
       "musica_anunciada": [],
-      "musica_tocada": "Ipê na Beira da Estrada - Mariana Arreio",
+      "musica_tocada": "Carro de Boi Cantador - Jessé Porteira",
       "musicas_bloco": [
-        "Ipê na Beira da Estrada - Mariana Arreio"
+        "Carro de Boi Cantador - Jessé Porteira"
       ],
       "musicas_citadas": [],
       "n": 4,
@@ -310,7 +310,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 920.96,
+        "espaco_s": 945.96,
         "etapa": {
           "fim": "2026-11-10T17:12:00Z",
           "hard_time": false,
@@ -323,7 +323,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:08:39.040000Z",
+        "inicio_previsto": "2026-11-10T17:08:14.040000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -344,7 +344,7 @@
           "tipo_efetivo": "intervalo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 920.96
+        "segundos_ate_hard_time": 945.96
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -352,7 +352,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-pse-09"
+      "video_id": "sim-pse-10"
     },
     {
       "audio_status": "pendente",
@@ -367,13 +367,13 @@
       "duracao_prevista_backend_s": 22.59,
       "duracao_prevista_s": 22.59,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:13:24-03:00",
-      "fim_s": 804.82,
+      "fim": "2026-11-10T14:12:22-03:00",
+      "fim_s": 742.82,
       "formato": "popular_sertanejo",
       "gerado_em_s": 246.43,
-      "inicio": "2026-11-10T14:12:59-03:00",
-      "inicio_previsto_s": 779.43,
-      "inicio_s": 779.58,
+      "inicio": "2026-11-10T14:11:57-03:00",
+      "inicio_previsto_s": 717.43,
+      "inicio_s": 717.58,
       "musica_anunciada": [],
       "musica_tocada": "Café de Coador - Tonho Varjão",
       "musicas_bloco": [],
@@ -407,7 +407,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "fala",
-        "espaco_s": 660.57,
+        "espaco_s": 722.57,
         "etapa": {
           "fim": "2026-11-10T17:12:35Z",
           "hard_time": false,
@@ -420,7 +420,7 @@
           "tipo_efetivo": "link"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:12:59.430000Z",
+        "inicio_previsto": "2026-11-10T17:11:57.430000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -441,7 +441,7 @@
           "tipo_efetivo": "intervalo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 660.57
+        "segundos_ate_hard_time": 722.57
       },
       "revisada": false,
       "sinteses_tts": 1,
@@ -464,13 +464,13 @@
       "duracao_prevista_backend_s": 216.11,
       "duracao_prevista_s": 11.11,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:13:37-03:00",
-      "fim_s": 817.38,
+      "fim": "2026-11-10T14:12:35-03:00",
+      "fim_s": 755.38,
       "formato": "popular_sertanejo",
-      "gerado_em_s": 522.43,
-      "inicio": "2026-11-10T14:13:24-03:00",
-      "inicio_previsto_s": 802.17,
-      "inicio_s": 804.97,
+      "gerado_em_s": 497.43,
+      "inicio": "2026-11-10T14:12:22-03:00",
+      "inicio_previsto_s": 740.17,
+      "inicio_s": 742.97,
       "musica_anunciada": [
         "Café de Coador - Tonho Varjão"
       ],
@@ -510,7 +510,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 637.83,
+        "espaco_s": 699.83,
         "etapa": {
           "fim": "2026-11-10T17:24:00Z",
           "hard_time": false,
@@ -523,7 +523,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:13:22.170000Z",
+        "inicio_previsto": "2026-11-10T17:12:20.170000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -544,7 +544,7 @@
           "tipo_efetivo": "intervalo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 637.83
+        "segundos_ate_hard_time": 699.83
       },
       "revisada": false,
       "sinteses_tts": 1,
@@ -567,13 +567,13 @@
       "duracao_prevista_backend_s": 216.11,
       "duracao_prevista_s": 205,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:17:02-03:00",
-      "fim_s": 1022.38,
+      "fim": "2026-11-10T14:16:00-03:00",
+      "fim_s": 960.38,
       "formato": "popular_sertanejo",
-      "gerado_em_s": 522.43,
-      "inicio": "2026-11-10T14:13:37-03:00",
-      "inicio_previsto_s": 802.17,
-      "inicio_s": 817.38,
+      "gerado_em_s": 497.43,
+      "inicio": "2026-11-10T14:12:35-03:00",
+      "inicio_previsto_s": 740.17,
+      "inicio_s": 755.38,
       "musica_anunciada": [],
       "musica_tocada": "Café de Coador - Tonho Varjão",
       "musicas_bloco": [
@@ -595,7 +595,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 637.83,
+        "espaco_s": 699.83,
         "etapa": {
           "fim": "2026-11-10T17:24:00Z",
           "hard_time": false,
@@ -608,7 +608,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:13:22.170000Z",
+        "inicio_previsto": "2026-11-10T17:12:20.170000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -629,7 +629,7 @@
           "tipo_efetivo": "intervalo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 637.83
+        "segundos_ate_hard_time": 699.83
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -649,20 +649,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 214.0,
-      "duracao_prevista_s": 214,
+      "duracao_prevista_backend_s": 259.0,
+      "duracao_prevista_s": 259,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:20:36-03:00",
-      "fim_s": 1236.38,
+      "fim": "2026-11-10T14:20:19-03:00",
+      "fim_s": 1219.38,
       "formato": "popular_sertanejo",
-      "gerado_em_s": 779.43,
-      "inicio": "2026-11-10T14:17:02-03:00",
-      "inicio_previsto_s": 1018.43,
-      "inicio_s": 1022.38,
+      "gerado_em_s": 717.43,
+      "inicio": "2026-11-10T14:16:00-03:00",
+      "inicio_previsto_s": 956.43,
+      "inicio_s": 960.38,
       "musica_anunciada": [],
-      "musica_tocada": "Boiadeiro de Domingo - Ciro Mangabeira",
+      "musica_tocada": "Estrada de Chão Batido - Irmãos Taquara",
       "musicas_bloco": [
-        "Boiadeiro de Domingo - Ciro Mangabeira"
+        "Estrada de Chão Batido - Irmãos Taquara"
       ],
       "musicas_citadas": [],
       "n": 8,
@@ -680,7 +680,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 421.57,
+        "espaco_s": 483.57,
         "etapa": {
           "fim": "2026-11-10T17:24:00Z",
           "hard_time": false,
@@ -693,7 +693,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:16:58.430000Z",
+        "inicio_previsto": "2026-11-10T17:15:56.430000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -714,7 +714,7 @@
           "tipo_efetivo": "intervalo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 421.57
+        "segundos_ate_hard_time": 483.57
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -722,7 +722,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-pse-05"
+      "video_id": "sim-pse-01"
     },
     {
       "audio_status": null,
@@ -734,20 +734,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 201.0,
-      "duracao_prevista_s": 201,
+      "duracao_prevista_backend_s": 214.0,
+      "duracao_prevista_s": 214,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:23:57-03:00",
-      "fim_s": 1437.38,
+      "fim": "2026-11-10T14:23:53-03:00",
+      "fim_s": 1433.38,
       "formato": "popular_sertanejo",
-      "gerado_em_s": 804.82,
-      "inicio": "2026-11-10T14:20:36-03:00",
-      "inicio_previsto_s": 1232.43,
-      "inicio_s": 1236.38,
+      "gerado_em_s": 742.82,
+      "inicio": "2026-11-10T14:20:19-03:00",
+      "inicio_previsto_s": 1215.43,
+      "inicio_s": 1219.38,
       "musica_anunciada": [],
-      "musica_tocada": "Chapéu de Palha Novo - Irmãos Taquara",
+      "musica_tocada": "Boiadeiro de Domingo - Ciro Mangabeira",
       "musicas_bloco": [
-        "Chapéu de Palha Novo - Irmãos Taquara"
+        "Boiadeiro de Domingo - Ciro Mangabeira"
       ],
       "musicas_citadas": [],
       "n": 9,
@@ -765,7 +765,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 207.57,
+        "espaco_s": 224.57,
         "etapa": {
           "fim": "2026-11-10T17:24:00Z",
           "hard_time": false,
@@ -778,7 +778,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:20:32.430000Z",
+        "inicio_previsto": "2026-11-10T17:20:15.430000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -799,7 +799,7 @@
           "tipo_efetivo": "intervalo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 207.57
+        "segundos_ate_hard_time": 224.57
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -807,30 +807,30 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-pse-11"
+      "video_id": "sim-pse-05"
     },
     {
       "audio_status": "pendente",
       "bloco": "identificacao",
       "bloco_n": 9,
       "categoria": "abertura",
-      "chamadas_llm": 2,
+      "chamadas_llm": 1,
       "cortado": false,
       "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 2.22,
-      "duracao_medida_s": 2.48,
-      "duracao_prevista_backend_s": 2.22,
-      "duracao_prevista_s": 2.22,
-      "fala_ajuste": "encurtada",
+      "duracao_estimada_backend_s": 6.67,
+      "duracao_medida_s": 7.45,
+      "duracao_prevista_backend_s": 6.67,
+      "duracao_prevista_s": 6.67,
+      "fala_ajuste": "nenhum",
       "fim": "2026-11-10T14:24:00-03:00",
-      "fim_s": 1440.01,
+      "fim_s": 1440.98,
       "formato": "popular_sertanejo",
-      "gerado_em_s": 1022.38,
-      "inicio": "2026-11-10T14:23:57-03:00",
-      "inicio_previsto_s": 1436.08,
-      "inicio_s": 1437.53,
+      "gerado_em_s": 960.38,
+      "inicio": "2026-11-10T14:23:53-03:00",
+      "inicio_previsto_s": 1432.08,
+      "inicio_s": 1433.53,
       "musica_anunciada": [],
-      "musica_tocada": "Estrada de Chão Batido - Irmãos Taquara",
+      "musica_tocada": "Rancho da Serra Fria - Dupla Lua e Laço",
       "musicas_bloco": [],
       "musicas_citadas": [],
       "n": 10,
@@ -840,13 +840,13 @@
         "min": 20.0
       },
       "orcamento_s": {
-        "alvo": 3.0,
+        "alvo": 5.0,
         "aplicado": true,
         "fonte": "relogio",
-        "max": 3.0,
+        "max": 7.0,
         "min": 3.0
       },
-      "palavras": 6,
+      "palavras": 18,
       "participacao": {
         "regras": [],
         "so_pelo_legado": false
@@ -857,12 +857,34 @@
       "pedido_estado_final": null,
       "pedido_id": null,
       "pedido_tipo": null,
-      "promessas": null,
-      "promessas_abertas": [],
+      "promessas": {
+        "registradas": [
+          {
+            "evento_alvo": "etapa:0:1620",
+            "id": 1,
+            "prazo": "2026-11-10T17:27:00",
+            "prazo_posicao": null,
+            "tipo": "participacao",
+            "trecho": "Daqui a pouco tem mais recado de ouvinte por aqui."
+          }
+        ],
+        "resolvidas": []
+      },
+      "promessas_abertas": [
+        {
+          "classe": "curto",
+          "id": "b1",
+          "padrao": "daqui a pouco",
+          "prazo_s": 900,
+          "registrada": true,
+          "tipo": "participacao",
+          "trecho": "Daqui a pouco tem mais recado de ouvinte por aqui."
+        }
+      ],
       "promessas_fechadas": [],
       "relogio": {
         "acao": "reserva",
-        "espaco_s": 3.92,
+        "espaco_s": 7.92,
         "etapa": {
           "fim": "2026-11-10T17:24:00Z",
           "hard_time": false,
@@ -875,12 +897,12 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:23:56.080000Z",
+        "inicio_previsto": "2026-11-10T17:23:52.080000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
           3,
-          3
+          7
         ],
         "origem_instante": "painel",
         "preset": "A",
@@ -896,23 +918,14 @@
           "tipo_efetivo": "intervalo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 3.92
+        "segundos_ate_hard_time": 7.92
       },
-      "revisada": true,
+      "revisada": false,
       "sinteses_tts": 1,
-      "texto": "Você está na Rádio Ipê Dourado.",
+      "texto": "Você ouve a Rádio Ipê Dourado. Boa tarde. Daqui a pouco tem mais recado de ouvinte por aqui.",
       "tipo": "fala",
       "tom": "energico",
-      "validacao_fala": {
-        "acao": "fala_neutra",
-        "violacoes": [
-          {
-            "ref_id": "",
-            "regra": "fala_abaixo_do_minimo",
-            "trecho": "Rádio."
-          }
-        ]
-      },
+      "validacao_fala": null,
       "video_id": null
     },
     {
@@ -928,13 +941,13 @@
       "duracao_prevista_backend_s": 30.0,
       "duracao_prevista_s": 30.0,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:24:30-03:00",
-      "fim_s": 1470.36,
+      "fim": "2026-11-10T14:24:31-03:00",
+      "fim_s": 1471.33,
       "formato": "popular_sertanejo",
-      "gerado_em_s": 1236.38,
-      "inicio": "2026-11-10T14:24:00-03:00",
-      "inicio_previsto_s": 1439.75,
-      "inicio_s": 1440.36,
+      "gerado_em_s": 1219.38,
+      "inicio": "2026-11-10T14:24:01-03:00",
+      "inicio_previsto_s": 1440.2,
+      "inicio_s": 1441.33,
       "musica_anunciada": [],
       "musica_tocada": null,
       "musicas_bloco": [],
@@ -954,7 +967,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "intervalo",
-        "espaco_s": 1740.25,
+        "espaco_s": 1679.8,
         "etapa": {
           "fim": "2026-11-10T17:27:00Z",
           "hard_time": true,
@@ -967,9 +980,11 @@
           "tipo_efetivo": "intervalo"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:23:59.750000Z",
+        "inicio_previsto": "2026-11-10T17:24:00.200000Z",
         "inicio_previsto_aceito": true,
-        "obrigacoes": null,
+        "obrigacoes": [
+          "0:1620"
+        ],
         "orcamento_s": null,
         "origem_instante": "painel",
         "preset": "A",
@@ -985,7 +1000,7 @@
           "tipo_efetivo": "intervalo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 1740.25
+        "segundos_ate_hard_time": 1739.8
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1003,20 +1018,20 @@
       "chamadas_llm": 1,
       "cortado": false,
       "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 35.19,
-      "duracao_medida_s": 39.31,
-      "duracao_prevista_backend_s": 35.19,
-      "duracao_prevista_s": 35.19,
+      "duracao_estimada_backend_s": 35.93,
+      "duracao_medida_s": 40.14,
+      "duracao_prevista_backend_s": 35.93,
+      "duracao_prevista_s": 35.93,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:25:10-03:00",
-      "fim_s": 1510.02,
+      "fim": "2026-11-10T14:25:11-03:00",
+      "fim_s": 1511.82,
       "formato": "popular_sertanejo",
-      "gerado_em_s": 1437.38,
-      "inicio": "2026-11-10T14:24:30-03:00",
-      "inicio_previsto_s": 1470.1,
-      "inicio_s": 1470.71,
+      "gerado_em_s": 1433.38,
+      "inicio": "2026-11-10T14:24:31-03:00",
+      "inicio_previsto_s": 1470.55,
+      "inicio_s": 1471.68,
       "musica_anunciada": [],
-      "musica_tocada": "Estrada de Chão Batido - Irmãos Taquara",
+      "musica_tocada": "Rancho da Serra Fria - Dupla Lua e Laço",
       "musicas_bloco": [],
       "musicas_citadas": [],
       "n": 12,
@@ -1032,7 +1047,7 @@
         "max": 60.0,
         "min": 15.0
       },
-      "palavras": 95,
+      "palavras": 97,
       "participacao": {
         "regras": [],
         "so_pelo_legado": false
@@ -1043,12 +1058,23 @@
       "pedido_estado_final": "executado",
       "pedido_id": 2,
       "pedido_tipo": "abraco",
-      "promessas": null,
+      "promessas": {
+        "registradas": [],
+        "resolvidas": [
+          {
+            "contingencia": null,
+            "estado": "cumprida",
+            "id": 1
+          }
+        ]
+      },
       "promessas_abertas": [],
-      "promessas_fechadas": [],
+      "promessas_fechadas": [
+        "b1"
+      ],
       "relogio": {
         "acao": "fala",
-        "espaco_s": 1709.9,
+        "espaco_s": 1709.45,
         "etapa": {
           "fim": "2026-11-10T17:28:00Z",
           "hard_time": false,
@@ -1061,9 +1087,11 @@
           "tipo_efetivo": "retorno"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:24:30.100000Z",
+        "inicio_previsto": "2026-11-10T17:24:30.550000Z",
         "inicio_previsto_aceito": true,
-        "obrigacoes": null,
+        "obrigacoes": [
+          "0:1620"
+        ],
         "orcamento_s": [
           15,
           60
@@ -1082,11 +1110,11 @@
           "tipo_efetivo": "intervalo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 1709.9
+        "segundos_ate_hard_time": 1709.45
       },
       "revisada": false,
       "sinteses_tts": 1,
-      "texto": "Alô, Seu Ditinho, obrigado por escrever para a rádio. Abraço enviado, com carinho. A gente gosta de pensar no rádio como uma janela aberta. Quem trabalha de casa sabe como uma trilha boa ajuda a organizar a cabeça. Cada música desta tarde foi escolhida para combinar com o seu ritmo. Tem dia que a gente só precisa de uma voz conhecida por perto. É bom saber que, de algum lugar, você está ouvindo agora. Uma tarde bem acompanhada passa diferente. Se alguém do seu lado também gosta de música, chama para ouvir junto. Com carinho.",
+      "texto": "Quem escreveu foi Seu Ditinho, e o carinho foi recebido. Recado gentil faz bem para todo mundo que ouve. Cada música desta tarde foi escolhida para combinar com o seu ritmo. Tem canção que parece ter sido feita para o meio da tarde. Música boa faz o tempo andar no passo certo. Tem dia que a gente só precisa de uma voz conhecida por perto. A gente gosta de pensar no rádio como uma janela aberta. Se alguém do seu lado também gosta de música, chama para ouvir junto. Uma tarde bem acompanhada passa diferente. Com carinho.",
       "tipo": "fala",
       "tom": "energico",
       "validacao_fala": null,
@@ -1102,20 +1130,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 259.0,
-      "duracao_prevista_s": 259,
+      "duracao_prevista_backend_s": 265.0,
+      "duracao_prevista_s": 265,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:29:29-03:00",
-      "fim_s": 1769.17,
+      "fim": "2026-11-10T14:29:36-03:00",
+      "fim_s": 1776.97,
       "formato": "popular_sertanejo",
-      "gerado_em_s": 1440.01,
-      "inicio": "2026-11-10T14:25:10-03:00",
-      "inicio_previsto_s": 1505.64,
-      "inicio_s": 1510.17,
+      "gerado_em_s": 1440.98,
+      "inicio": "2026-11-10T14:25:11-03:00",
+      "inicio_previsto_s": 1506.83,
+      "inicio_s": 1511.97,
       "musica_anunciada": [],
-      "musica_tocada": "Estrada de Chão Batido - Irmãos Taquara",
+      "musica_tocada": "Rancho da Serra Fria - Dupla Lua e Laço",
       "musicas_bloco": [
-        "Estrada de Chão Batido - Irmãos Taquara"
+        "Rancho da Serra Fria - Dupla Lua e Laço"
       ],
       "musicas_citadas": [],
       "n": 13,
@@ -1133,7 +1161,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 1674.36,
+        "espaco_s": 1673.17,
         "etapa": {
           "fim": "2026-11-10T17:40:00Z",
           "hard_time": false,
@@ -1146,7 +1174,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:25:05.640000Z",
+        "inicio_previsto": "2026-11-10T17:25:06.830000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1167,7 +1195,7 @@
           "tipo_efetivo": "intervalo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 1674.36
+        "segundos_ate_hard_time": 1673.17
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1175,7 +1203,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-pse-01"
+      "video_id": "sim-pse-03"
     },
     {
       "audio_status": null,
@@ -1187,20 +1215,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 251.0,
-      "duracao_prevista_s": 251,
+      "duracao_prevista_backend_s": 236.0,
+      "duracao_prevista_s": 236,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:33:40-03:00",
-      "fim_s": 2020.17,
+      "fim": "2026-11-10T14:33:32-03:00",
+      "fim_s": 2012.97,
       "formato": "popular_sertanejo",
-      "gerado_em_s": 1470.36,
-      "inicio": "2026-11-10T14:29:29-03:00",
-      "inicio_previsto_s": 1765.05,
-      "inicio_s": 1769.17,
+      "gerado_em_s": 1471.33,
+      "inicio": "2026-11-10T14:29:36-03:00",
+      "inicio_previsto_s": 1772.76,
+      "inicio_s": 1776.97,
       "musica_anunciada": [],
-      "musica_tocada": "Poeira na Botina - Zé Ribeirão e Tião",
+      "musica_tocada": "Laço de Fita Amarela - Neném do Cerrado",
       "musicas_bloco": [
-        "Poeira na Botina - Zé Ribeirão e Tião"
+        "Laço de Fita Amarela - Neném do Cerrado"
       ],
       "musicas_citadas": [],
       "n": 14,
@@ -1218,7 +1246,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 1414.95,
+        "espaco_s": 1407.24,
         "etapa": {
           "fim": "2026-11-10T17:40:00Z",
           "hard_time": false,
@@ -1231,7 +1259,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:29:25.050000Z",
+        "inicio_previsto": "2026-11-10T17:29:32.760000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1252,7 +1280,7 @@
           "tipo_efetivo": "intervalo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 1414.95
+        "segundos_ate_hard_time": 1407.24
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1260,7 +1288,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-pse-02"
+      "video_id": "sim-pse-04"
     },
     {
       "audio_status": null,
@@ -1272,20 +1300,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 265.0,
-      "duracao_prevista_s": 265,
+      "duracao_prevista_backend_s": 244.0,
+      "duracao_prevista_s": 244,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:38:05-03:00",
-      "fim_s": 2285.17,
+      "fim": "2026-11-10T14:37:36-03:00",
+      "fim_s": 2256.97,
       "formato": "popular_sertanejo",
-      "gerado_em_s": 1510.02,
-      "inicio": "2026-11-10T14:33:40-03:00",
-      "inicio_previsto_s": 2016.05,
-      "inicio_s": 2020.17,
+      "gerado_em_s": 1511.82,
+      "inicio": "2026-11-10T14:33:32-03:00",
+      "inicio_previsto_s": 2008.76,
+      "inicio_s": 2012.97,
       "musica_anunciada": [],
-      "musica_tocada": "Rancho da Serra Fria - Dupla Lua e Laço",
+      "musica_tocada": "Viola no Alpendre - Os Filhos da Serra",
       "musicas_bloco": [
-        "Rancho da Serra Fria - Dupla Lua e Laço"
+        "Viola no Alpendre - Os Filhos da Serra"
       ],
       "musicas_citadas": [],
       "n": 15,
@@ -1303,7 +1331,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 1163.95,
+        "espaco_s": 1171.24,
         "etapa": {
           "fim": "2026-11-10T17:40:00Z",
           "hard_time": false,
@@ -1316,7 +1344,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:33:36.050000Z",
+        "inicio_previsto": "2026-11-10T17:33:28.760000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1337,7 +1365,7 @@
           "tipo_efetivo": "intervalo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 1163.95
+        "segundos_ate_hard_time": 1171.24
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1345,33 +1373,118 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-pse-03"
+      "video_id": "sim-pse-06"
+    },
+    {
+      "audio_status": null,
+      "bloco": "musica",
+      "bloco_n": 15,
+      "categoria": "musica",
+      "chamadas_llm": 0,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "duracao_estimada_backend_s": null,
+      "duracao_medida_s": null,
+      "duracao_prevista_backend_s": 201.0,
+      "duracao_prevista_s": 201,
+      "fala_ajuste": null,
+      "fim": "2026-11-10T14:40:57-03:00",
+      "fim_s": 2457.97,
+      "formato": "popular_sertanejo",
+      "gerado_em_s": 1776.97,
+      "inicio": "2026-11-10T14:37:36-03:00",
+      "inicio_previsto_s": 2256.97,
+      "inicio_s": 2256.97,
+      "musica_anunciada": [],
+      "musica_tocada": "Chapéu de Palha Novo - Irmãos Taquara",
+      "musicas_bloco": [
+        "Chapéu de Palha Novo - Irmãos Taquara"
+      ],
+      "musicas_citadas": [],
+      "n": 16,
+      "orcamento_ref_s": null,
+      "orcamento_s": null,
+      "palavras": 0,
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.0,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "musica",
+        "espaco_s": 923.03,
+        "etapa": {
+          "fim": "2026-11-10T17:40:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:28:00Z",
+          "inicio_s": 1680,
+          "natureza": "ajustavel",
+          "rotulo": "Sequência musical C",
+          "tipo": "musica",
+          "tipo_efetivo": "musica"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:37:36.970000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          4,
+          20
+        ],
+        "origem_instante": "painel",
+        "preset": "A",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:56:00Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:53:00Z",
+          "inicio_s": 3180,
+          "natureza": "obrigatorio",
+          "rotulo": "Intervalo",
+          "tipo": "intervalo",
+          "tipo_efetivo": "intervalo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 923.03
+      },
+      "revisada": false,
+      "sinteses_tts": null,
+      "texto": "",
+      "tipo": "musica",
+      "tom": null,
+      "validacao_fala": null,
+      "video_id": "sim-pse-11"
     },
     {
       "audio_status": "pendente",
       "bloco": "comentario",
-      "bloco_n": 15,
+      "bloco_n": 16,
       "categoria": "comentario",
       "chamadas_llm": 1,
       "cortado": false,
       "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 35.56,
-      "duracao_medida_s": 39.72,
-      "duracao_prevista_backend_s": 35.56,
-      "duracao_prevista_s": 35.56,
+      "duracao_estimada_backend_s": 41.79,
+      "duracao_medida_s": 41.79,
+      "duracao_prevista_backend_s": 41.79,
+      "duracao_prevista_s": 37.41,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:38:45-03:00",
-      "fim_s": 2325.04,
+      "fim": "2026-11-10T14:41:39-03:00",
+      "fim_s": 2499.91,
       "formato": "popular_sertanejo",
-      "gerado_em_s": 1769.17,
-      "inicio": "2026-11-10T14:38:05-03:00",
-      "inicio_previsto_s": 2285.17,
-      "inicio_s": 2285.32,
+      "gerado_em_s": 2012.97,
+      "inicio": "2026-11-10T14:40:58-03:00",
+      "inicio_previsto_s": 2457.97,
+      "inicio_s": 2458.12,
       "musica_anunciada": [],
-      "musica_tocada": "Laço de Fita Amarela - Neném do Cerrado",
+      "musica_tocada": "Cancela do Retiro - Duo Lajeado",
       "musicas_bloco": [],
       "musicas_citadas": [],
-      "n": 16,
+      "n": 17,
       "orcamento_ref_s": {
         "fonte": "formato",
         "max": 60.0,
@@ -1384,7 +1497,7 @@
         "max": 60.0,
         "min": 15.0
       },
-      "palavras": 96,
+      "palavras": 101,
       "participacao": {
         "regras": [],
         "so_pelo_legado": false
@@ -1400,7 +1513,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "fala",
-        "espaco_s": 894.83,
+        "espaco_s": 722.03,
         "etapa": {
           "fim": "2026-11-10T17:41:00Z",
           "hard_time": false,
@@ -1413,7 +1526,7 @@
           "tipo_efetivo": "curadoria"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:38:05.170000Z",
+        "inicio_previsto": "2026-11-10T17:40:57.970000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1434,100 +1547,15 @@
           "tipo_efetivo": "intervalo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 894.83
+        "segundos_ate_hard_time": 722.03
       },
       "revisada": false,
       "sinteses_tts": 1,
-      "texto": "Repara como cada família tem um jeito próprio de arrumar a mesa. Quando a gente presta atenção, a rotina fica mais interessante. Às vezes um gesto simples resolve o dia de alguém. A gente aprende muita coisa observando quem está perto. Tem quem ria disso, e tem quem defenda com unhas e dentes. Se você tem uma história assim, ela é sua e é especial. Uma conversa boa começa assim, por um detalhe pequeno. E quando alguém de fora repara, a gente estranha. Vale a pena parar um minuto e pensar nisso. Coisa boa de pensar.",
+      "texto": "Uma pergunta para você pensar: qual cheiro lembra a casa da sua infância? Cada um tem a sua versão dessa história. Tem quem ria disso, e tem quem defenda com unhas e dentes. Se você tem uma história assim, ela é sua e é especial. E quando alguém de fora repara, a gente estranha. A gente aprende muita coisa observando quem está perto. Tem hábito que a gente herda sem perceber. Uma conversa boa começa assim, por um detalhe pequeno. Vale a pena parar um minuto e pensar nisso. Uma tarde bem acompanhada passa diferente. É assim que a gente vive.",
       "tipo": "fala",
       "tom": "calmo",
       "validacao_fala": null,
       "video_id": null
-    },
-    {
-      "audio_status": null,
-      "bloco": "musica",
-      "bloco_n": 16,
-      "categoria": "musica",
-      "chamadas_llm": 0,
-      "cortado": false,
-      "cortado_s": 0.0,
-      "duracao_estimada_backend_s": null,
-      "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 236.0,
-      "duracao_prevista_s": 236,
-      "fala_ajuste": null,
-      "fim": "2026-11-10T14:42:41-03:00",
-      "fim_s": 2561.19,
-      "formato": "popular_sertanejo",
-      "gerado_em_s": 2020.17,
-      "inicio": "2026-11-10T14:38:45-03:00",
-      "inicio_previsto_s": 2320.88,
-      "inicio_s": 2325.19,
-      "musica_anunciada": [],
-      "musica_tocada": "Laço de Fita Amarela - Neném do Cerrado",
-      "musicas_bloco": [
-        "Laço de Fita Amarela - Neném do Cerrado"
-      ],
-      "musicas_citadas": [],
-      "n": 17,
-      "orcamento_ref_s": null,
-      "orcamento_s": null,
-      "palavras": 0,
-      "passos_roteiro": 1,
-      "pausa_antes_s": 0.15,
-      "pedido_estado": null,
-      "pedido_estado_final": null,
-      "pedido_id": null,
-      "pedido_tipo": null,
-      "promessas": null,
-      "promessas_abertas": [],
-      "promessas_fechadas": [],
-      "relogio": {
-        "acao": "musica",
-        "espaco_s": 859.12,
-        "etapa": {
-          "fim": "2026-11-10T17:53:00Z",
-          "hard_time": false,
-          "hora": 0,
-          "inicio": "2026-11-10T17:41:00Z",
-          "inicio_s": 2460,
-          "natureza": "ajustavel",
-          "rotulo": "Sequência musical D",
-          "tipo": "musica",
-          "tipo_efetivo": "musica"
-        },
-        "hora": 0,
-        "inicio_previsto": "2026-11-10T17:38:40.880000Z",
-        "inicio_previsto_aceito": true,
-        "obrigacoes": null,
-        "orcamento_s": [
-          4,
-          20
-        ],
-        "origem_instante": "painel",
-        "preset": "A",
-        "proximo_compromisso": {
-          "fim": "2026-11-10T17:56:00Z",
-          "hard_time": true,
-          "hora": 0,
-          "inicio": "2026-11-10T17:53:00Z",
-          "inicio_s": 3180,
-          "natureza": "obrigatorio",
-          "rotulo": "Intervalo",
-          "tipo": "intervalo",
-          "tipo_efetivo": "intervalo"
-        },
-        "puladas": [],
-        "segundos_ate_hard_time": 859.12
-      },
-      "revisada": false,
-      "sinteses_tts": null,
-      "texto": "",
-      "tipo": "musica",
-      "tom": null,
-      "validacao_fala": null,
-      "video_id": "sim-pse-04"
     },
     {
       "audio_status": null,
@@ -1542,17 +1570,17 @@
       "duracao_prevista_backend_s": 244.0,
       "duracao_prevista_s": 244,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:46:45-03:00",
-      "fim_s": 2805.19,
+      "fim": "2026-11-10T14:45:44-03:00",
+      "fim_s": 2744.06,
       "formato": "popular_sertanejo",
-      "gerado_em_s": 2285.17,
-      "inicio": "2026-11-10T14:42:41-03:00",
-      "inicio_previsto_s": 2557.03,
-      "inicio_s": 2561.19,
+      "gerado_em_s": 2256.97,
+      "inicio": "2026-11-10T14:41:40-03:00",
+      "inicio_previsto_s": 2499.91,
+      "inicio_s": 2500.06,
       "musica_anunciada": [],
-      "musica_tocada": "Viola no Alpendre - Os Filhos da Serra",
+      "musica_tocada": "Cancela do Retiro - Duo Lajeado",
       "musicas_bloco": [
-        "Viola no Alpendre - Os Filhos da Serra"
+        "Cancela do Retiro - Duo Lajeado"
       ],
       "musicas_citadas": [],
       "n": 18,
@@ -1560,7 +1588,7 @@
       "orcamento_s": null,
       "palavras": 0,
       "passos_roteiro": 1,
-      "pausa_antes_s": 0.0,
+      "pausa_antes_s": 0.15,
       "pedido_estado": null,
       "pedido_estado_final": null,
       "pedido_id": null,
@@ -1570,7 +1598,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 622.97,
+        "espaco_s": 680.09,
         "etapa": {
           "fim": "2026-11-10T17:53:00Z",
           "hard_time": false,
@@ -1583,7 +1611,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:42:37.030000Z",
+        "inicio_previsto": "2026-11-10T17:41:39.910000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1604,7 +1632,7 @@
           "tipo_efetivo": "intervalo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 622.97
+        "segundos_ate_hard_time": 680.09
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1612,7 +1640,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-pse-06"
+      "video_id": "sim-pse-08"
     },
     {
       "audio_status": null,
@@ -1624,20 +1652,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 244.0,
-      "duracao_prevista_s": 244,
+      "duracao_prevista_backend_s": 200.0,
+      "duracao_prevista_s": 200,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:50:49-03:00",
-      "fim_s": 3049.19,
+      "fim": "2026-11-10T14:49:04-03:00",
+      "fim_s": 2944.06,
       "formato": "popular_sertanejo",
-      "gerado_em_s": 2325.04,
-      "inicio": "2026-11-10T14:46:45-03:00",
-      "inicio_previsto_s": 2801.03,
-      "inicio_s": 2805.19,
+      "gerado_em_s": 2457.97,
+      "inicio": "2026-11-10T14:45:44-03:00",
+      "inicio_previsto_s": 2744.06,
+      "inicio_s": 2744.06,
       "musica_anunciada": [],
-      "musica_tocada": "Cancela do Retiro - Duo Lajeado",
+      "musica_tocada": "Rodeio de Inverno - Zé Ribeirão e Tião",
       "musicas_bloco": [
-        "Cancela do Retiro - Duo Lajeado"
+        "Rodeio de Inverno - Zé Ribeirão e Tião"
       ],
       "musicas_citadas": [],
       "n": 19,
@@ -1655,7 +1683,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 378.97,
+        "espaco_s": 435.94,
         "etapa": {
           "fim": "2026-11-10T17:53:00Z",
           "hard_time": false,
@@ -1668,7 +1696,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:46:41.030000Z",
+        "inicio_previsto": "2026-11-10T17:45:44.060000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1689,7 +1717,7 @@
           "tipo_efetivo": "intervalo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 378.97
+        "segundos_ate_hard_time": 435.94
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1697,46 +1725,131 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-pse-08"
+      "video_id": "sim-pse-12"
+    },
+    {
+      "audio_status": null,
+      "bloco": "musica",
+      "bloco_n": 19,
+      "categoria": "musica",
+      "chamadas_llm": 0,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "duracao_estimada_backend_s": null,
+      "duracao_medida_s": null,
+      "duracao_prevista_backend_s": 226.0,
+      "duracao_prevista_s": 226,
+      "fala_ajuste": null,
+      "fim": "2026-11-10T14:52:50-03:00",
+      "fim_s": 3170.06,
+      "formato": "popular_sertanejo",
+      "gerado_em_s": 2499.91,
+      "inicio": "2026-11-10T14:49:04-03:00",
+      "inicio_previsto_s": 2944.06,
+      "inicio_s": 2944.06,
+      "musica_anunciada": [],
+      "musica_tocada": "Paixão de Peão - Dupla Lua e Laço",
+      "musicas_bloco": [
+        "Paixão de Peão - Dupla Lua e Laço"
+      ],
+      "musicas_citadas": [],
+      "n": 20,
+      "orcamento_ref_s": null,
+      "orcamento_s": null,
+      "palavras": 0,
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.0,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "musica",
+        "espaco_s": 235.94,
+        "etapa": {
+          "fim": "2026-11-10T17:53:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:41:00Z",
+          "inicio_s": 2460,
+          "natureza": "ajustavel",
+          "rotulo": "Sequência musical D",
+          "tipo": "musica",
+          "tipo_efetivo": "musica"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:49:04.060000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          4,
+          20
+        ],
+        "origem_instante": "painel",
+        "preset": "A",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:56:00Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:53:00Z",
+          "inicio_s": 3180,
+          "natureza": "obrigatorio",
+          "rotulo": "Intervalo",
+          "tipo": "intervalo",
+          "tipo_efetivo": "intervalo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 235.94
+      },
+      "revisada": false,
+      "sinteses_tts": null,
+      "texto": "",
+      "tipo": "musica",
+      "tom": null,
+      "validacao_fala": null,
+      "video_id": "sim-pse-13"
     },
     {
       "audio_status": "pendente",
       "bloco": "identificacao",
-      "bloco_n": 19,
+      "bloco_n": 20,
       "categoria": "abertura",
       "chamadas_llm": 1,
       "cortado": false,
       "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 11.59,
-      "duracao_medida_s": 11.59,
-      "duracao_prevista_backend_s": 11.59,
-      "duracao_prevista_s": 10.37,
+      "duracao_estimada_backend_s": 6.21,
+      "duracao_medida_s": 6.21,
+      "duracao_prevista_backend_s": 6.21,
+      "duracao_prevista_s": 5.56,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:51:00-03:00",
-      "fim_s": 3060.93,
+      "fim": "2026-11-10T14:52:56-03:00",
+      "fim_s": 3176.42,
       "formato": "popular_sertanejo",
-      "gerado_em_s": 2561.19,
-      "inicio": "2026-11-10T14:50:49-03:00",
-      "inicio_previsto_s": 3049.19,
-      "inicio_s": 3049.34,
+      "gerado_em_s": 2744.06,
+      "inicio": "2026-11-10T14:52:50-03:00",
+      "inicio_previsto_s": 3170.06,
+      "inicio_s": 3170.21,
       "musica_anunciada": [],
-      "musica_tocada": "Carro de Boi Cantador - Jessé Porteira",
+      "musica_tocada": "Sanfona e Lamparina - Neném do Cerrado",
       "musicas_bloco": [],
       "musicas_citadas": [],
-      "n": 20,
+      "n": 21,
       "orcamento_ref_s": {
         "fonte": "formato",
         "max": 60.0,
         "min": 20.0
       },
       "orcamento_s": {
-        "alvo": 15.0,
+        "alvo": 6.0,
         "aplicado": true,
         "fonte": "relogio",
-        "max": 15.0,
-        "min": 15.0
+        "max": 9.0,
+        "min": 3.0
       },
-      "palavras": 28,
+      "palavras": 15,
       "participacao": {
         "regras": [],
         "so_pelo_legado": false
@@ -1752,7 +1865,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "reserva",
-        "espaco_s": 130.81,
+        "espaco_s": 9.94,
         "etapa": {
           "fim": "2026-11-10T17:53:00Z",
           "hard_time": false,
@@ -1765,12 +1878,12 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:50:49.190000Z",
+        "inicio_previsto": "2026-11-10T17:52:50.060000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
-          15,
-          15
+          3,
+          9
         ],
         "origem_instante": "painel",
         "preset": "A",
@@ -1786,110 +1899,13 @@
           "tipo_efetivo": "intervalo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 130.81
+        "segundos_ate_hard_time": 9.94
       },
       "revisada": false,
       "sinteses_tts": 1,
-      "texto": "Na Rádio Ipê Dourado, Prosa e Viola. Fica à vontade. O som continua no ritmo da tarde. Tudo calmo por aqui. Música escolhida com cuidado. Segue o som.",
+      "texto": "Prosa e Viola, com Zeca Porteira. Companhia de verdade. Música escolhida com cuidado. Vem junto.",
       "tipo": "fala",
       "tom": "energico",
-      "validacao_fala": null,
-      "video_id": null
-    },
-    {
-      "audio_status": "pendente",
-      "bloco": "comentario",
-      "bloco_n": 20,
-      "categoria": "comentario",
-      "chamadas_llm": 1,
-      "cortado": false,
-      "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 49.24,
-      "duracao_medida_s": 49.24,
-      "duracao_prevista_backend_s": 49.24,
-      "duracao_prevista_s": 44.07,
-      "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:51:50-03:00",
-      "fim_s": 3110.52,
-      "formato": "popular_sertanejo",
-      "gerado_em_s": 2805.19,
-      "inicio": "2026-11-10T14:51:01-03:00",
-      "inicio_previsto_s": 3060.93,
-      "inicio_s": 3061.28,
-      "musica_anunciada": [],
-      "musica_tocada": "Carro de Boi Cantador - Jessé Porteira",
-      "musicas_bloco": [],
-      "musicas_citadas": [],
-      "n": 21,
-      "orcamento_ref_s": {
-        "fonte": "formato",
-        "max": 60.0,
-        "min": 20.0
-      },
-      "orcamento_s": {
-        "alvo": 44.5,
-        "aplicado": true,
-        "fonte": "relogio",
-        "max": 60.0,
-        "min": 29.0
-      },
-      "palavras": 119,
-      "participacao": {
-        "regras": [],
-        "so_pelo_legado": false
-      },
-      "passos_roteiro": 1,
-      "pausa_antes_s": 0.35,
-      "pedido_estado": null,
-      "pedido_estado_final": null,
-      "pedido_id": null,
-      "pedido_tipo": null,
-      "promessas": null,
-      "promessas_abertas": [],
-      "promessas_fechadas": [],
-      "relogio": {
-        "acao": "reserva",
-        "espaco_s": 119.07,
-        "etapa": {
-          "fim": "2026-11-10T17:53:00Z",
-          "hard_time": false,
-          "hora": 0,
-          "inicio": "2026-11-10T17:41:00Z",
-          "inicio_s": 2460,
-          "natureza": "ajustavel",
-          "rotulo": "Sequência musical D",
-          "tipo": "musica",
-          "tipo_efetivo": "musica"
-        },
-        "hora": 0,
-        "inicio_previsto": "2026-11-10T17:51:00.930000Z",
-        "inicio_previsto_aceito": true,
-        "obrigacoes": null,
-        "orcamento_s": [
-          29,
-          60
-        ],
-        "origem_instante": "painel",
-        "preset": "A",
-        "proximo_compromisso": {
-          "fim": "2026-11-10T17:56:00Z",
-          "hard_time": true,
-          "hora": 0,
-          "inicio": "2026-11-10T17:53:00Z",
-          "inicio_s": 3180,
-          "natureza": "obrigatorio",
-          "rotulo": "Intervalo",
-          "tipo": "intervalo",
-          "tipo_efetivo": "intervalo"
-        },
-        "puladas": [],
-        "segundos_ate_hard_time": 119.07
-      },
-      "revisada": false,
-      "sinteses_tts": 1,
-      "texto": "Sempre acho curioso o quanto uma lista de compras diz sobre uma casa. É o tipo de coisa que passa de geração em geração. O que para um é costume, para outro é novidade. A memória guarda essas pequenas cenas com cuidado. Eu gosto de pensar que todo mundo tem um ritual pequeno. Nem tudo precisa de explicação, algumas coisas só são assim. E ritual pequeno também é coisa séria. Tem hábito que a gente herda sem perceber. O tempo passa, mas certos costumes ficam. Pensa na cozinha da sua casa e você vai entender o que eu digo. Às vezes um gesto simples resolve o dia de alguém. Uma tarde bem acompanhada passa diferente. Coisa boa de pensar.",
-      "tipo": "fala",
-      "tom": "calmo",
       "validacao_fala": null,
       "video_id": null
     },
@@ -1906,13 +1922,13 @@
       "duracao_prevista_backend_s": 30.0,
       "duracao_prevista_s": 30.0,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:52:20-03:00",
-      "fim_s": 3140.87,
+      "fim": "2026-11-10T14:53:26-03:00",
+      "fim_s": 3206.77,
       "formato": "popular_sertanejo",
-      "gerado_em_s": 3049.19,
-      "inicio": "2026-11-10T14:51:50-03:00",
-      "inicio_previsto_s": 3110.52,
-      "inicio_s": 3110.87,
+      "gerado_em_s": 2944.06,
+      "inicio": "2026-11-10T14:52:56-03:00",
+      "inicio_previsto_s": 3176.42,
+      "inicio_s": 3176.77,
       "musica_anunciada": [],
       "musica_tocada": null,
       "musicas_bloco": [],
@@ -1931,8 +1947,8 @@
       "promessas_abertas": [],
       "promessas_fechadas": [],
       "relogio": {
-        "acao": "adiantamento",
-        "espaco_s": 459.48,
+        "acao": "intervalo",
+        "espaco_s": 393.58,
         "etapa": {
           "fim": "2026-11-10T17:56:00Z",
           "hard_time": true,
@@ -1945,7 +1961,7 @@
           "tipo_efetivo": "intervalo"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:51:50.520000Z",
+        "inicio_previsto": "2026-11-10T17:52:56.420000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": null,
@@ -1963,7 +1979,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 459.48
+        "segundos_ate_hard_time": 393.58
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1983,20 +1999,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 220.0,
-      "duracao_prevista_s": 220,
+      "duracao_prevista_backend_s": 276.0,
+      "duracao_prevista_s": 276,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:56:01-03:00",
-      "fim_s": 3361.02,
+      "fim": "2026-11-10T14:58:02-03:00",
+      "fim_s": 3482.92,
       "formato": "popular_sertanejo",
-      "gerado_em_s": 3060.93,
-      "inicio": "2026-11-10T14:52:21-03:00",
-      "inicio_previsto_s": 3140.87,
-      "inicio_s": 3141.02,
+      "gerado_em_s": 3170.06,
+      "inicio": "2026-11-10T14:53:26-03:00",
+      "inicio_previsto_s": 3206.77,
+      "inicio_s": 3206.92,
       "musica_anunciada": [],
-      "musica_tocada": "Carro de Boi Cantador - Jessé Porteira",
+      "musica_tocada": "Sanfona e Lamparina - Neném do Cerrado",
       "musicas_bloco": [
-        "Carro de Boi Cantador - Jessé Porteira"
+        "Sanfona e Lamparina - Neném do Cerrado"
       ],
       "musicas_citadas": [],
       "n": 23,
@@ -2014,7 +2030,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 429.13,
+        "espaco_s": 363.23,
         "etapa": {
           "fim": "2026-11-10T17:59:30Z",
           "hard_time": false,
@@ -2027,7 +2043,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:52:20.870000Z",
+        "inicio_previsto": "2026-11-10T17:53:26.770000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -2048,7 +2064,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 429.13
+        "segundos_ate_hard_time": 363.23
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -2056,131 +2072,46 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-pse-10"
-    },
-    {
-      "audio_status": null,
-      "bloco": "musica",
-      "bloco_n": 23,
-      "categoria": "musica",
-      "chamadas_llm": 0,
-      "cortado": false,
-      "cortado_s": 0.0,
-      "duracao_estimada_backend_s": null,
-      "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 200.0,
-      "duracao_prevista_s": 200,
-      "fala_ajuste": null,
-      "fim": "2026-11-10T14:59:21-03:00",
-      "fim_s": 3561.02,
-      "formato": "popular_sertanejo",
-      "gerado_em_s": 3110.52,
-      "inicio": "2026-11-10T14:56:01-03:00",
-      "inicio_previsto_s": 3361.02,
-      "inicio_s": 3361.02,
-      "musica_anunciada": [],
-      "musica_tocada": "Rodeio de Inverno - Zé Ribeirão e Tião",
-      "musicas_bloco": [
-        "Rodeio de Inverno - Zé Ribeirão e Tião"
-      ],
-      "musicas_citadas": [],
-      "n": 24,
-      "orcamento_ref_s": null,
-      "orcamento_s": null,
-      "palavras": 0,
-      "passos_roteiro": 1,
-      "pausa_antes_s": 0.0,
-      "pedido_estado": null,
-      "pedido_estado_final": null,
-      "pedido_id": null,
-      "pedido_tipo": null,
-      "promessas": null,
-      "promessas_abertas": [],
-      "promessas_fechadas": [],
-      "relogio": {
-        "acao": "musica",
-        "espaco_s": 208.98,
-        "etapa": {
-          "fim": "2026-11-10T17:59:30Z",
-          "hard_time": false,
-          "hora": 0,
-          "inicio": "2026-11-10T17:56:00Z",
-          "inicio_s": 3360,
-          "natureza": "ajustavel",
-          "rotulo": "Música de fechamento",
-          "tipo": "musica",
-          "tipo_efetivo": "musica"
-        },
-        "hora": 0,
-        "inicio_previsto": "2026-11-10T17:56:01.020000Z",
-        "inicio_previsto_aceito": true,
-        "obrigacoes": null,
-        "orcamento_s": [
-          4,
-          20
-        ],
-        "origem_instante": "painel",
-        "preset": "A",
-        "proximo_compromisso": {
-          "fim": "2026-11-10T18:00:00Z",
-          "hard_time": true,
-          "hora": 0,
-          "inicio": "2026-11-10T17:59:30Z",
-          "inicio_s": 3570,
-          "natureza": "obrigatorio",
-          "rotulo": "Passagem de hora",
-          "tipo": "passagem",
-          "tipo_efetivo": "encerramento"
-        },
-        "puladas": [],
-        "segundos_ate_hard_time": 208.98
-      },
-      "revisada": false,
-      "sinteses_tts": null,
-      "texto": "",
-      "tipo": "musica",
-      "tom": null,
-      "validacao_fala": null,
-      "video_id": "sim-pse-12"
+      "video_id": "sim-pse-14"
     },
     {
       "audio_status": "pendente",
       "bloco": "identificacao",
-      "bloco_n": 24,
+      "bloco_n": 23,
       "categoria": "abertura",
       "chamadas_llm": 1,
       "cortado": false,
       "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 6.21,
-      "duracao_medida_s": 6.21,
-      "duracao_prevista_backend_s": 6.21,
-      "duracao_prevista_s": 5.56,
+      "duracao_estimada_backend_s": 13.24,
+      "duracao_medida_s": 13.24,
+      "duracao_prevista_backend_s": 13.24,
+      "duracao_prevista_s": 11.85,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:59:27-03:00",
-      "fim_s": 3567.38,
+      "fim": "2026-11-10T14:58:16-03:00",
+      "fim_s": 3496.31,
       "formato": "popular_sertanejo",
-      "gerado_em_s": 3140.87,
-      "inicio": "2026-11-10T14:59:21-03:00",
-      "inicio_previsto_s": 3561.02,
-      "inicio_s": 3561.17,
+      "gerado_em_s": 3176.42,
+      "inicio": "2026-11-10T14:58:03-03:00",
+      "inicio_previsto_s": 3482.92,
+      "inicio_s": 3483.07,
       "musica_anunciada": [],
       "musica_tocada": null,
       "musicas_bloco": [],
       "musicas_citadas": [],
-      "n": 25,
+      "n": 24,
       "orcamento_ref_s": {
         "fonte": "formato",
         "max": 60.0,
         "min": 20.0
       },
       "orcamento_s": {
-        "alvo": 5.5,
+        "alvo": 15.0,
         "aplicado": true,
         "fonte": "relogio",
-        "max": 8.0,
-        "min": 3.0
+        "max": 15.0,
+        "min": 15.0
       },
-      "palavras": 15,
+      "palavras": 32,
       "participacao": {
         "regras": [],
         "so_pelo_legado": false
@@ -2196,7 +2127,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "reserva",
-        "espaco_s": 8.98,
+        "espaco_s": 87.08,
         "etapa": {
           "fim": "2026-11-10T17:59:30Z",
           "hard_time": false,
@@ -2209,12 +2140,12 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:59:21.020000Z",
+        "inicio_previsto": "2026-11-10T17:58:02.920000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
-          3,
-          8
+          15,
+          15
         ],
         "origem_instante": "painel",
         "preset": "A",
@@ -2230,13 +2161,110 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 8.98
+        "segundos_ate_hard_time": 87.08
       },
       "revisada": false,
       "sinteses_tts": 1,
-      "texto": "Na Rádio Ipê Dourado, Prosa e Viola. Bem perto de você. Tudo calmo por aqui.",
+      "texto": "Esta é a Rádio Ipê Dourado. Com Prosa e Viola. Tudo calmo por aqui. O som continua no ritmo da tarde. Fica à vontade. Música escolhida com cuidado. Bom te ter aqui.",
       "tipo": "fala",
       "tom": "energico",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "comentario",
+      "bloco_n": 24,
+      "categoria": "comentario",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "duracao_estimada_backend_s": 47.59,
+      "duracao_medida_s": 47.59,
+      "duracao_prevista_backend_s": 47.59,
+      "duracao_prevista_s": 42.59,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:59:04-03:00",
+      "fim_s": 3544.25,
+      "formato": "popular_sertanejo",
+      "gerado_em_s": 3206.77,
+      "inicio": "2026-11-10T14:58:16-03:00",
+      "inicio_previsto_s": 3496.31,
+      "inicio_s": 3496.66,
+      "musica_anunciada": [],
+      "musica_tocada": null,
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 25,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 44.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 60.0,
+        "min": 28.0
+      },
+      "palavras": 115,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.35,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "reserva",
+        "espaco_s": 73.69,
+        "etapa": {
+          "fim": "2026-11-10T17:59:30Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:56:00Z",
+          "inicio_s": 3360,
+          "natureza": "ajustavel",
+          "rotulo": "Música de fechamento",
+          "tipo": "musica",
+          "tipo_efetivo": "musica"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:58:16.310000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          28,
+          60
+        ],
+        "origem_instante": "painel",
+        "preset": "A",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T18:00:00Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:59:30Z",
+          "inicio_s": 3570,
+          "natureza": "obrigatorio",
+          "rotulo": "Passagem de hora",
+          "tipo": "passagem",
+          "tipo_efetivo": "encerramento"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 73.69
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "Vamos falar de uma coisa simples: guardar sacola dentro de sacola. Às vezes o assunto mais simples é o que mais aproxima as pessoas. Eu gosto de pensar que todo mundo tem um ritual pequeno. Às vezes um gesto simples resolve o dia de alguém. O que para um é costume, para outro é novidade. O tempo passa, mas certos costumes ficam. Pensa na cozinha da sua casa e você vai entender o que eu digo. E ritual pequeno também é coisa séria. Nem tudo precisa de explicação, algumas coisas só são assim. A memória guarda essas pequenas cenas com cuidado. Cada lugar tem seu jeito de fazer a mesma coisa. Coisa boa de pensar.",
+      "tipo": "fala",
+      "tom": "calmo",
       "validacao_fala": null,
       "video_id": null
     },
@@ -2248,18 +2276,18 @@
       "chamadas_llm": 1,
       "cortado": false,
       "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 25.24,
-      "duracao_medida_s": 25.24,
-      "duracao_prevista_backend_s": 28.14,
-      "duracao_prevista_s": 22.59,
+      "duracao_estimada_backend_s": 42.62,
+      "duracao_medida_s": 42.62,
+      "duracao_prevista_backend_s": 45.52,
+      "duracao_prevista_s": 38.15,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:59:52-03:00",
-      "fim_s": 3592.97,
+      "fim": "2026-11-10T14:59:47-03:00",
+      "fim_s": 3587.22,
       "formato": "popular_sertanejo",
-      "gerado_em_s": 3361.02,
-      "inicio": "2026-11-10T14:59:27-03:00",
-      "inicio_previsto_s": 3567.38,
-      "inicio_s": 3567.73,
+      "gerado_em_s": 3482.92,
+      "inicio": "2026-11-10T14:59:04-03:00",
+      "inicio_previsto_s": 3544.25,
+      "inicio_s": 3544.6,
       "musica_anunciada": [],
       "musica_tocada": null,
       "musicas_bloco": [],
@@ -2271,13 +2299,13 @@
         "min": 20.0
       },
       "orcamento_s": {
-        "alvo": 24.0,
+        "alvo": 40.0,
         "aplicado": true,
         "fonte": "relogio",
-        "max": 29.0,
-        "min": 19.0
+        "max": 45.0,
+        "min": 35.0
       },
-      "palavras": 61,
+      "palavras": 103,
       "participacao": {
         "regras": [],
         "so_pelo_legado": false
@@ -2293,7 +2321,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "encerramento",
-        "espaco_s": 32.62,
+        "espaco_s": 55.75,
         "etapa": {
           "fim": "2026-11-10T18:00:00Z",
           "hard_time": true,
@@ -2306,12 +2334,12 @@
           "tipo_efetivo": "encerramento"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:59:27.380000Z",
+        "inicio_previsto": "2026-11-10T17:59:04.250000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
-          19,
-          29
+          35,
+          45
         ],
         "origem_instante": "painel",
         "preset": "A",
@@ -2321,7 +2349,7 @@
       },
       "revisada": false,
       "sinteses_tts": 1,
-      "texto": "Prosa e Viola termina agora, e eu agradeço quem ficou até aqui. Obrigado por deixar a Rádio Ipê Dourado ligada. Que a próxima hora do seu dia seja leve. Que o resto do dia seja tranquilo. Quem estava em casa, bom descanso. A Rádio Ipê Dourado segue no ar. Foi uma alegria fazer esta trilha com você. Obrigado e até logo.",
+      "texto": "Está chegando ao fim Prosa e Viola de hoje. Obrigado por deixar a Rádio Ipê Dourado ligada. Obrigado a quem mandou recado e a quem só ouviu. Que o resto do dia seja tranquilo. Foi uma alegria fazer esta trilha com você. Quem estava no trabalho, bom fim de expediente. Cuide de você e de quem está por perto. Cada pessoa que deixou o rádio ligado fez parte disto. Que a próxima hora do seu dia seja leve. Quem estava em casa, bom descanso. Leva uma música boa na cabeça. A Rádio Ipê Dourado segue no ar. Foi um prazer, até a próxima.",
       "tipo": "fala",
       "tom": "energico",
       "validacao_fala": null,
@@ -2337,16 +2365,16 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 28.14,
+      "duracao_prevista_backend_s": 45.52,
       "duracao_prevista_s": 2.59,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:59:55-03:00",
-      "fim_s": 3595.56,
+      "fim": "2026-11-10T14:59:49-03:00",
+      "fim_s": 3589.81,
       "formato": "popular_sertanejo",
-      "gerado_em_s": 3361.02,
-      "inicio": "2026-11-10T14:59:52-03:00",
-      "inicio_previsto_s": 3567.38,
-      "inicio_s": 3592.97,
+      "gerado_em_s": 3482.92,
+      "inicio": "2026-11-10T14:59:47-03:00",
+      "inicio_previsto_s": 3544.25,
+      "inicio_s": 3587.22,
       "musica_anunciada": [],
       "musica_tocada": null,
       "musicas_bloco": [],
@@ -2366,7 +2394,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "encerramento",
-        "espaco_s": 32.62,
+        "espaco_s": 55.75,
         "etapa": {
           "fim": "2026-11-10T18:00:00Z",
           "hard_time": true,
@@ -2379,12 +2407,12 @@
           "tipo_efetivo": "encerramento"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:59:27.380000Z",
+        "inicio_previsto": "2026-11-10T17:59:04.250000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
-          19,
-          29
+          35,
+          45
         ],
         "origem_instante": "painel",
         "preset": "A",
@@ -2433,31 +2461,31 @@
   "pedidos": [
     {
       "atendido": true,
-      "atendido_em_s": 1022.38,
+      "atendido_em_s": 960.38,
       "bloco_n": 6,
       "chega_em_s": 300.0,
       "estado_final": "executado",
       "estado_selecao": "selecionado",
-      "gerado_em_s": 522.43,
+      "gerado_em_s": 497.43,
       "id": 1,
       "musica_query": "Café de Coador",
       "nome": "Lurdinha Campos",
       "tipo": "musica",
-      "tocou_em_s": 804.97
+      "tocou_em_s": 742.97
     },
     {
       "atendido": true,
-      "atendido_em_s": 1510.02,
+      "atendido_em_s": 1511.82,
       "bloco_n": 11,
       "chega_em_s": 700.0,
       "estado_final": "executado",
       "estado_selecao": "selecionado",
-      "gerado_em_s": 1437.38,
+      "gerado_em_s": 1433.38,
       "id": 2,
       "musica_query": null,
       "nome": "Seu Ditinho",
       "tipo": "abraco",
-      "tocou_em_s": 1470.71
+      "tocou_em_s": 1471.68
     },
     {
       "atendido": false,
@@ -2466,12 +2494,12 @@
       "chega_em_s": 1300.0,
       "estado_final": "nao_atendido",
       "estado_selecao": "nao_atendido",
-      "gerado_em_s": 1440.01,
+      "gerado_em_s": 1440.98,
       "id": 3,
       "musica_query": "Moda da Ponte Caída",
       "nome": "Rosa Bezerra",
       "tipo": "musica",
-      "tocou_em_s": 1510.17
+      "tocou_em_s": 1511.97
     },
     {
       "atendido": false,
@@ -2489,7 +2517,23 @@
     }
   ],
   "programa": "popular_sertanejo",
-  "promessas": [],
+  "promessas": [
+    {
+      "bloco_registro": 9,
+      "bloco_resolucao": 11,
+      "classe": "curto",
+      "contingencia": null,
+      "contingencia_no_ar": false,
+      "estado": "cumprida",
+      "evento_alvo": "etapa:0:1620",
+      "id": 1,
+      "motivo": "cumprida no bloco",
+      "registro_no_ar": true,
+      "resolucao_no_ar": true,
+      "tipo": "participacao",
+      "trecho": "Daqui a pouco tem mais recado de ouvinte por aqui."
+    }
+  ],
   "relogio": {
     "eventos": [
       {

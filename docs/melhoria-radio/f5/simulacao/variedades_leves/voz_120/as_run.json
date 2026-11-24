@@ -23,7 +23,7 @@
       "inicio_previsto_s": 0.0,
       "inicio_s": 0.0,
       "musica_anunciada": [],
-      "musica_tocada": "Pipoca na Praça - Os Vizinhos do Sexto",
+      "musica_tocada": "Bloco da Esquina - Gui Marmelada",
       "musicas_bloco": [],
       "musicas_citadas": [],
       "n": 1,
@@ -109,20 +109,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 262.0,
-      "duracao_prevista_s": 262,
+      "duracao_prevista_backend_s": 225.0,
+      "duracao_prevista_s": 225,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:05:01-03:00",
-      "fim_s": 301.15,
+      "fim": "2026-11-10T14:04:24-03:00",
+      "fim_s": 264.15,
       "formato": "variedades_leves",
       "gerado_em_s": -90,
       "inicio": "2026-11-10T14:00:39-03:00",
       "inicio_previsto_s": 28.89,
       "inicio_s": 39.15,
       "musica_anunciada": [],
-      "musica_tocada": "Pipoca na Praça - Os Vizinhos do Sexto",
+      "musica_tocada": "Bloco da Esquina - Gui Marmelada",
       "musicas_bloco": [
-        "Pipoca na Praça - Os Vizinhos do Sexto"
+        "Bloco da Esquina - Gui Marmelada"
       ],
       "musicas_citadas": [],
       "n": 2,
@@ -182,7 +182,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-vle-04"
+      "video_id": "sim-vle-06"
     },
     {
       "audio_status": null,
@@ -194,20 +194,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 271.0,
-      "duracao_prevista_s": 271,
+      "duracao_prevista_backend_s": 262.0,
+      "duracao_prevista_s": 262,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:09:32-03:00",
-      "fim_s": 572.15,
+      "fim": "2026-11-10T14:08:46-03:00",
+      "fim_s": 526.15,
       "formato": "variedades_leves",
       "gerado_em_s": 0.0,
-      "inicio": "2026-11-10T14:05:01-03:00",
-      "inicio_previsto_s": 291.04,
-      "inicio_s": 301.15,
+      "inicio": "2026-11-10T14:04:24-03:00",
+      "inicio_previsto_s": 254.04,
+      "inicio_s": 264.15,
       "musica_anunciada": [],
-      "musica_tocada": "Feira de Sábado - Trio Pé na Rua",
+      "musica_tocada": "Pipoca na Praça - Os Vizinhos do Sexto",
       "musicas_bloco": [
-        "Feira de Sábado - Trio Pé na Rua"
+        "Pipoca na Praça - Os Vizinhos do Sexto"
       ],
       "musicas_citadas": [],
       "n": 3,
@@ -225,7 +225,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 3188.96,
+        "espaco_s": 3225.96,
         "etapa": {
           "fim": "2026-11-10T17:10:00Z",
           "hard_time": false,
@@ -238,7 +238,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:04:51.040000Z",
+        "inicio_previsto": "2026-11-10T17:04:14.040000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -259,7 +259,7 @@
           "tipo_efetivo": "resumo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 3188.96
+        "segundos_ate_hard_time": 3225.96
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -267,7 +267,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-vle-03"
+      "video_id": "sim-vle-04"
     },
     {
       "audio_status": "pendente",
@@ -282,15 +282,15 @@
       "duracao_prevista_backend_s": 146.67,
       "duracao_prevista_s": 146.67,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:12:50-03:00",
-      "fim_s": 770.3,
+      "fim": "2026-11-10T14:12:04-03:00",
+      "fim_s": 724.3,
       "formato": "variedades_leves",
       "gerado_em_s": 39.0,
-      "inicio": "2026-11-10T14:09:32-03:00",
-      "inicio_previsto_s": 562.04,
-      "inicio_s": 572.3,
+      "inicio": "2026-11-10T14:08:46-03:00",
+      "inicio_previsto_s": 516.04,
+      "inicio_s": 526.3,
       "musica_anunciada": [],
-      "musica_tocada": "Patins Amarelos - Tati Pirilampo",
+      "musica_tocada": "Bairro em Festa - Lola Carambola",
       "musicas_bloco": [],
       "musicas_citadas": [],
       "n": 4,
@@ -322,7 +322,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "fala",
-        "espaco_s": 2917.96,
+        "espaco_s": 2963.96,
         "etapa": {
           "fim": "2026-11-10T17:16:00Z",
           "hard_time": false,
@@ -335,7 +335,7 @@
           "tipo_efetivo": "conversa"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:09:22.040000Z",
+        "inicio_previsto": "2026-11-10T17:08:36.040000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -356,7 +356,7 @@
           "tipo_efetivo": "resumo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 2917.96
+        "segundos_ate_hard_time": 2963.96
       },
       "revisada": false,
       "sinteses_tts": 1,
@@ -379,15 +379,15 @@
       "duracao_prevista_backend_s": 118.52,
       "duracao_prevista_s": 118.52,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:15:30-03:00",
-      "fim_s": 930.65,
+      "fim": "2026-11-10T14:14:44-03:00",
+      "fim_s": 884.65,
       "formato": "variedades_leves",
-      "gerado_em_s": 301.15,
-      "inicio": "2026-11-10T14:12:50-03:00",
-      "inicio_previsto_s": 718.97,
-      "inicio_s": 770.65,
+      "gerado_em_s": 264.15,
+      "inicio": "2026-11-10T14:12:04-03:00",
+      "inicio_previsto_s": 672.97,
+      "inicio_s": 724.65,
       "musica_anunciada": [],
-      "musica_tocada": "Patins Amarelos - Tati Pirilampo",
+      "musica_tocada": "Bairro em Festa - Lola Carambola",
       "musicas_bloco": [],
       "musicas_citadas": [],
       "n": 5,
@@ -419,7 +419,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "fala",
-        "espaco_s": 2761.03,
+        "espaco_s": 2807.03,
         "etapa": {
           "fim": "2026-11-10T17:16:00Z",
           "hard_time": false,
@@ -432,7 +432,7 @@
           "tipo_efetivo": "conversa"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:11:58.970000Z",
+        "inicio_previsto": "2026-11-10T17:11:12.970000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -453,7 +453,7 @@
           "tipo_efetivo": "resumo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 2761.03
+        "segundos_ate_hard_time": 2807.03
       },
       "revisada": true,
       "sinteses_tts": 1,
@@ -471,20 +471,20 @@
       "chamadas_llm": 2,
       "cortado": false,
       "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 88.52,
-      "duracao_medida_s": 119.5,
-      "duracao_prevista_backend_s": 88.52,
-      "duracao_prevista_s": 88.52,
+      "duracao_estimada_backend_s": 111.11,
+      "duracao_medida_s": 150.0,
+      "duracao_prevista_backend_s": 111.11,
+      "duracao_prevista_s": 111.11,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:17:30-03:00",
-      "fim_s": 1050.5,
+      "fim": "2026-11-10T14:17:15-03:00",
+      "fim_s": 1035.0,
       "formato": "variedades_leves",
-      "gerado_em_s": 572.15,
-      "inicio": "2026-11-10T14:15:31-03:00",
-      "inicio_previsto_s": 837.84,
-      "inicio_s": 931.0,
+      "gerado_em_s": 526.15,
+      "inicio": "2026-11-10T14:14:45-03:00",
+      "inicio_previsto_s": 791.84,
+      "inicio_s": 885.0,
       "musica_anunciada": [],
-      "musica_tocada": "Patins Amarelos - Tati Pirilampo",
+      "musica_tocada": "Bairro em Festa - Lola Carambola",
       "musicas_bloco": [],
       "musicas_citadas": [],
       "n": 6,
@@ -494,13 +494,13 @@
         "min": 20.0
       },
       "orcamento_s": {
-        "alvo": 91.0,
+        "alvo": 114.0,
         "aplicado": true,
         "fonte": "relogio",
-        "max": 122.0,
+        "max": 168.0,
         "min": 60.0
       },
-      "palavras": 239,
+      "palavras": 300,
       "participacao": {
         "regras": [],
         "so_pelo_legado": false
@@ -516,7 +516,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "fala_reduzida",
-        "espaco_s": 2642.16,
+        "espaco_s": 2688.16,
         "etapa": {
           "fim": "2026-11-10T17:16:00Z",
           "hard_time": false,
@@ -529,12 +529,12 @@
           "tipo_efetivo": "conversa"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:13:57.840000Z",
+        "inicio_previsto": "2026-11-10T17:13:11.840000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
           60,
-          122
+          168
         ],
         "origem_instante": "painel",
         "preset": "C",
@@ -550,11 +550,11 @@
           "tipo_efetivo": "resumo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 2642.16
+        "segundos_ate_hard_time": 2688.16
       },
       "revisada": true,
       "sinteses_tts": 1,
-      "texto": "Tem assunto que não precisa de notícia para render, como o café passado na hora. Quando a gente presta atenção, a rotina fica mais interessante. Às vezes um gesto simples resolve o dia de alguém. Tem quem ria disso, e tem quem defenda com unhas e dentes. E quando alguém de fora repara, a gente estranha. Talvez seja isso que deixa a casa com cara de casa. Uma conversa boa começa assim, por um detalhe pequeno. Eu gosto de pensar que todo mundo tem um ritual pequeno. O que para um é costume, para outro é novidade. Vale a pena parar um minuto e pensar nisso. Tem hábito que a gente herda sem perceber. Nem tudo precisa de explicação, algumas coisas só são assim. Se você tem uma história assim, ela é sua e é especial. A gente aprende muita coisa observando quem está perto. E ritual pequeno também é coisa séria. Pensa na cozinha da sua casa e você vai entender o que eu digo. No fundo, é um jeito de cuidar de quem mora com a gente. A memória guarda essas pequenas cenas com cuidado. O tempo passa, mas certos costumes ficam. Cada lugar tem seu jeito de fazer a mesma coisa. Tem dia que a gente só precisa de uma voz conhecida por perto. A gente gosta de pensar no rádio como uma janela aberta. Uma tarde bem acompanhada passa diferente. A conversa fica por aqui.",
+      "texto": "Tem assunto que não precisa de notícia para render, como o café passado na hora. Quando a gente presta atenção, a rotina fica mais interessante. Às vezes um gesto simples resolve o dia de alguém. Tem quem ria disso, e tem quem defenda com unhas e dentes. E quando alguém de fora repara, a gente estranha. Talvez seja isso que deixa a casa com cara de casa. Uma conversa boa começa assim, por um detalhe pequeno. Eu gosto de pensar que todo mundo tem um ritual pequeno. O que para um é costume, para outro é novidade. Vale a pena parar um minuto e pensar nisso. Tem hábito que a gente herda sem perceber. Nem tudo precisa de explicação, algumas coisas só são assim. Se você tem uma história assim, ela é sua e é especial. A gente aprende muita coisa observando quem está perto. E ritual pequeno também é coisa séria. Pensa na cozinha da sua casa e você vai entender o que eu digo. No fundo, é um jeito de cuidar de quem mora com a gente. A memória guarda essas pequenas cenas com cuidado. O tempo passa, mas certos costumes ficam. Cada lugar tem seu jeito de fazer a mesma coisa. Quem liga o rádio nesta hora costuma querer um pouco de calma, e a gente entende. Respira fundo, ajeita a cadeira e vem com a gente. Tem dia que a gente só precisa de uma voz conhecida por perto. A gente gosta de pensar no rádio como uma janela aberta. Tem canção que parece ter sido feita para o meio da tarde. É bom saber que, de algum lugar, você está ouvindo agora. Nem tudo precisa ser corrido, e a música lembra a gente disso. Uma tarde bem acompanhada passa diferente. A conversa fica por aqui.",
       "tipo": "fala",
       "tom": "calmo",
       "validacao_fala": {
@@ -587,15 +587,15 @@
       "duracao_prevista_backend_s": 9.63,
       "duracao_prevista_s": 9.63,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:17:43-03:00",
-      "fim_s": 1063.85,
+      "fim": "2026-11-10T14:17:28-03:00",
+      "fim_s": 1048.35,
       "formato": "variedades_leves",
-      "gerado_em_s": 770.3,
-      "inicio": "2026-11-10T14:17:30-03:00",
-      "inicio_previsto_s": 926.71,
-      "inicio_s": 1050.85,
+      "gerado_em_s": 724.3,
+      "inicio": "2026-11-10T14:17:15-03:00",
+      "inicio_previsto_s": 903.3,
+      "inicio_s": 1035.35,
       "musica_anunciada": [],
-      "musica_tocada": "Patins Amarelos - Tati Pirilampo",
+      "musica_tocada": "Bairro em Festa - Lola Carambola",
       "musicas_bloco": [],
       "musicas_citadas": [],
       "n": 7,
@@ -627,7 +627,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "fechamento_curto",
-        "espaco_s": 2553.29,
+        "espaco_s": 2576.7,
         "etapa": {
           "fim": "2026-11-10T17:16:00Z",
           "hard_time": false,
@@ -640,7 +640,7 @@
           "tipo_efetivo": "conversa"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:15:26.710000Z",
+        "inicio_previsto": "2026-11-10T17:15:03.300000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -661,7 +661,7 @@
           "tipo_efetivo": "resumo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 2553.29
+        "segundos_ate_hard_time": 2576.7
       },
       "revisada": false,
       "sinteses_tts": 1,
@@ -672,9 +672,94 @@
       "video_id": null
     },
     {
-      "audio_status": "pendente",
+      "audio_status": null,
       "bloco": "musica",
       "bloco_n": 8,
+      "categoria": "musica",
+      "chamadas_llm": 0,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "duracao_estimada_backend_s": null,
+      "duracao_medida_s": null,
+      "duracao_prevista_backend_s": 274.0,
+      "duracao_prevista_s": 274,
+      "fala_ajuste": null,
+      "fim": "2026-11-10T14:22:02-03:00",
+      "fim_s": 1322.5,
+      "formato": "variedades_leves",
+      "gerado_em_s": 884.65,
+      "inicio": "2026-11-10T14:17:28-03:00",
+      "inicio_previsto_s": 964.61,
+      "inicio_s": 1048.5,
+      "musica_anunciada": [],
+      "musica_tocada": "Bairro em Festa - Lola Carambola",
+      "musicas_bloco": [
+        "Bairro em Festa - Lola Carambola"
+      ],
+      "musicas_citadas": [],
+      "n": 8,
+      "orcamento_ref_s": null,
+      "orcamento_s": null,
+      "palavras": 0,
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.15,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "musica",
+        "espaco_s": 2515.39,
+        "etapa": {
+          "fim": "2026-11-10T17:19:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:16:00Z",
+          "inicio_s": 960,
+          "natureza": "ajustavel",
+          "rotulo": "Intervalo",
+          "tipo": "intervalo",
+          "tipo_efetivo": "musica"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:16:04.610000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          4,
+          20
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 2515.39
+      },
+      "revisada": false,
+      "sinteses_tts": null,
+      "texto": "",
+      "tipo": "musica",
+      "tom": null,
+      "validacao_fala": null,
+      "video_id": "sim-vle-02"
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "musica",
+      "bloco_n": 9,
       "categoria": "musica",
       "chamadas_llm": 1,
       "cortado": false,
@@ -684,13 +769,13 @@
       "duracao_prevista_backend_s": 278.5,
       "duracao_prevista_s": 11.48,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:17:59-03:00",
-      "fim_s": 1079.5,
+      "fim": "2026-11-10T14:22:18-03:00",
+      "fim_s": 1338.0,
       "formato": "variedades_leves",
-      "gerado_em_s": 930.65,
-      "inicio": "2026-11-10T14:17:44-03:00",
-      "inicio_previsto_s": 988.02,
-      "inicio_s": 1064.0,
+      "gerado_em_s": 1035.0,
+      "inicio": "2026-11-10T14:22:02-03:00",
+      "inicio_previsto_s": 1280.24,
+      "inicio_s": 1322.5,
       "musica_anunciada": [
         "Patins Amarelos - Tati Pirilampo"
       ],
@@ -701,7 +786,7 @@
       "musicas_citadas": [
         "Patins Amarelos - Tati Pirilampo"
       ],
-      "n": 8,
+      "n": 9,
       "orcamento_ref_s": {
         "fonte": "formato",
         "max": 60.0,
@@ -720,91 +805,6 @@
         "so_pelo_legado": false
       },
       "passos_roteiro": 1,
-      "pausa_antes_s": 0.15,
-      "pedido_estado": "selecionado",
-      "pedido_estado_final": "executado",
-      "pedido_id": 2,
-      "pedido_tipo": "musica",
-      "promessas": null,
-      "promessas_abertas": [],
-      "promessas_fechadas": [],
-      "relogio": {
-        "acao": "musica",
-        "espaco_s": 2491.98,
-        "etapa": {
-          "fim": "2026-11-10T17:19:00Z",
-          "hard_time": false,
-          "hora": 0,
-          "inicio": "2026-11-10T17:16:00Z",
-          "inicio_s": 960,
-          "natureza": "ajustavel",
-          "rotulo": "Intervalo",
-          "tipo": "intervalo",
-          "tipo_efetivo": "musica"
-        },
-        "hora": 0,
-        "inicio_previsto": "2026-11-10T17:16:28.020000Z",
-        "inicio_previsto_aceito": true,
-        "obrigacoes": null,
-        "orcamento_s": [
-          4,
-          20
-        ],
-        "origem_instante": "painel",
-        "preset": "C",
-        "proximo_compromisso": {
-          "fim": "2026-11-10T17:59:15Z",
-          "hard_time": true,
-          "hora": 0,
-          "inicio": "2026-11-10T17:58:00Z",
-          "inicio_s": 3480,
-          "natureza": "obrigatorio",
-          "rotulo": "Fechamento e próxima edição",
-          "tipo": "fechamento",
-          "tipo_efetivo": "resumo"
-        },
-        "puladas": [],
-        "segundos_ate_hard_time": 2491.98
-      },
-      "revisada": false,
-      "sinteses_tts": 1,
-      "texto": "Quem pediu foi Paulo Brandão, e toca agora Patins Amarelos, de Tati Pirilampo. Que bom receber o seu pedido. Repara no arranjo, que tem capricho em cada detalhe. Aumenta o volume.",
-      "tipo": "fala",
-      "tom": "energico",
-      "validacao_fala": null,
-      "video_id": null
-    },
-    {
-      "audio_status": null,
-      "bloco": "musica",
-      "bloco_n": 8,
-      "categoria": "musica",
-      "chamadas_llm": 1,
-      "cortado": false,
-      "cortado_s": 0.0,
-      "duracao_estimada_backend_s": null,
-      "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 278.5,
-      "duracao_prevista_s": 263,
-      "fala_ajuste": null,
-      "fim": "2026-11-10T14:22:22-03:00",
-      "fim_s": 1342.5,
-      "formato": "variedades_leves",
-      "gerado_em_s": 930.65,
-      "inicio": "2026-11-10T14:17:59-03:00",
-      "inicio_previsto_s": 988.02,
-      "inicio_s": 1079.5,
-      "musica_anunciada": [],
-      "musica_tocada": "Patins Amarelos - Tati Pirilampo",
-      "musicas_bloco": [
-        "Patins Amarelos - Tati Pirilampo"
-      ],
-      "musicas_citadas": [],
-      "n": 9,
-      "orcamento_ref_s": null,
-      "orcamento_s": null,
-      "palavras": 0,
-      "passos_roteiro": 1,
       "pausa_antes_s": 0.0,
       "pedido_estado": "selecionado",
       "pedido_estado_final": "executado",
@@ -815,92 +815,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 2491.98,
-        "etapa": {
-          "fim": "2026-11-10T17:19:00Z",
-          "hard_time": false,
-          "hora": 0,
-          "inicio": "2026-11-10T17:16:00Z",
-          "inicio_s": 960,
-          "natureza": "ajustavel",
-          "rotulo": "Intervalo",
-          "tipo": "intervalo",
-          "tipo_efetivo": "musica"
-        },
-        "hora": 0,
-        "inicio_previsto": "2026-11-10T17:16:28.020000Z",
-        "inicio_previsto_aceito": true,
-        "obrigacoes": null,
-        "orcamento_s": [
-          4,
-          20
-        ],
-        "origem_instante": "painel",
-        "preset": "C",
-        "proximo_compromisso": {
-          "fim": "2026-11-10T17:59:15Z",
-          "hard_time": true,
-          "hora": 0,
-          "inicio": "2026-11-10T17:58:00Z",
-          "inicio_s": 3480,
-          "natureza": "obrigatorio",
-          "rotulo": "Fechamento e próxima edição",
-          "tipo": "fechamento",
-          "tipo_efetivo": "resumo"
-        },
-        "puladas": [],
-        "segundos_ate_hard_time": 2491.98
-      },
-      "revisada": false,
-      "sinteses_tts": null,
-      "texto": "",
-      "tipo": "musica",
-      "tom": null,
-      "validacao_fala": null,
-      "video_id": "sim-vle-05"
-    },
-    {
-      "audio_status": null,
-      "bloco": "musica",
-      "bloco_n": 9,
-      "categoria": "musica",
-      "chamadas_llm": 0,
-      "cortado": false,
-      "cortado_s": 0.0,
-      "duracao_estimada_backend_s": null,
-      "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 225.0,
-      "duracao_prevista_s": 225,
-      "fala_ajuste": null,
-      "fim": "2026-11-10T14:26:07-03:00",
-      "fim_s": 1567.5,
-      "formato": "variedades_leves",
-      "gerado_em_s": 1050.5,
-      "inicio": "2026-11-10T14:22:22-03:00",
-      "inicio_previsto_s": 1308.15,
-      "inicio_s": 1342.5,
-      "musica_anunciada": [],
-      "musica_tocada": "Bloco da Esquina - Gui Marmelada",
-      "musicas_bloco": [
-        "Bloco da Esquina - Gui Marmelada"
-      ],
-      "musicas_citadas": [],
-      "n": 10,
-      "orcamento_ref_s": null,
-      "orcamento_s": null,
-      "palavras": 0,
-      "passos_roteiro": 1,
-      "pausa_antes_s": 0.0,
-      "pedido_estado": null,
-      "pedido_estado_final": null,
-      "pedido_id": null,
-      "pedido_tipo": null,
-      "promessas": null,
-      "promessas_abertas": [],
-      "promessas_fechadas": [],
-      "relogio": {
-        "acao": "musica",
-        "espaco_s": 2171.85,
+        "espaco_s": 2199.76,
         "etapa": {
           "fim": "2026-11-10T17:25:00Z",
           "hard_time": false,
@@ -913,7 +828,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:21:48.150000Z",
+        "inicio_previsto": "2026-11-10T17:21:20.240000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -934,7 +849,92 @@
           "tipo_efetivo": "resumo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 2171.85
+        "segundos_ate_hard_time": 2199.76
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "Quem pediu foi Paulo Brandão, e toca agora Patins Amarelos, de Tati Pirilampo. Que bom receber o seu pedido. Repara no arranjo, que tem capricho em cada detalhe. Aumenta o volume.",
+      "tipo": "fala",
+      "tom": "energico",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": null,
+      "bloco": "musica",
+      "bloco_n": 9,
+      "categoria": "musica",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "duracao_estimada_backend_s": null,
+      "duracao_medida_s": null,
+      "duracao_prevista_backend_s": 278.5,
+      "duracao_prevista_s": 263,
+      "fala_ajuste": null,
+      "fim": "2026-11-10T14:26:41-03:00",
+      "fim_s": 1601.0,
+      "formato": "variedades_leves",
+      "gerado_em_s": 1035.0,
+      "inicio": "2026-11-10T14:22:18-03:00",
+      "inicio_previsto_s": 1280.24,
+      "inicio_s": 1338.0,
+      "musica_anunciada": [],
+      "musica_tocada": "Patins Amarelos - Tati Pirilampo",
+      "musicas_bloco": [
+        "Patins Amarelos - Tati Pirilampo"
+      ],
+      "musicas_citadas": [],
+      "n": 10,
+      "orcamento_ref_s": null,
+      "orcamento_s": null,
+      "palavras": 0,
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.0,
+      "pedido_estado": "selecionado",
+      "pedido_estado_final": "executado",
+      "pedido_id": 2,
+      "pedido_tipo": "musica",
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "musica",
+        "espaco_s": 2199.76,
+        "etapa": {
+          "fim": "2026-11-10T17:25:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:19:00Z",
+          "inicio_s": 1140,
+          "natureza": "ajustavel",
+          "rotulo": "Serviço e pauta do dia",
+          "tipo": "servico",
+          "tipo_efetivo": "musica"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:21:20.240000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          4,
+          20
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 2199.76
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -942,7 +942,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-vle-06"
+      "video_id": "sim-vle-05"
     },
     {
       "audio_status": null,
@@ -954,20 +954,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 241.0,
-      "duracao_prevista_s": 241,
+      "duracao_prevista_backend_s": 225.0,
+      "duracao_prevista_s": 225,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:30:08-03:00",
-      "fim_s": 1808.5,
+      "fim": "2026-11-10T14:30:26-03:00",
+      "fim_s": 1826.0,
       "formato": "variedades_leves",
-      "gerado_em_s": 1063.85,
-      "inicio": "2026-11-10T14:26:07-03:00",
-      "inicio_previsto_s": 1564.13,
-      "inicio_s": 1567.5,
+      "gerado_em_s": 1048.35,
+      "inicio": "2026-11-10T14:26:41-03:00",
+      "inicio_previsto_s": 1597.63,
+      "inicio_s": 1601.0,
       "musica_anunciada": [],
-      "musica_tocada": "Pilha Fraca - Coletivo Laranjeira",
+      "musica_tocada": "Sorvete de Coco - Duda Azulejo",
       "musicas_bloco": [
-        "Pilha Fraca - Coletivo Laranjeira"
+        "Sorvete de Coco - Duda Azulejo"
       ],
       "musicas_citadas": [],
       "n": 11,
@@ -985,7 +985,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 1915.87,
+        "espaco_s": 1882.37,
         "etapa": {
           "fim": "2026-11-10T17:34:00Z",
           "hard_time": false,
@@ -998,7 +998,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:26:04.130000Z",
+        "inicio_previsto": "2026-11-10T17:26:37.630000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1019,7 +1019,7 @@
           "tipo_efetivo": "resumo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 1915.87
+        "segundos_ate_hard_time": 1882.37
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1027,7 +1027,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-vle-07"
+      "video_id": "sim-vle-08"
     },
     {
       "audio_status": null,
@@ -1039,20 +1039,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 274.0,
-      "duracao_prevista_s": 274,
+      "duracao_prevista_backend_s": 257.0,
+      "duracao_prevista_s": 257,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:34:42-03:00",
-      "fim_s": 2082.5,
+      "fim": "2026-11-10T14:34:43-03:00",
+      "fim_s": 2083.0,
       "formato": "variedades_leves",
-      "gerado_em_s": 1342.5,
-      "inicio": "2026-11-10T14:30:08-03:00",
-      "inicio_previsto_s": 1808.5,
-      "inicio_s": 1808.5,
+      "gerado_em_s": 1322.5,
+      "inicio": "2026-11-10T14:30:26-03:00",
+      "inicio_previsto_s": 1826.0,
+      "inicio_s": 1826.0,
       "musica_anunciada": [],
-      "musica_tocada": "Bairro em Festa - Lola Carambola",
+      "musica_tocada": "Varanda Colorida - Mestre Zé Pandeiro",
       "musicas_bloco": [
-        "Bairro em Festa - Lola Carambola"
+        "Varanda Colorida - Mestre Zé Pandeiro"
       ],
       "musicas_citadas": [],
       "n": 12,
@@ -1070,7 +1070,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 1671.5,
+        "espaco_s": 1654.0,
         "etapa": {
           "fim": "2026-11-10T17:34:00Z",
           "hard_time": false,
@@ -1083,7 +1083,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:30:08.500000Z",
+        "inicio_previsto": "2026-11-10T17:30:26Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1104,7 +1104,7 @@
           "tipo_efetivo": "resumo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 1671.5
+        "segundos_ate_hard_time": 1654.0
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1112,7 +1112,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-vle-02"
+      "video_id": "sim-vle-09"
     },
     {
       "audio_status": "pendente",
@@ -1122,20 +1122,20 @@
       "chamadas_llm": 1,
       "cortado": false,
       "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 73.5,
-      "duracao_medida_s": 73.5,
-      "duracao_prevista_backend_s": 73.5,
-      "duracao_prevista_s": 54.44,
+      "duracao_estimada_backend_s": 72.0,
+      "duracao_medida_s": 72.0,
+      "duracao_prevista_backend_s": 72.0,
+      "duracao_prevista_s": 53.33,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:35:56-03:00",
-      "fim_s": 2156.15,
+      "fim": "2026-11-10T14:35:55-03:00",
+      "fim_s": 2155.15,
       "formato": "variedades_leves",
-      "gerado_em_s": 1567.5,
-      "inicio": "2026-11-10T14:34:42-03:00",
-      "inicio_previsto_s": 2082.5,
-      "inicio_s": 2082.65,
+      "gerado_em_s": 1601.0,
+      "inicio": "2026-11-10T14:34:43-03:00",
+      "inicio_previsto_s": 2083.0,
+      "inicio_s": 2083.15,
       "musica_anunciada": [],
-      "musica_tocada": "Sorvete de Coco - Duda Azulejo",
+      "musica_tocada": "Pilha Fraca - Coletivo Laranjeira",
       "musicas_bloco": [],
       "musicas_citadas": [],
       "n": 13,
@@ -1151,7 +1151,7 @@
         "max": 90.0,
         "min": 20.0
       },
-      "palavras": 147,
+      "palavras": 144,
       "participacao": {
         "regras": [],
         "so_pelo_legado": false
@@ -1167,7 +1167,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "fala",
-        "espaco_s": 1397.5,
+        "espaco_s": 1397.0,
         "etapa": {
           "fim": "2026-11-10T17:41:00Z",
           "hard_time": false,
@@ -1180,7 +1180,7 @@
           "tipo_efetivo": "participacao"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:34:42.500000Z",
+        "inicio_previsto": "2026-11-10T17:34:43Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1201,11 +1201,11 @@
           "tipo_efetivo": "resumo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 1397.5
+        "segundos_ate_hard_time": 1397.0
       },
       "revisada": false,
       "sinteses_tts": 1,
-      "texto": "Cida Morais, sua mensagem chegou, obrigado pela companhia. Abraço enviado, com carinho. Quem liga o rádio nesta hora costuma querer um pouco de calma, e a gente entende. Nem tudo precisa ser corrido, e a música lembra a gente disso. É bom saber que, de algum lugar, você está ouvindo agora. A conversa por aqui é curta, porque a estrela é a canção. Respira fundo, ajeita a cadeira e vem com a gente. Pode deixar o volume no ponto que for melhor para você. Cada música desta tarde foi escolhida para combinar com o seu ritmo. Tem dia que a gente só precisa de uma voz conhecida por perto. Se alguém do seu lado também gosta de música, chama para ouvir junto. Se estiver dirigindo, atenção na pista e deixa a música com a gente. A gente gosta de pensar no rádio como uma janela aberta. Obrigado.",
+      "texto": "Cida Morais, sua mensagem chegou, obrigado pela companhia. Abraço enviado, com carinho. Pode deixar o volume no ponto que for melhor para você. Cada música desta tarde foi escolhida para combinar com o seu ritmo. Quem liga o rádio nesta hora costuma querer um pouco de calma, e a gente entende. Se alguém do seu lado também gosta de música, chama para ouvir junto. Se estiver dirigindo, atenção na pista e deixa a música com a gente. O som está no ar para quem cozinha, para quem estuda e para quem descansa. Quem trabalha de casa sabe como uma trilha boa ajuda a organizar a cabeça. A conversa por aqui é curta, porque a estrela é a canção. Música boa faz o tempo andar no passo certo. Respira fundo, ajeita a cadeira e vem com a gente. Uma tarde bem acompanhada passa diferente. Obrigado.",
       "tipo": "fala",
       "tom": "energico",
       "validacao_fala": null,
@@ -1221,20 +1221,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 225.0,
-      "duracao_prevista_s": 225,
+      "duracao_prevista_backend_s": 241.0,
+      "duracao_prevista_s": 241,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:39:41-03:00",
-      "fim_s": 2381.3,
+      "fim": "2026-11-10T14:39:56-03:00",
+      "fim_s": 2396.3,
       "formato": "variedades_leves",
-      "gerado_em_s": 1808.5,
-      "inicio": "2026-11-10T14:35:56-03:00",
-      "inicio_previsto_s": 2156.15,
-      "inicio_s": 2156.3,
+      "gerado_em_s": 1826.0,
+      "inicio": "2026-11-10T14:35:55-03:00",
+      "inicio_previsto_s": 2155.15,
+      "inicio_s": 2155.3,
       "musica_anunciada": [],
-      "musica_tocada": "Sorvete de Coco - Duda Azulejo",
+      "musica_tocada": "Pilha Fraca - Coletivo Laranjeira",
       "musicas_bloco": [
-        "Sorvete de Coco - Duda Azulejo"
+        "Pilha Fraca - Coletivo Laranjeira"
       ],
       "musicas_citadas": [],
       "n": 14,
@@ -1252,7 +1252,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 1323.85,
+        "espaco_s": 1324.85,
         "etapa": {
           "fim": "2026-11-10T17:44:00Z",
           "hard_time": false,
@@ -1265,7 +1265,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:35:56.150000Z",
+        "inicio_previsto": "2026-11-10T17:35:55.150000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1286,7 +1286,7 @@
           "tipo_efetivo": "resumo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 1323.85
+        "segundos_ate_hard_time": 1324.85
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1294,7 +1294,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-vle-08"
+      "video_id": "sim-vle-07"
     },
     {
       "audio_status": null,
@@ -1306,20 +1306,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 226.0,
-      "duracao_prevista_s": 226,
+      "duracao_prevista_backend_s": 271.0,
+      "duracao_prevista_s": 271,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:43:27-03:00",
-      "fim_s": 2607.3,
+      "fim": "2026-11-10T14:44:27-03:00",
+      "fim_s": 2667.3,
       "formato": "variedades_leves",
-      "gerado_em_s": 2082.5,
-      "inicio": "2026-11-10T14:39:41-03:00",
-      "inicio_previsto_s": 2381.3,
-      "inicio_s": 2381.3,
+      "gerado_em_s": 2083.0,
+      "inicio": "2026-11-10T14:39:56-03:00",
+      "inicio_previsto_s": 2396.3,
+      "inicio_s": 2396.3,
       "musica_anunciada": [],
-      "musica_tocada": "Calçada Florida - Bia Cata-Vento",
+      "musica_tocada": "Feira de Sábado - Trio Pé na Rua",
       "musicas_bloco": [
-        "Calçada Florida - Bia Cata-Vento"
+        "Feira de Sábado - Trio Pé na Rua"
       ],
       "musicas_citadas": [],
       "n": 15,
@@ -1337,7 +1337,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 1098.7,
+        "espaco_s": 1083.7,
         "etapa": {
           "fim": "2026-11-10T17:44:00Z",
           "hard_time": false,
@@ -1350,7 +1350,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:39:41.300000Z",
+        "inicio_previsto": "2026-11-10T17:39:56.300000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1371,7 +1371,7 @@
           "tipo_efetivo": "resumo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 1098.7
+        "segundos_ate_hard_time": 1083.7
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1379,7 +1379,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-vle-10"
+      "video_id": "sim-vle-03"
     },
     {
       "audio_status": "pendente",
@@ -1389,20 +1389,20 @@
       "chamadas_llm": 1,
       "cortado": false,
       "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 161.0,
-      "duracao_medida_s": 161.0,
-      "duracao_prevista_backend_s": 161.0,
-      "duracao_prevista_s": 119.26,
+      "duracao_estimada_backend_s": 161.5,
+      "duracao_medida_s": 161.5,
+      "duracao_prevista_backend_s": 161.5,
+      "duracao_prevista_s": 119.63,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:46:08-03:00",
-      "fim_s": 2768.45,
+      "fim": "2026-11-10T14:47:08-03:00",
+      "fim_s": 2828.95,
       "formato": "variedades_leves",
-      "gerado_em_s": 2156.15,
-      "inicio": "2026-11-10T14:43:27-03:00",
-      "inicio_previsto_s": 2607.3,
-      "inicio_s": 2607.45,
+      "gerado_em_s": 2155.15,
+      "inicio": "2026-11-10T14:44:27-03:00",
+      "inicio_previsto_s": 2667.3,
+      "inicio_s": 2667.45,
       "musica_anunciada": [],
-      "musica_tocada": "Bom Dia Vizinhança - Banda Ventilador",
+      "musica_tocada": "Calçada Florida - Bia Cata-Vento",
       "musicas_bloco": [],
       "musicas_citadas": [],
       "n": 16,
@@ -1418,7 +1418,7 @@
         "max": 180.0,
         "min": 60.0
       },
-      "palavras": 322,
+      "palavras": 323,
       "participacao": {
         "regras": [],
         "so_pelo_legado": false
@@ -1434,7 +1434,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "fala",
-        "espaco_s": 872.7,
+        "espaco_s": 812.7,
         "etapa": {
           "fim": "2026-11-10T17:50:00Z",
           "hard_time": false,
@@ -1447,7 +1447,7 @@
           "tipo_efetivo": "quadro"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:43:27.300000Z",
+        "inicio_previsto": "2026-11-10T17:44:27.300000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1468,11 +1468,11 @@
           "tipo_efetivo": "resumo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 872.7
+        "segundos_ate_hard_time": 812.7
       },
       "revisada": false,
       "sinteses_tts": 1,
-      "texto": "É tempo de Cantinho da Casa, com uma ideia que cabe em qualquer casa. A dica é para quem quer ganhar tempo sem gastar dinheiro. Na dúvida, começa pela gaveta que mais irrita você. Um cesto perto da porta segura chave, guarda-chuva e sacola. Depois, escolhe um lugar fixo para cada coisa, mesmo que seja simples. Uma lista na porta da geladeira ajuda a lembrar o que está acabando. Quem mora com mais gente pode dividir as tarefas por cômodo. Tem gente que relaxa arrumando, e tem gente que prefere terminar logo. Vale guardar o que é pesado embaixo e o que é leve em cima. Etiqueta escrita à mão funciona tão bem quanto qualquer outra. O segredo é fazer um pouco por vez, sem tentar arrumar tudo num dia só. Pote de vidro limpo é ótimo para guardar grãos e miudezas. Uma caixa de papelão bem aproveitada já resolve muita bagunça. Não precisa ficar perfeito, precisa funcionar para você. Primeiro, separa o que você usa todo dia do que usa de vez em quando. Pequenas mudanças, repetidas todo dia, fazem diferença grande. Arrumar junto com as crianças pode virar brincadeira. Quem testar pode contar pelo WhatsApp da rádio como foi. O importante é a casa ajudar a sua rotina, e não o contrário. Sempre que der, devolve cada coisa ao lugar logo depois de usar. Se a casa é pequena, cada cantinho conta. Um pano úmido e cinco minutos de atenção já mudam a cara da pia. Antes de comprar um organizador, olha o que já existe em casa. Gaveta organizada é aquela em que a gente acha as coisas sem procurar. Guardar as sacolas dobradas em triângulo economiza um espaço danado. Roupa que não serve mais pode ganhar uma nova casa por meio de doação. Tem canção que parece ter sido feita para o meio da tarde. Uma tarde bem acompanhada passa diferente. Fica a ideia para a sua casa.",
+      "texto": "É tempo de Cantinho da Casa, com uma ideia que cabe em qualquer casa. A dica é para quem quer ganhar tempo sem gastar dinheiro. Na dúvida, começa pela gaveta que mais irrita você. Um cesto perto da porta segura chave, guarda-chuva e sacola. Depois, escolhe um lugar fixo para cada coisa, mesmo que seja simples. Uma lista na porta da geladeira ajuda a lembrar o que está acabando. Quem mora com mais gente pode dividir as tarefas por cômodo. Tem gente que relaxa arrumando, e tem gente que prefere terminar logo. Vale guardar o que é pesado embaixo e o que é leve em cima. Etiqueta escrita à mão funciona tão bem quanto qualquer outra. O segredo é fazer um pouco por vez, sem tentar arrumar tudo num dia só. Pote de vidro limpo é ótimo para guardar grãos e miudezas. Uma caixa de papelão bem aproveitada já resolve muita bagunça. Não precisa ficar perfeito, precisa funcionar para você. Primeiro, separa o que você usa todo dia do que usa de vez em quando. Pequenas mudanças, repetidas todo dia, fazem diferença grande. Arrumar junto com as crianças pode virar brincadeira. Quem testar pode contar pelo WhatsApp da rádio como foi. O importante é a casa ajudar a sua rotina, e não o contrário. Sempre que der, devolve cada coisa ao lugar logo depois de usar. Se a casa é pequena, cada cantinho conta. Um pano úmido e cinco minutos de atenção já mudam a cara da pia. Antes de comprar um organizador, olha o que já existe em casa. Gaveta organizada é aquela em que a gente acha as coisas sem procurar. Guardar as sacolas dobradas em triângulo economiza um espaço danado. Roupa que não serve mais pode ganhar uma nova casa por meio de doação. Tem canção que parece ter sido feita para o meio da tarde. O tempo passa, mas certos costumes ficam. Fica a ideia para a sua casa.",
       "tipo": "fala",
       "tom": "calmo",
       "validacao_fala": null,
@@ -1486,20 +1486,20 @@
       "chamadas_llm": 2,
       "cortado": false,
       "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 162.0,
-      "duracao_medida_s": 162.0,
-      "duracao_prevista_backend_s": 162.0,
-      "duracao_prevista_s": 120.0,
+      "duracao_estimada_backend_s": 155.5,
+      "duracao_medida_s": 155.5,
+      "duracao_prevista_backend_s": 155.5,
+      "duracao_prevista_s": 115.19,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:48:50-03:00",
-      "fim_s": 2930.8,
+      "fim": "2026-11-10T14:49:44-03:00",
+      "fim_s": 2984.8,
       "formato": "variedades_leves",
-      "gerado_em_s": 2381.3,
-      "inicio": "2026-11-10T14:46:08-03:00",
-      "inicio_previsto_s": 2768.45,
-      "inicio_s": 2768.8,
+      "gerado_em_s": 2396.3,
+      "inicio": "2026-11-10T14:47:09-03:00",
+      "inicio_previsto_s": 2828.95,
+      "inicio_s": 2829.3,
       "musica_anunciada": [],
-      "musica_tocada": "Bom Dia Vizinhança - Banda Ventilador",
+      "musica_tocada": "Calçada Florida - Bia Cata-Vento",
       "musicas_bloco": [],
       "musicas_citadas": [],
       "n": 17,
@@ -1509,110 +1509,13 @@
         "min": 120.0
       },
       "orcamento_s": {
-        "alvo": 120.0,
+        "alvo": 115.5,
         "aplicado": true,
         "fonte": "relogio",
-        "max": 180.0,
+        "max": 171.0,
         "min": 60.0
       },
-      "palavras": 324,
-      "participacao": {
-        "regras": [],
-        "so_pelo_legado": false
-      },
-      "passos_roteiro": 1,
-      "pausa_antes_s": 0.35,
-      "pedido_estado": null,
-      "pedido_estado_final": null,
-      "pedido_id": null,
-      "pedido_tipo": null,
-      "promessas": null,
-      "promessas_abertas": [],
-      "promessas_fechadas": [],
-      "relogio": {
-        "acao": "fala",
-        "espaco_s": 711.55,
-        "etapa": {
-          "fim": "2026-11-10T17:50:00Z",
-          "hard_time": false,
-          "hora": 0,
-          "inicio": "2026-11-10T17:44:00Z",
-          "inicio_s": 2640,
-          "natureza": "ajustavel",
-          "rotulo": "Quadro recorrente",
-          "tipo": "quadro",
-          "tipo_efetivo": "quadro"
-        },
-        "hora": 0,
-        "inicio_previsto": "2026-11-10T17:46:08.450000Z",
-        "inicio_previsto_aceito": true,
-        "obrigacoes": null,
-        "orcamento_s": [
-          60,
-          180
-        ],
-        "origem_instante": "painel",
-        "preset": "C",
-        "proximo_compromisso": {
-          "fim": "2026-11-10T17:59:15Z",
-          "hard_time": true,
-          "hora": 0,
-          "inicio": "2026-11-10T17:58:00Z",
-          "inicio_s": 3480,
-          "natureza": "obrigatorio",
-          "rotulo": "Fechamento e próxima edição",
-          "tipo": "fechamento",
-          "tipo_efetivo": "resumo"
-        },
-        "puladas": [],
-        "segundos_ate_hard_time": 711.55
-      },
-      "revisada": true,
-      "sinteses_tts": 1,
-      "texto": "Começa o Cantinho da Casa, o espaço da tarde para uma ideia útil. É uma ideia testada no dia a dia, sem mágica. Tem gente que relaxa arrumando, e tem gente que prefere terminar logo. Uma lista na porta da geladeira ajuda a lembrar o que está acabando. Antes de comprar um organizador, olha o que já existe em casa. Depois, escolhe um lugar fixo para cada coisa, mesmo que seja simples. Pote de vidro limpo é ótimo para guardar grãos e miudezas. Arrumar junto com as crianças pode virar brincadeira. O segredo é fazer um pouco por vez, sem tentar arrumar tudo num dia só. Roupa que não serve mais pode ganhar uma nova casa por meio de doação. Um cesto perto da porta segura chave, guarda-chuva e sacola. Guardar as sacolas dobradas em triângulo economiza um espaço danado. Uma caixa de papelão bem aproveitada já resolve muita bagunça. Sempre que der, devolve cada coisa ao lugar logo depois de usar. Etiqueta escrita à mão funciona tão bem quanto qualquer outra. Primeiro, separa o que você usa todo dia do que usa de vez em quando. Na dúvida, começa pela gaveta que mais irrita você. Um pano úmido e cinco minutos de atenção já mudam a cara da pia. Quem testar pode contar pelo WhatsApp da rádio como foi. Não precisa ficar perfeito, precisa funcionar para você. Se a casa é pequena, cada cantinho conta. Gaveta organizada é aquela em que a gente acha as coisas sem procurar. Quem mora com mais gente pode dividir as tarefas por cômodo. Vale guardar o que é pesado embaixo e o que é leve em cima. O importante é a casa ajudar a sua rotina, e não o contrário. Pequenas mudanças, repetidas todo dia, fazem diferença grande. É bom saber que, de algum lugar, você está ouvindo agora. A gente gosta de pensar no rádio como uma janela aberta. Fica a dica do Cantinho da Casa.",
-      "tipo": "fala",
-      "tom": "calmo",
-      "validacao_fala": null,
-      "video_id": null
-    },
-    {
-      "audio_status": "pendente",
-      "bloco": "comentario_quadro",
-      "bloco_n": 17,
-      "categoria": "comentario",
-      "chamadas_llm": 1,
-      "cortado": false,
-      "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 68.5,
-      "duracao_medida_s": 68.5,
-      "duracao_prevista_backend_s": 68.5,
-      "duracao_prevista_s": 50.74,
-      "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:49:59-03:00",
-      "fim_s": 2999.65,
-      "formato": "variedades_leves",
-      "gerado_em_s": 2607.3,
-      "inicio": "2026-11-10T14:48:51-03:00",
-      "inicio_previsto_s": 2930.8,
-      "inicio_s": 2931.15,
-      "musica_anunciada": [],
-      "musica_tocada": "Bom Dia Vizinhança - Banda Ventilador",
-      "musicas_bloco": [],
-      "musicas_citadas": [],
-      "n": 18,
-      "orcamento_ref_s": {
-        "fonte": "formato",
-        "max": 480.0,
-        "min": 120.0
-      },
-      "orcamento_s": {
-        "alvo": 64.5,
-        "aplicado": true,
-        "fonte": "relogio",
-        "max": 69.0,
-        "min": 60.0
-      },
-      "palavras": 137,
+      "palavras": 311,
       "participacao": {
         "regras": [],
         "so_pelo_legado": false
@@ -1628,7 +1531,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "fala_reduzida",
-        "espaco_s": 549.2,
+        "espaco_s": 651.05,
         "etapa": {
           "fim": "2026-11-10T17:50:00Z",
           "hard_time": false,
@@ -1641,12 +1544,12 @@
           "tipo_efetivo": "quadro"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:48:50.800000Z",
+        "inicio_previsto": "2026-11-10T17:47:08.950000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
           60,
-          69
+          171
         ],
         "origem_instante": "painel",
         "preset": "C",
@@ -1662,11 +1565,11 @@
           "tipo_efetivo": "resumo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 549.2
+        "segundos_ate_hard_time": 651.05
       },
-      "revisada": false,
+      "revisada": true,
       "sinteses_tts": 1,
-      "texto": "No Cantinho da Casa, a conversa é sobre um jeito simples de facilitar a rotina. A dica é para quem quer ganhar tempo sem gastar dinheiro. Tem gente que relaxa arrumando, e tem gente que prefere terminar logo. Roupa que não serve mais pode ganhar uma nova casa por meio de doação. O importante é a casa ajudar a sua rotina, e não o contrário. Pequenas mudanças, repetidas todo dia, fazem diferença grande. Um cesto perto da porta segura chave, guarda-chuva e sacola. Uma caixa de papelão bem aproveitada já resolve muita bagunça. Depois, escolhe um lugar fixo para cada coisa, mesmo que seja simples. Vale guardar o que é pesado embaixo e o que é leve em cima. Sempre que der, devolve cada coisa ao lugar logo depois de usar. Esse foi o Cantinho da Casa.",
+      "texto": "Começa o Cantinho da Casa, o espaço da tarde para uma ideia útil. É uma ideia testada no dia a dia, sem mágica. Tem gente que relaxa arrumando, e tem gente que prefere terminar logo. Uma lista na porta da geladeira ajuda a lembrar o que está acabando. Antes de comprar um organizador, olha o que já existe em casa. Depois, escolhe um lugar fixo para cada coisa, mesmo que seja simples. Pote de vidro limpo é ótimo para guardar grãos e miudezas. Arrumar junto com as crianças pode virar brincadeira. O segredo é fazer um pouco por vez, sem tentar arrumar tudo num dia só. Roupa que não serve mais pode ganhar uma nova casa por meio de doação. Um cesto perto da porta segura chave, guarda-chuva e sacola. Guardar as sacolas dobradas em triângulo economiza um espaço danado. Uma caixa de papelão bem aproveitada já resolve muita bagunça. Sempre que der, devolve cada coisa ao lugar logo depois de usar. Etiqueta escrita à mão funciona tão bem quanto qualquer outra. Primeiro, separa o que você usa todo dia do que usa de vez em quando. Na dúvida, começa pela gaveta que mais irrita você. Um pano úmido e cinco minutos de atenção já mudam a cara da pia. Quem testar pode contar pelo WhatsApp da rádio como foi. Não precisa ficar perfeito, precisa funcionar para você. Se a casa é pequena, cada cantinho conta. Gaveta organizada é aquela em que a gente acha as coisas sem procurar. Quem mora com mais gente pode dividir as tarefas por cômodo. Vale guardar o que é pesado embaixo e o que é leve em cima. O importante é a casa ajudar a sua rotina, e não o contrário. Pequenas mudanças, repetidas todo dia, fazem diferença grande. Música boa faz o tempo andar no passo certo. Fica a dica do Cantinho da Casa.",
       "tipo": "fala",
       "tom": "calmo",
       "validacao_fala": null,
@@ -1675,28 +1578,28 @@
     {
       "audio_status": "pendente",
       "bloco": "comentario_quadro",
-      "bloco_n": 18,
+      "bloco_n": 17,
       "categoria": "comentario",
       "chamadas_llm": 1,
       "cortado": false,
       "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 13.5,
-      "duracao_medida_s": 13.5,
-      "duracao_prevista_backend_s": 13.5,
-      "duracao_prevista_s": 10.0,
+      "duracao_estimada_backend_s": 13.0,
+      "duracao_medida_s": 13.0,
+      "duracao_prevista_backend_s": 13.0,
+      "duracao_prevista_s": 9.63,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:50:13-03:00",
-      "fim_s": 3013.5,
+      "fim": "2026-11-10T14:49:58-03:00",
+      "fim_s": 2998.15,
       "formato": "variedades_leves",
-      "gerado_em_s": 2768.45,
-      "inicio": "2026-11-10T14:50:00-03:00",
-      "inicio_previsto_s": 2999.65,
-      "inicio_s": 3000.0,
+      "gerado_em_s": 2667.3,
+      "inicio": "2026-11-10T14:49:45-03:00",
+      "inicio_previsto_s": 2984.8,
+      "inicio_s": 2985.15,
       "musica_anunciada": [],
-      "musica_tocada": "Bom Dia Vizinhança - Banda Ventilador",
+      "musica_tocada": "Calçada Florida - Bia Cata-Vento",
       "musicas_bloco": [],
       "musicas_citadas": [],
-      "n": 19,
+      "n": 18,
       "orcamento_ref_s": {
         "fonte": "formato",
         "max": 480.0,
@@ -1709,7 +1612,7 @@
         "max": 15.0,
         "min": 6.0
       },
-      "palavras": 27,
+      "palavras": 26,
       "participacao": {
         "regras": [],
         "so_pelo_legado": false
@@ -1725,7 +1628,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "fechamento_curto",
-        "espaco_s": 480.35,
+        "espaco_s": 495.2,
         "etapa": {
           "fim": "2026-11-10T17:50:00Z",
           "hard_time": false,
@@ -1738,7 +1641,7 @@
           "tipo_efetivo": "quadro"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:49:59.650000Z",
+        "inicio_previsto": "2026-11-10T17:49:44.800000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1759,11 +1662,11 @@
           "tipo_efetivo": "resumo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 480.35
+        "segundos_ate_hard_time": 495.2
       },
       "revisada": false,
       "sinteses_tts": 1,
-      "texto": "Chegou o Cantinho da Casa, aquele momento de trocar uma dica sem complicação. É uma ideia testada no dia a dia, sem mágica. Casa organizada, cabeça tranquila.",
+      "texto": "No Cantinho da Casa, a conversa é sobre um jeito simples de facilitar a rotina. A dica é para quem quer ganhar tempo sem gastar dinheiro.",
       "tipo": "fala",
       "tom": "calmo",
       "validacao_fala": null,
@@ -1772,30 +1675,30 @@
     {
       "audio_status": null,
       "bloco": "musica",
-      "bloco_n": 19,
+      "bloco_n": 18,
       "categoria": "musica",
       "chamadas_llm": 0,
       "cortado": false,
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 217.0,
-      "duracao_prevista_s": 217,
+      "duracao_prevista_backend_s": 226.0,
+      "duracao_prevista_s": 226,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:53:50-03:00",
-      "fim_s": 3230.65,
+      "fim": "2026-11-10T14:53:44-03:00",
+      "fim_s": 3224.3,
       "formato": "variedades_leves",
-      "gerado_em_s": 2930.8,
-      "inicio": "2026-11-10T14:50:13-03:00",
-      "inicio_previsto_s": 3013.5,
-      "inicio_s": 3013.65,
+      "gerado_em_s": 2828.95,
+      "inicio": "2026-11-10T14:49:58-03:00",
+      "inicio_previsto_s": 2998.15,
+      "inicio_s": 2998.3,
       "musica_anunciada": [],
-      "musica_tocada": "Bom Dia Vizinhança - Banda Ventilador",
+      "musica_tocada": "Calçada Florida - Bia Cata-Vento",
       "musicas_bloco": [
-        "Bom Dia Vizinhança - Banda Ventilador"
+        "Calçada Florida - Bia Cata-Vento"
       ],
       "musicas_citadas": [],
-      "n": 20,
+      "n": 19,
       "orcamento_ref_s": null,
       "orcamento_s": null,
       "palavras": 0,
@@ -1810,7 +1713,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 466.5,
+        "espaco_s": 481.85,
         "etapa": {
           "fim": "2026-11-10T17:58:00Z",
           "hard_time": false,
@@ -1823,7 +1726,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:50:13.500000Z",
+        "inicio_previsto": "2026-11-10T17:49:58.150000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1844,7 +1747,7 @@
           "tipo_efetivo": "resumo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 466.5
+        "segundos_ate_hard_time": 481.85
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1852,35 +1755,35 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-vle-01"
+      "video_id": "sim-vle-10"
     },
     {
       "audio_status": null,
       "bloco": "musica",
-      "bloco_n": 20,
+      "bloco_n": 19,
       "categoria": "musica",
       "chamadas_llm": 0,
       "cortado": false,
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 239.0,
-      "duracao_prevista_s": 239,
+      "duracao_prevista_backend_s": 217.0,
+      "duracao_prevista_s": 217,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:57:49-03:00",
-      "fim_s": 3469.65,
+      "fim": "2026-11-10T14:57:21-03:00",
+      "fim_s": 3441.3,
       "formato": "variedades_leves",
-      "gerado_em_s": 2999.65,
-      "inicio": "2026-11-10T14:53:50-03:00",
-      "inicio_previsto_s": 3230.65,
-      "inicio_s": 3230.65,
+      "gerado_em_s": 2984.8,
+      "inicio": "2026-11-10T14:53:44-03:00",
+      "inicio_previsto_s": 3224.3,
+      "inicio_s": 3224.3,
       "musica_anunciada": [],
-      "musica_tocada": "Ciranda do Prédio - Banda Ventilador",
+      "musica_tocada": "Bom Dia Vizinhança - Banda Ventilador",
       "musicas_bloco": [
-        "Ciranda do Prédio - Banda Ventilador"
+        "Bom Dia Vizinhança - Banda Ventilador"
       ],
       "musicas_citadas": [],
-      "n": 21,
+      "n": 20,
       "orcamento_ref_s": null,
       "orcamento_s": null,
       "palavras": 0,
@@ -1895,7 +1798,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 249.35,
+        "espaco_s": 255.7,
         "etapa": {
           "fim": "2026-11-10T17:58:00Z",
           "hard_time": false,
@@ -1908,7 +1811,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:53:50.650000Z",
+        "inicio_previsto": "2026-11-10T17:53:44.300000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1929,7 +1832,7 @@
           "tipo_efetivo": "resumo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 249.35
+        "segundos_ate_hard_time": 255.7
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1937,46 +1840,46 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-vle-11"
+      "video_id": "sim-vle-01"
     },
     {
       "audio_status": "pendente",
       "bloco": "identificacao",
-      "bloco_n": 21,
+      "bloco_n": 20,
       "categoria": "abertura",
       "chamadas_llm": 1,
       "cortado": false,
       "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 8.0,
-      "duracao_medida_s": 8.0,
-      "duracao_prevista_backend_s": 8.0,
-      "duracao_prevista_s": 5.93,
+      "duracao_estimada_backend_s": 10.5,
+      "duracao_medida_s": 10.5,
+      "duracao_prevista_backend_s": 10.5,
+      "duracao_prevista_s": 7.78,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:57:57-03:00",
-      "fim_s": 3477.8,
+      "fim": "2026-11-10T14:57:31-03:00",
+      "fim_s": 3451.95,
       "formato": "variedades_leves",
-      "gerado_em_s": 3013.5,
-      "inicio": "2026-11-10T14:57:49-03:00",
-      "inicio_previsto_s": 3469.65,
-      "inicio_s": 3469.8,
+      "gerado_em_s": 2998.15,
+      "inicio": "2026-11-10T14:57:21-03:00",
+      "inicio_previsto_s": 3441.3,
+      "inicio_s": 3441.45,
       "musica_anunciada": [],
       "musica_tocada": null,
       "musicas_bloco": [],
       "musicas_citadas": [],
-      "n": 22,
+      "n": 21,
       "orcamento_ref_s": {
         "fonte": "formato",
         "max": 60.0,
         "min": 20.0
       },
       "orcamento_s": {
-        "alvo": 6.5,
+        "alvo": 9.0,
         "aplicado": true,
         "fonte": "relogio",
-        "max": 10.0,
+        "max": 15.0,
         "min": 3.0
       },
-      "palavras": 16,
+      "palavras": 21,
       "participacao": {
         "regras": [],
         "so_pelo_legado": false
@@ -1992,7 +1895,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "reserva",
-        "espaco_s": 10.35,
+        "espaco_s": 38.7,
         "etapa": {
           "fim": "2026-11-10T17:58:00Z",
           "hard_time": false,
@@ -2005,12 +1908,12 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:57:49.650000Z",
+        "inicio_previsto": "2026-11-10T17:57:21.300000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
           3,
-          10
+          15
         ],
         "origem_instante": "painel",
         "preset": "C",
@@ -2026,13 +1929,110 @@
           "tipo_efetivo": "resumo"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 10.35
+        "segundos_ate_hard_time": 38.7
       },
       "revisada": false,
       "sinteses_tts": 1,
-      "texto": "Aqui é a Rádio Vila Ventura. Companhia de verdade. Fica à vontade. Tudo calmo por aqui.",
+      "texto": "Aqui é a Rádio Vila Ventura. Música sem pressa. Música escolhida com cuidado. Tudo calmo por aqui. Fica à vontade. Aproveita.",
       "tipo": "fala",
       "tom": "energico",
+      "validacao_fala": null,
+      "video_id": null
+    },
+    {
+      "audio_status": "pendente",
+      "bloco": "comentario",
+      "bloco_n": 21,
+      "categoria": "comentario",
+      "chamadas_llm": 1,
+      "cortado": false,
+      "cortado_s": 0.0,
+      "duracao_estimada_backend_s": 23.0,
+      "duracao_medida_s": 23.0,
+      "duracao_prevista_backend_s": 23.0,
+      "duracao_prevista_s": 17.04,
+      "fala_ajuste": "nenhum",
+      "fim": "2026-11-10T14:57:55-03:00",
+      "fim_s": 3475.3,
+      "formato": "variedades_leves",
+      "gerado_em_s": 3224.3,
+      "inicio": "2026-11-10T14:57:32-03:00",
+      "inicio_previsto_s": 3451.95,
+      "inicio_s": 3452.3,
+      "musica_anunciada": [],
+      "musica_tocada": null,
+      "musicas_bloco": [],
+      "musicas_citadas": [],
+      "n": 22,
+      "orcamento_ref_s": {
+        "fonte": "formato",
+        "max": 60.0,
+        "min": 20.0
+      },
+      "orcamento_s": {
+        "alvo": 19.0,
+        "aplicado": true,
+        "fonte": "relogio",
+        "max": 28.0,
+        "min": 10.0
+      },
+      "palavras": 46,
+      "participacao": {
+        "regras": [],
+        "so_pelo_legado": false
+      },
+      "passos_roteiro": 1,
+      "pausa_antes_s": 0.35,
+      "pedido_estado": null,
+      "pedido_estado_final": null,
+      "pedido_id": null,
+      "pedido_tipo": null,
+      "promessas": null,
+      "promessas_abertas": [],
+      "promessas_fechadas": [],
+      "relogio": {
+        "acao": "reserva",
+        "espaco_s": 28.05,
+        "etapa": {
+          "fim": "2026-11-10T17:58:00Z",
+          "hard_time": false,
+          "hora": 0,
+          "inicio": "2026-11-10T17:50:00Z",
+          "inicio_s": 3000,
+          "natureza": "ajustavel",
+          "rotulo": "Música",
+          "tipo": "musica",
+          "tipo_efetivo": "musica"
+        },
+        "hora": 0,
+        "inicio_previsto": "2026-11-10T17:57:31.950000Z",
+        "inicio_previsto_aceito": true,
+        "obrigacoes": null,
+        "orcamento_s": [
+          10,
+          28
+        ],
+        "origem_instante": "painel",
+        "preset": "C",
+        "proximo_compromisso": {
+          "fim": "2026-11-10T17:59:15Z",
+          "hard_time": true,
+          "hora": 0,
+          "inicio": "2026-11-10T17:58:00Z",
+          "inicio_s": 3480,
+          "natureza": "obrigatorio",
+          "rotulo": "Fechamento e próxima edição",
+          "tipo": "fechamento",
+          "tipo_efetivo": "resumo"
+        },
+        "puladas": [],
+        "segundos_ate_hard_time": 28.05
+      },
+      "revisada": false,
+      "sinteses_tts": 1,
+      "texto": "Uma coisa boa da tarde é aquela pausa para o lanche. Tem quem ache graça e tem quem leve muito a sério. E ritual pequeno também é coisa séria. Tem quem ria disso, e tem quem defenda com unhas e dentes. E você, como faz aí?",
+      "tipo": "fala",
+      "tom": "calmo",
       "validacao_fala": null,
       "video_id": null
     },
@@ -2044,18 +2044,18 @@
       "chamadas_llm": 1,
       "cortado": false,
       "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 63.0,
-      "duracao_medida_s": 63.0,
-      "duracao_prevista_backend_s": 63.0,
-      "duracao_prevista_s": 46.67,
+      "duracao_estimada_backend_s": 62.0,
+      "duracao_medida_s": 62.0,
+      "duracao_prevista_backend_s": 62.0,
+      "duracao_prevista_s": 45.93,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:59:01-03:00",
-      "fim_s": 3541.15,
+      "fim": "2026-11-10T14:58:57-03:00",
+      "fim_s": 3537.65,
       "formato": "variedades_leves",
-      "gerado_em_s": 3230.65,
-      "inicio": "2026-11-10T14:57:58-03:00",
-      "inicio_previsto_s": 3477.8,
-      "inicio_s": 3478.15,
+      "gerado_em_s": 3441.3,
+      "inicio": "2026-11-10T14:57:55-03:00",
+      "inicio_previsto_s": 3475.3,
+      "inicio_s": 3475.65,
       "musica_anunciada": [],
       "musica_tocada": null,
       "musicas_bloco": [],
@@ -2073,7 +2073,7 @@
         "max": 75.0,
         "min": 20.0
       },
-      "palavras": 126,
+      "palavras": 124,
       "participacao": {
         "regras": [],
         "so_pelo_legado": false
@@ -2089,7 +2089,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "fala_reduzida",
-        "espaco_s": 77.2,
+        "espaco_s": 79.7,
         "etapa": {
           "fim": "2026-11-10T17:59:15Z",
           "hard_time": true,
@@ -2102,7 +2102,7 @@
           "tipo_efetivo": "resumo"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:57:57.800000Z",
+        "inicio_previsto": "2026-11-10T17:57:55.300000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -2123,11 +2123,11 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 77.2
+        "segundos_ate_hard_time": 79.7
       },
       "revisada": false,
       "sinteses_tts": 1,
-      "texto": "Já pensou em quantas músicas a gente sabe de cor sem nunca ter decorado? Parece bobagem, mas esses detalhes contam muito sobre a gente. A gente aprende muita coisa observando quem está perto. Às vezes um gesto simples resolve o dia de alguém. Vale a pena parar um minuto e pensar nisso. Nem tudo precisa de explicação, algumas coisas só são assim. E ritual pequeno também é coisa séria. E quando alguém de fora repara, a gente estranha. Cada lugar tem seu jeito de fazer a mesma coisa. Se você tem uma história assim, ela é sua e é especial. No fundo, é um jeito de cuidar de quem mora com a gente. O tempo passa, mas certos costumes ficam. É assim que a gente vive.",
+      "texto": "Uma pergunta para você pensar: qual cheiro lembra a casa da sua infância? É o tipo de coisa que passa de geração em geração. O que para um é costume, para outro é novidade. Nem tudo precisa de explicação, algumas coisas só são assim. Pensa na cozinha da sua casa e você vai entender o que eu digo. A memória guarda essas pequenas cenas com cuidado. Vale a pena parar um minuto e pensar nisso. Uma conversa boa começa assim, por um detalhe pequeno. Se você tem uma história assim, ela é sua e é especial. Talvez seja isso que deixa a casa com cara de casa. No fundo, é um jeito de cuidar de quem mora com a gente. Pensa nisso com calma.",
       "tipo": "fala",
       "tom": "calmo",
       "validacao_fala": null,
@@ -2146,13 +2146,13 @@
       "duracao_prevista_backend_s": 11.0,
       "duracao_prevista_s": 8.15,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:59:12-03:00",
-      "fim_s": 3552.5,
+      "fim": "2026-11-10T14:59:09-03:00",
+      "fim_s": 3549.0,
       "formato": "variedades_leves",
-      "gerado_em_s": 3469.65,
-      "inicio": "2026-11-10T14:59:01-03:00",
-      "inicio_previsto_s": 3541.15,
-      "inicio_s": 3541.5,
+      "gerado_em_s": 3451.95,
+      "inicio": "2026-11-10T14:58:58-03:00",
+      "inicio_previsto_s": 3537.65,
+      "inicio_s": 3538.0,
       "musica_anunciada": [],
       "musica_tocada": null,
       "musicas_bloco": [],
@@ -2164,10 +2164,10 @@
         "min": 20.0
       },
       "orcamento_s": {
-        "alvo": 8.0,
+        "alvo": 9.0,
         "aplicado": true,
         "fonte": "relogio",
-        "max": 13.0,
+        "max": 15.0,
         "min": 3.0
       },
       "palavras": 22,
@@ -2186,7 +2186,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "reserva",
-        "espaco_s": 13.85,
+        "espaco_s": 17.35,
         "etapa": {
           "fim": "2026-11-10T17:59:15Z",
           "hard_time": true,
@@ -2199,12 +2199,12 @@
           "tipo_efetivo": "resumo"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:59:01.150000Z",
+        "inicio_previsto": "2026-11-10T17:58:57.650000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
           3,
-          13
+          15
         ],
         "origem_instante": "painel",
         "preset": "C",
@@ -2220,11 +2220,11 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 13.85
+        "segundos_ate_hard_time": 17.35
       },
       "revisada": false,
       "sinteses_tts": 1,
-      "texto": "É Tarde em Casa, na Rádio Vila Ventura. Com Marta Girassol. O som continua no ritmo da tarde. Fica com a gente.",
+      "texto": "Aqui é a Rádio Vila Ventura. Com Marta Girassol. O som continua no ritmo da tarde. Música escolhida com cuidado. Boa tarde.",
       "tipo": "fala",
       "tom": "energico",
       "validacao_fala": null,
@@ -2238,18 +2238,18 @@
       "chamadas_llm": 1,
       "cortado": false,
       "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 43.5,
-      "duracao_medida_s": 43.5,
-      "duracao_prevista_backend_s": 43.5,
-      "duracao_prevista_s": 32.22,
+      "duracao_estimada_backend_s": 42.0,
+      "duracao_medida_s": 42.0,
+      "duracao_prevista_backend_s": 42.0,
+      "duracao_prevista_s": 31.11,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:59:56-03:00",
-      "fim_s": 3596.35,
+      "fim": "2026-11-10T14:59:51-03:00",
+      "fim_s": 3591.35,
       "formato": "variedades_leves",
-      "gerado_em_s": 3477.8,
-      "inicio": "2026-11-10T14:59:12-03:00",
-      "inicio_previsto_s": 3552.5,
-      "inicio_s": 3552.85,
+      "gerado_em_s": 3475.3,
+      "inicio": "2026-11-10T14:59:09-03:00",
+      "inicio_previsto_s": 3549.0,
+      "inicio_s": 3549.35,
       "musica_anunciada": [],
       "musica_tocada": null,
       "musicas_bloco": [],
@@ -2267,7 +2267,7 @@
         "max": 45.0,
         "min": 35.0
       },
-      "palavras": 87,
+      "palavras": 84,
       "participacao": {
         "regras": [],
         "so_pelo_legado": false
@@ -2283,7 +2283,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "encerramento",
-        "espaco_s": 47.5,
+        "espaco_s": 51.0,
         "etapa": {
           "fim": "2026-11-10T18:00:00Z",
           "hard_time": true,
@@ -2296,7 +2296,7 @@
           "tipo_efetivo": "encerramento"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:59:12.500000Z",
+        "inicio_previsto": "2026-11-10T17:59:09Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -2311,7 +2311,7 @@
       },
       "revisada": false,
       "sinteses_tts": 1,
-      "texto": "Tarde em Casa termina agora, e eu agradeço quem ficou até aqui. Foi uma tarde de música boa e conversa leve. Quem estava em casa, bom descanso. Que o resto do dia seja tranquilo. Cuide de você e de quem está por perto. Leva uma música boa na cabeça. A Rádio Vila Ventura segue no ar. Foi uma alegria fazer esta trilha com você. Quem estava no trabalho, bom fim de expediente. Obrigado a quem mandou recado e a quem só ouviu. Até amanhã, no mesmo horário.",
+      "texto": "A nossa hora juntos termina agora. A trilha da tarde foi feita com carinho para você. A Rádio Vila Ventura segue no ar. Que o resto do dia seja tranquilo. Quem estava em casa, bom descanso. Foi uma alegria fazer esta trilha com você. Que a próxima hora do seu dia seja leve. Leva uma música boa na cabeça. Obrigado a quem mandou recado e a quem só ouviu. Cada pessoa que deixou o rádio ligado fez parte disto. Até amanhã, no mesmo horário.",
       "tipo": "fala",
       "tom": "calmo",
       "validacao_fala": null,
@@ -2353,31 +2353,31 @@
   "pedidos": [
     {
       "atendido": true,
-      "atendido_em_s": 2156.15,
+      "atendido_em_s": 2155.15,
       "bloco_n": 12,
       "chega_em_s": 200.0,
       "estado_final": "executado",
       "estado_selecao": "selecionado",
-      "gerado_em_s": 1567.5,
+      "gerado_em_s": 1601.0,
       "id": 1,
       "musica_query": null,
       "nome": "Cida Morais",
       "tipo": "abraco",
-      "tocou_em_s": 2082.65
+      "tocou_em_s": 2083.15
     },
     {
       "atendido": true,
-      "atendido_em_s": 1342.5,
-      "bloco_n": 8,
+      "atendido_em_s": 1601.0,
+      "bloco_n": 9,
       "chega_em_s": 900.0,
       "estado_final": "executado",
       "estado_selecao": "selecionado",
-      "gerado_em_s": 930.65,
+      "gerado_em_s": 1035.0,
       "id": 2,
       "musica_query": "Patins Amarelos",
       "nome": "Paulo Brandão",
       "tipo": "musica",
-      "tocou_em_s": 1064.0
+      "tocou_em_s": 1322.5
     },
     {
       "atendido": false,
