@@ -103,7 +103,7 @@
   ]
  ],
  "redis": {
-  "fala_orcamento:1:c7120eb6d04f95abc7804a075b83561cc7429593": "{\"tipo\": \"chamada_ouvinte\", \"categoria\": \"chamada_ouvinte\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 2.22, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:c7120eb6d04f95abc7804a075b83561cc7429593": "{\"tipo\": \"chamada_ouvinte\", \"categoria\": \"chamada_ouvinte\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 2.28, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:chamada_ouvinte": [
    "Lúcia, recebemos o seu contato, obrigado."
   ],
@@ -114,8 +114,8 @@
  },
  "resposta": {
   "audio_status": "indisponivel",
-  "duracao_fala_estimada_s": 2.22,
-  "duracao_prevista_s": 2.22,
+  "duracao_fala_estimada_s": 2.28,
+  "duracao_prevista_s": 2.28,
   "fala": "Lúcia, recebemos o seu contato, obrigado.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,

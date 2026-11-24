@@ -78,7 +78,7 @@
     "A promessa do formato prevalece sobre o perfil do horário.",
     "Participação neste formato: Recados e pedidos reais pelo nome autorizado; sem recado, convite genérico, sem simular mensagem recebida.",
     "Temas que exigem revisão humana neste formato: luto em recado, saúde e medicamento, dívida, empréstimo e aposta, política, religião; sem conteúdo aprovado, não trate deles.",
-    "FORMATO POPULAR/SERTANEJO: a companhia e o reconhecimento do ouvinte ocupam o centro. Leia o recado ou o pedido real pelo nome autorizado e responda com afeto; sem recado real, faça um convite genérico para participar, sem inventar mensagem. Meta de locução: 20 a 60 segundos, no máximo 162 palavras. Condução próxima e afetiva: fale com um ouvinte de cada vez, em português coloquial, sem caricatura de sotaque, bordão repetido ou exagero. Recado, pedido, nome e cidade de ouvinte só os reais e autorizados; não simule participação. Ajuste a energia ao horário sem mudar a identidade do programa. Não prometa intervalo, retorno ou conteúdo futuro sem programação confirmada. Mantenha as regras factuais e de atendimento dos pedidos reais.",
+    "FORMATO POPULAR/SERTANEJO: a companhia e o reconhecimento do ouvinte ocupam o centro. Leia o recado ou o pedido real pelo nome autorizado e responda com afeto; sem recado real, faça um convite genérico para participar, sem inventar mensagem. Meta de locução: 20 a 60 segundos, no máximo 158 palavras. Condução próxima e afetiva: fale com um ouvinte de cada vez, em português coloquial, sem caricatura de sotaque, bordão repetido ou exagero. Recado, pedido, nome e cidade de ouvinte só os reais e autorizados; não simule participação. Ajuste a energia ao horário sem mudar a identidade do programa. Não prometa intervalo, retorno ou conteúdo futuro sem programação confirmada. Mantenha as regras factuais e de atendimento dos pedidos reais.",
     "Agenda confirmada adiante (só isto pode ser chamado como próximo): participação dos ouvintes mais adiante neste programa."
    ]
   }
@@ -110,7 +110,7 @@
   ]
  ],
  "redis": {
-  "fala_orcamento:1:955b4353be6f7fa1c067e7e6d31410e73f225ffd": "{\"tipo\": \"chamada_ouvinte\", \"categoria\": \"chamada_ouvinte\", \"min_s\": 20, \"alvo_s\": 40, \"max_s\": 60, \"fonte\": \"formato\", \"aplicar\": true, \"estimada_s\": 11.85, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:955b4353be6f7fa1c067e7e6d31410e73f225ffd": "{\"tipo\": \"chamada_ouvinte\", \"categoria\": \"chamada_ouvinte\", \"min_s\": 20, \"alvo_s\": 40, \"max_s\": 60, \"fonte\": \"formato\", \"aplicar\": true, \"estimada_s\": 12.15, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:chamada_ouvinte": [
    "Seu Valdir mandou um abraço pro pessoal da oficina, que está sem café. Fica o abraço registrado, Seu Valdir, e que o café chegue logo aí, porque trabalho sem café ninguém merece."
   ],
@@ -125,8 +125,8 @@
    20,
    60
   ],
-  "duracao_fala_estimada_s": 11.85,
-  "duracao_prevista_s": 11.85,
+  "duracao_fala_estimada_s": 12.15,
+  "duracao_prevista_s": 12.15,
   "fala": "Seu Valdir mandou um abraço pro pessoal da oficina, que está sem café. Fica o abraço registrado, Seu Valdir, e que o café chegue logo aí, porque trabalho sem café ninguém merece.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,

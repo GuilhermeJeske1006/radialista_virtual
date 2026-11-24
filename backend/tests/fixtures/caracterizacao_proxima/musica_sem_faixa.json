@@ -98,7 +98,7 @@
   ]
  ],
  "redis": {
-  "fala_orcamento:1:9071d6ac28d2481bd7102971ec060231d72769c4": "{\"tipo\": \"musica\", \"categoria\": \"musica\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 3.33, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:9071d6ac28d2481bd7102971ec060231d72769c4": "{\"tipo\": \"musica\", \"categoria\": \"musica\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 3.42, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:musica": [
    "Seguimos com o papo, já já tem mais rádio."
   ],
@@ -110,8 +110,8 @@
  },
  "resposta": {
   "audio_status": "indisponivel",
-  "duracao_fala_estimada_s": 3.33,
-  "duracao_prevista_s": 3.33,
+  "duracao_fala_estimada_s": 3.42,
+  "duracao_prevista_s": 3.42,
   "fala": "Seguimos com o papo, já já tem mais rádio.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,

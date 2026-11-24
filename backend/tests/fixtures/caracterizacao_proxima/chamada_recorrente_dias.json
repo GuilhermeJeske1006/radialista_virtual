@@ -113,7 +113,7 @@
   ]
  ],
  "redis": {
-  "fala_orcamento:1:ebd7bb1a25ccd4a512db178d9fa696bd6e1389a3": "{\"tipo\": \"chamada_ouvinte\", \"categoria\": \"chamada_ouvinte\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 3.33, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:ebd7bb1a25ccd4a512db178d9fa696bd6e1389a3": "{\"tipo\": \"chamada_ouvinte\", \"categoria\": \"chamada_ouvinte\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 3.42, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:chamada_ouvinte": [
    "Seu Valdir, você de novo por aqui, que bom."
   ],
@@ -124,8 +124,8 @@
  },
  "resposta": {
   "audio_status": "indisponivel",
-  "duracao_fala_estimada_s": 3.33,
-  "duracao_prevista_s": 3.33,
+  "duracao_fala_estimada_s": 3.42,
+  "duracao_prevista_s": 3.42,
   "fala": "Seu Valdir, você de novo por aqui, que bom.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,

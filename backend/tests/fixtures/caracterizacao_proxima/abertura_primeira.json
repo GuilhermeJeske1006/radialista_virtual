@@ -85,7 +85,7 @@
   ]
  ],
  "redis": {
-  "fala_orcamento:1:59da836f1d0f497b66f9a5c0f19be9009b296e19": "{\"tipo\": \"abertura\", \"categoria\": \"abertura\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 3.33, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:59da836f1d0f497b66f9a5c0f19be9009b296e19": "{\"tipo\": \"abertura\", \"categoria\": \"abertura\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 3.42, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:abertura": [
    "Boa tarde! Será que hoje bate recorde de calor?"
   ],
@@ -97,8 +97,8 @@
  },
  "resposta": {
   "audio_status": "indisponivel",
-  "duracao_fala_estimada_s": 3.33,
-  "duracao_prevista_s": 3.33,
+  "duracao_fala_estimada_s": 3.42,
+  "duracao_prevista_s": 3.42,
   "fala": "Boa tarde! Será que hoje bate recorde de calor?",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,

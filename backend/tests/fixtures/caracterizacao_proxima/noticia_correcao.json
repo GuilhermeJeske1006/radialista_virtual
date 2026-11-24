@@ -107,7 +107,7 @@
   ]
  ],
  "redis": {
-  "fala_orcamento:1:ad94f94b5b419848e93defc12feabe75ca5f0ba1": "{\"tipo\": \"noticia\", \"categoria\": \"noticia\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 4.81, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:ad94f94b5b419848e93defc12feabe75ca5f0ba1": "{\"tipo\": \"noticia\", \"categoria\": \"noticia\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 4.94, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:noticia": [
    "Segundo a prefeitura, corrigindo a informação: a ponte foi liberada às catorze horas."
   ],
@@ -127,8 +127,8 @@
     "tipo": "correcao"
    }
   ],
-  "duracao_fala_estimada_s": 4.81,
-  "duracao_prevista_s": 4.81,
+  "duracao_fala_estimada_s": 4.94,
+  "duracao_prevista_s": 4.94,
   "fala": "Segundo a prefeitura, corrigindo a informação: a ponte foi liberada às catorze horas.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,

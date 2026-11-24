@@ -109,7 +109,7 @@
  ],
  "redis": {
   "callback_noticia_id:1": "11",
-  "fala_orcamento:1:66878368171ae558a3977c084c18ea6987c5b1ea": "{\"tipo\": \"noticia\", \"categoria\": \"noticia\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 3.7, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:66878368171ae558a3977c084c18ea6987c5b1ea": "{\"tipo\": \"noticia\", \"categoria\": \"noticia\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 3.8, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:noticia": [
    "Segundo a prefeitura, a feira de artesanato abre neste sábado."
   ],
@@ -132,8 +132,8 @@
     "valido_ate": "2026-08-12T13:00:00Z"
    }
   ],
-  "duracao_fala_estimada_s": 3.7,
-  "duracao_prevista_s": 3.7,
+  "duracao_fala_estimada_s": 3.8,
+  "duracao_prevista_s": 3.8,
   "fala": "Segundo a prefeitura, a feira de artesanato abre neste sábado.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,

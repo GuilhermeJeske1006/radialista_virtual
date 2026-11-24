@@ -144,7 +144,7 @@
   ]
  ],
  "redis": {
-  "fala_orcamento:1:77d45266318b28a2e2d1908f126be1fba243dc25": "{\"tipo\": \"retomada\", \"categoria\": \"abertura\", \"min_s\": 6, \"alvo_s\": 9.0, \"max_s\": 12, \"fonte\": \"formato\", \"aplicar\": true, \"estimada_s\": 2.22, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:77d45266318b28a2e2d1908f126be1fba243dc25": "{\"tipo\": \"retomada\", \"categoria\": \"abertura\", \"min_s\": 6, \"alvo_s\": 9.0, \"max_s\": 12, \"fonte\": \"formato\", \"aplicar\": true, \"estimada_s\": 2.28, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:abertura": [
    "Você está na rádio, seguimos juntos."
   ],
@@ -159,8 +159,8 @@
    6,
    12
   ],
-  "duracao_fala_estimada_s": 2.22,
-  "duracao_prevista_s": 2.22,
+  "duracao_fala_estimada_s": 2.28,
+  "duracao_prevista_s": 2.28,
   "fala": "Você está na rádio, seguimos juntos.",
   "fala_ajuste": "reescrita",
   "inicio_segundos": 0,

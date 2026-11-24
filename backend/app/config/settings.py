@@ -59,9 +59,10 @@ class Settings(BaseSettings):
 
     elevenlabs_api_key: str = ""
     elevenlabs_voice_id: str = ""
-    # V3 recupera a expressividade da locucao; o ao vivo ja prepara os proximos blocos.
-    # Flash continua disponivel via ELEVENLABS_MODEL, com perfil proprio, para testes.
-    elevenlabs_model: str = "eleven_v3"
+    # V4: na escuta às cegas (docs/benchmarks/2026-11-23-entrega-voz), mesmas vozes, nota 4,17
+    # contra 2,17 do v3 em entonação, pronúncia e ritmo, pelo mesmo preço por caractere.
+    # v3 e Flash continuam disponíveis via ELEVENLABS_MODEL ou pela combinação do programa.
+    elevenlabs_model: str = "eleven_v4"
 
     # Modelos econômicos podem ser avaliados sem trocar a voz de clientes existentes.
     llm_model: str = "claude-opus-5"
@@ -106,8 +107,8 @@ class Settings(BaseSettings):
     # Combinações texto + voz oferecidas (ids em app/billing/combinacoes.py, nesta ordem).
     # As com Haiku mostram ao cliente a limitação de fidelidade medida nas avaliações
     # (docs/benchmarks/2026-09-25-combinacoes); remova daqui para deixar de oferecer.
-    ia_combinacoes: list[str] = ["premium", "premium_v4", "equilibrada", "equilibrada_v4", "voz_premium",
-                                 "voz_premium_v4", "texto_premium", "premium_v4_turbo", "agil",
+    ia_combinacoes: list[str] = ["premium_v4", "premium", "equilibrada_v4", "equilibrada", "voz_premium_v4",
+                                 "voz_premium", "texto_premium", "premium_v4_turbo", "agil",
                                  "equilibrada_v4_turbo", "essencial", "voz_premium_v4_turbo"]
     ia_tarifas_llm: dict[str, list[float]] = {
         "claude-opus-5": [5, 25], "claude-sonnet-5": [2, 10], "claude-haiku-4-5": [1, 5],

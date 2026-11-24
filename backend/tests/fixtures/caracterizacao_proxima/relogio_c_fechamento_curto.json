@@ -63,7 +63,7 @@
     "Nenhuma faixa foi encontrada pra tocar ao vivo agora. Quando o bloco for música, NÃO anuncie nenhuma música, artista ou gênero específico -- nada vai tocar de verdade nesse bloco, e anunciar uma faixa que não toca soa quebrado pro ouvinte. Em vez disso, faça uma transição curta e natural, sem prometer nada (nem música, nem o que vem a seguir).",
     "Não cite nem prometa música específica pelo nome nesta fala: a programação musical segue o relógio do programa.",
     "Quando o bloco for chamada_ouvinte, convide o público a mandar recado pelo WhatsApp da rádio.",
-    "A duração deve seguir a meta deste bloco. Meta: 6 a 12 segundos, no máximo 32 palavras. Não anuncie o que vem a seguir nem prometa conteúdo.",
+    "A duração deve seguir a meta deste bloco. Meta: 6 a 12 segundos, no máximo 31 palavras. Não anuncie o que vem a seguir nem prometa conteúdo.",
     "Feche o assunto em andamento: conclua a ideia, resuma em uma frase e não abra assunto novo. Não prometa retorno."
    ]
   }
@@ -95,12 +95,12 @@
   ]
  ],
  "redis": {
-  "fala_orcamento:1:eebcdd15f3c87b20f4a8da4983e85127de9a9148": "{\"tipo\": \"comentario\", \"categoria\": \"comentario\", \"min_s\": 6, \"alvo_s\": 9.0, \"max_s\": 12, \"fonte\": \"relogio\", \"aplicar\": true, \"estimada_s\": 2.59, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:eebcdd15f3c87b20f4a8da4983e85127de9a9148": "{\"tipo\": \"comentario\", \"categoria\": \"comentario\", \"min_s\": 6, \"alvo_s\": 9.0, \"max_s\": 12, \"fonte\": \"relogio\", \"aplicar\": true, \"estimada_s\": 2.66, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:comentario": [
    "Fica a dica: devagar se vai longe."
   ],
   "relogio_cadeia:1:20261110T150000Z": [
-   "{\"tipo\": \"comentario\", \"vinheta\": false, \"duracao_s\": 2.94, \"gerado_em\": 1794323700.0}"
+   "{\"tipo\": \"comentario\", \"vinheta\": false, \"duracao_s\": 3.01, \"gerado_em\": 1794323700.0}"
   ],
   "relogio_etapas:1:20261110T150000Z": [
    "0:0:fala:abertura",
@@ -118,8 +118,8 @@
    6,
    12
   ],
-  "duracao_fala_estimada_s": 2.59,
-  "duracao_prevista_s": 2.59,
+  "duracao_fala_estimada_s": 2.66,
+  "duracao_prevista_s": 2.66,
   "fala": "Fica a dica: devagar se vai longe.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,

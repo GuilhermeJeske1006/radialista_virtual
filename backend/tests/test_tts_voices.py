@@ -7,6 +7,14 @@ def test_voz_valida_aceita_voz_do_catalogo():
     assert voz_valida(VOZES_DISPONIVEIS[0]["voz_id"]) is True
 
 
+def test_catalogo_tem_diego_e_raquel():
+    """Vozes pt-BR da biblioteca com nota 4,00 na escuta às cegas (docs/benchmarks/2026-11-23-entrega-voz)."""
+    nomes = {voz["voz_id"]: voz["nome"] for voz in VOZES_DISPONIVEIS}
+    assert nomes["rpNe0HOx7heUulPiOEaG"] == "Diego" and nomes["GDzHdQOi6jjf8zaXhCYD"] == "Raquel"
+    assert {"masculina", "feminina"} == {voz["genero"] for voz in VOZES_DISPONIVEIS}
+    assert len(nomes) == len(VOZES_DISPONIVEIS)
+
+
 def test_voz_valida_rejeita_voz_desconhecida():
     assert voz_valida("voz-que-nao-existe") is False
 

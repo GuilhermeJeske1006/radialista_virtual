@@ -115,7 +115,7 @@
  "redis": {
   "cache:contexto_musica:faixa001": "Contexto: Gravada em 2019 num sítio do interior.",
   "callback_musica_assunto:1": "Estrada Aberta - Banda Horizonte\u001fContexto: Gravada em 2019 num sítio do interior.",
-  "fala_orcamento:1:b5ca31af24bf7a0098cc1534587776f28784f39b": "{\"tipo\": \"musica\", \"categoria\": \"musica\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 4.07, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:b5ca31af24bf7a0098cc1534587776f28784f39b": "{\"tipo\": \"musica\", \"categoria\": \"musica\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 4.18, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:musica": [
    "Agora vem Estrada Aberta, com Banda Horizonte, e depois Outra Citada."
   ],
@@ -139,8 +139,8 @@
  },
  "resposta": {
   "audio_status": "indisponivel",
-  "duracao_fala_estimada_s": 4.07,
-  "duracao_prevista_s": 384.07,
+  "duracao_fala_estimada_s": 4.18,
+  "duracao_prevista_s": 384.18,
   "duracao_segundos": 200,
   "fala": "Agora vem Estrada Aberta, com Banda Horizonte, e depois Outra Citada.",
   "fala_ajuste": "nenhum",

@@ -81,7 +81,7 @@
   ]
  ],
  "redis": {
-  "fala_orcamento:1:fbc673af2b74bf16f0eb69dcd7654ffba5b6df9f": "{\"tipo\": \"identificacao\", \"categoria\": \"abertura\", \"min_s\": 3, \"alvo_s\": 5.0, \"max_s\": 7, \"fonte\": \"formato\", \"aplicar\": true, \"estimada_s\": 2.22, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:fbc673af2b74bf16f0eb69dcd7654ffba5b6df9f": "{\"tipo\": \"identificacao\", \"categoria\": \"abertura\", \"min_s\": 3, \"alvo_s\": 5.0, \"max_s\": 7, \"fonte\": \"formato\", \"aplicar\": true, \"estimada_s\": 2.28, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:abertura": [
    "Você ouve a rádio da cidade."
   ],
@@ -96,8 +96,8 @@
    3,
    7
   ],
-  "duracao_fala_estimada_s": 2.22,
-  "duracao_prevista_s": 2.22,
+  "duracao_fala_estimada_s": 2.28,
+  "duracao_prevista_s": 2.28,
   "fala": "Você ouve a rádio da cidade.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,

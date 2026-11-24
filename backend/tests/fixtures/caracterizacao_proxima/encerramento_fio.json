@@ -87,7 +87,7 @@
   ]
  ],
  "redis": {
-  "fala_orcamento:1:69ec651d99ee70129732186faaafc25e206188c8": "{\"tipo\": \"encerramento\", \"categoria\": \"encerramento\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 1.85, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:69ec651d99ee70129732186faaafc25e206188c8": "{\"tipo\": \"encerramento\", \"categoria\": \"encerramento\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 1.9, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:encerramento": [
    "Obrigado pela companhia, até amanhã."
   ],
@@ -100,8 +100,8 @@
  },
  "resposta": {
   "audio_status": "indisponivel",
-  "duracao_fala_estimada_s": 1.85,
-  "duracao_prevista_s": 1.85,
+  "duracao_fala_estimada_s": 1.9,
+  "duracao_prevista_s": 1.9,
   "fala": "Obrigado pela companhia, até amanhã.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,

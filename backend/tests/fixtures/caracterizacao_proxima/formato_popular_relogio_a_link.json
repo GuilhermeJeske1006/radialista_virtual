@@ -69,7 +69,7 @@
     "A promessa do formato prevalece sobre o perfil do horário.",
     "Participação neste formato: Recados e pedidos reais pelo nome autorizado; sem recado, convite genérico, sem simular mensagem recebida.",
     "Temas que exigem revisão humana neste formato: luto em recado, saúde e medicamento, dívida, empréstimo e aposta, política, religião; sem conteúdo aprovado, não trate deles.",
-    "FORMATO POPULAR/SERTANEJO: a companhia e o reconhecimento do ouvinte ocupam o centro. Conte uma história curta do cotidiano ou da vida local, sem inventar fato, nome ou lugar, e volte para a música. Meta de locução: 20 a 35 segundos, no máximo 94 palavras. Condução próxima e afetiva: fale com um ouvinte de cada vez, em português coloquial, sem caricatura de sotaque, bordão repetido ou exagero. Recado, pedido, nome e cidade de ouvinte só os reais e autorizados; não simule participação. Ajuste a energia ao horário sem mudar a identidade do programa. Não prometa intervalo, retorno ou conteúdo futuro sem programação confirmada. Mantenha as regras factuais e de atendimento dos pedidos reais.",
+    "FORMATO POPULAR/SERTANEJO: a companhia e o reconhecimento do ouvinte ocupam o centro. Conte uma história curta do cotidiano ou da vida local, sem inventar fato, nome ou lugar, e volte para a música. Meta de locução: 20 a 35 segundos, no máximo 92 palavras. Condução próxima e afetiva: fale com um ouvinte de cada vez, em português coloquial, sem caricatura de sotaque, bordão repetido ou exagero. Recado, pedido, nome e cidade de ouvinte só os reais e autorizados; não simule participação. Ajuste a energia ao horário sem mudar a identidade do programa. Não prometa intervalo, retorno ou conteúdo futuro sem programação confirmada. Mantenha as regras factuais e de atendimento dos pedidos reais.",
     "Agenda confirmada adiante (só isto pode ser chamado como próximo): Retorno e participação em cerca de 14 minutos."
    ]
   }
@@ -101,12 +101,12 @@
   ]
  ],
  "redis": {
-  "fala_orcamento:1:740e2729e50a68d78925f5282610c36f89210430": "{\"tipo\": \"comentario\", \"categoria\": \"comentario\", \"min_s\": 20, \"alvo_s\": 35, \"max_s\": 35, \"fonte\": \"relogio\", \"aplicar\": true, \"estimada_s\": 6.3, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:740e2729e50a68d78925f5282610c36f89210430": "{\"tipo\": \"comentario\", \"categoria\": \"comentario\", \"min_s\": 20, \"alvo_s\": 35, \"max_s\": 35, \"fonte\": \"relogio\", \"aplicar\": true, \"estimada_s\": 6.46, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:comentario": [
    "Seguimos com você nesta tarde, com moda boa e prosa curta, do jeito que a casa gosta."
   ],
   "relogio_cadeia:1:20261110T150000Z": [
-   "{\"tipo\": \"comentario\", \"vinheta\": false, \"duracao_s\": 6.45, \"gerado_em\": 1794323540.0}"
+   "{\"tipo\": \"comentario\", \"vinheta\": false, \"duracao_s\": 6.61, \"gerado_em\": 1794323540.0}"
   ],
   "relogio_etapas:1:20261110T150000Z": [
    "0:0:fala:abertura",
@@ -126,8 +126,8 @@
    20,
    35
   ],
-  "duracao_fala_estimada_s": 6.3,
-  "duracao_prevista_s": 6.3,
+  "duracao_fala_estimada_s": 6.46,
+  "duracao_prevista_s": 6.46,
   "fala": "Seguimos com você nesta tarde, com moda boa e prosa curta, do jeito que a casa gosta.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,

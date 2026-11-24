@@ -65,7 +65,7 @@
     "Não cite nem prometa música específica pelo nome nesta fala: a programação musical segue o relógio do programa.",
     "Quando o bloco for chamada_ouvinte, convide o público a mandar recado pelo WhatsApp da rádio.",
     "Este é o ÚLTIMO bloco do programa de hoje, o programa está terminando agora. Agradeça o ouvinte pela companhia, resuma em uma frase o clima do programa e se despeça claramente, sinalizando que a transmissão está encerrando. Não convide a mandar mensagem no WhatsApp, pedir música ou interagir mais, porque não há mais tempo de ar. Se souber quando o programa volta (mesmo horário, próximo dia de exibição), convide a voltar; senão, feche sem inventar data ou horário.",
-    "A duração deve seguir a meta deste bloco. Meta: 15 a 25 segundos, no máximo 67 palavras. Não anuncie o que vem a seguir nem prometa conteúdo."
+    "A duração deve seguir a meta deste bloco. Meta: 15 a 25 segundos, no máximo 65 palavras. Não anuncie o que vem a seguir nem prometa conteúdo."
    ]
   }
  ],
@@ -88,12 +88,12 @@
   ]
  ],
  "redis": {
-  "fala_orcamento:1:4a6fab37c6697206e22decafdd8577073fb7279a": "{\"tipo\": \"encerramento\", \"categoria\": \"encerramento\", \"min_s\": 15, \"alvo_s\": 20.0, \"max_s\": 25, \"fonte\": \"relogio\", \"aplicar\": true, \"estimada_s\": 1.85, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:4a6fab37c6697206e22decafdd8577073fb7279a": "{\"tipo\": \"encerramento\", \"categoria\": \"encerramento\", \"min_s\": 15, \"alvo_s\": 20.0, \"max_s\": 25, \"fonte\": \"relogio\", \"aplicar\": true, \"estimada_s\": 1.9, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:encerramento": [
    "Obrigado pela companhia nesta tarde."
   ],
   "relogio_cadeia:1:20261110T150000Z": [
-   "{\"tipo\": \"encerramento\", \"vinheta\": false, \"duracao_s\": 2.0, \"gerado_em\": 1794325920.0}"
+   "{\"tipo\": \"encerramento\", \"vinheta\": false, \"duracao_s\": 2.05, \"gerado_em\": 1794325920.0}"
   ],
   "relogio_etapas:1:20261110T150000Z": [
    "0:0:fala:abertura"
@@ -110,8 +110,8 @@
    15,
    25
   ],
-  "duracao_fala_estimada_s": 1.85,
-  "duracao_prevista_s": 1.85,
+  "duracao_fala_estimada_s": 1.9,
+  "duracao_prevista_s": 1.9,
   "fala": "Obrigado pela companhia nesta tarde.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,

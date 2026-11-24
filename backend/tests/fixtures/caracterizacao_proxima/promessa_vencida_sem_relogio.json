@@ -96,7 +96,7 @@
   ]
  ],
  "redis": {
-  "fala_orcamento:1:b8e77bbe44a58213e4a8068a4cf2425a3fbb67fc": "{\"tipo\": \"comentario\", \"categoria\": \"comentario\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 10.37, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:b8e77bbe44a58213e4a8068a4cf2425a3fbb67fc": "{\"tipo\": \"comentario\", \"categoria\": \"comentario\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 10.63, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:comentario": [
    "Ainda não chegou recado para ler agora; o WhatsApp da Rádio Teste segue aberto. Repara como cada família tem um jeito próprio de arrumar a mesa no domingo."
   ],
@@ -108,8 +108,8 @@
  },
  "resposta": {
   "audio_status": "indisponivel",
-  "duracao_fala_estimada_s": 10.37,
-  "duracao_prevista_s": 10.37,
+  "duracao_fala_estimada_s": 10.63,
+  "duracao_prevista_s": 10.63,
   "fala": "Ainda não chegou recado para ler agora; o WhatsApp da Rádio Teste segue aberto. Repara como cada família tem um jeito próprio de arrumar a mesa no domingo.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,

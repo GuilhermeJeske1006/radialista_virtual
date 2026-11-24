@@ -112,8 +112,8 @@
  },
  "resposta": {
   "audio_status": "nao_aplicavel",
-  "duracao_fala_estimada_s": 5.09,
-  "duracao_prevista_s": 4.81,
+  "duracao_fala_estimada_s": 5.22,
+  "duracao_prevista_s": 4.94,
   "fala": "Maria, você viu a feira de domingo? Vi sim, estava cheia de gente.",
   "fala_ajuste": "nenhum",
   "falas": [

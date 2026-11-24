@@ -75,7 +75,7 @@
     "Não cite nem prometa música específica pelo nome nesta fala: a programação musical segue o relógio do programa.",
     "Quando o bloco for chamada_ouvinte, mande um alô pra Seu Valdir: cumprimente pelo nome e reaja ao que ele mandou pelo WhatsApp (a mensagem é o dado ouvinte:1 dos dados de referência) -- é uma mensagem bem-humorada, brinque junto de verdade, no clima da piada, respeitando o tom do programa (informal e descontraido, como um locutor de radio local conversando com o ouvinte). Não seja morno nem ignore o humor.",
     "Você prometeu 'Mais tarde a gente lê os recados.'. Cumpra agora: o recado de Seu Valdir.",
-    "A duração deve seguir a meta deste bloco. Meta: 15 a 60 segundos, no máximo 162 palavras. Não anuncie o que vem a seguir nem prometa conteúdo."
+    "A duração deve seguir a meta deste bloco. Meta: 15 a 60 segundos, no máximo 158 palavras. Não anuncie o que vem a seguir nem prometa conteúdo."
    ]
   }
  ],
@@ -106,12 +106,12 @@
   ]
  ],
  "redis": {
-  "fala_orcamento:1:b09be2d8d2174ce51f147b616166136fb0d1d84c": "{\"tipo\": \"chamada_ouvinte\", \"categoria\": \"chamada_ouvinte\", \"min_s\": 15, \"alvo_s\": 37.5, \"max_s\": 60, \"fonte\": \"relogio\", \"aplicar\": true, \"estimada_s\": 4.07, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:b09be2d8d2174ce51f147b616166136fb0d1d84c": "{\"tipo\": \"chamada_ouvinte\", \"categoria\": \"chamada_ouvinte\", \"min_s\": 15, \"alvo_s\": 37.5, \"max_s\": 60, \"fonte\": \"relogio\", \"aplicar\": true, \"estimada_s\": 4.18, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:chamada_ouvinte": [
    "Seu Valdir, café na oficina é coisa séria, abraço pra turma!"
   ],
   "relogio_cadeia:1:20261110T150000Z": [
-   "{\"tipo\": \"chamada_ouvinte\", \"vinheta\": false, \"duracao_s\": 4.42, \"gerado_em\": 1794324410.0}"
+   "{\"tipo\": \"chamada_ouvinte\", \"vinheta\": false, \"duracao_s\": 4.53, \"gerado_em\": 1794324410.0}"
   ],
   "relogio_etapas:1:20261110T150000Z": [
    "0:0:fala:abertura",
@@ -131,8 +131,8 @@
    15,
    60
   ],
-  "duracao_fala_estimada_s": 4.07,
-  "duracao_prevista_s": 4.07,
+  "duracao_fala_estimada_s": 4.18,
+  "duracao_prevista_s": 4.18,
   "fala": "Seu Valdir, café na oficina é coisa séria, abraço pra turma!",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,

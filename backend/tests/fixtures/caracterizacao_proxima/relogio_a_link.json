@@ -65,7 +65,7 @@
     "Nenhuma faixa foi encontrada pra tocar ao vivo agora. Quando o bloco for música, NÃO anuncie nenhuma música, artista ou gênero específico -- nada vai tocar de verdade nesse bloco, e anunciar uma faixa que não toca soa quebrado pro ouvinte. Em vez disso, faça uma transição curta e natural, sem prometer nada (nem música, nem o que vem a seguir).",
     "Não cite nem prometa música específica pelo nome nesta fala: a programação musical segue o relógio do programa.",
     "Quando o bloco for chamada_ouvinte, convide o público a mandar recado pelo WhatsApp da rádio.",
-    "A duração deve seguir a meta deste bloco. Meta: 10 a 35 segundos, no máximo 94 palavras. Agenda confirmada adiante (só isto pode ser chamado como próximo): Retorno e participação em cerca de 14 minutos."
+    "A duração deve seguir a meta deste bloco. Meta: 10 a 35 segundos, no máximo 92 palavras. Agenda confirmada adiante (só isto pode ser chamado como próximo): Retorno e participação em cerca de 14 minutos."
    ]
   }
  ],
@@ -96,12 +96,12 @@
   ]
  ],
  "redis": {
-  "fala_orcamento:1:05a7f0b21478e4666484c0629fe5ac0c181105a4": "{\"tipo\": \"comentario\", \"categoria\": \"comentario\", \"min_s\": 10, \"alvo_s\": 22.5, \"max_s\": 35, \"fonte\": \"relogio\", \"aplicar\": true, \"estimada_s\": 1.85, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:05a7f0b21478e4666484c0629fe5ac0c181105a4": "{\"tipo\": \"comentario\", \"categoria\": \"comentario\", \"min_s\": 10, \"alvo_s\": 22.5, \"max_s\": 35, \"fonte\": \"relogio\", \"aplicar\": true, \"estimada_s\": 1.9, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:comentario": [
    "Seguimos com você nesta tarde."
   ],
   "relogio_cadeia:1:20261110T150000Z": [
-   "{\"tipo\": \"comentario\", \"vinheta\": false, \"duracao_s\": 2.0, \"gerado_em\": 1794323540.0}"
+   "{\"tipo\": \"comentario\", \"vinheta\": false, \"duracao_s\": 2.05, \"gerado_em\": 1794323540.0}"
   ],
   "relogio_etapas:1:20261110T150000Z": [
    "0:0:fala:abertura",
@@ -121,8 +121,8 @@
    10,
    35
   ],
-  "duracao_fala_estimada_s": 1.85,
-  "duracao_prevista_s": 1.85,
+  "duracao_fala_estimada_s": 1.9,
+  "duracao_prevista_s": 1.9,
   "fala": "Seguimos com você nesta tarde.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,

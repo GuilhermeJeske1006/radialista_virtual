@@ -105,7 +105,7 @@
   ]
  ],
  "redis": {
-  "fala_orcamento:1:7e3fa23a2ace26a0b94f6f687b9987948aedae01": "{\"tipo\": \"comentario\", \"categoria\": \"comentario\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 2.22, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:7e3fa23a2ace26a0b94f6f687b9987948aedae01": "{\"tipo\": \"comentario\", \"categoria\": \"comentario\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 2.28, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:comentario": [
    "Seguimos juntos nesta tarde de rádio."
   ],
@@ -118,8 +118,8 @@
  },
  "resposta": {
   "audio_status": "indisponivel",
-  "duracao_fala_estimada_s": 2.22,
-  "duracao_prevista_s": 2.22,
+  "duracao_fala_estimada_s": 2.28,
+  "duracao_prevista_s": 2.28,
   "fala": "Seguimos juntos nesta tarde de rádio.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,

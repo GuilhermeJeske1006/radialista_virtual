@@ -98,7 +98,7 @@
  ],
  "redis": {
   "clima_mencionado:1": "1",
-  "fala_orcamento:1:97018b00cb4b1b6386f5898e1b5c59bbe0e214ff": "{\"tipo\": \"comentario\", \"categoria\": \"comentario\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 5.19, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:97018b00cb4b1b6386f5898e1b5c59bbe0e214ff": "{\"tipo\": \"comentario\", \"categoria\": \"comentario\", \"min_s\": 15, \"alvo_s\": 22.5, \"max_s\": 30, \"fonte\": \"observacao\", \"aplicar\": false, \"estimada_s\": 5.32, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:comentario": [
    "Segundo o serviço de meteorologia, faz vinte e seis graus por aqui nesta tarde."
   ],
@@ -120,8 +120,8 @@
     "valido_ate": "2026-08-10T15:50:00Z"
    }
   ],
-  "duracao_fala_estimada_s": 5.19,
-  "duracao_prevista_s": 5.19,
+  "duracao_fala_estimada_s": 5.32,
+  "duracao_prevista_s": 5.32,
   "fala": "Segundo o serviço de meteorologia, faz vinte e seis graus por aqui nesta tarde.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,

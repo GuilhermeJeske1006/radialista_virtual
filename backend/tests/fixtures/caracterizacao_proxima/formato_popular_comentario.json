@@ -69,7 +69,7 @@
     "A promessa do formato prevalece sobre o perfil do horário.",
     "Participação neste formato: Recados e pedidos reais pelo nome autorizado; sem recado, convite genérico, sem simular mensagem recebida.",
     "Temas que exigem revisão humana neste formato: luto em recado, saúde e medicamento, dívida, empréstimo e aposta, política, religião; sem conteúdo aprovado, não trate deles.",
-    "FORMATO POPULAR/SERTANEJO: a companhia e o reconhecimento do ouvinte ocupam o centro. Conte uma história curta do cotidiano ou da vida local, sem inventar fato, nome ou lugar, e volte para a música. Meta de locução: 20 a 60 segundos, no máximo 162 palavras. Condução próxima e afetiva: fale com um ouvinte de cada vez, em português coloquial, sem caricatura de sotaque, bordão repetido ou exagero. Recado, pedido, nome e cidade de ouvinte só os reais e autorizados; não simule participação. Ajuste a energia ao horário sem mudar a identidade do programa. Não prometa intervalo, retorno ou conteúdo futuro sem programação confirmada. Mantenha as regras factuais e de atendimento dos pedidos reais.",
+    "FORMATO POPULAR/SERTANEJO: a companhia e o reconhecimento do ouvinte ocupam o centro. Conte uma história curta do cotidiano ou da vida local, sem inventar fato, nome ou lugar, e volte para a música. Meta de locução: 20 a 60 segundos, no máximo 158 palavras. Condução próxima e afetiva: fale com um ouvinte de cada vez, em português coloquial, sem caricatura de sotaque, bordão repetido ou exagero. Recado, pedido, nome e cidade de ouvinte só os reais e autorizados; não simule participação. Ajuste a energia ao horário sem mudar a identidade do programa. Não prometa intervalo, retorno ou conteúdo futuro sem programação confirmada. Mantenha as regras factuais e de atendimento dos pedidos reais.",
     "Agenda confirmada adiante (só isto pode ser chamado como próximo): participação dos ouvintes mais adiante neste programa."
    ]
   }
@@ -101,7 +101,7 @@
   ]
  ],
  "redis": {
-  "fala_orcamento:1:de5f3c7b340a5551bf60774e181fe80d414a3346": "{\"tipo\": \"comentario\", \"categoria\": \"comentario\", \"min_s\": 20, \"alvo_s\": 35, \"max_s\": 60, \"fonte\": \"formato\", \"aplicar\": true, \"estimada_s\": 20.37, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:de5f3c7b340a5551bf60774e181fe80d414a3346": "{\"tipo\": \"comentario\", \"categoria\": \"comentario\", \"min_s\": 20, \"alvo_s\": 35, \"max_s\": 60, \"fonte\": \"formato\", \"aplicar\": true, \"estimada_s\": 20.89, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:comentario": [
    "Tem coisa melhor do que uma moda boa tocando enquanto a tarde passa devagar? Por aqui a prosa segue do jeito que a gente gosta, sem pressa e com respeito por quem está do outro lado do rádio. O recado de quem quiser mandar continua aberto pelo WhatsApp da rádio, é só escrever com calma."
   ],
@@ -118,8 +118,8 @@
    20,
    60
   ],
-  "duracao_fala_estimada_s": 20.37,
-  "duracao_prevista_s": 20.37,
+  "duracao_fala_estimada_s": 20.89,
+  "duracao_prevista_s": 20.89,
   "fala": "Tem coisa melhor do que uma moda boa tocando enquanto a tarde passa devagar? Por aqui a prosa segue do jeito que a gente gosta, sem pressa e com respeito por quem está do outro lado do rádio. O recado de quem quiser mandar continua aberto pelo WhatsApp da rádio, é só escrever com calma.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,

@@ -65,7 +65,7 @@
     "Não cite nem prometa música específica pelo nome nesta fala: a programação musical segue o relógio do programa.",
     "Quando o bloco for chamada_ouvinte, convide o público a mandar recado pelo WhatsApp da rádio.",
     "Comece a fala com esta frase, exatamente: 'Ainda não chegou recado para ler agora; o WhatsApp da Rádio Teste segue aberto.'",
-    "A duração deve seguir a meta deste bloco. Meta: 15 a 60 segundos, no máximo 162 palavras. Não anuncie o que vem a seguir nem prometa conteúdo."
+    "A duração deve seguir a meta deste bloco. Meta: 15 a 60 segundos, no máximo 158 palavras. Não anuncie o que vem a seguir nem prometa conteúdo."
    ]
   }
  ],
@@ -96,12 +96,12 @@
   ]
  ],
  "redis": {
-  "fala_orcamento:1:3ad8e35421fa254b2c0e46bfa861ca46bd8d33f0": "{\"tipo\": \"chamada_ouvinte\", \"categoria\": \"chamada_ouvinte\", \"min_s\": 15, \"alvo_s\": 37.5, \"max_s\": 60, \"fonte\": \"relogio\", \"aplicar\": true, \"estimada_s\": 9.26, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:3ad8e35421fa254b2c0e46bfa861ca46bd8d33f0": "{\"tipo\": \"chamada_ouvinte\", \"categoria\": \"chamada_ouvinte\", \"min_s\": 15, \"alvo_s\": 37.5, \"max_s\": 60, \"fonte\": \"relogio\", \"aplicar\": true, \"estimada_s\": 9.49, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:chamada_ouvinte": [
    "Ainda não chegou recado para ler agora; o WhatsApp da Rádio Teste segue aberto. O WhatsApp da Rádio Teste está aberto para o seu recado."
   ],
   "relogio_cadeia:1:20261110T150000Z": [
-   "{\"tipo\": \"chamada_ouvinte\", \"vinheta\": false, \"duracao_s\": 9.61, \"gerado_em\": 1794324410.0}"
+   "{\"tipo\": \"chamada_ouvinte\", \"vinheta\": false, \"duracao_s\": 9.84, \"gerado_em\": 1794324410.0}"
   ],
   "relogio_etapas:1:20261110T150000Z": [
    "0:0:fala:abertura",
@@ -122,8 +122,8 @@
    15,
    60
   ],
-  "duracao_fala_estimada_s": 9.26,
-  "duracao_prevista_s": 9.26,
+  "duracao_fala_estimada_s": 9.49,
+  "duracao_prevista_s": 9.49,
   "fala": "Ainda não chegou recado para ler agora; o WhatsApp da Rádio Teste segue aberto. O WhatsApp da Rádio Teste está aberto para o seu recado.",
   "fala_ajuste": "nenhum",
   "inicio_segundos": 0,

@@ -30,31 +30,31 @@ class Combinacao:
 
 
 # Limitação comum às combinações com Eleven v4 (docs/benchmarks/2026-10-08-eleven-v4).
-LIMITACAO_V4 = ("Voz lançada em setembro de 2026, avaliada em menos pautas que a v3. Não aceita ajuste de "
-                "velocidade da fala.")
+LIMITACAO_V4 = "Voz lançada em setembro de 2026. Não aceita ajuste de velocidade da fala."
+# Escuta às cegas de 23/11/2026 (docs/benchmarks/2026-11-23-entrega-voz): mesmas vozes, v4 nota 4,17 e v3 2,17.
+LIMITACAO_V3 = "Na escuta às cegas, soou menos natural que a v4 com as mesmas vozes (entonação, pronúncia e ritmo)."
 
 # Todas as combinações dos 3 modelos de texto com as 4 vozes (v4 tem
-# a tarifa cheia da v3, então cada uma vem logo após a equivalente com v3). Limitações vêm das
-# avaliações em docs/benchmarks (2026-09-24-economia, 2026-09-25-combinacoes e
-# 2026-10-08-eleven-v4): sem prometer equivalência entre opções que executam a mesma tarefa.
+# a tarifa cheia da v3; a ordem oferecida vem de settings.ia_combinacoes, v4 antes da v3). Limitações
+# vêm das avaliações em docs/benchmarks (2026-09-24-economia, 2026-09-25-combinacoes, 2026-10-08-eleven-v4
+# e 2026-11-23-entrega-voz): sem prometer equivalência entre opções que executam a mesma tarefa.
 COMBINACOES = (
     Combinacao(
         "premium", "Premium", "claude-opus-5", "eleven_v3",
-        "Texto mais elaborado e voz mais expressiva, com direção vocal (empolgação ou calma). "
-        "É a configuração padrão do Locufy.",
-        "Maior custo. Falas muito longas demoram mais para ficar prontas.",
-        recomendada=True,
+        "Texto mais elaborado com a voz Eleven v3, com direção vocal (empolgação ou calma).",
+        f"Maior custo. Falas muito longas demoram mais para ficar prontas. {LIMITACAO_V3}",
     ),
     Combinacao(
         "premium_v4", "Premium v4", "claude-opus-5", "eleven_v4",
-        "O texto do Premium com a voz Eleven v4: expressiva, com direção vocal, e pronta mais rápido "
-        "que a v3 nas avaliações.",
-        LIMITACAO_V4,
+        "Texto mais elaborado e a voz que soou mais natural na escuta às cegas, com direção vocal "
+        "(empolgação ou calma) e pronta mais rápido que a v3. É a configuração padrão do Locufy.",
+        f"Maior custo. {LIMITACAO_V4}",
+        recomendada=True,
     ),
     Combinacao(
         "equilibrada", "Equilibrada", "claude-sonnet-5", "eleven_v3",
-        "A mesma voz expressiva do Premium, com geração de texto mais barata.",
-        "Texto menos elaborado que o Premium em pautas com muitos detalhes.",
+        "A voz Eleven v3 do Premium, com geração de texto mais barata.",
+        f"Texto menos elaborado que o Premium em pautas com muitos detalhes. {LIMITACAO_V3}",
     ),
     Combinacao(
         "equilibrada_v4", "Equilibrada v4", "claude-sonnet-5", "eleven_v4",
@@ -64,7 +64,8 @@ COMBINACOES = (
     Combinacao(
         "voz_premium", "Voz Premium", "claude-haiku-4-5", "eleven_v3",
         "Voz expressiva com o texto de menor custo.",
-        "O texto chegou a acrescentar fato não informado nas avaliações. Revise falas sobre datas e eventos.",
+        "O texto chegou a acrescentar fato não informado nas avaliações. Revise falas sobre datas e eventos. "
+        f"{LIMITACAO_V3}",
     ),
     Combinacao(
         "voz_premium_v4", "Voz Premium v4", "claude-haiku-4-5", "eleven_v4",
@@ -124,13 +125,14 @@ MODELOS = {
     },
     "eleven_v3": {
         "funcao": "voz",
-        "descricao": "A mais expressiva, com direção vocal (empolgação ou calma). Falas muito longas "
-                     "demoram mais para ficar prontas.",
+        "descricao": "Expressiva, com direção vocal (empolgação ou calma). Falas muito longas demoram mais "
+                     "para ficar prontas. Na escuta às cegas, soou menos natural que a v4 com as mesmas vozes.",
     },
     "eleven_v4": {
         "funcao": "voz",
-        "descricao": "Expressiva, com direção vocal (empolgação ou calma). Nas avaliações, ficou pronta "
-                     "mais rápido e com tempo mais estável que a v3. Não aceita ajuste de velocidade da fala.",
+        "descricao": "A mais natural na escuta às cegas, com direção vocal (empolgação ou calma). Nas "
+                     "avaliações, ficou pronta mais rápido e com tempo mais estável que a v3. Não aceita "
+                     "ajuste de velocidade da fala.",
     },
     "eleven_v4_turbo": {
         "funcao": "voz",

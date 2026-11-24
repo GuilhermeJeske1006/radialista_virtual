@@ -100,7 +100,7 @@
  "redis": {
   "cache:contexto_musica:faixa001": "Contexto: Gravada em 2019 num sítio do interior.",
   "callback_musica_assunto:1": "Estrada Aberta - Banda Horizonte\u001fContexto: Gravada em 2019 num sítio do interior.",
-  "fala_orcamento:1:4be80629c6164c1758965466136f357fbbce07a2": "{\"tipo\": \"musica\", \"categoria\": \"musica\", \"min_s\": 4, \"alvo_s\": 6.0, \"max_s\": 8, \"fonte\": \"formato\", \"aplicar\": true, \"estimada_s\": 2.96, \"wpm_usado\": 162.0, \"request_id\": \"<id>\"}",
+  "fala_orcamento:1:4be80629c6164c1758965466136f357fbbce07a2": "{\"tipo\": \"musica\", \"categoria\": \"musica\", \"min_s\": 4, \"alvo_s\": 6.0, \"max_s\": 8, \"fonte\": \"formato\", \"aplicar\": true, \"estimada_s\": 3.04, \"wpm_usado\": 158.0, \"request_id\": \"<id>\"}",
   "falas_geradas:1:musica": [
    "A Joana pediu Estrada Aberta, com Banda Horizonte."
   ],
@@ -123,8 +123,8 @@
    4,
    8
   ],
-  "duracao_fala_estimada_s": 2.96,
-  "duracao_prevista_s": 202.96,
+  "duracao_fala_estimada_s": 3.04,
+  "duracao_prevista_s": 203.04,
   "duracao_segundos": 200,
   "fala": "A Joana pediu Estrada Aberta, com Banda Horizonte.",
   "fala_ajuste": "nenhum",

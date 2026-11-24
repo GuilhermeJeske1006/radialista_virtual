@@ -13,6 +13,10 @@ VOZES_DISPONIVEIS = [
     {"voz_id": "CstacWqMhJQlnfLPxRG4", "nome": "Will", "genero": "masculina", "descricao": "Português brasileiro · Grave, suave e afetuosa"},
     {"voz_id": "lWq4KDY8znfkV0DrK8Vb", "nome": "Yasmin Alves", "genero": "feminina", "descricao": "Português brasileiro · Leve, clara e musical"},
     {"voz_id": "cyD08lEy76q03ER1jZ7y", "nome": "Scheila", "genero": "feminina", "descricao": "Português brasileiro · Séria e direta"},
+    # Biblioteca pt-BR (shared-voices, accent=brazilian), entre as mais usadas em 2026; nota 4,00 na
+    # escuta às cegas de docs/benchmarks/2026-11-23-entrega-voz, contra 2,17 de Paulo/Yasmin no v3.
+    {"voz_id": "rpNe0HOx7heUulPiOEaG", "nome": "Diego", "genero": "masculina", "descricao": "Português brasileiro · Locutor confiante"},
+    {"voz_id": "GDzHdQOi6jjf8zaXhCYD", "nome": "Raquel", "genero": "feminina", "descricao": "Português brasileiro · Expressiva e enérgica"},
 ]
 
 _VOZES_POR_ID = {voz["voz_id"]: voz for voz in VOZES_DISPONIVEIS}
