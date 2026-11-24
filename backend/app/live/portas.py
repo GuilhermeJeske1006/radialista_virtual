@@ -36,6 +36,8 @@ class PortasEmissao:
     contexto_musica: Funcao
     historico_musicas: Funcao
     registrar_musica_tocada: Funcao
+    registrar_duracao_na_posicao: Funcao
+    duracoes_nas_posicoes: Funcao
     registrar_historico_persistente: Funcao
     selecionar_pedido: Funcao
     pedidos_em_fila: Funcao
@@ -81,6 +83,8 @@ class PortasEmissao:
         "contexto_musica": "_contexto_musica",
         "historico_musicas": "_historico_musicas",
         "registrar_musica_tocada": "_registrar_musica_tocada",
+        "registrar_duracao_na_posicao": "_registrar_duracao_na_posicao",
+        "duracoes_nas_posicoes": "_duracoes_nas_posicoes",
         "registrar_historico_persistente": "_registrar_historico_persistente",
         "selecionar_pedido": "_selecionar_pedido_atendimento",
         "pedidos_em_fila": "_pedidos_em_fila",

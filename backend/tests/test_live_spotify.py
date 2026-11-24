@@ -214,3 +214,30 @@ def test_lista_pequena_demais_forca_nova_consulta(monkeypatch):
 
     buscar_faixas_por_categoria("sertanejo", excluir_titulos={"musica 1", "musica 2"})
     assert chamadas["n"] == 2
+
+
+def test_faixas_do_artista_guardam_a_duracao_para_a_escolha_da_musica(monkeypatch):
+    """A escolha da faixa considera a duração antes de buscar no YouTube (relógio da hora, sequência do musical):
+    a duração que a Spotify já devolve na busca fica guardada por faixa."""
+    from app.live.spotify import _faixas_do_artista, duracoes_faixas
+
+    def _fake_get(url, params=None, headers=None, timeout=None):
+        class _Resposta:
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"tracks": {"items": [
+                    {**_faixa("Duo Estrada", "Rua das Acácias"), "duration_ms": 264_400},
+                    _faixa("Duo Estrada", "Sem Duração"),
+                ]}}
+
+        return _Resposta()
+
+    monkeypatch.setattr("app.live.spotify.httpx.get", _fake_get)
+    redis_client.flushall()
+    assert _faixas_do_artista("fake-token", "Duo Estrada") == [
+        ("Duo Estrada", "Rua das Acácias"), ("Duo Estrada", "Sem Duração")]
+    assert duracoes_faixas([("duo estrada", "RUA DAS ACACIAS"), ("Duo Estrada", "Sem Duração"), ("X", "Y")]) == [
+        264, None, None]
+    assert duracoes_faixas([]) == []

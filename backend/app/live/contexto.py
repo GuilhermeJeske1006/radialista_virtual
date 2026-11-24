@@ -342,6 +342,56 @@ def teto_musica(plano: Plano) -> Plano:
                                                                        + CONFIG_RELOGIO.tolerancia_hard_time_s))
 
 
+_NAO_MUSICA = ("retomada", "identificacao", "abertura", "encerramento")
+_MAX_SEQUENCIA_OLHADA = 8
+
+
+def falta_sequencia_musical_s(entrada: EntradaEmissao, decisao: DecisaoBloco, portas: PortasEmissao) -> float | None:
+    """Formato com sequência musical mínima (o musical promete nove minutos seguidos sem fala), sem relógio: quanto
+    falta para a sequência em curso chegar ao mínimo quando este bloco de música a fecha (o seguinte não é música e
+    o anterior é). None quando não há o que completar. Usa o roteiro puro (tipo_na_posicao, sem sorteio) e a duração
+    das faixas que já tocaram na sequência."""
+    if not _guarda_sequencia(entrada, decisao):
+        return None
+    minimo, programa = entrada.formato.limites.sequencia_musical_min_s, entrada.programa
+
+    def eh_musica(posicao: int) -> bool:
+        tipo = tipo_na_posicao(programa, posicao, portas.categoria_bloco).strip()
+        if _VINHETA_RE.match(tipo) or _PATROCINADOR_RE.match(tipo) or tipo in _NAO_MUSICA:
+            return False
+        return portas.categoria_bloco(tipo) == "musica"
+
+    atual = _posicao_atual(entrada, decisao)
+    if not eh_musica(atual) or eh_musica(atual + 1):
+        return None
+    anteriores = 0
+    while anteriores < _MAX_SEQUENCIA_OLHADA and atual - anteriores - 1 >= 1 and eh_musica(atual - anteriores - 1):
+        anteriores += 1
+    if anteriores == 0:
+        return None
+    tocadas = portas.duracoes_nas_posicoes(programa.id, [atual - k for k in range(1, anteriores + 1)])
+    if any(d is None for d in tocadas):
+        return None  # posição anterior sem faixa registrada: sem preferência
+    falta = minimo - sum(tocadas)
+    return falta if falta > 0 else None
+
+
+def _posicao_atual(entrada: EntradaEmissao, decisao: DecisaoBloco) -> int:
+    """Posição do bloco no roteiro, a mesma de app.live.roteiro.decidir_bloco (pula vinhetas indisponíveis)."""
+    return entrada.total_falas + decisao.passos_roteiro - 1
+
+
+def _guarda_sequencia(entrada: EntradaEmissao, decisao: DecisaoBloco) -> bool:
+    return entrada.formato.limites.sequencia_musical_min_s is not None and decisao.plano is None
+
+
+def _buscar_sem_relogio(entrada: EntradaEmissao, decisao: DecisaoBloco, portas: PortasEmissao):
+    falta = falta_sequencia_musical_s(entrada, decisao, portas)
+    if falta is None:
+        return portas.buscar_musica_para_bloco(entrada.db, entrada.programa, decisao.tipo)
+    return portas.buscar_musica_para_bloco(entrada.db, entrada.programa, decisao.tipo, duracao_min_s=falta)
+
+
 def resolver_musica_e_pedidos(entrada: EntradaEmissao, decisao: DecisaoBloco, portas: PortasEmissao) -> ResolucaoBloco:
     db, account, radialista, programa = entrada.db, entrada.account, entrada.radialista, entrada.programa
     tipo, categoria, plano = decisao.tipo, decisao.categoria, decisao.plano
@@ -394,17 +444,20 @@ def resolver_musica_e_pedidos(entrada: EntradaEmissao, decisao: DecisaoBloco, po
             portas.reprovar_pedido(db, pedido_musica, "Música indisponível")
             pedido_musica = None
             musica = (
-                portas.buscar_musica_para_bloco(db, programa, tipo) if plano is None
+                _buscar_sem_relogio(entrada, decisao, portas) if plano is None
                 else portas.buscar_musica_para_bloco(db, programa, tipo, plano_relogio=teto_musica(plano))
             )
     elif categoria != "musica":
         musica = None
     elif plano is None:
-        musica = portas.buscar_musica_para_bloco(db, programa, tipo)
+        musica = _buscar_sem_relogio(entrada, decisao, portas)
     elif decisao.musica_relogio is not None or decisao.buscou_musica_relogio:
         musica = decisao.musica_relogio
     else:
         musica = portas.buscar_musica_para_bloco(db, programa, tipo, plano_relogio=teto_musica(plano))
+
+    if musica is not None and categoria == "musica" and _guarda_sequencia(entrada, decisao):
+        portas.registrar_duracao_na_posicao(programa.id, _posicao_atual(entrada, decisao), musica)
 
     comum = dict(historico_prompt=historico_prompt, agora_local=agora_local, roster=roster, multi_voz=multi_voz,
                  novo_atendimento=novo_atendimento, pedido_musica=pedido_musica,

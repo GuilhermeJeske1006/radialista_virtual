@@ -81,6 +81,25 @@ def buscar_ou_criar_musica(db: Session, titulo: str, artista: str) -> Musica:
     return musica
 
 
+def duracoes_catalogadas(db: Session, faixas: list[tuple[str, str]]) -> list[int | None]:
+    """Duração (vídeo resolvido, a partir do início) de cada (artista, titulo) já catalogado, na mesma ordem; None
+    quando a faixa não está no catálogo, o vídeo foi esquecido ou não tem duração. Uma consulta só. Não desconta o
+    corte do fim (app.live.audio_analysis.obter_fim_seguro, que pode analisar o áudio): é estimativa para escolher, e o
+    relógio confere a duração real depois da busca."""
+    chaves = [(_normalizar(titulo), _normalizar(artista)) for artista, titulo in faixas]
+    if not chaves:
+        return []
+    linhas = (
+        db.query(Musica.titulo_normalizado, Musica.artista_normalizado, Musica.duracao_segundos,
+                 Musica.youtube_inicio_segundos)
+        .filter(Musica.titulo_normalizado.in_({t for t, _ in chaves}), Musica.duracao_segundos.isnot(None),
+                Musica.youtube_video_id.isnot(None))
+        .all()
+    )
+    por_chave = {(t, a): max(0, duracao - (inicio or 0)) for t, a, duracao, inicio in linhas}
+    return [por_chave.get(chave) for chave in chaves]
+
+
 def _musica_encontrada_do_catalogo(musica: Musica) -> MusicaEncontrada:
     metadados = musica.youtube_metadados or {}
     return MusicaEncontrada(
