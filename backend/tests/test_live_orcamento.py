@@ -94,8 +94,11 @@ def test_estimar_duracao(cfg_fala):
     assert estimar_duracao_s("um dois três quatro cinco", 150) == pytest.approx(2.0)
     assert estimar_duracao_s("[calm] um dois três [laughs] quatro cinco", 150) == pytest.approx(2.0)
     # Cada pausa explícita ("......" ou [pause]) soma a pausa configurada e separa as palavras.
-    assert estimar_duracao_s("um dois......três quatro cinco", 150) == pytest.approx(2.0 + 1.2)
+    assert estimar_duracao_s("um dois...... Três quatro cinco", 150) == pytest.approx(2.0 + 1.2)
     assert estimar_duracao_s("um dois [pause] três quatro cinco [pause]", 150) == pytest.approx(2.0 + 2.4)
+    # "......" emendando a mesma frase ou no fim do texto não vira [pause] no TTS (app.tts.client).
+    assert estimar_duracao_s("um dois......três quatro cinco", 150) == pytest.approx(2.0)
+    assert estimar_duracao_s("um dois três quatro cinco,......", 150) == pytest.approx(2.0)
     # Números saem por extenso antes de contar, como o TTS recebe (app.numeros.normalizar_texto_fala).
     assert palavras_faladas("Em 2026") == 7  # "Em dois mil e vinte e seis"
     assert estimar_duracao_s("Em 2026", 60) == pytest.approx(7.0)
@@ -109,7 +112,7 @@ def test_estimar_duracao_usa_a_pausa_da_configuracao(cfg_fala, monkeypatch):
     from app.live.orcamento import estimar_duracao_s
 
     monkeypatch.setattr(cfg_fala, "fala_pausa_explicita_s", 2.0)
-    assert estimar_duracao_s("um dois......três", 60) == pytest.approx(3.0 + 2.0)
+    assert estimar_duracao_s("um dois...... Três", 60) == pytest.approx(3.0 + 2.0)
 
 
 def test_wpm_observado_filtra_amostras_ruins():

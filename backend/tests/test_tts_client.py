@@ -206,7 +206,8 @@ def test_v4_le_roteiro_do_v3_e_recebe_contexto(modelo):
     _, payload = tts_client._preparar_sintese(
         "Olá! [laughs] Que dia...... [surpreso] Bora.", "comentario", "calmo", True, "Fala anterior.", modelo)
     assert payload["model_id"] == modelo
-    assert payload["text"] == "Olá! [laughs] Que dia [pause] Bora."
+    # [laughs] sai (risada sintética no meio da fala); sem emoção do roteiro, entra a do tom.
+    assert payload["text"] == "[calm] Olá! Que dia [pause] Bora."
     assert payload["previous_text"] == "Fala anterior."
     assert payload["language_code"] == "pt"
     assert set(payload["voice_settings"]) == {"stability", "similarity_boost"}
@@ -441,6 +442,73 @@ def test_clone_multiplos_arquivos_preserva_verificacao(monkeypatch):
     amostras = [("a.wav", b"one", "audio/wav"), ("b.m4a", b"two", "audio/mp4")]
     assert tts_client.clonar_voz("Voz", amostras=amostras)["requires_verification"] is True
     assert fake.chamadas[0][2]["files"] == [("files", a) for a in amostras]
+
+
+@pytest.mark.parametrize("modelo", ["eleven_v3", "eleven_v4"])
+@pytest.mark.parametrize("texto,esperado", [
+    # Troca de emoção no meio da fala: a voz salta de tom (docs/benchmarks/2026-11-23-entrega-voz).
+    ("[calm] Rádio Vila Ventura, Marta aqui, [excited] companhia para o seu dia!",
+     "[calm] Rádio Vila Ventura, Marta aqui, companhia para o seu dia!"),
+    # A primeira emoção pedida vale pra fala inteira, mesmo com texto antes dela (ex.: frase de
+    # contingência que app.live.promessas.garantir_contingencia põe no começo).
+    ("Boa tarde! [excited] Vem comigo.", "[excited] Boa tarde! Vem comigo."),
+    ("Frase de contingência. [excited] Bom dia!", "[excited] Frase de contingência. Bom dia!"),
+    ("[pause] [excited] Bom dia", "[excited] [pause] Bom dia"),
+    ("aqui[calm] companhia pro seu dia", "[calm] aqui companhia pro seu dia"),
+    # Risada e suspiro sintéticos saem como som de efeito no meio da fala.
+    ("[laughs] Eu achava mania. [sighs] Era estratégia pura.", "Eu achava mania. Era estratégia pura."),
+    ("[excited] Olha só! [whispers] segredo [sarcastic] claro.", "[excited] Olha só! segredo claro."),
+])
+def test_direcao_vocal_so_abre_a_fala(modelo, texto, esperado):
+    _, payload = tts_client._preparar_sintese(texto, "comentario", "neutro", False, None, modelo)
+    assert payload["text"] == esperado
+
+
+def test_direcao_do_roteiro_prevalece_sobre_a_do_tom():
+    _, payload = tts_client._preparar_sintese("Frase de contingência. [excited] Bom dia!", "comentario", "calmo",
+                                              False, None, "eleven_v3")
+    assert payload["text"] == "[excited] Frase de contingência. Bom dia!"
+
+
+@pytest.mark.parametrize("texto,esperado", [
+    # Reticência dupla emendando a mesma frase não vira [pause]: o v3 fecha a frase com cadência
+    # final antes da continuação ("Rádio Ipê Dourado. A viola...").
+    ("aqui na Rádio Ipê Dourado...... a viola que acompanha o seu dia.",
+     "aqui na Rádio Ipê Dourado, a viola que acompanha o seu dia."),
+    ("ela acompanha...... e acompanhar é coisa de quem gosta.", "ela acompanha, e acompanhar é coisa de quem gosta."),
+    ("Então escolhe uma dessas duas gavetas hoje,......", "Então escolhe uma dessas duas gavetas hoje."),
+    ("Bom dia......\n\nvamos falar.", "Bom dia, vamos falar."),
+    # A palavra depois da tag decide, não o colchete.
+    ("Bom dia...... [excited] vamos.", "[excited] Bom dia, vamos."),
+    ("Bom dia......[Laughs] e saiu.", "Bom dia, e saiu."),
+    # Antes de pontuação de fechamento a reticência só sai.
+    ("Que dia......!", "Que dia!"),
+    ("(e que dia......)", "(e que dia)"),
+    # Entre frases continua sendo a pausa longa de verdade.
+    ("O sorteado de hoje é...... Maria do Carmo!", "O sorteado de hoje é [pause] Maria do Carmo!"),
+    ("Bom dia......\n\nVamos falar de futebol.", "Bom dia [pause]\n\nVamos falar de futebol."),
+    ("Bom dia...... [excited] Vamos.", "[excited] Bom dia [pause] Vamos."),
+    # Decide no texto do roteiro, antes da normalização (como app.live.orcamento.contar_pausas):
+    # número e pronúncia em minúscula não apagam a pausa.
+    ("O placar foi...... 3 a 1.", "O placar foi [pause] três a um."),
+    ("E o sorteado de hoje é...... Wesley!", "E o sorteado de hoje é [pause] uésli!"),
+])
+def test_v3_pausa_longa_so_entre_frases(texto, esperado):
+    _, payload = tts_client._preparar_sintese(texto, "comentario", "neutro", False, None, "eleven_v3",
+                                              pronuncias={"Wesley": "uésli"})
+    assert payload["text"] == esperado
+
+
+@pytest.mark.parametrize("texto", [
+    "aqui na Rádio Ipê Dourado...... a viola.", "Bom dia...... [excited] vamos.", "Que dia......!",
+    "O placar foi...... 3 a 1.", "E o sorteado de hoje é...... Wesley!", "Bom dia...... [excited] Vamos.",
+    "Então escolhe uma hoje,......", "Bom dia......\n\nVamos.",
+])
+def test_estimativa_conta_as_mesmas_pausas_que_o_tts_envia(texto):
+    from app.live.orcamento import contar_pausas
+    _, payload = tts_client._preparar_sintese(texto, "comentario", "neutro", False, None, "eleven_v3",
+                                              pronuncias={"Wesley": "uésli"})
+    assert contar_pausas(texto) == payload["text"].count("[pause]")
 
 
 @pytest.mark.parametrize("texto,esperado", [

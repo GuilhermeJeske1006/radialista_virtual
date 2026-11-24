@@ -18,6 +18,7 @@ from app.config.settings import settings
 from app.live.formato import contar_palavras
 from app.live.formatos import FORMATOS, Formato, formato_do_programa as _formato_do_programa, resolver_formato, unidade
 from app.numeros import normalizar_texto_fala
+from app.tts.modelos import PAUSA_LONGA_RE
 
 Fonte = Literal["relogio", "formato", "observacao"]
 Situacao = Literal["dentro", "tolerancia", "fora", "acima_do_teto"]
@@ -25,9 +26,11 @@ Situacao = Literal["dentro", "tolerancia", "fora", "acima_do_teto"]
 # frases, corte (só no bloco de música sem pedido: fica só a música) ou nada possível (vai acima do teto).
 Ajuste = Literal["nenhum", "reescrita", "encurtada", "cortada", "acima_do_teto"]
 
-# Pausa longa pedida pelo prompt ("......") e a tag que o TTS recebe no lugar dela
-# (app.tts.client._PAUSA_TROCA_ASSUNTO).
+# Pausa longa pedida pelo prompt ("......") e a tag que o TTS recebe no lugar dela. Só conta como
+# pausa a reticência que o TTS converte em [pause] (PAUSA_LONGA_RE, entre frases); as demais viram
+# vírgula/ponto e só separam palavras (_PAUSA_RE).
 _PAUSA_RE = re.compile(r"\.{4,}|\[\s*pause\s*\]", re.IGNORECASE)
+_PAUSA_CONTADA_RE = re.compile(PAUSA_LONGA_RE.pattern + r"|\[\s*(?i:pause)\s*\]")
 _FRONTEIRA_FRASE_RE = re.compile(r"(?<=[.!?…])\s+")
 
 # Orçamento por formato: (mínimo s, máximo s, máximo de palavras ou None = pelo ritmo), derivado do catálogo de
@@ -61,7 +64,7 @@ class OrcamentoFala:
 # --- estimativa ---------------------------------------------------------------------------------
 
 def contar_pausas(texto: str) -> int:
-    return len(_PAUSA_RE.findall(texto or ""))
+    return len(_PAUSA_CONTADA_RE.findall(texto or ""))
 
 
 def palavras_faladas(texto: str) -> int:

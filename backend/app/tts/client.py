@@ -10,7 +10,8 @@ import httpx
 from app.config.settings import settings
 from app.billing.contexto_ia import modelo_efetivo
 from app.tts.cache import cache_audio
-from app.tts.modelos import MODELOS_COM_TAGS, MODELOS_SEM_CONTEXTO, MODELOS_V4, filtrar_voice_settings
+from app.tts.modelos import (MODELOS_COM_TAGS, MODELOS_SEM_CONTEXTO, MODELOS_V4, PAUSA_LONGA_RE, PONTUACAO_FECHAMENTO,
+                             TAGS_SEGUIDAS, filtrar_voice_settings)
 from app.billing.consumo_ia import reservar, concluir, falhar
 from fastapi import HTTPException
 from app.numeros import normalizar_texto_fala
@@ -109,12 +110,17 @@ _TAG_POR_TOM = {
     "calmo": "[calm]",
 }
 
-# Tags de direcao vocal/emocao do eleven_v3 que o prompt (ver app.live.router) instrui o LLM a
-# inserir inline, no ponto exato da fala -- lista fechada de proposito: o LLM "alucina" tag fora
-# dela com alguma frequencia (testado por audicao), e tag desconhecida pro modelo e' lida como
-# texto literal em vez de virar direcao vocal (ex.: "[surpreso] Nao acredito" sai com a palavra
-# "surpreso" falada).
-_TAGS_V3_EMOCAO = {"excited", "calm", "laughs", "sighs", "whispers", "sarcastic"}
+# Tags de direcao vocal/emocao do eleven_v3 que o prompt (ver app.live.prompts.INSTRUCAO_TAGS_V3)
+# deixa o LLM usar -- lista fechada de proposito: o LLM "alucina" tag fora dela com alguma
+# frequencia (testado por audicao), e tag desconhecida pro modelo e' lida como texto literal em
+# vez de virar direcao vocal (ex.: "[surpreso] Nao acredito" sai com a palavra "surpreso" falada).
+#
+# So' empolgacao e calma, e so' abrindo a fala (ver _direcao_so_no_inicio). Medido em
+# docs/benchmarks/2026-11-23-entrega-voz (falas reais do ao vivo, 3+ takes cada): [excited] no
+# meio da fala, depois de [calm], fazia a voz saltar de tom (pico de pitch acima de +7 semitons
+# na palavra logo depois da tag) e [laughs] virava risada sintetica no meio da frase -- as duas
+# coisas que soam "estranho" no ar. [sighs]/[whispers]/[sarcastic] saem pelo mesmo motivo.
+_TAGS_V3_EMOCAO = {"excited", "calm"}
 
 # Whitelist completa aceita no texto antes de mandar pro eleven_v3 -- emocao (acima) mais [pause],
 # que nao e' emocao (nao deve suprimir o _TAG_POR_TOM abaixo) mas e' inserido por este mesmo
@@ -141,16 +147,41 @@ def _sanitizar_tags_v3(texto: str) -> str:
 def _tem_tag_emocao_v3(texto: str) -> bool:
     return any(m.group(1).lower() in _TAGS_V3_EMOCAO for m in _TAG_INLINE_RE.finditer(texto))
 
-# reticencias duplas ("......") sao a instrucao do prompt (ver app.live.router) pro locutor marcar uma
-# pausa forte e real -- na troca de assunto/bloco, ou no meio da fala antes de um ponto de peso (noticia
-# forte, nome do sorteado, climax de piada). Medido direto na API (par de chamadas identicas, uma so
-# com "..." em vez de tag) que o eleven_v3 trata "..." exatamente como "." -- zero pausa extra, saida
-# em bytes identica. A tag de audio [pause] e' o que realmente funciona (~1.5s medido, reproduzivel),
-# entao a reticencia dupla e' convertida pra ela antes de mandar pro v3; reticencia simples (pausa de
-# respiracao dentro da frase) fica como esta -- vira "." de qualquer forma, e trocar toda ocorrencia
-# por [pause] (~1.5s cada) encheria a fala de silencio, pior que o problema original. O prompt pede uso
-# raro (no maximo 1x por fala) -- em todo ponto final tambem destruiria o efeito.
-_PAUSA_TROCA_ASSUNTO = re.compile(r"\.{4,}")
+
+_TAG_EMOCAO_RE = re.compile(r"\[(?:" + "|".join(sorted(_TAGS_V3_EMOCAO)) + r")\][ \t]*")
+
+
+def _direcao_so_no_inicio(texto: str) -> str:
+    """Uma direcao so' pra fala inteira, sem troca de emocao dentro dela (ver _TAGS_V3_EMOCAO):
+    a primeira tag de emocao do roteiro vai pro inicio e as demais saem. Sobe pro inicio em vez
+    de sumir porque pode haver texto antes dela que nao e' do LLM (frase de contingencia posta
+    na frente por app.live.promessas.garantir_contingencia). Roda depois de _sanitizar_tags_v3,
+    entao as tags ja estao normalizadas em minuscula."""
+    primeira = _TAG_EMOCAO_RE.search(texto)
+    if not primeira:
+        return texto
+    return f"{primeira.group(0).strip()} {_TAG_EMOCAO_RE.sub(' ', texto).strip()}"
+
+
+def _converter_pausas(texto: str) -> str:
+    """"......" do roteiro: [pause] so' antes de frase nova (PAUSA_LONGA_RE); emendando a mesma
+    frase vira virgula, antes de pontuacao de fechamento some e no fim do texto vira ponto. Roda
+    no texto do roteiro, antes da normalizacao, como app.live.orcamento.contar_pausas."""
+    texto = PAUSA_LONGA_RE.sub(" [pause] ", texto)
+    # (?!\.) fecha a sequência de pontos: sem ela o regex volta um ponto e o lookahead o enxerga.
+    texto = re.sub(r",?\s*\.{4,}(?!\.)\s*(?=" + TAGS_SEGUIDAS + r"[a-zà-ÿ])", ", ", texto)
+    texto = re.sub(r"\s*\.{4,}(?!\.)(?=\s*" + TAGS_SEGUIDAS + "[" + re.escape(PONTUACAO_FECHAMENTO) + "])", "", texto)
+    return re.sub(r",?\s*\.{4,}(?!\.)(?=\s*" + TAGS_SEGUIDAS + r"$)", ".", texto)
+
+# reticencias duplas ("......") sao a instrucao do prompt (ver app.live.prompt_emissao) pro locutor
+# marcar uma pausa forte e real antes de um ponto de peso (noticia forte, nome do sorteado, climax
+# de piada). Medido direto na API (par de chamadas identicas, uma so com "..." em vez de tag) que o
+# eleven_v3 trata "..." exatamente como "." -- zero pausa extra, saida em bytes identica. A tag de
+# audio [pause] e' o que realmente funciona (~1.5s medido, reproduzivel), entao a reticencia dupla
+# e' convertida pra ela antes de mandar pro v3 (so' entre frases: ver PAUSA_LONGA_RE e
+# _converter_pausas); reticencia simples (pausa de respiracao dentro da frase) fica como esta --
+# vira "." de qualquer forma, e trocar toda ocorrencia por [pause] (~1.5s cada) encheria a fala de
+# silencio, pior que o problema original. O prompt pede uso raro (no maximo 1x por fala).
 
 # v3 não usa Similarity/Speaker Boost; v4 usa Similarity, mas não Style/Speed.
 # O filtro de capacidades em app.tts.modelos vale também para o perfil natural.
@@ -304,11 +335,10 @@ def _preparar_sintese(
     # app.live.router, conteudo fixo), entao a instrucao de prompt "escreva numero por extenso"
     # nao alcanca esse caso. Roda pra qualquer modelo, nao so' v3 -- algarismo em portugues sai
     # errado em qualquer sintetizador.
-    texto_tts = normalizar_texto_fala(texto, pronuncias)
+    texto_tts = normalizar_texto_fala(_converter_pausas(texto) if modelo in MODELOS_COM_TAGS else texto, pronuncias)
     if modelo in MODELOS_COM_TAGS:
-        texto_tts = _PAUSA_TROCA_ASSUNTO.sub(" [pause] ", texto_tts)
-        texto_tts = _sanitizar_tags_v3(texto_tts)
-        texto_tts = re.sub(r" {2,}", " ", texto_tts).strip()
+        texto_tts = _direcao_so_no_inicio(_sanitizar_tags_v3(texto_tts))
+        texto_tts = re.sub(r"[ \t]*\n[ \t]*", "\n", re.sub(r" {2,}", " ", texto_tts)).strip()
         if perfil != "natural" and not _tem_tag_emocao_v3(texto_tts):
             tag = _TAG_POR_TOM.get(tom or "")
             categoria = categoria_tipo_bloco(tipo_bloco or "")

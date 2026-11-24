@@ -40,7 +40,7 @@ LIMITACAO_V4 = ("Voz lançada em setembro de 2026, avaliada em menos pautas que 
 COMBINACOES = (
     Combinacao(
         "premium", "Premium", "claude-opus-5", "eleven_v3",
-        "Texto mais elaborado e voz mais expressiva, com direção vocal (risada, suspiro, empolgação). "
+        "Texto mais elaborado e voz mais expressiva, com direção vocal (empolgação ou calma). "
         "É a configuração padrão do Locufy.",
         "Maior custo. Falas muito longas demoram mais para ficar prontas.",
         recomendada=True,
@@ -124,17 +124,17 @@ MODELOS = {
     },
     "eleven_v3": {
         "funcao": "voz",
-        "descricao": "A mais expressiva, com direção vocal (risada, suspiro, empolgação). Falas muito longas "
+        "descricao": "A mais expressiva, com direção vocal (empolgação ou calma). Falas muito longas "
                      "demoram mais para ficar prontas.",
     },
     "eleven_v4": {
         "funcao": "voz",
-        "descricao": "Expressiva, com direção vocal (risada, suspiro, empolgação). Nas avaliações, ficou pronta "
+        "descricao": "Expressiva, com direção vocal (empolgação ou calma). Nas avaliações, ficou pronta "
                      "mais rápido e com tempo mais estável que a v3. Não aceita ajuste de velocidade da fala.",
     },
     "eleven_v4_turbo": {
         "funcao": "voz",
-        "descricao": "Expressiva, com direção vocal (risada, suspiro, empolgação). Nas avaliações, "
+        "descricao": "Expressiva, com direção vocal (empolgação ou calma). Nas avaliações, "
                      "teve menor tempo de resposta que a v4. Não aceita ajuste de velocidade da fala.",
     },
     "eleven_flash_v2_5": {

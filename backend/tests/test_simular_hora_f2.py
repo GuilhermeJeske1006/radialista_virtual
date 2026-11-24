@@ -31,12 +31,14 @@ def test_duble_tts_gera_mp3_silencioso_com_a_duracao_da_voz():
     texto = "um dois três quatro cinco seis sete oito nove dez onze doze treze catorze quinze dezesseis"
     audio = duble.sintetizar_audio(texto, "voz", tipo_bloco="comentario")
     assert duracao_mp3_s(audio) == pytest.approx(8.0, abs=0.05)
-    assert duracao_mp3_s(duble.sintetizar_audio(texto + "...... fim", "voz")) == pytest.approx(8.5 + 1.2, abs=0.05)
+    assert duracao_mp3_s(duble.sintetizar_audio(texto + "...... Fim", "voz")) == pytest.approx(8.5 + 1.2, abs=0.05)
+    # Emendando a mesma frase em minúscula, "......" vira vírgula no TTS: sem pausa longa.
+    assert duracao_mp3_s(duble.sintetizar_audio(texto + "...... fim", "voz")) == pytest.approx(8.5, abs=0.05)
     # Mesmo texto, mesmos bytes (como o cache de TTS); texto diferente com a mesma duração, bytes diferentes.
     assert duble.sintetizar_audio(texto, "voz") == audio
     assert duble.sintetizar_audio(texto.replace("um", "um,"), "voz") != audio
     assert b"".join(duble.sintetizar_audio_stream(texto, "voz")) == audio
-    assert duble.contadores["sintetizar_audio"] == 5
+    assert duble.contadores["sintetizar_audio"] == 6
 
 
 @pytest.mark.parametrize("perfil", PERFIS)

@@ -220,10 +220,11 @@ _TRANSICOES_POR_ORIGEM: dict[str, list[str]] = {
 # tags, ver app.tts.modelos.MODELOS_COM_TAGS).
 # Constante para o validador de combinacoes (scripts/validar_combinacoes.py) usar o mesmo texto.
 INSTRUCAO_TAGS_V3 = (
-    "Você pode inserir tags de direção vocal no ponto exato da fala onde fazem sentido, "
-    "escolhendo só entre: [excited], [calm], [laughs], [sighs], [whispers], [sarcastic]. Insira "
-    "cada tag imediatamente antes do trecho que ela deve afetar, no máximo 2 por fala, e só quando "
-    "o momento realmente pedir -- não force uma tag em toda fala. Nunca invente tag fora dessa lista."
+    "Você pode abrir a fala com UMA tag de direção vocal, que vale pra fala inteira: [excited] "
+    "(empolgação) ou [calm] (calma). Ela vem como primeira coisa do texto, antes da primeira palavra. "
+    "Nunca coloque tag no meio da fala nem troque de emoção dentro dela -- a voz salta de tom e soa "
+    "estranha. Não force tag em toda fala, e nunca use outra tag nem escreva risada ou suspiro "
+    "('haha', 'kkk', 'rs', 'ai ai'): a energia vem das palavras e da pontuação."
 )
 
 _VARIACOES_CONVITE_OUVINTE = [
