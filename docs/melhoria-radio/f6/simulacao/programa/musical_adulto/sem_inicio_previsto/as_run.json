@@ -1260,20 +1260,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 213.0,
-      "duracao_prevista_s": 213,
+      "duracao_prevista_backend_s": 228.0,
+      "duracao_prevista_s": 228,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:40:35-03:00",
-      "fim_s": 2435.59,
+      "fim": "2026-11-10T14:40:50-03:00",
+      "fim_s": 2450.59,
       "formato": "musical_adulto",
       "gerado_em_s": 1706.97,
       "inicio": "2026-11-10T14:37:02-03:00",
       "inicio_previsto_s": 2221.9,
       "inicio_s": 2222.59,
       "musica_anunciada": [],
-      "musica_tocada": "Serenata no Beco - Banda Fio de Prata",
+      "musica_tocada": "Quintal de Mangueiras - Duo Estrada Velha",
       "musicas_bloco": [
-        "Serenata no Beco - Banda Fio de Prata"
+        "Quintal de Mangueiras - Duo Estrada Velha"
       ],
       "musicas_citadas": [],
       "n": 15,
@@ -1333,7 +1333,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-mad-30"
+      "video_id": "sim-mad-25"
     },
     {
       "audio_status": "pendente",
@@ -1348,15 +1348,15 @@
       "duracao_prevista_backend_s": 8.89,
       "duracao_prevista_s": 8.89,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:40:45-03:00",
-      "fim_s": 2445.67,
+      "fim": "2026-11-10T14:41:00-03:00",
+      "fim_s": 2460.67,
       "formato": "musical_adulto",
       "gerado_em_s": 1962.97,
-      "inicio": "2026-11-10T14:40:35-03:00",
-      "inicio_previsto_s": 2434.9,
-      "inicio_s": 2435.74,
+      "inicio": "2026-11-10T14:40:50-03:00",
+      "inicio_previsto_s": 2449.9,
+      "inicio_s": 2450.74,
       "musica_anunciada": [],
-      "musica_tocada": "Sal da Maré - Tomás Ribeira",
+      "musica_tocada": "Ponte de Madeira - Helena Marés",
       "musicas_bloco": [],
       "musicas_citadas": [],
       "n": 16,
@@ -1388,7 +1388,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "fala",
-        "espaco_s": 1135.1,
+        "espaco_s": 1120.1,
         "etapa": {
           "fim": "2026-11-10T17:41:00Z",
           "hard_time": false,
@@ -1401,7 +1401,7 @@
           "tipo_efetivo": "curadoria"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:40:34.900000Z",
+        "inicio_previsto": "2026-11-10T17:40:49.900000Z",
         "inicio_previsto_aceito": false,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1422,7 +1422,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 1135.1
+        "segundos_ate_hard_time": 1120.1
       },
       "revisada": false,
       "sinteses_tts": 1,
@@ -1442,20 +1442,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 267.0,
-      "duracao_prevista_s": 267,
+      "duracao_prevista_backend_s": 249.0,
+      "duracao_prevista_s": 249,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:45:12-03:00",
-      "fim_s": 2712.82,
+      "fim": "2026-11-10T14:45:09-03:00",
+      "fim_s": 2709.82,
       "formato": "musical_adulto",
       "gerado_em_s": 2222.59,
-      "inicio": "2026-11-10T14:40:45-03:00",
-      "inicio_previsto_s": 2443.94,
-      "inicio_s": 2445.82,
+      "inicio": "2026-11-10T14:41:00-03:00",
+      "inicio_previsto_s": 2458.94,
+      "inicio_s": 2460.82,
       "musica_anunciada": [],
-      "musica_tocada": "Sal da Maré - Tomás Ribeira",
+      "musica_tocada": "Ponte de Madeira - Helena Marés",
       "musicas_bloco": [
-        "Sal da Maré - Tomás Ribeira"
+        "Ponte de Madeira - Helena Marés"
       ],
       "musicas_citadas": [],
       "n": 17,
@@ -1473,7 +1473,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 1125.37,
+        "espaco_s": 1110.37,
         "etapa": {
           "fim": "2026-11-10T17:53:00Z",
           "hard_time": false,
@@ -1486,7 +1486,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:40:44.630000Z",
+        "inicio_previsto": "2026-11-10T17:40:59.630000Z",
         "inicio_previsto_aceito": false,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1507,7 +1507,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 1125.37
+        "segundos_ate_hard_time": 1110.37
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1515,7 +1515,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-mad-17"
+      "video_id": "sim-mad-04"
     },
     {
       "audio_status": null,
@@ -1527,20 +1527,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 264.0,
-      "duracao_prevista_s": 264,
+      "duracao_prevista_backend_s": 234.0,
+      "duracao_prevista_s": 234,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:49:36-03:00",
-      "fim_s": 2976.82,
+      "fim": "2026-11-10T14:49:03-03:00",
+      "fim_s": 2943.82,
       "formato": "musical_adulto",
-      "gerado_em_s": 2435.59,
-      "inicio": "2026-11-10T14:45:12-03:00",
-      "inicio_previsto_s": 2711.78,
-      "inicio_s": 2712.82,
+      "gerado_em_s": 2450.59,
+      "inicio": "2026-11-10T14:45:09-03:00",
+      "inicio_previsto_s": 2708.78,
+      "inicio_s": 2709.82,
       "musica_anunciada": [],
-      "musica_tocada": "Rua das Acácias - Duo Estrada Velha",
+      "musica_tocada": "Telhados de Lisboa - Coral Alto",
       "musicas_bloco": [
-        "Rua das Acácias - Duo Estrada Velha"
+        "Telhados de Lisboa - Coral Alto"
       ],
       "musicas_citadas": [],
       "n": 18,
@@ -1558,7 +1558,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 858.22,
+        "espaco_s": 861.22,
         "etapa": {
           "fim": "2026-11-10T17:53:00Z",
           "hard_time": false,
@@ -1571,7 +1571,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:45:11.780000Z",
+        "inicio_previsto": "2026-11-10T17:45:08.780000Z",
         "inicio_previsto_aceito": false,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1592,7 +1592,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 858.22
+        "segundos_ate_hard_time": 861.22
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1600,7 +1600,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-mad-01"
+      "video_id": "sim-mad-15"
     },
     {
       "audio_status": null,
@@ -1612,20 +1612,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 236.0,
-      "duracao_prevista_s": 236,
+      "duracao_prevista_backend_s": 264.0,
+      "duracao_prevista_s": 264,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:53:32-03:00",
-      "fim_s": 3212.82,
+      "fim": "2026-11-10T14:53:27-03:00",
+      "fim_s": 3207.82,
       "formato": "musical_adulto",
-      "gerado_em_s": 2445.67,
-      "inicio": "2026-11-10T14:49:36-03:00",
-      "inicio_previsto_s": 2975.78,
-      "inicio_s": 2976.82,
+      "gerado_em_s": 2460.67,
+      "inicio": "2026-11-10T14:49:03-03:00",
+      "inicio_previsto_s": 2942.78,
+      "inicio_s": 2943.82,
       "musica_anunciada": [],
-      "musica_tocada": "Cartas de Outono - Dora Vilarejo",
+      "musica_tocada": "Rua das Acácias - Duo Estrada Velha",
       "musicas_bloco": [
-        "Cartas de Outono - Dora Vilarejo"
+        "Rua das Acácias - Duo Estrada Velha"
       ],
       "musicas_citadas": [],
       "n": 19,
@@ -1643,7 +1643,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 593.18,
+        "espaco_s": 626.18,
         "etapa": {
           "fim": "2026-11-10T17:53:00Z",
           "hard_time": false,
@@ -1656,7 +1656,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:49:36.820000Z",
+        "inicio_previsto": "2026-11-10T17:49:03.820000Z",
         "inicio_previsto_aceito": false,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1677,7 +1677,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 593.18
+        "segundos_ate_hard_time": 626.18
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1685,7 +1685,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-mad-07"
+      "video_id": "sim-mad-01"
     },
     {
       "audio_status": null,
@@ -1700,13 +1700,13 @@
       "duracao_prevista_backend_s": 274.0,
       "duracao_prevista_s": 274,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:58:06-03:00",
-      "fim_s": 3486.82,
+      "fim": "2026-11-10T14:58:01-03:00",
+      "fim_s": 3481.82,
       "formato": "musical_adulto",
-      "gerado_em_s": 2712.82,
-      "inicio": "2026-11-10T14:53:32-03:00",
-      "inicio_previsto_s": 3212.82,
-      "inicio_s": 3212.82,
+      "gerado_em_s": 2709.82,
+      "inicio": "2026-11-10T14:53:27-03:00",
+      "inicio_previsto_s": 3207.82,
+      "inicio_s": 3207.82,
       "musica_anunciada": [],
       "musica_tocada": "Cais do Entardecer - Banda Fio de Prata",
       "musicas_bloco": [
@@ -1728,7 +1728,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 357.18,
+        "espaco_s": 362.18,
         "etapa": {
           "fim": "2026-11-10T17:56:00Z",
           "hard_time": false,
@@ -1741,7 +1741,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:53:32.820000Z",
+        "inicio_previsto": "2026-11-10T17:53:27.820000Z",
         "inicio_previsto_aceito": false,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1762,7 +1762,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 357.18
+        "segundos_ate_hard_time": 362.18
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1785,13 +1785,13 @@
       "duracao_prevista_backend_s": 4.97,
       "duracao_prevista_s": 4.44,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:58:11-03:00",
-      "fim_s": 3491.94,
+      "fim": "2026-11-10T14:58:06-03:00",
+      "fim_s": 3486.94,
       "formato": "musical_adulto",
-      "gerado_em_s": 2976.82,
-      "inicio": "2026-11-10T14:58:06-03:00",
-      "inicio_previsto_s": 3486.82,
-      "inicio_s": 3486.97,
+      "gerado_em_s": 2943.82,
+      "inicio": "2026-11-10T14:58:01-03:00",
+      "inicio_previsto_s": 3481.82,
+      "inicio_s": 3481.97,
       "musica_anunciada": [],
       "musica_tocada": null,
       "musicas_bloco": [],
@@ -1825,7 +1825,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "reserva",
-        "espaco_s": 83.18,
+        "espaco_s": 88.18,
         "etapa": {
           "fim": "2026-11-10T17:59:30Z",
           "hard_time": false,
@@ -1838,7 +1838,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:58:06.820000Z",
+        "inicio_previsto": "2026-11-10T17:58:01.820000Z",
         "inicio_previsto_aceito": false,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1859,7 +1859,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 83.18
+        "segundos_ate_hard_time": 88.18
       },
       "revisada": false,
       "sinteses_tts": 1,
@@ -1882,13 +1882,13 @@
       "duracao_prevista_backend_s": 24.31,
       "duracao_prevista_s": 13.7,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:58:27-03:00",
-      "fim_s": 3507.6,
+      "fim": "2026-11-10T14:58:22-03:00",
+      "fim_s": 3502.6,
       "formato": "musical_adulto",
-      "gerado_em_s": 3212.82,
-      "inicio": "2026-11-10T14:58:12-03:00",
-      "inicio_previsto_s": 3491.94,
-      "inicio_s": 3492.29,
+      "gerado_em_s": 3207.82,
+      "inicio": "2026-11-10T14:58:07-03:00",
+      "inicio_previsto_s": 3486.94,
+      "inicio_s": 3487.29,
       "musica_anunciada": [],
       "musica_tocada": null,
       "musicas_bloco": [],
@@ -1922,7 +1922,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "encerramento",
-        "espaco_s": 108.06,
+        "espaco_s": 113.06,
         "etapa": {
           "fim": "2026-11-10T18:00:00Z",
           "hard_time": true,
@@ -1935,7 +1935,7 @@
           "tipo_efetivo": "encerramento"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:58:11.940000Z",
+        "inicio_previsto": "2026-11-10T17:58:06.940000Z",
         "inicio_previsto_aceito": false,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1969,13 +1969,13 @@
       "duracao_prevista_backend_s": 24.31,
       "duracao_prevista_s": 9.0,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:58:36-03:00",
-      "fim_s": 3516.6,
+      "fim": "2026-11-10T14:58:31-03:00",
+      "fim_s": 3511.6,
       "formato": "musical_adulto",
-      "gerado_em_s": 3212.82,
-      "inicio": "2026-11-10T14:58:27-03:00",
-      "inicio_previsto_s": 3491.94,
-      "inicio_s": 3507.6,
+      "gerado_em_s": 3207.82,
+      "inicio": "2026-11-10T14:58:22-03:00",
+      "inicio_previsto_s": 3486.94,
+      "inicio_s": 3502.6,
       "musica_anunciada": [],
       "musica_tocada": null,
       "musicas_bloco": [],
@@ -1995,7 +1995,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "encerramento",
-        "espaco_s": 108.06,
+        "espaco_s": 113.06,
         "etapa": {
           "fim": "2026-11-10T18:00:00Z",
           "hard_time": true,
@@ -2008,7 +2008,7 @@
           "tipo_efetivo": "encerramento"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:58:11.940000Z",
+        "inicio_previsto": "2026-11-10T17:58:06.940000Z",
         "inicio_previsto_aceito": false,
         "obrigacoes": null,
         "orcamento_s": [

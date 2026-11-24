@@ -80,24 +80,23 @@ def test_s1_formato_invalido_e_recusado():
 # docs/melhoria-radio/f6/pendencias.md, "Limites do §9 medidos na primeira rodada"; nada foi afrouxado. O teste falha
 # se o conjunto de itens fora do limite ou o valor medido mudar (para pior ou para melhor).
 #
-# Remedido em 24/11/2026 depois da escolha de música do ab49a7b (outras faixas, outras durações, outra grade da hora):
-# mesmas causas, valores novos; ver a mesma seção de pendencias.md, "Remedição de 24/11/2026".
+# Remedido em 24/11/2026 depois da escolha de música do ab49a7b e da escolha pela duração (outras faixas, outras
+# durações, outra grade da hora): mesmas causas, valores novos; ver pendencias.md, "Remedição de 24/11/2026".
 MEDIDO_FORA_DO_LIMITE = {
     # dublê: abre com o banco da retomada (conta a vinheta como fala) e a retomada do banco sai com 4 s
     ("musical_adulto", "relogio"): {"falas_fora_da_unidade_pct": 14.3},
-    # e, sem relógio, dois pares de faixas longas do catálogo fake seguidos (a escolha não olha duração)
-    ("musical_adulto", "sem_relogio"): {"falas_fora_da_unidade_pct": 14.3, "maior_sequencia_musical_s": 539.0},
+    ("musical_adulto", "sem_relogio"): {"falas_fora_da_unidade_pct": 12.5},
     ("musical_adulto", "sem_inicio_previsto"): {"falas_fora_da_unidade_pct": 14.3},
     # dublê: o comentário e a chamada do banco não dizem o nome (ignoram a linha de reorientação do prompt)
     ("popular_sertanejo", "relogio"): {"maior_intervalo_sem_reorientacao_s": 3174.83},
     ("popular_sertanejo", "voz_120"): {"maior_intervalo_sem_reorientacao_s": 3475.35},
     ("popular_sertanejo", "sem_inicio_previsto"): {"maior_intervalo_sem_reorientacao_s": 3174.83},
     # dublê: o banco do quadro tem uma frase de convite ("pode contar pelo WhatsApp") e não diz o nome do programa
-    ("variedades_leves", "relogio"): {"convites_fora_da_politica": 4, "maior_intervalo_sem_reorientacao_s": 3473.27},
+    ("variedades_leves", "relogio"): {"convites_fora_da_politica": 4, "maior_intervalo_sem_reorientacao_s": 3452.27},
     ("variedades_leves", "sem_relogio"): {"convites_fora_da_politica": 3},
     ("variedades_leves", "voz_120"): {"convites_fora_da_politica": 2, "maior_intervalo_sem_reorientacao_s": 3454.05},
     ("variedades_leves", "sem_inicio_previsto"): {"convites_fora_da_politica": 4,
-                                                  "maior_intervalo_sem_reorientacao_s": 3473.27},
+                                                  "maior_intervalo_sem_reorientacao_s": 3452.27},
 }
 ITEM_DA_METRICA = {"falas_fora_da_unidade_pct": "falas_fora_da_unidade", "convites_fora_da_politica":
                    "convites_fora_da_politica", "maior_intervalo_sem_reorientacao_s": "reorientacao",
@@ -137,8 +136,8 @@ def test_s2_formato_da_fixture_herdados_e_coerencia(perfil, variante):
 
 def test_s2_o_que_fecha_nos_tres_perfis():
     """O que fecha em todas as 12 rodadas: direção do formato no prompt, nenhum tema de revisão nem bloco fora do
-    formato, fala dentro da faixa do formato e, no musical, a sequência musical e as interrupções (fora o que está
-    medido em MEDIDO_FORA_DO_LIMITE: a sequência musical do musical sem relógio desde 24/11/2026)."""
+    formato, fala dentro da faixa do formato e, no musical, a sequência musical e as interrupções (fora o que estiver
+    medido em MEDIDO_FORA_DO_LIMITE)."""
     for perfil in PERFIS:
         for variante in VARIANTES:
             itens = _rodar(perfil, variante).resumo["formato"]["itens"]

@@ -23,7 +23,7 @@
   "chamadas_tts": 23,
   "config": {
     "antecedencia": 2,
-    "commit": "50318e2",
+    "commit": "305da32",
     "corte": "agendado",
     "fixture": "popular_sertanejo",
     "formato": "programa",
@@ -264,7 +264,7 @@
   "sinais_ia_falas": 23,
   "sinais_ia_media": null,
   "sinais_ia_p90": null,
-  "tempo_execucao_s": 5.37,
+  "tempo_execucao_s": 5.01,
   "tempo_fala_s": 687.9,
   "tempo_musica_s": 2819.0,
   "tempo_outros_s": 90.0,

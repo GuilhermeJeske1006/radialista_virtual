@@ -149,7 +149,7 @@ fechou e falha se ele mudar.
   cada volta sobrevive ao patrocinador e o dublê usa a reabertura com o nome); variedades sem relógio de 1159 s para
   1088 s; variedades com C ficou igual (3459 → 3467 s), pelo dublê.
 
-### Remedição de 24/11/2026 (escolha de música do `ab49a7b`)
+### Remedição de 24/11/2026 (escolha de música do `ab49a7b` e escolha pela duração)
 O `ab49a7b` passou a escolher a faixa pelo contexto do programa, tirando do pool artistas que já tocaram e mudando o
 peso da lista do admin. No fake, isso troca as faixas do catálogo que tocam, e com elas as durações e a grade da hora.
 O CI ficou com 37 falhas a partir dali (deploy barrado). Correções:
@@ -163,28 +163,52 @@ O CI ficou com 37 falhas a partir dali (deploy barrado). Correções:
   nova a terceira fala com slogan caía em 2448 s (o teste pede três em 30 min) e o sinal caía numa identificação de
   7 s, encurtada por orçamento, que cortava a segunda frase da injeção.
 
-Valores medidos, mesmas causas da tabela acima (nada afrouxado; os testes falham se o valor mudar):
+Valores medidos, mesmas causas da tabela acima (nada afrouxado; os testes falham se o valor mudar). "Agora" já inclui a
+escolha pela duração (seção seguinte):
 
 | Perfil / variante | Item | Antes | Agora | Causa |
 |---|---|---|---|---|
 | musical / relógio e painel antigo | `falas_fora_da_unidade` | 16,7% | 14,3% (1 de 7) | A mesma abertura do banco curto; uma fala a mais na hora. |
-| musical / sem relógio | `falas_fora_da_unidade` | 12,5% | 14,3% (1 de 7) | A mesma retomada do banco. |
-| musical / sem relógio | `maior_sequencia_musical` (novo) | dentro | 539 s | Dois pares de faixas de 249 a 280 s do catálogo fake em seguida. A escolha não olha a duração (nem antes). |
+| musical / sem relógio | `falas_fora_da_unidade` | 12,5% | 12,5% | A mesma retomada do banco. |
 | popular / relógio e painel antigo | `fora_orcamento_pct` | 10% | 0% | A identificação de reserva agora cabe no espaço neste formato; o caso foi para o formato programa (abaixo). |
 | popular / relógio e painel antigo | `reorientacao` (novo) | dentro | 3175 s | Dublê: o comentário do banco não diz o nome do programa. |
 | popular / voz 120 | `reorientacao` | 3052 s | 3475 s | O mesmo. |
-| variedades / relógio e painel antigo | `convites_fora_da_politica`, `reorientacao` | 2; 3467 s | 4; 3473 s | O banco do quadro: mais quadros na hora. |
+| variedades / relógio e painel antigo | `convites_fora_da_politica`, `reorientacao` | 2; 3467 s | 4; 3452 s | O banco do quadro: mais quadros na hora. |
 | variedades / voz 120 | `convites_fora_da_politica`, `reorientacao` | 3; 3472 s | 2; 3454 s | O mesmo. |
 
 - **Formato programa (F5):** popular com relógio e painel antigo, `fora_orcamento_pct` 10% (era 0):
   identificação de reserva de 7,45 s num espaço de 7 s (6,62 s em 6 s no painel antigo), +6%, dentro da tolerância de
   15%. Guardado em `tests/test_simulacao_f5.py::FORA_ORCAMENTO_MEDIDO`, usado também nos aceites da F4
   (`test_simulacao_f4.py`) e da F2 (`test_simular_hora_f2.py`).
-- **Fim antecipado (relógio A, musical):** 91,26 s (limite 60). Fecha com três faixas de 236 a 274 s; sobram 119 s depois
-  da última e não cabe outra. Guardado em `tests/test_simular_hora.py::FIM_ANTECIPADO_MEDIDO`.
-- **Pendência de produto, não do dublê:** a escolha de música não considera a duração restante do bloco nem da hora.
-  No ar, faixa longa no fim da hora antecipa o encerramento e duas longas em seguida estouram a sequência musical do
-  formato musical.
+
+### Escolha de música pela duração (24/11/2026)
+Só com a troca de faixas do `ab49a7b`, dois critérios que fechavam passaram a falhar, e a causa era do produto, não do
+dublê: a escolha (Spotify, lista do admin, pedidos do público) não sabia a duração antes de buscar no YouTube.
+- **Musical com relógio A:** encerramento 91,26 s antes do fim (limite 60). Três faixas de 236 a 274 s no fim; sobraram
+  119 s, não cabia outra. O relógio só conferia depois da busca, em até três tentativas, e ficava com a mais longa.
+- **Musical sem relógio:** maior sequência só de música de 539 s, abaixo dos 540 s (nove minutos) que o formato promete.
+
+O que mudou (`app.live.router._escolher_query_musica`, `app.live.relogio.lacuna_musica_s`,
+`app.live.contexto.falta_sequencia_musical_s`):
+- A duração passa a ser conhecida antes da busca: a do catálogo (`Musica.duracao_segundos`, vídeo já resolvido) e, sem
+  ela, a da Spotify (`duration_ms`, guardada junto da lista do gênero).
+- **Com relógio:** entre as candidatas, ficam as que fecham o espaço até o compromisso, olhando até duas faixas à
+  frente com as durações das outras candidatas; sem nenhuma, as de duração desconhecida; sem essas, a que deixa a menor
+  sobra impossível. A conferência depois da busca continua igual.
+- **Musical sem relógio:** a faixa que fecha uma sequência prefere a duração que completa os nove minutos, somando as
+  faixas anteriores da sequência (guardadas no Redis ao registrar cada música).
+- Quando a duração não diferencia (as conhecidas servem ou não cabem no teto), as de duração desconhecida continuam no
+  sorteio com os pesos de antes; sem duração conhecida, a escolha é a de antes. A duração de cada posição do roteiro
+  fica no Redis por posição (bloco gerado de novo sobrescreve a mesma), não como "as últimas tocadas".
+- A busca à frente trabalha com as durações distintas e cache: cerca de 0,1 s no pior caso medido (500 candidatas de
+  236 a 280 s, nada fechando), contra 5 a 7 s da primeira versão com 200.
+
+Resultado no fake: fim antecipado 42 s (musical A), 21 s (popular A), 13 s (variedades C) e 39 s (variedades B), todos
+dentro dos 60 s; a sequência musical fecha em todas as rodadas (musical sem relógio: 563 s). O dublê informa a duração
+exata do que vai ao ar; em produção a da Spotify é a de estúdio e a do catálogo não desconta o corte do fim, então o
+ganho real tende a ser menor que o do fake (o relógio confere a duração real depois da busca, como antes).
+- **Fora do alcance:** bloco com rótulo de gênero próprio (ex.: "Vaneira") busca direto no YouTube e não passa pela
+  escolha por duração.
 
 ### Ideias fora do escopo (leva 2)
 - **Dublê obediente ao formato** (como `duble_usa_dados` da F5, ligado por campo da fixture): reagir à linha de
