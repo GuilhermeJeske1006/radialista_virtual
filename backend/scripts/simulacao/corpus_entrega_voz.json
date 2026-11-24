@@ -1,0 +1,74 @@
+[
+ {
+  "id": "pop_abertura",
+  "formato": "popular_sertanejo",
+  "tipo": "abertura",
+  "tom": "energico",
+  "voz": "paulo",
+  "texto": "[excited] Boa tarde, boa tarde! Aqui é o Zeca Porteira, e o Prosa e Viola tá no ar na Rádio Ipê Dourado, a viola que acompanha o seu dia.\n\nTerça-feira, duas da tarde, aquele momento em que o dia já mostrou a que veio e a gente senta um pouquinho pra respirar. Seja no volante, na cozinha, na roça ou no balcão, cê tá acompanhado daqui.\n\nE eu já começo com uma curiosidade: qual é a música que vai marcar a sua tarde de hoje? Vai que eu acerto na mosca sem nem saber.\n\nFica comigo, que a prosa tá só começando."
+ },
+ {
+  "id": "pop_tres_coisas",
+  "formato": "popular_sertanejo",
+  "tipo": "comentario",
+  "tom": "calmo",
+  "voz": "paulo",
+  "texto": "[calm] Boiadeiro de Domingo saindo assim, devagar, deixa a gente com aquele passo manso de quem não tem pressa nenhuma.\n\nE olha, eu fiquei pensando aqui em três coisas que a viola faz com a gente numa tarde de terça. A primeira, ela acalma, sem precisar dizer nada. A segunda é que ela tem memória, porque basta um dedilhado pra voltar cheiro de fogão, de estrada, de gente que a gente nem via faz tempo.\n\nE a terceira, [excited] essa é a melhor, ela junta. Junta quem tá na roça, quem tá na cozinha, quem tá dirigindo com o rádio ligado, tudo no mesmo compasso, no mesmo assunto.\n\nÉ por isso que eu gosto desse horário, Prosa e Viola, aqui na viola que acompanha o seu dia."
+ },
+ {
+  "id": "pop_viola_trabalho",
+  "formato": "popular_sertanejo",
+  "tipo": "comentario",
+  "tom": "calmo",
+  "voz": "paulo",
+  "texto": "[calm] Pois é, ainda com esse ipê na cabeça, eu fico pensando numa coisa que mexe comigo.\n\nTem gente que acha que moda de viola é música de ouvir calado, meio parada, coisa de quem já descansou da vida. Eu discordo, e discordo com gosto. Moda de viola é música de trabalho, viu? É o que toca enquanto o sujeito arruma a cerca, enquanto a panela borbulha, enquanto a estrada vai passando debaixo do pneu.\n\nAgora são catorze e cinquenta e sete, e eu aposto que boa parte de vocês está me ouvindo fazendo alguma coisa, não sentado de braço cruzado. [excited] Essa é a graça!\n\nTem gente que precisa de batida forte pra render. Eu rendo mais é com viola no fundo, porque ela não atrapalha o pensamento, ela acompanha...... e acompanhar é coisa de quem gosta de verdade."
+ },
+ {
+  "id": "pop_encerramento",
+  "formato": "popular_sertanejo",
+  "tipo": "encerramento",
+  "tom": "energico",
+  "voz": "paulo",
+  "texto": "[calm] Pois é, essa prosa de viola que acompanha o trabalho é bem o resumo do que foi a nossa tarde aqui. [excited] E chegou a hora de encerrar o Prosa e Viola de hoje!\n\nEu agradeço demais a companhia de vocês, de verdade, cada um aí no seu serviço, na estrada, na cozinha, com a nossa viola de fundo. Foi uma tarde de prosa boa e moda boa, e isso só acontece porque tem gente do outro lado escutando.\n\nZeca Porteira se despede, e a gente se encontra de novo amanhã, mesma hora, aqui na Rádio Ipê Dourado...... a viola que acompanha o seu dia. Até lá!"
+ },
+ {
+  "id": "var_id_curta",
+  "formato": "variedades_leves",
+  "tipo": "abertura",
+  "tom": "energico",
+  "voz": "yasmin",
+  "texto": "[calm] Rádio Vila Ventura, Marta Girassol aqui, [excited] companhia para o seu dia!"
+ },
+ {
+  "id": "var_risada",
+  "formato": "variedades_leves",
+  "tipo": "comentario",
+  "tom": "calmo",
+  "voz": "yasmin",
+  "texto": "[calm] E teve uma lembrança da escola que me voltou agora: o uniforme pendurado na porta do guarda-roupa pela minha mãe, meia já em cima. [laughs] Eu achava mania. Era estratégia pura, e eu só copiei."
+ },
+ {
+  "id": "var_musica",
+  "formato": "variedades_leves",
+  "tipo": "musica",
+  "tom": "energico",
+  "voz": "yasmin",
+  "texto": "[calm] Gui Marmelada saindo daqui com o Bloco da Esquina, e o WhatsApp não parou. Paulo Brandão mandou pedido, e eu adorei a escolha dele.\n\n[excited] Patins Amarelos, com Tati Pirilampo, tocando agora na Vila Ventura!"
+ },
+ {
+  "id": "var_chamada",
+  "formato": "variedades_leves",
+  "tipo": "chamada_ouvinte",
+  "tom": "energico",
+  "voz": "yasmin",
+  "texto": "[calm] Lola Carambola com Bairro em Festa, e olha que coincidência boa, porque chegou festa de verdade aqui no WhatsApp.\n\nCida Morais mandou recado, e é dos curtinhos que valem o dia inteiro: um beijo para a irmã dela, que faz aniversário hoje. [excited] Então tá dado, Cida! Beijo da sua irmã, beijo meu, e beijo da Vila Ventura inteira pra essa aniversariante.\n\nE eu fico pensando aqui no que combina com um dia desses, porque nem sempre a comemoração precisa de reserva em restaurante e conta no fim. Às vezes é só chamar a pessoa pra caminhar num fim de tarde, levar um sorvete, sentar num banco e ficar conversando bobagem até escurecer. Isso custa quase nada e fica guardado por anos.\n\nEntão vai minha sugestão descarada pra você, Cida: pega sua irmã, arrasta pra uma volta sem destino nenhum, dessas de ir conversando e nem reparar o caminho. Aniversário com calçada e papo rende mais história do que muita festa organizada.\n\nE quem quiser mandar o alô de vocês, o WhatsApp tá aberto, eu leio tudo aqui. Toca com a gente."
+ },
+ {
+  "id": "mus_abertura",
+  "formato": "musical_adulto",
+  "tipo": "abertura",
+  "tom": "calmo",
+  "voz": "paulo",
+  "texto": "[calm] Tarde Serena no ar, na Rádio Serra Clara. Eu sou o Caio Ventania, e a companhia aqui é simples, música boa para a sua tarde, com pouca conversa no meio.\n\n[excited] Vem comigo que a tarde fica mais leve! Fica a pergunta solta aí, qual canção vai ficar marcada na sua tarde de hoje?"
+ }
+]
