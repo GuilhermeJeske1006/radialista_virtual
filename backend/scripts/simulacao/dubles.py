@@ -628,13 +628,21 @@ class CatalogoSimulado:
             and not titulo_ja_tocado(f.titulo, set(excluir_titulos or ()))
         ]
 
-    def sugerir_musica_do_genero(self, genero: str) -> str:
+    def sugerir_musica_do_genero(self, genero: str, contexto: str = "", evitar=()) -> str:
         self.contadores["sugerir_musica_do_genero"] += 1
         alvo = normalizar(genero)
+        recentes = {normalizar(e) for e in evitar}
         for faixa in self.faixas:
-            if not faixa.indisponivel and alvo in [normalizar(g) for g in faixa.generos]:
-                return f"{faixa.artista} - {faixa.titulo}"
+            sugestao = f"{faixa.artista} - {faixa.titulo}"
+            if (not faixa.indisponivel and alvo in [normalizar(g) for g in faixa.generos]
+                    and normalizar(sugestao) not in recentes):
+                return sugestao
         return ""
+
+    def escolher_faixa_do_programa(self, faixas, contexto: str) -> int | None:
+        """A escolha do LLM entre as candidatas do Spotify: a primeira do pool (já sorteado com a semente)."""
+        self.contadores["escolher_faixa_do_programa"] += 1
+        return 0 if faixas else None
 
     def resumir_contexto_musica(self, titulo: str, canal: str, descricao: str, tags, ano) -> str:
         self.contadores["resumir_contexto_musica"] += 1
@@ -682,6 +690,7 @@ ALVOS: tuple[Alvo, ...] = (
     Alvo("app.llm.client", "extrair_musicas_citadas", "apoio"),
     Alvo("app.llm.client", "itens_fora_do_genero", "apoio", ("app.live.router", "app.live.spotify")),
     Alvo("app.llm.client", "sugerir_musica_do_genero", "apoio"),
+    Alvo("app.llm.client", "escolher_faixa_do_programa", "apoio"),
     Alvo("app.llm.client", "resumir_contexto_musica", "apoio"),
     Alvo("app.live.router", "_registrar_tema_em_background", "apoio"),
     Alvo("app.live.music", "buscar_musica", "apoio"),
@@ -777,6 +786,7 @@ def _substitutos(modo: str, llm: DubleLLM, musicas: CatalogoSimulado, contadores
         "extrair_musicas_citadas": musicas.extrair_musicas_citadas,
         "itens_fora_do_genero": llm.itens_fora_do_genero,
         "sugerir_musica_do_genero": musicas.sugerir_musica_do_genero,
+        "escolher_faixa_do_programa": musicas.escolher_faixa_do_programa,
         "resumir_contexto_musica": musicas.resumir_contexto_musica,
         "_registrar_tema_em_background": _registrar_tema,
         "buscar_musica": musicas.buscar_musica,

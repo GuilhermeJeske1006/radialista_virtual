@@ -822,6 +822,12 @@ def test_casos_de_avaliacao_cobrem_as_regras():
 # F1: relógio no backend (S1, S2 de docs/melhoria-radio/f1/auditoria.md §6)
 # ---------------------------------------------------------------------------------------------
 
+# Medido desde a escolha de música do ab49a7b (24/11/2026): o musical com A fecha com três faixas de 236 a 274 s do
+# catálogo fake; sobram 119 s depois da última, não cabe outra e o encerramento vai ao ar 91 s antes do fim. A escolha
+# de música não olha a duração (nem antes); falha se o valor mudar.
+FIM_ANTECIPADO_MEDIDO = {("musical_adulto", "A"): 91.26}
+
+
 @pytest.mark.parametrize("perfil, relogio", [
     ("musical_adulto", "A"), ("popular_sertanejo", "A"), ("variedades_leves", "C"), ("variedades_leves", "B"),
 ])
@@ -844,7 +850,8 @@ def test_relogio_hard_times_sem_atraso(perfil, relogio, tmp_path):
     assert all(f["orcamento_s"]["max"] >= f["orcamento_s"]["min"] for f in falas)
     assert resumo["encerramento_no_ar"] is True
     assert resumo["segundos_cortados"] == 0
-    assert resumo["fim_antecipado_s"] <= 60
+    assert resumo["fim_antecipado_s"] == FIM_ANTECIPADO_MEDIDO[(perfil, relogio)] \
+        if (perfil, relogio) in FIM_ANTECIPADO_MEDIDO else resumo["fim_antecipado_s"] <= 60
     # O painel encadeia o horário previsto com a duração prevista pelo backend: no modo fake, exata.
     for evento in as_run["eventos"]:
         assert evento["inicio_previsto_s"] is not None

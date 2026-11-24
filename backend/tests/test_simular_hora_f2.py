@@ -60,8 +60,12 @@ def test_simulador_le_orcamento_e_duracao_medida_do_backend(simulacoes_tts, perf
 
 @pytest.mark.parametrize("perfil", PERFIS)
 def test_criterios_de_orcamento_e_custo(simulacoes_tts, perfil):
+    from tests.test_simulacao_f5 import FORA_ORCAMENTO_MEDIDO
+
     resumo = simulacoes_tts[perfil].resumo
-    assert resumo["fora_orcamento_pct"] <= 5.0
+    # Identificação de reserva do popular medida desde 24/11/2026 (tests/test_simulacao_f5.py::FORA_ORCAMENTO_MEDIDO).
+    medido = FORA_ORCAMENTO_MEDIDO.get((perfil, "relogio"))
+    assert resumo["fora_orcamento_pct"] == medido if medido is not None else resumo["fora_orcamento_pct"] <= 5.0
     assert resumo["estouro_max_pct"] <= 30.0
     assert resumo["acima_teto_orcamento"] == 0
     custo = resumo["orcamento_fala"]

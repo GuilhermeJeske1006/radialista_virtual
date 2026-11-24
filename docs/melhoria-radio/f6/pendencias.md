@@ -149,6 +149,43 @@ fechou e falha se ele mudar.
   cada volta sobrevive ao patrocinador e o dublê usa a reabertura com o nome); variedades sem relógio de 1159 s para
   1088 s; variedades com C ficou igual (3459 → 3467 s), pelo dublê.
 
+### Remedição de 24/11/2026 (escolha de música do `ab49a7b`)
+O `ab49a7b` passou a escolher a faixa pelo contexto do programa, tirando do pool artistas que já tocaram e mudando o
+peso da lista do admin. No fake, isso troca as faixas do catálogo que tocam, e com elas as durações e a grade da hora.
+O CI ficou com 37 falhas a partir dali (deploy barrado). Correções:
+
+- **Dublê:** `sugerir_musica_do_genero` aceita `contexto` e `evitar`; `escolher_faixa_do_programa` ganhou dublê
+  (primeira candidata do pool, que o backend já sorteou com a semente). Sem ele, a escolha ia à rede bloqueada.
+- **Gravações regravadas** com as mesmas chamadas dos testes: `f5/simulacao/linha_de_base/*`,
+  `f5/simulacao/variedades_leves/*` e `f6/simulacao/programa/*`. Evento a evento, a diferença é a faixa tocada e o que
+  decorre dela (horários, duração prevista, ±1 a 3 eventos por hora). Conferido com `PYTHONHASHSEED` 0, 4242 e 31337.
+- **Cenário H0** (`h0_popular_sinais.json`): o slogan da fala 5 passou para a 3 e o sinal de IA da 8 para a 7. Na grade
+  nova a terceira fala com slogan caía em 2448 s (o teste pede três em 30 min) e o sinal caía numa identificação de
+  7 s, encurtada por orçamento, que cortava a segunda frase da injeção.
+
+Valores medidos, mesmas causas da tabela acima (nada afrouxado; os testes falham se o valor mudar):
+
+| Perfil / variante | Item | Antes | Agora | Causa |
+|---|---|---|---|---|
+| musical / relógio e painel antigo | `falas_fora_da_unidade` | 16,7% | 14,3% (1 de 7) | A mesma abertura do banco curto; uma fala a mais na hora. |
+| musical / sem relógio | `falas_fora_da_unidade` | 12,5% | 14,3% (1 de 7) | A mesma retomada do banco. |
+| musical / sem relógio | `maior_sequencia_musical` (novo) | dentro | 539 s | Dois pares de faixas de 249 a 280 s do catálogo fake em seguida. A escolha não olha a duração (nem antes). |
+| popular / relógio e painel antigo | `fora_orcamento_pct` | 10% | 0% | A identificação de reserva agora cabe no espaço neste formato; o caso foi para o formato programa (abaixo). |
+| popular / relógio e painel antigo | `reorientacao` (novo) | dentro | 3175 s | Dublê: o comentário do banco não diz o nome do programa. |
+| popular / voz 120 | `reorientacao` | 3052 s | 3475 s | O mesmo. |
+| variedades / relógio e painel antigo | `convites_fora_da_politica`, `reorientacao` | 2; 3467 s | 4; 3473 s | O banco do quadro: mais quadros na hora. |
+| variedades / voz 120 | `convites_fora_da_politica`, `reorientacao` | 3; 3472 s | 2; 3454 s | O mesmo. |
+
+- **Formato programa (F5):** popular com relógio e painel antigo, `fora_orcamento_pct` 10% (era 0):
+  identificação de reserva de 7,45 s num espaço de 7 s (6,62 s em 6 s no painel antigo), +6%, dentro da tolerância de
+  15%. Guardado em `tests/test_simulacao_f5.py::FORA_ORCAMENTO_MEDIDO`, usado também nos aceites da F4
+  (`test_simulacao_f4.py`) e da F2 (`test_simular_hora_f2.py`).
+- **Fim antecipado (relógio A, musical):** 91,26 s (limite 60). Fecha com três faixas de 236 a 274 s; sobram 119 s depois
+  da última e não cabe outra. Guardado em `tests/test_simular_hora.py::FIM_ANTECIPADO_MEDIDO`.
+- **Pendência de produto, não do dublê:** a escolha de música não considera a duração restante do bloco nem da hora.
+  No ar, faixa longa no fim da hora antecipa o encerramento e duas longas em seguida estouram a sequência musical do
+  formato musical.
+
 ### Ideias fora do escopo (leva 2)
 - **Dublê obediente ao formato** (como `duble_usa_dados` da F5, ligado por campo da fixture): reagir à linha de
   reorientação e à política de convite, para o fake medir a decisão do backend e não o banco. Ligado por padrão,

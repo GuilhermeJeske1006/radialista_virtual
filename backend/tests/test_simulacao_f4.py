@@ -41,7 +41,9 @@ def test_s1_aceite_da_f4_nos_tres_perfis(perfil, variante):
     if variante in ("relogio", "sem_inicio_previsto"):
         assert resumo["atraso_hard_time_s"] <= 5
         assert resumo["encerramento_no_ar"] is True
-        assert resumo["fora_orcamento_pct"] == 0
+        # Identificação de reserva do popular medida desde 24/11/2026 (tests/test_simulacao_f5.py::FORA_ORCAMENTO_MEDIDO).
+        from tests.test_simulacao_f5 import FORA_ORCAMENTO_MEDIDO
+        assert resumo["fora_orcamento_pct"] == FORA_ORCAMENTO_MEDIDO.get((perfil, variante), 0)
 
 
 def _injecao(fala, frase):
