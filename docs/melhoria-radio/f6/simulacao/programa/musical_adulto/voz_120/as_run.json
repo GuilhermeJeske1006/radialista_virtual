@@ -1612,20 +1612,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 264.0,
-      "duracao_prevista_s": 264,
+      "duracao_prevista_backend_s": 266.0,
+      "duracao_prevista_s": 266,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:54:22-03:00",
-      "fim_s": 3262.2,
+      "fim": "2026-11-10T14:54:24-03:00",
+      "fim_s": 3264.2,
       "formato": "musical_adulto",
       "gerado_em_s": 2503.2,
       "inicio": "2026-11-10T14:49:58-03:00",
       "inicio_previsto_s": 2998.2,
       "inicio_s": 2998.2,
       "musica_anunciada": [],
-      "musica_tocada": "Café com Neblina - Duo Estrada Velha",
+      "musica_tocada": "Vento de Agosto - Nina Arrebol",
       "musicas_bloco": [
-        "Café com Neblina - Duo Estrada Velha"
+        "Vento de Agosto - Nina Arrebol"
       ],
       "musicas_citadas": [],
       "n": 19,
@@ -1685,7 +1685,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-mad-13"
+      "video_id": "sim-mad-09"
     },
     {
       "audio_status": null,
@@ -1697,20 +1697,20 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 269.0,
-      "duracao_prevista_s": 269,
+      "duracao_prevista_backend_s": 267.0,
+      "duracao_prevista_s": 267,
       "fala_ajuste": null,
       "fim": "2026-11-10T14:58:51-03:00",
       "fim_s": 3531.2,
       "formato": "musical_adulto",
       "gerado_em_s": 2749.2,
-      "inicio": "2026-11-10T14:54:22-03:00",
-      "inicio_previsto_s": 3262.2,
-      "inicio_s": 3262.2,
+      "inicio": "2026-11-10T14:54:24-03:00",
+      "inicio_previsto_s": 3264.2,
+      "inicio_s": 3264.2,
       "musica_anunciada": [],
-      "musica_tocada": "Sobrado Amarelo - Conjunto Maré Mansa",
+      "musica_tocada": "Sal da Maré - Tomás Ribeira",
       "musicas_bloco": [
-        "Sobrado Amarelo - Conjunto Maré Mansa"
+        "Sal da Maré - Tomás Ribeira"
       ],
       "musicas_citadas": [],
       "n": 20,
@@ -1728,7 +1728,7 @@
       "promessas_fechadas": [],
       "relogio": {
         "acao": "musica",
-        "espaco_s": 307.8,
+        "espaco_s": 305.8,
         "etapa": {
           "fim": "2026-11-10T17:56:00Z",
           "hard_time": false,
@@ -1741,7 +1741,7 @@
           "tipo_efetivo": "musica"
         },
         "hora": 0,
-        "inicio_previsto": "2026-11-10T17:54:22.200000Z",
+        "inicio_previsto": "2026-11-10T17:54:24.200000Z",
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
@@ -1762,7 +1762,7 @@
           "tipo_efetivo": "encerramento"
         },
         "puladas": [],
-        "segundos_ate_hard_time": 307.8
+        "segundos_ate_hard_time": 305.8
       },
       "revisada": false,
       "sinteses_tts": null,
@@ -1770,7 +1770,7 @@
       "tipo": "musica",
       "tom": null,
       "validacao_fala": null,
-      "video_id": "sim-mad-22"
+      "video_id": "sim-mad-17"
     },
     {
       "audio_status": "pendente",
@@ -1885,7 +1885,7 @@
       "fim": "2026-11-10T14:59:15-03:00",
       "fim_s": 3555.7,
       "formato": "musical_adulto",
-      "gerado_em_s": 3262.2,
+      "gerado_em_s": 3264.2,
       "inicio": "2026-11-10T14:58:57-03:00",
       "inicio_previsto_s": 3537.35,
       "inicio_s": 3537.7,
@@ -1972,7 +1972,7 @@
       "fim": "2026-11-10T14:59:24-03:00",
       "fim_s": 3564.7,
       "formato": "musical_adulto",
-      "gerado_em_s": 3262.2,
+      "gerado_em_s": 3264.2,
       "inicio": "2026-11-10T14:59:15-03:00",
       "inicio_previsto_s": 3537.35,
       "inicio_s": 3555.7,

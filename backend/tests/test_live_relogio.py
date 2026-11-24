@@ -315,6 +315,10 @@ def test_u13_musica_teto_e_alternativas(caplog):
     assert r.duracao_preferida_musica_s(plano) == 243  # espaço para uma faixa só
     longe = _planejar(programa, _em(10, 14, 13), executadas=feito)
     assert r.duracao_preferida_musica_s(longe) == 660 - 200  # deixa lugar para outra música
+    # Sem olhar à frente, a lacuna é a do musica_cabe: 0 quando cabe sem sobra impossível.
+    assert r.lacuna_musica_s(240, plano) == 0 and r.lacuna_musica_s(244, plano) == float("inf")
+    # Sobra de 180 s; no musical (sem preenchimento) o adiantamento de 90 s cobre metade.
+    assert plano.sobra_proibida_s == (90, 200) and r.lacuna_musica_s(60, plano) == 180 - 90
     # Antes de uma etapa ajustável, a faixa pode avançar no máximo 60 s sobre ela.
     assert _planejar(programa, _em(10, 14, 10), executadas=ABERTURA_FEITA).duracao_max_musica_s == 120 + 60
 
@@ -415,3 +419,40 @@ def test_u21_estado_no_redis_falha_aberto(monkeypatch, caplog):
     r.marcar_executada(1, ocorrencia, "0:755")
     assert "relogio_estado_indisponivel" in caplog.text and "relogio_estado_nao_gravado" in caplog.text
     assert _planejar(_programa(), _em(10, 14, 12, 0), executadas=r.etapas_executadas(1, ocorrencia)) is not None
+
+
+# ---------------------------------------------------------------------------------------------
+# Escolha de música pela duração: lacuna com olhar à frente
+# ---------------------------------------------------------------------------------------------
+
+def _janela(espaco_s, sobra=(45, 200)):
+    return SimpleNamespace(espaco_s=espaco_s, sobra_proibida_s=sobra, duracao_max_musica_s=int(espaco_s) + 3)
+
+
+# Durações do catálogo fake do musical (tests/fixtures/programas): o fim do programa com relógio A.
+FAIXAS_MUSICAL = [236, 249, 253, 261, 264, 266, 274, 278, 280]
+
+
+def test_lacuna_olha_as_proximas_faixas_conhecidas():
+    """Faltando 629 s para o encerramento, nenhuma combinação fecha exata; a faixa mais longa deixa a menor sobra
+    no fim (280 + 278 = 558, sobra 71 s, 26 s além dos 45 s de adiantamento final) e a de 236 s a maior."""
+    janela = _janela(629)
+    outras = lambda d: [x for x in FAIXAS_MUSICAL if x != d]  # noqa: E731
+    assert r.lacuna_musica_s(280, janela, outras=outras(280)) == 629 - 280 - 278 - 45
+    assert r.lacuna_musica_s(236, janela, outras=outras(236)) == 629 - 236 - 280 - 45
+    # Com 393 s (o caso medido), a última faixa deixa sobra impossível de qualquer jeito: 274 s deixa 119.
+    assert r.lacuna_musica_s(274, _janela(393), outras=outras(274)) == 119 - 45
+
+
+def test_lacuna_zero_quando_alguma_combinacao_fecha():
+    janela = _janela(520)
+    assert r.lacuna_musica_s(280, janela, outras=[240, 300]) == 0  # 280 + 240 = 520
+    assert r.lacuna_musica_s(300, janela, outras=[280, 240]) == 220 - 45  # 300 deixa 220; nenhuma outra cabe
+    # Sem durações conhecidas para olhar à frente, sobra que cabe outra faixa conta como fechada (musica_cabe).
+    assert r.lacuna_musica_s(300, janela) == 0
+
+
+def test_lacuna_fora_da_janela_so_olha_o_teto():
+    sem_janela = SimpleNamespace(espaco_s=None, sobra_proibida_s=None, duracao_max_musica_s=300)
+    assert r.lacuna_musica_s(300, sem_janela, outras=[10]) == 0
+    assert r.lacuna_musica_s(301, sem_janela) == float("inf")

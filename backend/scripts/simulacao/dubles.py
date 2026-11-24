@@ -628,6 +628,12 @@ class CatalogoSimulado:
             and not titulo_ja_tocado(f.titulo, set(excluir_titulos or ()))
         ]
 
+    def duracoes_faixas(self, faixas) -> list[int | None]:
+        """Duração (s) que a Spotify informaria para cada (artista, titulo) do catálogo; None fora dele."""
+        self.contadores["duracoes_faixas"] += 1
+        por_chave = {(normalizar(f.artista), normalizar(f.titulo)): f.duracao_tocada_s for f in self.faixas}
+        return [por_chave.get((normalizar(a), normalizar(t))) for a, t in faixas]
+
     def sugerir_musica_do_genero(self, genero: str, contexto: str = "", evitar=()) -> str:
         self.contadores["sugerir_musica_do_genero"] += 1
         alvo = normalizar(genero)
@@ -696,6 +702,7 @@ ALVOS: tuple[Alvo, ...] = (
     Alvo("app.live.music", "buscar_musica", "apoio"),
     Alvo("app.live.song_service", "resolver_musica_catalogada", "apoio"),
     Alvo("app.live.spotify", "buscar_faixas_por_categoria", "apoio"),
+    Alvo("app.live.spotify", "duracoes_faixas", "apoio"),
     Alvo("app.llm.noticias", "pesquisar_noticias", "apoio"),
     Alvo("app.weather.client", "obter_clima_atual", "apoio", ("app.llm.prompt_builder",)),
     Alvo("app.weather.client", "obter_leitura_clima", "apoio"),
@@ -792,6 +799,7 @@ def _substitutos(modo: str, llm: DubleLLM, musicas: CatalogoSimulado, contadores
         "buscar_musica": musicas.buscar_musica,
         "resolver_musica_catalogada": musicas.resolver_musica_catalogada,
         "buscar_faixas_por_categoria": musicas.buscar_faixas_por_categoria,
+        "duracoes_faixas": musicas.duracoes_faixas,
         "pesquisar_noticias": contar("pesquisar_noticias",
                                      lambda *a, **k: PesquisaNoticias(status="desabilitada")),
         "obter_clima_atual": contar("obter_clima_atual", lambda *a, **k: None),

@@ -107,6 +107,9 @@
   "musicas_tocadas:canais:1": {
    "banda horizonte": "1"
   },
+  "musicas_tocadas:duracao_posicao:1": {
+   "1": "200.0"
+  },
   "musicas_tocadas:ids:1": [
    "faixa001"
   ],

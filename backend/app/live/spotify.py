@@ -167,6 +167,7 @@ def _faixas_do_artista(token: str, nome_artista: str) -> list[tuple[str, str]]:
         return []
 
     resultado = []
+    duracoes = {}
     for faixa in resposta.json().get("tracks", {}).get("items", []):
         artistas_faixa = faixa.get("artists") or []
         titulo = faixa.get("name")
@@ -175,7 +176,30 @@ def _faixas_do_artista(token: str, nome_artista: str) -> list[tuple[str, str]]:
         if _PADRAO_FAIXA_COMPOSTA.search(titulo):
             continue
         resultado.append((artistas_faixa[0]["name"], titulo))
+        if isinstance(faixa.get("duration_ms"), int) and faixa["duration_ms"] > 0:
+            duracoes[_chave_duracao(artistas_faixa[0]["name"], titulo)] = round(faixa["duration_ms"] / 1000)
+    if duracoes:
+        redis_client.hset(_CHAVE_DURACOES, mapping=duracoes)
+        redis_client.expire(_CHAVE_DURACOES, _CACHE_TTL_CATEGORIA_SEGUNDOS)
     return resultado
+
+
+# Duração (s) de cada faixa vista na Spotify, para a escolha da música considerar o tempo antes da busca no YouTube
+# (relógio da hora e sequência do formato musical, ver app.live.router._escolher_query_musica). É a duração da
+# faixa de estúdio; o vídeo pode ter alguns segundos a mais, e o relógio confere a duração real depois da busca.
+_CHAVE_DURACOES = "spotify:duracao_faixa"
+
+
+def _chave_duracao(artista: str, titulo: str) -> str:
+    return f"{_sem_acento(artista.lower()).strip()}|{_sem_acento(titulo.lower()).strip()}"
+
+
+def duracoes_faixas(faixas: list[tuple[str, str]]) -> list[int | None]:
+    """Duração conhecida de cada (artista, titulo), na mesma ordem; None quando a Spotify não informou."""
+    if not faixas:
+        return []
+    valores = redis_client.hmget(_CHAVE_DURACOES, [_chave_duracao(a, t) for a, t in faixas])
+    return [int(v) if v else None for v in valores]
 
 
 def _buscar_faixas_do_spotify(genero: str) -> list[tuple[str, str]]:

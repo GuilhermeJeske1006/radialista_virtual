@@ -17,10 +17,13 @@ docs/melhoria-radio/f1/auditoria.md (§5) e docs/melhoria-radio/f6/auditoria.md 
 """
 
 import datetime
+import functools
 import json
 import logging
 import math
 import pathlib
+from collections import Counter
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field, replace
 from typing import Literal, get_args
 from zoneinfo import ZoneInfo
@@ -1001,6 +1004,48 @@ def duracao_preferida_musica_s(plano: Plano, cfg: ConfigRelogio = CONFIG_PADRAO)
         if com_folga >= cfg.musica_busca_min_s:
             return min(com_folga, plano.duracao_max_musica_s)
     return plano.duracao_max_musica_s
+
+
+def lacuna_musica_s(duracao_s: float, plano: Plano, cfg: ConfigRelogio = CONFIG_PADRAO, *,
+                    outras: Sequence[float] = (), profundidade: int = 2) -> float:
+    """Segundos que ficariam sem preenchimento possível antes do compromisso escolhendo esta faixa: 0 fecha o
+    espaço, `inf` não cabe no teto. Fora da janela de um compromisso (sem sobra proibida), só o teto conta.
+
+    Na janela, a sobra que outra faixa preencheria só conta como fechada quando alguma das `outras` (durações
+    conhecidas de outras candidatas) a preenche de fato, olhando até `profundidade` faixas à frente; sem durações
+    conhecidas, conta (como em musica_cabe). Sobra que nada preenche vira adiantamento: a lacuna é o que passa
+    do adiantamento permitido (o piso da sobra proibida), e a escolha prefere a menor."""
+    if plano.duracao_max_musica_s is not None and duracao_s > plano.duracao_max_musica_s:
+        return math.inf
+    if plano.sobra_proibida_s is None or plano.espaco_s is None:
+        return 0.0
+    # Durações distintas com a quantidade de cada (segundos inteiros): o custo da busca à frente cresce com as durações
+    # diferentes, não com o tamanho da lista (centenas de faixas do admin ou da Spotify), e o cache reaproveita entre
+    # candidatas da mesma escolha.
+    contagem = tuple(sorted(Counter(round(d) for d in outras).items()))
+    return _lacuna(round(plano.espaco_s - duracao_s, 2), tuple(plano.sobra_proibida_s), cfg.folga_teto_s, contagem,
+                   profundidade)
+
+
+@functools.lru_cache(maxsize=8192)
+def _lacuna(sobra: float, proibida: tuple[int, int], folga: int, outras: tuple[tuple[int, int], ...],
+            profundidade: int) -> float:
+    piso, topo = proibida
+    if sobra <= piso:
+        return 0.0
+    if sobra < topo or (outras and profundidade > 0 and all(d > sobra + folga for d, _ in outras)):
+        return sobra - piso
+    if not outras or profundidade == 0:
+        return 0.0
+    melhor = math.inf
+    for i, (duracao, quantidade) in enumerate(outras):
+        if duracao > sobra + folga:
+            continue
+        resto = outras[:i] + (((duracao, quantidade - 1),) if quantidade > 1 else ()) + outras[i + 1:]
+        melhor = min(melhor, _lacuna(round(sobra - duracao, 2), proibida, folga, resto, profundidade - 1))
+        if melhor == 0:
+            break
+    return melhor
 
 
 def musica_cabe(duracao_s: float, plano: Plano, cfg: ConfigRelogio = CONFIG_PADRAO, *, estrito: bool = True) -> bool:

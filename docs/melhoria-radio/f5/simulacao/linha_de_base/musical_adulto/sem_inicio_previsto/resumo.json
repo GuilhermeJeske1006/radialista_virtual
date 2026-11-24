@@ -24,7 +24,7 @@
   "chamadas_tts": 7,
   "config": {
     "antecedencia": 2,
-    "commit": "50318e2",
+    "commit": "305da32",
     "corte": "agendado",
     "fixture": "musical_adulto",
     "formato": "programa",
@@ -54,19 +54,21 @@
     "blocos_musica_com_llm": 1,
     "contadores": {
       "blocos_musica_llm": 1,
-      "buscar_musica": 2,
+      "buscar_musica": 10,
       "caracteres_tts": 1002,
       "classificar_fio_condutor": 1,
+      "duracoes_faixas": 21,
       "extrair_musicas_citadas": 6,
       "faixa_reconhecida": 1,
-      "faixas_devolvidas": 23,
+      "faixas_devolvidas": 22,
       "falas": 7,
       "gerar_resposta": 8,
       "injecao_cita_musica": 1,
       "injecao_excesso": 1,
+      "itens_fora_do_genero": 4,
       "obter_metadados_voz": 1,
       "processar_audio": 7,
-      "resolver_musica_catalogada": 23,
+      "resolver_musica_catalogada": 18,
       "resumir_contexto_musica": 1,
       "revisoes": 1,
       "sintetizar_audio": 7,
@@ -103,7 +105,7 @@
     "retomada": 2
   },
   "fechamentos_curtos": 0,
-  "fim_antecipado_s": 83.4,
+  "fim_antecipado_s": 88.4,
   "fora_orcamento_pct": 0.0,
   "formato": {
     "avisos": [
@@ -148,8 +150,8 @@
       "reorientacao": true,
       "temas_revisao_no_ar": true
     },
-    "maior_intervalo_sem_reorientacao_s": 1051.23,
-    "maior_sequencia_musical_s": 1041.0,
+    "maior_intervalo_sem_reorientacao_s": 1031.23,
+    "maior_sequencia_musical_s": 1021.0,
     "relogio_padrao": "A",
     "reorientacao_s": 900,
     "reorientacoes": 5,
@@ -181,9 +183,9 @@
       "tipo": "intervalo"
     },
     {
-      "atraso_s": -77.71,
+      "atraso_s": -82.71,
       "cortado": false,
-      "executado_em_s": 3492.29,
+      "executado_em_s": 3487.29,
       "inicio_s": 3570,
       "status": "adiantado",
       "tipo": "passagem"
@@ -277,9 +279,9 @@
   "sinais_ia_falas": 7,
   "sinais_ia_media": null,
   "sinais_ia_p90": null,
-  "tempo_execucao_s": 1.8,
+  "tempo_execucao_s": 1.65,
   "tempo_fala_s": 74.9,
-  "tempo_musica_s": 3423.0,
+  "tempo_musica_s": 3418.0,
   "tempo_outros_s": 17.0,
   "tentativas_rede": 0,
   "validacao_fala": {

@@ -23,7 +23,7 @@
   "chamadas_tts": 26,
   "config": {
     "antecedencia": 2,
-    "commit": "50318e2",
+    "commit": "305da32",
     "corte": "agendado",
     "fixture": "variedades_leves",
     "formato": "programa",
@@ -260,7 +260,7 @@
   "sinais_ia_falas": 24,
   "sinais_ia_media": null,
   "sinais_ia_p90": null,
-  "tempo_execucao_s": 6.13,
+  "tempo_execucao_s": 6.3,
   "tempo_fala_s": 1271.19,
   "tempo_musica_s": 2325.56,
   "tempo_outros_s": 0,

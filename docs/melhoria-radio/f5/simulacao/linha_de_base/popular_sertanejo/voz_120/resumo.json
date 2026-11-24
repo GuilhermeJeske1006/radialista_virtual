@@ -23,7 +23,7 @@
   "chamadas_tts": 10,
   "config": {
     "antecedencia": 2,
-    "commit": "50318e2",
+    "commit": "305da32",
     "corte": "agendado",
     "fixture": "popular_sertanejo",
     "formato": "programa",
@@ -58,6 +58,7 @@
       "caracteres_tts": 3437,
       "classificar_fio_condutor": 1,
       "classificar_tema_fala": 4,
+      "duracoes_faixas": 3,
       "escolher_faixa_do_programa": 3,
       "extrair_musicas_citadas": 9,
       "faixa_reconhecida": 1,

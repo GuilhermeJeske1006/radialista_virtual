@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Literal
 import base64
 import dataclasses
@@ -61,6 +62,7 @@ from app.live.relogio import (
     duracao_musica_s,
     duracao_preferida_musica_s,
     duracao_prevista_bloco,
+    lacuna_musica_s,
     etapas_executadas,
     gravar_elo,
     instante_previsto,
@@ -151,8 +153,10 @@ from app.live.roteiro import (  # noqa: F401 -- reexportados
 )
 from app.live.formatos import FalaNoAr, Formato, avisos_da_fala, eh_quadro_fixo, formato_do_programa, reorienta
 from app.live.direcao_voz import tom_musical
-from app.live.song_service import dividir_artista_titulo, esquecer_video_catalogado, resolver_musica_catalogada
-from app.live.spotify import buscar_faixas_por_categoria
+from app.live.song_service import (
+    dividir_artista_titulo, duracoes_catalogadas, esquecer_video_catalogado, resolver_musica_catalogada,
+)
+from app.live.spotify import buscar_faixas_por_categoria, duracoes_faixas
 from app.llm.client import (
     classificar_categoria_bloco,
     classificar_fio_condutor,
@@ -859,6 +863,22 @@ def _registrar_musica_tocada(programa_id: int, musica: MusicaEncontrada) -> None
     redis_client.expire(chave_canais, _TTL_SESSAO_AO_VIVO)
 
 
+def _registrar_duracao_na_posicao(programa_id: int, posicao: int, musica: MusicaEncontrada) -> None:
+    """Duracao no ar da faixa do bloco de musica na `posicao` do roteiro. Por posicao, nao "as ultimas": bloco
+    gerado de novo (painel cancelou o preparo) sobrescreve a mesma posicao. A sequencia do formato musical sem
+    relogio soma as da sequencia em curso (ver app.live.contexto.falta_sequencia_musical_s)."""
+    chave = f"musicas_tocadas:duracao_posicao:{programa_id}"
+    redis_client.hset(chave, str(posicao), duracao_musica_s(musica, CONFIG_RELOGIO))
+    redis_client.expire(chave, _TTL_SESSAO_AO_VIVO)
+
+
+def _duracoes_nas_posicoes(programa_id: int, posicoes: list[int]) -> list[float | None]:
+    if not posicoes:
+        return []
+    valores = redis_client.hmget(f"musicas_tocadas:duracao_posicao:{programa_id}", [str(p) for p in posicoes])
+    return [float(v) if v is not None else None for v in valores]
+
+
 # Quantos temas de comentario/noticia guardar no historico da sessao (ver _historico_temas).
 _MAX_TEMAS_HISTORICO = 15
 
@@ -1082,14 +1102,69 @@ def _faixas_recentes_programa(db: Session, programa_id: int, limite: int = 20) -
     return [f"{titulo} ({canal})" for titulo, canal in linhas]
 
 
+# Custo de escolher uma faixa de `duracao` segundos, dadas as duracoes conhecidas das outras candidatas: 0 = serve
+# (fecha o espaco do relogio, completa a sequencia do musical); quanto menor, melhor; inf = nao cabe.
+CustoDuracao = Callable[[float, list[float]], float]
+
+
+def _duracoes_conhecidas(db: Session, faixas: list[tuple[str, str] | None]) -> list[int | None]:
+    """Duracao de cada (artista, titulo) antes da busca: a do catalogo (video ja resolvido) e, sem ela, a da Spotify
+    (faixa de estudio). None quando nao se sabe -- ou quando o item nao esta' no formato 'Artista - Titulo'."""
+    validas = [(i, f) for i, f in enumerate(faixas) if f is not None]
+    duracoes: list[int | None] = [None] * len(faixas)
+    if not validas:
+        return duracoes
+    catalogo = duracoes_catalogadas(db, [f for _, f in validas])
+    spotify = duracoes_faixas([f for _, f in validas])
+    for (i, _), do_catalogo, da_spotify in zip(validas, catalogo, spotify):
+        duracoes[i] = do_catalogo if do_catalogo is not None else da_spotify
+    return duracoes
+
+
+def _melhores_pela_duracao(duracoes: list[int | None], custo: CustoDuracao) -> list[int]:
+    """Indices das candidatas a sortear. Quando a duracao diferencia (alguma conhecida tem custo positivo, ex.: na
+    janela antes do encerramento), ficam as de custo zero; sem nenhuma, as de duracao desconhecida (podem servir); sem
+    essas, as de menor custo. Quando nao diferencia (as conhecidas servem ou nao cabem no teto), sai so' quem nao cabe
+    e as desconhecidas seguem no sorteio, com os pesos de antes. Nada cabe = todas (o relogio confere depois da busca
+    e usa a alternativa do plano)."""
+    conhecidas = [float(d) for d in duracoes if d is not None]
+    por_duracao: dict[float, float] = {}
+    custos: list[float | None] = []
+    for duracao in duracoes:
+        if duracao is None:
+            custos.append(None)
+            continue
+        chave = float(duracao)
+        if chave not in por_duracao:
+            outras = list(conhecidas)
+            outras.remove(chave)
+            por_duracao[chave] = custo(chave, outras)
+        custos.append(por_duracao[chave])
+    zeradas = [i for i, c in enumerate(custos) if c == 0]
+    desconhecidas = [i for i, c in enumerate(custos) if c is None]
+    positivas = [i for i, c in enumerate(custos) if c is not None and 0 < c < math.inf]
+    if not positivas:
+        return sorted(zeradas + desconhecidas) or list(range(len(duracoes)))
+    if zeradas:
+        return zeradas
+    if desconhecidas:
+        return desconhecidas
+    menor = min(custos[i] for i in positivas)
+    return [i for i in positivas if custos[i] == menor]
+
+
 def _escolher_query_musica(
     db: Session,
     programa: Programa,
     ids_tocadas: set[str] | None = None,
     titulos_tocados: set[str] | None = None,
     canais_tocados: dict[str, int] | None = None,
+    custo_duracao: CustoDuracao | None = None,
 ) -> tuple[str, str | None, MusicaEncontrada | None]:
     """Escolhe a query de busca pra um bloco de musica sem rotulo de genero proprio.
+
+    `custo_duracao` (relogio da hora ou sequencia do formato musical): entre as candidatas, ficam so' as que a duracao
+    ja conhecida (catalogo ou Spotify, antes da busca no YouTube) deixa com custo zero -- ver _melhores_pela_duracao.
 
     Combina curadoria do admin (musicas_permitidas, pesada pela posicao -- primeiro item da
     lista conta mais) com o que o publico mais pediu de verdade pelo WhatsApp (ver
@@ -1160,6 +1235,10 @@ def _escolher_query_musica(
         pesos.append(contagem * _PESO_PEDIDO_PUBLICO)
         origens.append("pedido_publico")
 
+    if candidatos and custo_duracao is not None:
+        pares = [dividir_artista_titulo(c) for c in candidatos]
+        indices = _melhores_pela_duracao(_duracoes_conhecidas(db, pares), custo_duracao)
+        candidatos, pesos, origens = ([lista[i] for i in indices] for lista in (candidatos, pesos, origens))
     if candidatos:
         escolhido = random.choices(candidatos, weights=pesos, k=1)[0]
         origem = origens[candidatos.index(escolhido)]
@@ -1179,6 +1258,9 @@ def _escolher_query_musica(
         contexto = _contexto_musical_programa(programa)
         recentes = _faixas_recentes_programa(db, programa.id)
         faixas_spotify = buscar_faixas_por_categoria(genero, excluir_titulos=titulos_tocados)
+        if faixas_spotify and custo_duracao is not None:
+            indices = _melhores_pela_duracao(_duracoes_conhecidas(db, faixas_spotify), custo_duracao)
+            faixas_spotify = [faixas_spotify[i] for i in indices]
         if faixas_spotify:
             # artista que ja tocou na sessao sai do pool (quando sobra pool): a lista cacheada
             # tem poucos artistas e o sorteio uniforme repetia sempre os mesmos.
@@ -1492,15 +1574,19 @@ def _fora_do_genero(programa_id: int, musica: MusicaEncontrada, generos: list[st
 
 
 def _buscar_musica_para_bloco(
-    db: Session, programa: Programa, rotulo_bloco: str | None = None, *, plano_relogio: Plano | None = None
+    db: Session, programa: Programa, rotulo_bloco: str | None = None, *, plano_relogio: Plano | None = None,
+    duracao_min_s: float | None = None,
 ) -> MusicaEncontrada | None:
     """Escolhe e registra a faixa do bloco. Com `plano_relogio` (programa com relogio da hora, F1),
     a faixa precisa caber no teto do plano: ate' CONFIG_RELOGIO.musica_tentativas_teto buscas, sem
     repetir a rejeitada; a que nao deixa sobra impossivel antes do hard time tem preferencia, senao
     a mais longa que cabe. Nada cabe = None, sem registrar nada (o caller usa a alternativa do plano).
-    Sem plano, o comportamento de sempre (o kwarg so' e' passado com relogio)."""
+    A escolha ja' prefere, entre as candidatas de duracao conhecida, as que fecham o espaco (lacuna_musica_s).
+    Sem plano, o comportamento de sempre; `duracao_min_s` (sequencia do formato musical, ver
+    app.live.contexto.falta_sequencia_musical_s) prefere as faixas com pelo menos essa duracao."""
     if plano_relogio is None:
-        musica, query = _selecionar_musica_para_bloco(db, programa, rotulo_bloco)
+        custo = None if duracao_min_s is None else (lambda duracao, _outras: max(0.0, duracao_min_s - duracao))
+        musica, query = _selecionar_musica_para_bloco(db, programa, rotulo_bloco, custo_duracao=custo)
     else:
         musica, query = _selecionar_musica_que_cabe(db, programa, rotulo_bloco, plano_relogio)
     if musica is not None:
@@ -1519,6 +1605,7 @@ def _selecionar_musica_que_cabe(
         musica, query = _selecionar_musica_para_bloco(
             db, programa, rotulo_bloco, evitar_ids=rejeitadas, evitar_titulos=titulos_rejeitados,
             duracao_max_s=duracao_preferida_musica_s(plano, CONFIG_RELOGIO),
+            custo_duracao=lambda duracao, outras: lacuna_musica_s(duracao, plano, CONFIG_RELOGIO, outras=outras),
         )
         if musica is None:
             break
@@ -1545,6 +1632,7 @@ def _selecionar_musica_para_bloco(
     evitar_ids: set[str] | None = None,
     evitar_titulos: set[str] | None = None,
     duracao_max_s: int | None = None,
+    custo_duracao: CustoDuracao | None = None,
 ) -> tuple[MusicaEncontrada | None, str]:
     """Busca a faixa do bloco sem registrar (ver _buscar_musica_para_bloco). evitar_ids/
     evitar_titulos e duracao_max_s so' vem preenchidos pela escolha com teto do relogio."""
@@ -1566,7 +1654,8 @@ def _selecionar_musica_para_bloco(
         generos_alvo = [genero_bloco]
         generos_escolha = generos_alvo
     else:
-        query, genero_filtro, musica = _escolher_query_musica(db, programa, ids_tocadas, titulos_tocados, canais_tocados)
+        query, genero_filtro, musica = _escolher_query_musica(db, programa, ids_tocadas, titulos_tocados, canais_tocados,
+                                                              custo_duracao=custo_duracao)
         generos_alvo = programa.generos_musicais or []
         # curadoria do admin e' escolha deliberada (pode ser fora do genero de proposito) -- so'
         # escolha automatica (Spotify, LLM, pedidos do publico, genero) passa pela checagem.
