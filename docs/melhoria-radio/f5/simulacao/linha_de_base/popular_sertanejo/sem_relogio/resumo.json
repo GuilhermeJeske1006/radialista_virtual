@@ -3,27 +3,27 @@
   "acima_teto_orcamento": 0,
   "adiantamentos": 0,
   "ajustes_fala": {
-    "nenhum": 23
+    "nenhum": 24
   },
   "anuncio_sem_confirmacao": 0,
-  "atraso_hard_time_s": 29.17,
+  "atraso_hard_time_s": 26.48,
   "aviso_oralidade": 0,
   "blocos_fala_nao_tocados": 0,
   "blocos_gerados": 26,
   "blocos_nao_tocados": 0,
   "bordao_repetido": null,
-  "caracteres_tts": 9370,
-  "caracteres_tts_estimados": 9370,
+  "caracteres_tts": 9286,
+  "caracteres_tts_estimados": 9286,
   "chamadas_llm": {
-    "falas": 23,
-    "revisoes": 6,
+    "falas": 24,
+    "revisoes": 5,
     "total": 29
   },
   "chamadas_proxima": 26,
-  "chamadas_tts": 23,
+  "chamadas_tts": 24,
   "config": {
     "antecedencia": 2,
-    "commit": "305da32",
+    "commit": "394168f",
     "corte": "agendado",
     "fixture": "popular_sertanejo",
     "formato": "programa",
@@ -54,62 +54,64 @@
   },
   "destinos_rede": [],
   "dubles": {
-    "blocos_musica_com_llm": 17,
+    "blocos_musica_com_llm": 16,
     "contadores": {
-      "blocos_musica_llm": 17,
+      "blocos_musica_llm": 16,
       "buscar_faixas_por_categoria": 3,
       "buscar_musica": 18,
-      "caracteres_tts": 9370,
+      "caracteres_tts": 9286,
       "classificar_fio_condutor": 1,
       "classificar_tema_fala": 6,
       "escolher_faixa_do_programa": 3,
       "extrair_musicas_citadas": 23,
-      "faixa_reconhecida": 17,
+      "faixa_reconhecida": 16,
       "faixas_devolvidas": 12,
-      "falas": 23,
+      "falas": 24,
       "gerar_resposta": 29,
       "injecao_promessa": 2,
       "itens_fora_do_genero": 11,
-      "obter_metadados_voz": 2,
-      "processar_audio": 23,
+      "obter_metadados_voz": 1,
+      "processar_audio": 24,
       "registrar_tema": 6,
       "resolver_musica_catalogada": 3,
       "resumir_contexto_musica": 3,
-      "revisoes": 6,
-      "sintetizar_audio": 23,
+      "revisoes": 5,
+      "sintetizar_audio": 24,
       "tipo_reconhecido": 29,
-      "tts_habilitado": 46
+      "tts_habilitado": 48
     },
     "faixa_reconhecida_pct": 100.0,
     "tipo_reconhecido_pct": 100.0
   },
   "duracao_fala": {
     "erro_estimativa_calibrada_pct": 0.0,
-    "erro_estimativa_pct": 2.3,
-    "medidas": 23,
-    "segundos_medidos": 717.52
+    "erro_estimativa_pct": 2.2,
+    "medidas": 24,
+    "segundos_medidos": 713.38
   },
-  "encerramento_no_ar": false,
+  "encerramento_no_ar": true,
   "erros_http": 0,
-  "estouro_fim_programa_s": 1.0,
+  "estouro_fim_programa_s": 0.0,
   "estouro_max_pct": 0.0,
   "etapas_puladas": [],
   "eventos_por_tipo": {
-    "fala": 23,
+    "fala": 24,
     "musica": 12,
-    "patrocinador": 3
+    "patrocinador": 2,
+    "vinheta": 1
   },
   "falas_abaixo_minimo": 0,
-  "falas_com_orcamento_aplicado": 0,
+  "falas_com_orcamento_aplicado": 5,
   "falas_por_bloco": {
     "abertura": 1,
     "chamada_ouvinte": 3,
     "comentario": 6,
     "encerramento": 1,
+    "identificacao": 1,
     "musica": 12
   },
   "fechamentos_curtos": 0,
-  "fim_antecipado_s": null,
+  "fim_antecipado_s": 0.93,
   "fora_orcamento_pct": 0.0,
   "formato": {
     "avisos": [],
@@ -125,14 +127,14 @@
     "convites": 1,
     "convites_fora_da_politica": 0,
     "faixa_fala_pct": null,
-    "fala_pct": 19.9,
-    "falas": 23,
+    "fala_pct": 19.8,
+    "falas": 24,
     "falas_fora_da_unidade": 0,
     "falas_fora_da_unidade_pct": 0.0,
     "id": "padrao",
     "instrucao_de_outro_formato": 0,
     "instrucao_no_prompt_pct": 0.0,
-    "interrupcoes_por_hora": 23.0,
+    "interrupcoes_por_hora": 24.0,
     "itens": {
       "blocos_fora_do_formato": true,
       "convites_fora_da_politica": true,
@@ -140,11 +142,11 @@
       "instrucao_no_prompt": true,
       "temas_revisao_no_ar": true
     },
-    "maior_intervalo_sem_reorientacao_s": 3599.17,
+    "maior_intervalo_sem_reorientacao_s": 3501.02,
     "maior_sequencia_musical_s": 265.0,
     "relogio_padrao": null,
     "reorientacao_s": null,
-    "reorientacoes": 2,
+    "reorientacoes": 3,
     "temas_revisao_no_ar": 0
   },
   "hard_times": [
@@ -173,9 +175,9 @@
       "tipo": "intervalo"
     },
     {
-      "atraso_s": 29.17,
-      "cortado": true,
-      "executado_em_s": 3599.17,
+      "atraso_s": 26.48,
+      "cortado": false,
+      "executado_em_s": 3596.48,
       "inicio_s": 3570,
       "status": "atrasado",
       "tipo": "passagem"
@@ -209,8 +211,8 @@
   "orcamento_observacao": {
     "acima_teto": 0,
     "estouro_max_pct": 29.7,
-    "falas": 23,
-    "fora_pct": 43.5
+    "falas": 19,
+    "fora_pct": 36.8
   },
   "ouvinte_inexistente": 0,
   "pedido_indevido": 0,
@@ -243,14 +245,19 @@
     "vencidas": 0
   },
   "promessas_abertas": 0,
-  "relogio_acoes": {},
+  "relogio_acoes": {
+    "encerramento": 1,
+    "fala": 1,
+    "musica": 1,
+    "reserva": 2
+  },
   "relogio_previsto_s": {
     "fala": 225,
     "intervalo": 360,
     "musica": 3015
   },
   "repeticao_estrutura": 0,
-  "segundos_cortados": 32.21,
+  "segundos_cortados": 0.0,
   "sem_integracao": {
     "comercial": 0,
     "condicao_tempo": 0,
@@ -261,13 +268,13 @@
   },
   "silencio_editorial_s": 4.1,
   "silencio_s": 0.0,
-  "sinais_ia_falas": 23,
+  "sinais_ia_falas": 24,
   "sinais_ia_media": null,
   "sinais_ia_p90": null,
-  "tempo_execucao_s": 5.01,
-  "tempo_fala_s": 687.9,
+  "tempo_execucao_s": 5.49,
+  "tempo_fala_s": 713.38,
   "tempo_musica_s": 2819.0,
-  "tempo_outros_s": 90.0,
+  "tempo_outros_s": 62.59,
   "tentativas_rede": 0,
   "validacao_fala": {
     "acoes": {

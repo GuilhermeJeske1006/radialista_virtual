@@ -13,8 +13,8 @@
   "blocos_gerados": 21,
   "blocos_nao_tocados": 0,
   "bordao_repetido": null,
-  "caracteres_tts": 1002,
-  "caracteres_tts_estimados": 1002,
+  "caracteres_tts": 1561,
+  "caracteres_tts_estimados": 1561,
   "chamadas_llm": {
     "falas": 7,
     "revisoes": 1,
@@ -24,7 +24,7 @@
   "chamadas_tts": 7,
   "config": {
     "antecedencia": 2,
-    "commit": "305da32",
+    "commit": "394168f",
     "corte": "agendado",
     "fixture": "musical_adulto",
     "formato": "programa",
@@ -55,7 +55,7 @@
     "contadores": {
       "blocos_musica_llm": 1,
       "buscar_musica": 10,
-      "caracteres_tts": 1002,
+      "caracteres_tts": 1561,
       "classificar_fio_condutor": 1,
       "duracoes_faixas": 21,
       "extrair_musicas_citadas": 6,
@@ -82,7 +82,7 @@
     "erro_estimativa_calibrada_pct": 0.0,
     "erro_estimativa_pct": 7.5,
     "medidas": 7,
-    "segundos_medidos": 74.9
+    "segundos_medidos": 117.52
   },
   "encerramento_no_ar": true,
   "erros_http": 0,
@@ -105,7 +105,7 @@
     "retomada": 2
   },
   "fechamentos_curtos": 0,
-  "fim_antecipado_s": 88.4,
+  "fim_antecipado_s": 45.78,
   "fora_orcamento_pct": 0.0,
   "formato": {
     "avisos": [
@@ -130,7 +130,7 @@
       1.0,
       8.0
     ],
-    "fala_pct": 2.1,
+    "fala_pct": 3.3,
     "falas": 7,
     "falas_fora_da_unidade": 1,
     "falas_fora_da_unidade_pct": 14.3,
@@ -154,7 +154,7 @@
     "maior_sequencia_musical_s": 1021.0,
     "relogio_padrao": "A",
     "reorientacao_s": 900,
-    "reorientacoes": 5,
+    "reorientacoes": 6,
     "temas_revisao_no_ar": 0
   },
   "hard_times": [
@@ -279,8 +279,8 @@
   "sinais_ia_falas": 7,
   "sinais_ia_media": null,
   "sinais_ia_p90": null,
-  "tempo_execucao_s": 1.83,
-  "tempo_fala_s": 74.9,
+  "tempo_execucao_s": 1.9,
+  "tempo_fala_s": 117.52,
   "tempo_musica_s": 3418.0,
   "tempo_outros_s": 17.0,
   "tentativas_rede": 0,

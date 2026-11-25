@@ -513,6 +513,16 @@ BANCO: dict[str, dict[str, list[str]]] = {
             "Quem estava no trabalho, bom fim de expediente.",
             "Quem estava em casa, bom descanso.",
             "Foi uma alegria fazer esta trilha com você.",
+            # Encerramento elástico (docs/melhoria-radio/encerramento): o dublê precisa de frases para chegar ao
+            # alvo de até 60 s. Estruturas de intenção (pesquisa §8), sem dado inventado.
+            "Teve música para todos os gostos nesta hora.",
+            "Foi bom dividir este tempo com quem está ouvindo agora.",
+            "Quem chegou no meio do caminho, obrigado também.",
+            "A gente se despede com a sensação de dever cumprido.",
+            "Se alguma música marcou a sua tarde, guarda ela com você.",
+            "O rádio fica melhor quando tem alguém do outro lado.",
+            "Fica o agradecimento de toda a equipe da {radio}.",
+            "Segue firme no seu dia, com calma e com cuidado.",
         ],
         "fechamentos": [
             "Até amanhã, no mesmo horário.",

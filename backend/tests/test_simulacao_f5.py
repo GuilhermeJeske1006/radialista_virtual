@@ -25,7 +25,8 @@ CHAVES_F5 = ("dados", "dado_legitimo")
 # Medido desde a escolha de música do ab49a7b (24/11/2026): a identificação de reserva antes do intervalo do popular
 # (espaço de 7 s) dura 7,45 s na voz de 145/min, +6%, dentro da tolerância de 15%; o mesmo caso já medido no formato
 # fixture da F6 (docs/melhoria-radio/f6/pendencias.md, "Limites do §9 medidos"). Falha se o valor mudar.
-FORA_ORCAMENTO_MEDIDO = {("popular_sertanejo", "relogio"): 10.0, ("popular_sertanejo", "sem_inicio_previsto"): 10.0}
+# Desde o encerramento pontual (25/11/2026) a mesma fala é 1 de 11 (a despedida e a reserva antes dela entram no ar).
+FORA_ORCAMENTO_MEDIDO = {("popular_sertanejo", "relogio"): 9.1, ("popular_sertanejo", "sem_inicio_previsto"): 9.1}
 
 
 def _sem_registro_f5(as_run: dict) -> dict:

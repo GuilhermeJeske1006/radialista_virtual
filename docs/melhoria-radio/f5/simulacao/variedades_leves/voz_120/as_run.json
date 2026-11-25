@@ -2238,13 +2238,13 @@
       "chamadas_llm": 1,
       "cortado": false,
       "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 42.0,
-      "duracao_medida_s": 42.0,
-      "duracao_prevista_backend_s": 42.0,
-      "duracao_prevista_s": 31.11,
+      "duracao_estimada_backend_s": 50.5,
+      "duracao_medida_s": 50.5,
+      "duracao_prevista_backend_s": 50.5,
+      "duracao_prevista_s": 37.41,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:59:51-03:00",
-      "fim_s": 3591.35,
+      "fim": "2026-11-10T14:59:59-03:00",
+      "fim_s": 3599.85,
       "formato": "variedades_leves",
       "gerado_em_s": 3475.3,
       "inicio": "2026-11-10T14:59:09-03:00",
@@ -2261,13 +2261,13 @@
         "min": 20.0
       },
       "orcamento_s": {
-        "alvo": 40.0,
+        "alvo": 46.0,
         "aplicado": true,
         "fonte": "relogio",
-        "max": 45.0,
-        "min": 35.0
+        "max": 51.0,
+        "min": 41.0
       },
-      "palavras": 84,
+      "palavras": 101,
       "participacao": {
         "regras": [],
         "so_pelo_legado": false
@@ -2300,8 +2300,8 @@
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
-          35,
-          45
+          41,
+          51
         ],
         "origem_instante": "painel",
         "preset": "C",
@@ -2311,7 +2311,7 @@
       },
       "revisada": false,
       "sinteses_tts": 1,
-      "texto": "A nossa hora juntos termina agora. A trilha da tarde foi feita com carinho para você. A Rádio Vila Ventura segue no ar. Que o resto do dia seja tranquilo. Quem estava em casa, bom descanso. Foi uma alegria fazer esta trilha com você. Que a próxima hora do seu dia seja leve. Leva uma música boa na cabeça. Obrigado a quem mandou recado e a quem só ouviu. Cada pessoa que deixou o rádio ligado fez parte disto. Até amanhã, no mesmo horário.",
+      "texto": "A nossa hora juntos termina agora. A trilha da tarde foi feita com carinho para você. Se alguma música marcou a sua tarde, guarda ela com você. Segue firme no seu dia, com calma e com cuidado. Quem estava no trabalho, bom fim de expediente. A Rádio Vila Ventura segue no ar. Fica o agradecimento de toda a equipe da Rádio Vila Ventura. Que a próxima hora do seu dia seja leve. Leva uma música boa na cabeça. A gente se despede com a sensação de dever cumprido. Quem chegou no meio do caminho, obrigado também. Até amanhã, no mesmo horário.",
       "tipo": "fala",
       "tom": "calmo",
       "validacao_fala": null,

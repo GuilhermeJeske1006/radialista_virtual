@@ -628,7 +628,10 @@ def test_corte_agendado_trunca_no_horario_fim(simulacoes):
     resultado = simulacoes["musical_adulto"]["resultado"]
     eventos = resultado.as_run["eventos"]
     assert max(e["fim_s"] for e in eventos) <= 3601.0 + 1e-6
-    assert any(e["cortado"] for e in eventos) or resultado.resumo["segundos_cortados"] > 0
+    # Desde o encerramento pontual (docs/melhoria-radio/encerramento) o sem relógio fecha antes do corte: a
+    # despedida vai ao ar e nada é truncado (na F0 a última música era cortada no horario_fim).
+    assert not any(e["cortado"] for e in eventos) and resultado.resumo["segundos_cortados"] == 0
+    assert resultado.resumo["encerramento_no_ar"] is True
     assert resultado.resumo["estouro_fim_programa_s"] <= 1.0 + 1e-6
     assert resultado.resumo["config"]["corte"] == "agendado"
     # O que não foi ao ar fica registrado com o instante de geração (insumo da F1).
@@ -639,12 +642,16 @@ def test_corte_agendado_trunca_no_horario_fim(simulacoes):
 def test_corte_manual_mede_estouro():
     from scripts.simular_hora import simular
 
-    resultado = simular("musical_adulto", corte="manual")
-    eventos = resultado.as_run["eventos"]
-    assert not any(e["cortado"] for e in eventos)
-    assert resultado.resumo["estouro_fim_programa_s"] > 0
-    assert resultado.resumo["encerramento_no_ar"] is True
-    assert _falas(resultado.as_run)[-1]["bloco"] == "encerramento"
+    # Sem corte agendado, o que passaria do horário fica no ar e vira estouro. Com o fechamento por horário previsto
+    # (encerramento pontual), o sem relógio termina dentro do horário, também com o painel antigo (sem
+    # inicio_previsto, pela cadeia de blocos); na F0 ele estourava.
+    for inicio_previsto in (True, False):
+        resultado = simular("musical_adulto", corte="manual", inicio_previsto=inicio_previsto)
+        eventos = resultado.as_run["eventos"]
+        assert not any(e["cortado"] for e in eventos)
+        assert resultado.resumo["estouro_fim_programa_s"] <= 1.0 + 1e-6, inicio_previsto
+        assert resultado.resumo["encerramento_no_ar"] is True
+        assert _falas(resultado.as_run)[-1]["bloco"] == "encerramento"
 
 
 def test_pedido_fluxo_novo_selecionado_vira_executado(simulacoes):
@@ -862,8 +869,12 @@ def test_sem_relogio_inicio_previsto_nao_muda_as_run():
     for perfil in PERFIS:
         com = simular(perfil, relogio_backend="nenhum", inicio_previsto=True).as_run
         sem = simular(perfil, relogio_backend="nenhum", inicio_previsto=False).as_run
+        # O painel antigo estima o horário pela cadeia de blocos e chega ao mesmo ar.
         assert limpo(com) == limpo(sem), perfil
-        assert all(e["relogio"] is None for e in com["eventos"])
+        # Sem relógio, só a zona de fechamento (últimos 10 min) tem plano, e sem preset.
+        com_plano = [e for e in com["eventos"] if e["relogio"] is not None]
+        assert com_plano and all(e["inicio_s"] >= 3600 - 600 - 60 for e in com_plano), perfil
+        assert all(e["relogio"]["preset"] is None for e in com_plano)
         assert com["relogio_backend"] is None
 
 
