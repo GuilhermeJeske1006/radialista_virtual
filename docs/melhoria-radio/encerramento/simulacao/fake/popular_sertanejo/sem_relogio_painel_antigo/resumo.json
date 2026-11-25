@@ -1,0 +1,297 @@
+{
+  "abertura_repetida": 0,
+  "acima_teto_orcamento": 0,
+  "adiantamentos": 0,
+  "ajustes_fala": {
+    "nenhum": 24
+  },
+  "anuncio_sem_confirmacao": 0,
+  "atraso_hard_time_s": 15.32,
+  "aviso_oralidade": 0,
+  "blocos_fala_nao_tocados": 0,
+  "blocos_gerados": 26,
+  "blocos_nao_tocados": 0,
+  "bordao_repetido": null,
+  "caracteres_tts": 9082,
+  "caracteres_tts_estimados": 9082,
+  "chamadas_llm": {
+    "falas": 24,
+    "revisoes": 1,
+    "total": 25
+  },
+  "chamadas_proxima": 26,
+  "chamadas_tts": 24,
+  "config": {
+    "antecedencia": 2,
+    "commit": "394168f",
+    "corte": "agendado",
+    "fixture": "popular_sertanejo",
+    "formato": "fixture",
+    "inicio_previsto": false,
+    "modo": "fake",
+    "perfil_programacao": "popular_sertanejo",
+    "preparo_antecipado_s": 90,
+    "relogio": "A",
+    "relogio_backend": "nenhum",
+    "semente": 7,
+    "tts": "duble",
+    "versao_formato": 1,
+    "wpm": 162.0,
+    "wpm_real": 145
+  },
+  "confirmacoes_pedido": 3,
+  "dado_legitimo_removido": 0,
+  "dado_sem_fonte": 0,
+  "dado_vencido": 0,
+  "dados": {
+    "blocos_com_dado": 3,
+    "por_estado": {
+      "valido": 3
+    },
+    "por_tipo": {
+      "assunto": 3
+    }
+  },
+  "destinos_rede": [],
+  "dubles": {
+    "blocos_musica_com_llm": 12,
+    "contadores": {
+      "blocos_musica_llm": 12,
+      "buscar_faixas_por_categoria": 3,
+      "buscar_musica": 18,
+      "caracteres_tts": 9082,
+      "classificar_fio_condutor": 1,
+      "classificar_tema_fala": 4,
+      "escolher_faixa_do_programa": 3,
+      "extrair_musicas_citadas": 23,
+      "faixa_reconhecida": 12,
+      "faixas_devolvidas": 12,
+      "falas": 24,
+      "gerar_resposta": 25,
+      "injecao_promessa": 2,
+      "itens_fora_do_genero": 11,
+      "obter_metadados_voz": 1,
+      "processar_audio": 24,
+      "registrar_tema": 4,
+      "resolver_musica_catalogada": 3,
+      "resumir_contexto_musica": 3,
+      "revisoes": 1,
+      "sintetizar_audio": 24,
+      "tipo_reconhecido": 25,
+      "tts_habilitado": 48
+    },
+    "faixa_reconhecida_pct": 100.0,
+    "tipo_reconhecido_pct": 100.0
+  },
+  "duracao_fala": {
+    "erro_estimativa_calibrada_pct": 0.0,
+    "erro_estimativa_pct": 2.2,
+    "medidas": 24,
+    "segundos_medidos": 702.22
+  },
+  "encerramento_no_ar": true,
+  "erros_http": 0,
+  "estouro_fim_programa_s": 0.0,
+  "estouro_max_pct": 0.0,
+  "etapas_puladas": [],
+  "eventos_por_tipo": {
+    "fala": 24,
+    "musica": 12,
+    "patrocinador": 2,
+    "vinheta": 1
+  },
+  "falas_abaixo_minimo": 0,
+  "falas_com_orcamento_aplicado": 24,
+  "falas_por_bloco": {
+    "abertura": 3,
+    "chamada_ouvinte": 3,
+    "comentario": 4,
+    "encerramento": 1,
+    "identificacao": 1,
+    "musica": 12
+  },
+  "fechamentos_curtos": 0,
+  "fim_antecipado_s": 12.09,
+  "fora_orcamento_pct": 0.0,
+  "formato": {
+    "avisos": [],
+    "avisos_por_codigo": {
+      "bloco_fora_do_formato": 0,
+      "convite_fora_da_politica": 0,
+      "fora_da_unidade": 0,
+      "reorientacao": 0,
+      "tema_revisao": 0
+    },
+    "blocos_fora_do_formato": 0,
+    "coerencia_automatica": true,
+    "convites": 1,
+    "convites_fora_da_politica": 0,
+    "faixa_fala_pct": [
+      4.0,
+      20.0
+    ],
+    "fala_pct": 19.5,
+    "falas": 24,
+    "falas_fora_da_unidade": 0,
+    "falas_fora_da_unidade_pct": 0.0,
+    "id": "popular_sertanejo",
+    "instrucao_de_outro_formato": 0,
+    "instrucao_no_prompt_pct": 100.0,
+    "interrupcoes_por_hora": 24.0,
+    "itens": {
+      "blocos_fora_do_formato": true,
+      "convites_fora_da_politica": true,
+      "fala_pct": true,
+      "falas_fora_da_unidade": true,
+      "instrucao_de_outro_formato": true,
+      "instrucao_no_prompt": true,
+      "reorientacao": true,
+      "temas_revisao_no_ar": true
+    },
+    "maior_intervalo_sem_reorientacao_s": 1230.93,
+    "maior_sequencia_musical_s": 265.0,
+    "relogio_padrao": "A",
+    "reorientacao_s": 1200,
+    "reorientacoes": 5,
+    "temas_revisao_no_ar": 0
+  },
+  "hard_times": [
+    {
+      "atraso_s": 0.0,
+      "cortado": false,
+      "executado_em_s": 0.0,
+      "inicio_s": 0,
+      "status": "ok",
+      "tipo": "abertura"
+    },
+    {
+      "atraso_s": null,
+      "cortado": false,
+      "executado_em_s": null,
+      "inicio_s": 1440,
+      "status": "perdido",
+      "tipo": "intervalo"
+    },
+    {
+      "atraso_s": null,
+      "cortado": false,
+      "executado_em_s": null,
+      "inicio_s": 3180,
+      "status": "perdido",
+      "tipo": "intervalo"
+    },
+    {
+      "atraso_s": 15.32,
+      "cortado": false,
+      "executado_em_s": 3585.32,
+      "inicio_s": 3570,
+      "status": "atrasado",
+      "tipo": "passagem"
+    }
+  ],
+  "hard_times_dispensados": 0,
+  "hard_times_perdidos": 2,
+  "injecao": {
+    "fora_do_bloco": 0,
+    "instrucoes_removidas": 0,
+    "no_system": 0,
+    "obedecida_no_ar": 0
+  },
+  "observacoes": [
+    "O GET /preparo (preparo prévio no servidor) fica de fora: a primeira fala sai do /proxima normal.",
+    "Modo fake: o comprimento das falas é sintético (o dublê fala dentro da meta por construção); só a mecânica é medida (relógio, fila, corte, pedidos, continuidade e detectores).",
+    "Música anunciada sem confirmação: o mesmo detector do backend (app/live/validacao_fala.py, F3). Promessa e participação também (app/live/promessas.py e app/live/participacao.py, F4): promessa vencida e com contingência vêm da tabela promessas_no_ar e das falas que foram ao ar. Abertura repetida continua o detector provisório da F0.",
+    "Com --tts duble (F2), a fala dura o que o /tts mede num mp3 silencioso à velocidade wpm_real; a calibração do ritmo por voz começa vazia em cada simulação (pior caso: a primeira hora de uma voz nova).",
+    "SQLite em memória e execução sequencial: with_for_update(skip_locked) não é exercitado."
+  ],
+  "orcamento_fala": {
+    "acima_do_teto": 0,
+    "cortadas": 0,
+    "encurtadas": 0,
+    "max_chamadas_llm_por_fala": 2,
+    "max_sinteses_por_fala": 1,
+    "reescritas": 0,
+    "ressinteses_tts": 0,
+    "revisoes_por_duracao": 0
+  },
+  "orcamento_observacao": {
+    "acima_teto": 0,
+    "estouro_max_pct": 0.0,
+    "falas": 0,
+    "fora_pct": 0.0
+  },
+  "ouvinte_inexistente": 0,
+  "pedido_indevido": 0,
+  "pedido_indevido_legado": 0,
+  "pedidos": {
+    "atendidos_antes_de_tocar": 0,
+    "executados": 3,
+    "expirados": 0,
+    "nao_atendidos": 1,
+    "pendentes_fim": 0,
+    "por_estado": {
+      "executado": 3,
+      "nao_atendido": 1
+    },
+    "recebidos": 4,
+    "selecionados": 4,
+    "selecionados_nao_tocados": 0
+  },
+  "promessa_sem_registro": 0,
+  "promessa_vencida": 0,
+  "promessas": {
+    "abertas_no_fim": 0,
+    "canceladas_com_contingencia": 0,
+    "canceladas_sem_contingencia_no_ar": 0,
+    "contingencias_no_ar": [],
+    "cumpridas": 0,
+    "cumpridas_sem_ar": 0,
+    "registradas": 0,
+    "registradas_sem_ar": 0,
+    "vencidas": 0
+  },
+  "promessas_abertas": 0,
+  "relogio_acoes": {
+    "encerramento": 1,
+    "fala": 1,
+    "musica": 1,
+    "reserva": 2
+  },
+  "relogio_previsto_s": {
+    "fala": 225,
+    "intervalo": 360,
+    "musica": 3015
+  },
+  "repeticao_estrutura": 0,
+  "segundos_cortados": 0.0,
+  "sem_integracao": {
+    "comercial": 0,
+    "condicao_tempo": 0,
+    "placar": 0,
+    "previsao": 0,
+    "temperatura": 0,
+    "transito": 0
+  },
+  "silencio_editorial_s": 4.1,
+  "silencio_s": 0.0,
+  "sinais_ia_falas": 24,
+  "sinais_ia_media": null,
+  "sinais_ia_p90": null,
+  "tempo_execucao_s": 6.82,
+  "tempo_fala_s": 702.22,
+  "tempo_musica_s": 2819.0,
+  "tempo_outros_s": 62.59,
+  "tentativas_rede": 0,
+  "validacao_fala": {
+    "acoes": {
+      "mencao_removida": 1
+    },
+    "blocos": 1,
+    "regras": {
+      "promessa_sem_evento": 1
+    }
+  },
+  "vazamento_grave": null,
+  "vencido_com_horario": 0,
+  "wpm_observado": null
+}
