@@ -7,6 +7,7 @@ from app.config.redis_client import redis_sessao as redis_client  # estado de se
 from app.feriados import feriado_nacional_do_dia
 from app.live.bancada import instrucao_de_turnos
 from app.live.formatos import formato_do_programa
+from app.localizacao import bairro_da_sede, bairros_cadastrados, mesmo_bairro
 from app.models.account import Account
 from app.models.programa import Programa
 from app.models.radio_config import RadioConfig
@@ -21,6 +22,15 @@ _TTL_SESSAO_AO_VIVO = 6 * 60 * 60
 # direto em toda fala por _contexto_atual, entao sem um cooldown proprio aqui o locutor comenta
 # o mesmo clima em blocos seguidos (unico dado sem guarda de repeticao nenhuma).
 _TTL_CLIMA_MENCIONADO = 45 * 60
+
+
+def _detalhe_bairro(bairro: str, sede: str) -> str:
+    """Um bairro cadastrado como detalhe local. Só a sede é "aqui"; os outros são de onde o ouvinte fala."""
+    if mesmo_bairro(bairro, sede):
+        return f"o bairro {bairro}, onde a rádio fica"
+    onde = f"a rádio fica no bairro {sede}" if sede else "o bairro da rádio não foi informado"
+    return (f"o bairro {bairro}, um dos bairros da cidade ({onde}): fale dele como 'lá no {bairro}' ou 'o pessoal "
+            f"do {bairro}', nunca 'aqui no {bairro}'")
 
 
 def _proxima_variacao(programa_id: int, chave: str, opcoes: list[str]) -> str:
@@ -365,16 +375,24 @@ def montar_system_prompt(
         )
 
     conhecimento = account.conhecimento_local or {}
+    sede = bairro_da_sede(account)
+    if sede:
+        em_cidade = f", em {account.cidade.strip()}" if (account.cidade or "").strip() else ""
+        partes.append(
+            f"Onde a rádio fica: no bairro {sede}{em_cidade}. Quando disser 'aqui' ('aqui no bairro', 'aqui "
+            f"pertinho', 'o pessoal daqui'), o lugar é sempre {sede}. Nunca diga que a rádio, o estúdio ou você "
+            "estão em outro bairro."
+        )
     detalhes_locais = []
     if conhecimento.get("gentilico"):
         detalhes_locais.append(f"o gentílico de quem nasce/mora aqui é '{conhecimento['gentilico']}'")
-    detalhes_locais += [f"o bairro {b}" for b in conhecimento.get("bairros") or []]
+    detalhes_locais += [_detalhe_bairro(b, sede) for b in bairros_cadastrados(account)]
     detalhes_locais += [f"o ponto de referência {p}" for p in conhecimento.get("pontos_referencia") or []]
     detalhes_locais += [f"o evento local: {e}" for e in conhecimento.get("eventos_recorrentes") or []]
     if detalhes_locais:
         detalhe_local = _proxima_variacao(programa.id, "conhecimento_local", detalhes_locais)
         partes.append(
-            f"Detalhe real do lugar onde a rádio fica, pra puxar assunto local com naturalidade quando "
+            f"Detalhe real da cidade da rádio, pra puxar assunto local com naturalidade quando "
             f"fizer sentido (não force, não cite em toda fala): {detalhe_local}."
         )
 

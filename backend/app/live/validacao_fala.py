@@ -372,8 +372,27 @@ def checar_dados(fala: str, ctx: "ContextoEmissao") -> list[Violacao]:
                        isentas=[*(c.texto for c in ctx.chamadas.contingencias), *neutras])
 
 
+def checar_bairro(fala: str, ctx: "ContextoEmissao") -> list[Violacao]:
+    """"Aqui" num bairro que não é o da rádio ("aqui na Pomerânia" numa rádio do Centro; app.localizacao)."""
+    from app.localizacao import aqui_em_outro_bairro, bairro_da_sede
+
+    sede = bairro_da_sede(ctx.account)
+    certo = (f"A rádio fica no bairro {sede}: 'aqui' é só o {sede}." if sede
+             else "O bairro da rádio não foi informado: não diga 'aqui' com nome de bairro.")
+    violacoes = []
+    for frase in frases(fala):
+        bairro = aqui_em_outro_bairro(frase, ctx.account)
+        if bairro is not None:
+            violacoes.append(Violacao(
+                regra="bairro_errado", trecho=frase, ref_id=bairro,
+                instrucao_retry=f"Você falou do {bairro} como se a rádio ficasse lá. {certo} Outro bairro é de "
+                                f"onde o ouvinte fala ('lá no {bairro}', 'o pessoal do {bairro}').",
+            ))
+    return violacoes
+
+
 CHECAGENS_POS_GERACAO: list[Checagem] = [checar_musicas, checar_promessas, checar_participacao,
-                                         checar_pedido_sem_mencao, checar_dados]
+                                         checar_pedido_sem_mencao, checar_dados, checar_bairro]
 
 # Modo de cada regra (decisão D12 da F4): o nome do campo em settings. Regra fora daqui segue o da música.
 MODO_POR_REGRA = {
@@ -385,6 +404,7 @@ MODO_POR_REGRA = {
     "pedido_sem_mencao": "validacao_participacao_modo",
     "dado_sem_fonte": "validacao_dados_modo",
     "dado_vencido": "validacao_dados_modo",
+    "bairro_errado": "validacao_local_modo",
 }
 
 

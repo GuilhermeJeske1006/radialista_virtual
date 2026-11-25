@@ -148,6 +148,8 @@ class Settings(BaseSettings):
     # F5 (D7): afirmação de dado sem fonte ou vencido (app.dados.checagem: temperatura, tempo, trânsito, placar,
     # promoção). Um campo para as duas regras, "avisar" se o detector der falso positivo com LLM real.
     validacao_dados_modo: Literal["corrigir", "avisar"] = "corrigir"
+    # "Aqui" com nome de bairro que não é o da rádio (app.localizacao: "aqui na Pomerânia" numa rádio do Centro).
+    validacao_local_modo: Literal["corrigir", "avisar"] = "corrigir"
     # F7 (reescrita opcional de oralidade, app.live.oralidade): "desligado" (padrão, nada muda); "avisar" só registra
     # no log; "reescrever" põe o aviso nas instruções da reescrita única que já existe. Não cria chamada ao LLM:
     # continua no máximo de duas por fala. Ligar só com aprovação, porque a reescrita aumenta o custo.
