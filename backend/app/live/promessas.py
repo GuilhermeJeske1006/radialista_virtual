@@ -524,6 +524,10 @@ def texto_contingencia(tipo: str, rotulo: str, radio: str, config: ConfigPromess
 def situacao_do_contexto(ctx: "ContextoEmissao") -> SituacaoAgenda:
     chamadas, plano, programa = ctx.chamadas, ctx.tempo.plano, ctx.programa
     nomes = (programa.nome, getattr(ctx.account, "nome_radio", ""), getattr(ctx.radialista, "nome_locutor", ""))
+    fechamento = getattr(ctx.tempo, "fechamento", None)
+    if fechamento is not None and fechamento.proximo_programa:
+        # "A programação segue com <programa seguinte>" é continuidade da rádio confirmada pela grade.
+        nomes += (fechamento.proximo_programa,)
     return SituacaoAgenda(
         agenda=tuple(chamadas.agenda), instante=plano.instante if plano is not None else None,
         posicao=None if plano is not None else chamadas.posicao,

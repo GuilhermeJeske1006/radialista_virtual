@@ -22,6 +22,7 @@ import json
 import logging
 import math
 import pathlib
+import re
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field, replace
@@ -247,6 +248,16 @@ class ConfigRelogio:
     folga_teto_s: int = 3
     # O encerramento usa a parte de cima do espaço que tem: mínimo = máximo − esta janela.
     janela_encerramento_s: int = 10
+    # Encerramento elástico: quando sobra espaço até o fim, a despedida passa do máximo da unidade do formato
+    # (o musical fecha com 10 a 18 s) até este teto, em vez de deixar o ar parado antes do horário.
+    encerramento_max_s: int = 60
+    # Programa sem relógio: nos últimos segundos da ocorrência o ao vivo passa a decidir de trás para frente até o
+    # encerramento (fala que deixa espaço para música, música que caiba, reserva, encerramento). Fica limitado à
+    # metade do programa.
+    zona_fechamento_s: int = 600
+    # Reta final (texto, todos os programas): a fala pode avisar que o programa está acabando, sem se despedir.
+    # Limitada a um quarto do programa, nunca abaixo da zona de fechamento.
+    reta_final_s: int = 900
     graca_pos_fim_s: int = 1200            # igual a schedule._GRACA_APOS_FIM_MIN
     inicio_previsto_max_s: int = 1800      # horário previsto acima disso é ignorado
     musica_duracao_padrao_s: int = 210     # faixa de duração desconhecida
@@ -402,6 +413,11 @@ class Plano:
     seguintes: tuple[Etapa, ...] = ()
     # F4: etapas com promessa aberta (chaves "h:inicio_s"); o backtiming reserva o tempo da fala delas.
     obrigacoes: frozenset[str] = frozenset()
+    # Faixa confirmada deste bloco é a última antes do encerramento: depois dela nenhuma outra cabe
+    # (marcar_ultima_musica). Só então a fala pode dizer "pra fechar".
+    ultima_musica: bool = False
+    # Plano de fechamento de programa sem relógio (planejar_fechamento), não do relógio da hora.
+    fechamento_sem_relogio: bool = False
 
 
 # ------------------------------------------------------------------------------------------------
@@ -885,10 +901,13 @@ class _Decisao:
     def _encerramento(self, indice: int, puladas: list[str]) -> Plano:
         minimo, maximo, teto_palavras = self.unidade("encerramento", "encerramento", False)
         disponivel = self._ate(self.ocorrencia.fim) - self.pecas.vinheta_encerramento_s
-        limite = max(minimo, min(maximo, math.floor(disponivel)))
+        # Elástico: o que sobra até o fim vira despedida (até encerramento_max_s), não ar parado.
+        teto = max(maximo, self.cfg.encerramento_max_s)
+        limite = max(minimo, min(teto, math.floor(disponivel)))
         minimo = max(minimo, limite - self.cfg.janela_encerramento_s)
+        palavras = self._palavras(limite, teto_palavras if limite <= maximo else None)
         return self._plano(indice, "encerramento", "encerramento", orcamento_s=(minimo, limite),
-                           palavras_max=self._palavras(limite, teto_palavras), puladas=tuple(puladas))
+                           palavras_max=palavras, puladas=tuple(puladas))
 
     def _a_partir(self, indice: int, puladas: list[str], adiantar: bool = False) -> Plano:
         """Primeira etapa, a partir de `indice`, que produz um bloco agora. Um hard time ainda distante
@@ -959,6 +978,154 @@ def planejar(programa, relogio: RelogioHora, timezone: str, instante: datetime.d
     formato = formato if formato is not None else formato_pelo_booleano(bool(formato_musical))
     return _Decisao(espelho, ocorrencia, instante, formato, ultima_categoria, executadas, pecas, cfg,
                     obrigacoes=obrigacoes).decidir()
+
+
+# ------------------------------------------------------------------------------------------------
+# Fechamento de programa sem relógio e reta final (docs/melhoria-radio/encerramento/auditoria.md)
+# ------------------------------------------------------------------------------------------------
+
+_PECA_DO_ROTEIRO_RE = re.compile(r"^(vinheta|patrocinador):\d+$")
+# Categoria do bloco do roteiro -> unidade de fala (cfg.unidades) no formato sem orçamento aplicado. Na reta final
+# a fala é curta: o comentário vira link (10 a 35 s), não conversa.
+_UNIDADE_FALA_FECHAMENTO = {
+    "abertura": "abertura", "retomada": "retomada", "identificacao": "passagem", "chamada_ouvinte": "participacao",
+    "noticia": "noticia", "plantao": "noticia", "reporter": "noticia", "escalada": "manchetes", "servico": "servico",
+}
+
+
+def zona_fechamento_s(ocorrencia: Ocorrencia, cfg: ConfigRelogio = CONFIG_PADRAO) -> float:
+    return min(float(cfg.zona_fechamento_s), (ocorrencia.fim - ocorrencia.inicio).total_seconds() / 2)
+
+
+def reta_final_s(ocorrencia: Ocorrencia, cfg: ConfigRelogio = CONFIG_PADRAO) -> float:
+    """Quanto antes do fim começa a reta final: até cfg.reta_final_s, um quarto do programa, nunca menos que a zona
+    de fechamento."""
+    duracao = (ocorrencia.fim - ocorrencia.inicio).total_seconds()
+    return min(float(cfg.reta_final_s), max(zona_fechamento_s(ocorrencia, cfg), duracao / 4))
+
+
+def _etapa_sintetica(ocorrencia: Ocorrencia, inicio: datetime.datetime, fim: datetime.datetime, tipo: str,
+                     tipo_efetivo: str, rotulo: str, natureza: str, hard: bool) -> Etapa:
+    deslocamento = (inicio - ocorrencia.inicio).total_seconds()
+    hora = int(deslocamento // DURACAO_HORA_S)
+    evento = EventoRelogio(inicio_s=int(deslocamento - hora * DURACAO_HORA_S),
+                           duracao_s=max(1, min(DURACAO_HORA_S, int((fim - inicio).total_seconds()))),
+                           tipo=tipo, rotulo=rotulo, natureza=natureza, hard_time=hard)
+    return Etapa(evento, hora, inicio, fim, tipo_efetivo, hard, natureza)
+
+
+def espelho_de_fechamento(ocorrencia: Ocorrencia, cfg: ConfigRelogio = CONFIG_PADRAO) -> list[Etapa]:
+    """Espelho só da zona final de um programa sem relógio: música ajustável até o encerramento, que é obrigatório e
+    tem hard time, com a mesma duração do encerramento sintético de montar_espelho."""
+    total_s = (ocorrencia.fim - ocorrencia.inicio).total_seconds()
+    duracao_enc = min(cfg.unidades["encerramento"][1], int(total_s))
+    inicio_enc = ocorrencia.fim - datetime.timedelta(seconds=duracao_enc)
+    inicio_zona = min(inicio_enc, max(ocorrencia.inicio,
+                                      ocorrencia.fim - datetime.timedelta(seconds=zona_fechamento_s(ocorrencia, cfg))))
+    etapas = []
+    if inicio_zona < inicio_enc:
+        etapas.append(_etapa_sintetica(ocorrencia, inicio_zona, inicio_enc, "musica", "musica",
+                                       "Música de fechamento", "ajustavel", False))
+    etapas.append(_etapa_sintetica(ocorrencia, inicio_enc, ocorrencia.fim, "fechamento", "encerramento",
+                                   "Encerramento", "obrigatorio", True))
+    return etapas
+
+
+def _marcar_sem_relogio(plano: Plano | None) -> Plano | None:
+    if plano is None:
+        return None
+    return replace(plano, fechamento_sem_relogio=True, alternativa=_marcar_sem_relogio(plano.alternativa))
+
+
+def _musica_com_fala(plano: Plano, formato: Formato) -> Plano:
+    """Na zona de fechamento sem relógio, o bloco de música mantém a fala do formato (popular e variedades apresentam a
+    faixa): a faixa precisa caber depois dela, então o espaço e o teto descontam o máximo da fala."""
+    if plano.acao != "musica" or formato.comportamento.musica_sem_fala or not plano.orcamento_s:
+        return plano
+    fala_max = plano.orcamento_s[1]
+    teto = None if plano.duracao_max_musica_s is None else math.floor(plano.duracao_max_musica_s - fala_max)
+    return replace(plano, musica_sem_fala=False, duracao_max_musica_s=teto,
+                   espaco_s=None if plano.espaco_s is None else round(plano.espaco_s - fala_max, 2))
+
+
+def planejar_fechamento(programa, timezone: str, instante: datetime.datetime, *, tipo_roteiro, categoria_de,
+                        formato: Formato, ultima_categoria: str | None, ja_encerrou: bool, executadas: set[str],
+                        pecas: PecasDisponiveis, primeira: bool = False,
+                        cfg: ConfigRelogio = CONFIG_PADRAO) -> Plano | None:
+    """Backtiming até o encerramento para o programa sem relógio, só na zona final (zona_fechamento_s). Antes dela,
+    None: o roteiro decide como sempre. `tipo_roteiro()` dá o próximo bloco do roteiro e só é chamado dentro da zona
+    (o sorteio de `ia_pode_adicionar_blocos` não muda fora dela); `categoria_de` classifica o tipo.
+
+    Na zona: fala do roteiro só se ainda sobrar espaço para uma música depois dela (orçamento reduzido); senão,
+    a janela de música do relógio (faixa que feche o espaço, reserva, link de preenchimento) e, no fim, o encerramento
+    elástico. Vinheta e patrocinador do roteiro seguem enquanto há folga."""
+    if ja_encerrou:
+        return None
+    instante = _utc(instante)
+    ocorrencia = ocorrencia_em(programa, timezone, instante, cfg)
+    if ocorrencia is None or instante < ocorrencia.fim - datetime.timedelta(seconds=zona_fechamento_s(ocorrencia, cfg)):
+        return None
+    espelho = espelho_de_fechamento(ocorrencia, cfg)
+    decisao = _Decisao(espelho, ocorrencia, instante, formato, ultima_categoria, executadas, pecas, cfg)
+    final = len(espelho) - 1
+    if instante >= espelho[final].inicio:
+        return _marcar_sem_relogio(decisao._encerramento(final, []))
+    espaco = decisao.espaco(0, final)
+    tipo = (tipo_roteiro() or "").strip()
+    if _PECA_DO_ROTEIRO_RE.match(tipo):
+        # Vinheta e patrocinador são curtos e de conteúdo fixo: seguem o roteiro enquanto cabe uma música depois.
+        if espaco >= cfg.musica_duracao_min_s + cfg.musica_invasao_max_s:
+            return None
+    else:
+        categoria = categoria_de(tipo) if tipo else None
+        if categoria not in (None, "musica", "encerramento"):
+            plano = _fala_de_fechamento(decisao, tipo, categoria, espaco, primeira)
+            if plano is not None:
+                return _marcar_sem_relogio(plano)
+    return _marcar_sem_relogio(_musica_com_fala(decisao._a_partir(0, []), formato))
+
+
+def _fala_de_fechamento(decisao: "_Decisao", tipo: str, categoria: str, espaco: float, primeira: bool) -> Plano | None:
+    """Fala do roteiro na zona de fechamento, com orçamento que ainda deixa uma faixa caber antes do encerramento."""
+    cfg = decisao.cfg
+    unidade = _UNIDADE_FALA_FECHAMENTO.get(categoria, "link")
+    minimo, maximo, teto_palavras = decisao.unidade(unidade, tipo, primeira)
+    limite = min(maximo, espaco - cfg.musica_duracao_min_s)
+    if limite < minimo:
+        return None
+    limite = math.floor(limite)
+    fim_fala = decisao.instante + datetime.timedelta(seconds=limite)
+    etapa = _etapa_sintetica(decisao.ocorrencia, decisao.instante, fim_fala, "link", "link", "Reta final",
+                             "ajustavel", False)
+    com_fala = _Decisao([etapa, *decisao.espelho], decisao.ocorrencia, decisao.instante, decisao.formato,
+                        decisao.ultima_categoria, decisao.executadas, decisao.pecas, cfg)
+    return com_fala._plano(0, "fala" if limite >= maximo else "fala_reduzida", tipo, primeira=primeira,
+                           orcamento_s=(minimo, limite), palavras_max=com_fala._palavras(limite, teto_palavras))
+
+
+def marcar_ultima_musica(plano: Plano, duracao_s: float, formato: Formato,
+                         cfg: ConfigRelogio = CONFIG_PADRAO) -> Plano:
+    """Faixa confirmada que fecha a janela antes do encerramento: depois dela sobra só o que o encerramento elástico
+    absorve, e nenhuma outra busca de música acontece (sobra abaixo do piso da sobra proibida e de
+    musica_busca_min_s). Marca `ultima_musica`; com o relógio (música sem fala, D2 da F1) e formato que apresenta a
+    faixa, libera uma fala curta que cabe na sobra ("pra fechar")."""
+    compromisso = plano.proximo_compromisso
+    if plano.acao != "musica" or plano.espaco_s is None or compromisso is None \
+            or compromisso.tipo_efetivo != "encerramento":
+        return plano
+    sobra = plano.espaco_s - duracao_s
+    piso = plano.sobra_proibida_s[0] if plano.sobra_proibida_s else cfg.adiantamento_final_max_s
+    if sobra > min(piso, cfg.musica_busca_min_s - cfg.tolerancia_hard_time_s):
+        return plano
+    if formato.comportamento.musica_sem_fala or not plano.musica_sem_fala or not plano.orcamento_s:
+        return replace(plano, ultima_musica=True)
+    minimo, maximo = plano.orcamento_s
+    limite = math.floor(min(maximo, max(0.0, sobra) + cfg.folga_teto_s))
+    if limite < minimo:
+        return replace(plano, ultima_musica=True)
+    palavras = math.floor(limite * cfg.wpm / 60)
+    return replace(plano, ultima_musica=True, musica_sem_fala=False, orcamento_s=(minimo, limite),
+                   palavras_max=min(palavras, plano.palavras_max) if plano.palavras_max else palavras)
 
 
 def duracao_prevista_fala_s(texto: str, wpm: float) -> float:

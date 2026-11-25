@@ -2432,13 +2432,13 @@
       "chamadas_llm": 1,
       "cortado": false,
       "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 41.79,
-      "duracao_medida_s": 41.79,
-      "duracao_prevista_backend_s": 41.79,
-      "duracao_prevista_s": 37.41,
+      "duracao_estimada_backend_s": 48.0,
+      "duracao_medida_s": 48.0,
+      "duracao_prevista_backend_s": 48.0,
+      "duracao_prevista_s": 42.96,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:59:51-03:00",
-      "fim_s": 3591.64,
+      "fim": "2026-11-10T14:59:57-03:00",
+      "fim_s": 3597.85,
       "formato": "variedades_leves",
       "gerado_em_s": 3522.73,
       "inicio": "2026-11-10T14:59:09-03:00",
@@ -2455,13 +2455,13 @@
         "min": 20.0
       },
       "orcamento_s": {
-        "alvo": 40.0,
+        "alvo": 45.0,
         "aplicado": true,
         "fonte": "relogio",
-        "max": 45.0,
-        "min": 35.0
+        "max": 50.0,
+        "min": 40.0
       },
-      "palavras": 101,
+      "palavras": 116,
       "participacao": {
         "regras": [],
         "so_pelo_legado": false
@@ -2494,8 +2494,8 @@
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
-          35,
-          45
+          40,
+          50
         ],
         "origem_instante": "painel",
         "preset": "C",
@@ -2505,7 +2505,7 @@
       },
       "revisada": false,
       "sinteses_tts": 1,
-      "texto": "Aqui é Marta Girassol, fechando Tarde em Casa de hoje. Cada minuto desta hora valeu a pena. Cada pessoa que deixou o rádio ligado fez parte disto. Que a próxima hora do seu dia seja leve. Foi uma alegria fazer esta trilha com você. Leva uma música boa na cabeça. Obrigado a quem mandou recado e a quem só ouviu. Quem estava no trabalho, bom fim de expediente. Que o resto do dia seja tranquilo. Cuide de você e de quem está por perto. Quem estava em casa, bom descanso. A Rádio Vila Ventura segue no ar. Cuide-se e até breve.",
+      "texto": "Aqui é Marta Girassol, fechando Tarde em Casa de hoje. Cada minuto desta hora valeu a pena. Leva uma música boa na cabeça. Teve música para todos os gostos nesta hora. Que o resto do dia seja tranquilo. Segue firme no seu dia, com calma e com cuidado. Que a próxima hora do seu dia seja leve. Se alguma música marcou a sua tarde, guarda ela com você. Quem chegou no meio do caminho, obrigado também. Obrigado a quem mandou recado e a quem só ouviu. A gente se despede com a sensação de dever cumprido. Foi bom dividir este tempo com quem está ouvindo agora. Quem estava em casa, bom descanso. Cuide-se e até breve.",
       "tipo": "fala",
       "tom": "calmo",
       "validacao_fala": null,

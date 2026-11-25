@@ -13,6 +13,7 @@ import { sondarAutoplayComSom as sondarAutoplay } from "../lib/autoplay";
 import { apiFetch, apiFetchBlob, apiFetchBlobComTimeout, apiFetchComTimeout, ApiError } from "../lib/api";
 import { setRadialistaAtualId } from "../lib/radialistas";
 import { falaReservaNeutra } from "../lib/reservaNeutra";
+import { capturaDeAbaSuportada, iniciarGravacaoAba, GravacaoAba } from "../lib/gravacaoAba";
 import { ehMusical, roteiroDoFormato } from "../lib/formatoPrograma";
 import { Radialista, Programa, RadioConta } from "../lib/types";
 import {
@@ -293,6 +294,9 @@ export function useLiveEngine() {
   // não invalida a escrita/síntese que ainda está em andamento para os seguintes.
   const filaPreparoRef = useRef<FilaPreparo<ContextoPreparo, TextoPreparado, SegmentoPreparado> | null>(null);
   const gravacaoBlobsRef = useRef<Blob[]>([]);
+  // Captura do áudio da aba (música + fala + vinhetas como foram ao ar). null = sem captura:
+  // o export cai no fallback de só falas/vinhetas TTS (gravacaoBlobsRef).
+  const gravacaoAbaRef = useRef<GravacaoAba | null>(null);
   // incrementado a cada chamada de gerarProximaFala -- pularFala usa isso pra
   // "aposentar" a execucao em andamento (a que estava tocando quando o usuario
   // clicou em "Proxima fala") depois que ela acorda do pararFala/musicStopRef,
@@ -1894,6 +1898,21 @@ export function useLiveEngine() {
     setProgramaAtivo(true);
     gravacaoBlobsRef.current = [];
     setAvisoGravacao("");
+    gravacaoAbaRef.current?.cancelar();
+    gravacaoAbaRef.current = null;
+    // Captura da aba pede gesto do usuário: só no clique manual (início por agendamento não tem).
+    if (peloAgendamento !== true && capturaDeAbaSuportada()) {
+      iniciarGravacaoAba(() => setAvisoGravacao("Compartilhamento da aba encerrado: o MP3 final terá só as falas."))
+        .then((g) => {
+          if (programaAtivoRef.current) gravacaoAbaRef.current = g;
+          else g.cancelar();
+        })
+        .catch(() =>
+          setAvisoGravacao("Áudio da aba não compartilhado: o MP3 final terá só as falas, sem música."),
+        );
+    } else {
+      setAvisoGravacao("Sem captura da aba neste início: o MP3 final terá só as falas, sem música.");
+    }
     // de novo aqui: a sondagem da montagem pode ter rodado antes da configuracao do navegador
     // valer (ou a pagina ganhou permissao depois); e' barata e so' toca silencio.
     void sondarAutoplayComSom();
@@ -1901,19 +1920,8 @@ export function useLiveEngine() {
     gerarProximaFala(true);
   }
 
-  // junta as falas do locutor gravadas durante a transmissao (audio TTS, na ordem
-  // em que foram ao ar) num unico mp3 e dispara o download no navegador
-  function exportarGravacao() {
-    const blocos = gravacaoBlobsRef.current;
-    gravacaoBlobsRef.current = [];
-    if (blocos.length === 0) return;
-
-    const programaAtual = programasTodos.find((p) => p.id === programaIdRef.current);
-    const carimbo = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-    const nomeArquivo = `${(programaAtual?.nome || "programa").replace(/[^a-zA-Z0-9-_]+/g, "_")}-${carimbo}.mp3`;
-
-    const audioFinal = new Blob(blocos, { type: "audio/mpeg" });
-    const url = URL.createObjectURL(audioFinal);
+  function baixarArquivo(blob: Blob, nomeArquivo: string) {
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
     link.download = nomeArquivo;
@@ -1921,8 +1929,37 @@ export function useLiveEngine() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  }
 
-    setAvisoGravacao(`Gravacao exportada: ${nomeArquivo}`);
+  // Programa completo em MP3 (música, vinhetas e falas como foram ao ar), vindo da captura da
+  // aba. Sem captura (recusada, agendamento, navegador sem suporte) ou se a conversão falhar,
+  // cai no que existia: só as falas/vinhetas TTS emendadas.
+  async function exportarGravacao() {
+    const blocos = gravacaoBlobsRef.current;
+    gravacaoBlobsRef.current = [];
+    const captura = gravacaoAbaRef.current;
+    gravacaoAbaRef.current = null;
+
+    const programaAtual = programasTodos.find((p) => p.id === programaIdRef.current);
+    const carimbo = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    const nomeArquivo = `${(programaAtual?.nome || "programa").replace(/[^a-zA-Z0-9-_]+/g, "_")}-${carimbo}.mp3`;
+
+    if (captura) {
+      setAvisoGravacao("Gerando o MP3 do programa completo…");
+      try {
+        baixarArquivo(await captura.finalizar(), nomeArquivo);
+        setAvisoGravacao(`Programa completo exportado: ${nomeArquivo}`);
+        setTimeout(() => setAvisoGravacao(""), 6000);
+        return;
+      } catch (err) {
+        console.error("Falha ao gerar o MP3 do programa completo, exportando só as falas", err);
+        setAvisoGravacao("Não foi possível gerar o programa completo; exportando só as falas.");
+      }
+    }
+
+    if (blocos.length === 0) return;
+    baixarArquivo(new Blob(blocos, { type: "audio/mpeg" }), nomeArquivo);
+    setAvisoGravacao(`Gravacao exportada (só falas): ${nomeArquivo}`);
     setTimeout(() => setAvisoGravacao(""), 6000);
   }
 
@@ -1941,7 +1978,11 @@ export function useLiveEngine() {
     pararMusicaFundo();
     descartarPreparo();
 
-    if (exportar) exportarGravacao();
+    if (exportar) void exportarGravacao();
+    else {
+      gravacaoAbaRef.current?.cancelar();
+      gravacaoAbaRef.current = null;
+    }
 
     // marca a ocorrencia atual como "ja tratada" pra pausa manual nao ser
     // reiniciada de imediato pelo checador de horario agendado

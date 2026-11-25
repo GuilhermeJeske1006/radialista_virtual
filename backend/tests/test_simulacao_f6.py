@@ -85,11 +85,12 @@ def test_s1_formato_invalido_e_recusado():
 MEDIDO_FORA_DO_LIMITE = {
     # dublê: abre com o banco da retomada (conta a vinheta como fala) e a retomada do banco sai com 4 s
     ("musical_adulto", "relogio"): {"falas_fora_da_unidade_pct": 14.3},
-    ("musical_adulto", "sem_relogio"): {"falas_fora_da_unidade_pct": 12.5},
+    ("musical_adulto", "sem_relogio"): {"falas_fora_da_unidade_pct": 10.0},   # 1 de 10 desde o encerramento pontual
     ("musical_adulto", "sem_inicio_previsto"): {"falas_fora_da_unidade_pct": 14.3},
     # dublê: o comentário e a chamada do banco não dizem o nome (ignoram a linha de reorientação do prompt)
     ("popular_sertanejo", "relogio"): {"maior_intervalo_sem_reorientacao_s": 3174.83},
-    ("popular_sertanejo", "voz_120"): {"maior_intervalo_sem_reorientacao_s": 3475.35},
+    # 3495.35 desde o encerramento pontual: a identificação antes da despedida (que diz o nome) vai ao ar 20 s depois
+    ("popular_sertanejo", "voz_120"): {"maior_intervalo_sem_reorientacao_s": 3495.35},
     ("popular_sertanejo", "sem_inicio_previsto"): {"maior_intervalo_sem_reorientacao_s": 3174.83},
     # dublê: o banco do quadro tem uma frase de convite ("pode contar pelo WhatsApp") e não diz o nome do programa
     ("variedades_leves", "relogio"): {"convites_fora_da_politica": 4, "maior_intervalo_sem_reorientacao_s": 3452.27},

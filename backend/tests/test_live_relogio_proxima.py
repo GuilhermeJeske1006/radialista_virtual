@@ -90,14 +90,16 @@ def _preparar_caminho(caminho, account, radialista, programa, db_session, monkey
     return corpo
 
 
-@pytest.mark.parametrize("caminho", ["comentario", "musica_musical", "encerramento", "vinheta", "patrocinador"])
+# Sem relógio, longe do fim, o horário previsto não muda a decisão. Na zona final ele passa a decidir o fechamento
+# (D4 da F1, resolvida em docs/melhoria-radio/encerramento): ver tests/test_live_fechamento.py.
+@pytest.mark.parametrize("caminho", ["comentario", "musica_musical", "vinheta", "patrocinador"])
 def test_proxima_sem_relogio_ignora_inicio_previsto(
     caminho, client, account, auth_headers, radialista_e_programa, db_session, monkeypatch
 ):
     from app.config.redis_client import redis_client
 
     radialista, programa = radialista_e_programa
-    agora = "2026-08-10 16:58:00" if caminho == "encerramento" else AGORA_UTC
+    agora = AGORA_UTC
     corpo = _preparar_caminho(caminho, account, radialista, programa, db_session, monkeypatch)
     respostas = []
     with freeze_time(agora):
@@ -111,8 +113,8 @@ def test_proxima_sem_relogio_ignora_inicio_previsto(
             assert resposta.status_code == 200, resposta.text
             respostas.append(resposta.json())
     assert _sem_campos_novos(respostas[0]) == _sem_campos_novos(respostas[1])
-    esperado = {"comentario": "comentario", "musica_musical": "musica", "encerramento": "encerramento",
-                "vinheta": "vinheta", "patrocinador": "patrocinador"}[caminho]
+    esperado = {"comentario": "comentario", "musica_musical": "musica", "vinheta": "vinheta",
+                "patrocinador": "patrocinador"}[caminho]
     assert respostas[0]["tipo"] == esperado
     assert respostas[1].get("relogio") is None
 

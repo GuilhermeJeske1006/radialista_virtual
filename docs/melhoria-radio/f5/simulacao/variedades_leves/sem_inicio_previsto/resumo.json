@@ -12,8 +12,8 @@
   "blocos_gerados": 26,
   "blocos_nao_tocados": 0,
   "bordao_repetido": null,
-  "caracteres_tts": 14272,
-  "caracteres_tts_estimados": 14272,
+  "caracteres_tts": 14361,
+  "caracteres_tts_estimados": 14361,
   "chamadas_llm": {
     "falas": 17,
     "revisoes": 4,
@@ -23,7 +23,7 @@
   "chamadas_tts": 17,
   "config": {
     "antecedencia": 2,
-    "commit": "305da32",
+    "commit": "394168f",
     "corte": "agendado",
     "fixture": "variedades_leves",
     "formato": "programa",
@@ -54,7 +54,7 @@
     "contadores": {
       "blocos_musica_llm": 1,
       "buscar_musica": 7,
-      "caracteres_tts": 14272,
+      "caracteres_tts": 14361,
       "classificar_fio_condutor": 1,
       "classificar_tema_fala": 11,
       "duracoes_faixas": 15,
@@ -82,7 +82,7 @@
     "erro_estimativa_calibrada_pct": 0.0,
     "erro_estimativa_pct": 3.1,
     "medidas": 17,
-    "segundos_medidos": 1103.59
+    "segundos_medidos": 1109.8
   },
   "encerramento_no_ar": true,
   "erros_http": 0,
@@ -105,7 +105,7 @@
     "musica": 1
   },
   "fechamentos_curtos": 2,
-  "fim_antecipado_s": 8.36,
+  "fim_antecipado_s": 2.15,
   "fora_orcamento_pct": 0.0,
   "formato": {
     "avisos": [],
@@ -121,7 +121,7 @@
     "convites": 3,
     "convites_fora_da_politica": 0,
     "faixa_fala_pct": null,
-    "fala_pct": 30.7,
+    "fala_pct": 30.8,
     "falas": 17,
     "falas_fora_da_unidade": 0,
     "falas_fora_da_unidade_pct": 0.0,
@@ -268,8 +268,8 @@
   "sinais_ia_falas": 17,
   "sinais_ia_media": null,
   "sinais_ia_p90": null,
-  "tempo_execucao_s": 4.43,
-  "tempo_fala_s": 1103.59,
+  "tempo_execucao_s": 4.72,
+  "tempo_fala_s": 1109.8,
   "tempo_musica_s": 2483.0,
   "tempo_outros_s": 0,
   "tentativas_rede": 0,

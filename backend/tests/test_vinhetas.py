@@ -519,7 +519,7 @@ def test_vinheta_desativada_pula_pro_proximo_bloco(
     assert corpo["passos_roteiro"] == 2
 
 
-@freeze_time("2026-08-10 16:58:00")  # 13:58 local -- 2 min antes do fim (14:00)
+@freeze_time("2026-08-10 16:59:20")  # 13:59:20 local -- 40 s antes do fim (14:00), já na etapa de encerramento
 def test_encerramento_informa_vinheta_de_encerramento(
     client, db_session, account, auth_headers, radialista_e_programa, monkeypatch
 ):

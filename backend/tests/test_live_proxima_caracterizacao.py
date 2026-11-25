@@ -392,7 +392,7 @@ CENARIOS = [
             respostas=["Segundo a Defesa Civil, a chuva derrubou duas árvores no centro."]),
     Cenario("abertura_primeira", {"total_falas": 0, "historico": []}, fio="será que hoje bate recorde de calor?",
             respostas=["Boa tarde! Será que hoje bate recorde de calor?"]),
-    Cenario("encerramento_fio", {"total_falas": 9, "historico": HIST_MUSICA}, agora="2026-08-10 16:58:00",
+    Cenario("encerramento_fio", {"total_falas": 9, "historico": HIST_MUSICA}, agora="2026-08-10 16:59:20",
             preparar=_p_encerramento, respostas=["Obrigado pela companhia, até amanhã."]),
     Cenario("musical_retomada_com_excesso", {"total_falas": 6, "historico": HIST_MUSICA}, preparar=_p_musical,
             respostas=[LONGA, "Você está na rádio, seguimos juntos."]),

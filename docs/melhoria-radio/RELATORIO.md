@@ -544,3 +544,28 @@ Ainda pendentes:
   de áudio segue sendo a vinheta de passagem gravada (`GET /live/.../reserva`). Para usar a peça, seria preciso
   sintetizá-la na aprovação (uma chamada de TTS por aprovação).
 - **F12**: a fala aprovada continua sem caminho para ir ao ar (por desenho: aprovar só libera para conferência).
+
+## Encerramento pontual (25/11/2026, branch `melhoria/encerramento-pontual`)
+
+Pedido: perto do fim do horário, a fala e a música conduzem ao encerramento e o programa acaba no horário. Fecha a
+pendência D4 da F1. Desenho, pesquisa e resultados em [`encerramento/auditoria.md`](encerramento/auditoria.md);
+avaliação com texto real em [`encerramento/avaliacao.md`](encerramento/avaliacao.md).
+
+- **Sem relógio** (o padrão dos programas): zona de fechamento nos últimos 10 min pelo horário previsto do bloco,
+  com o backtiming do relógio (fala que deixa espaço para música, música escolhida pela duração, reserva, encerramento).
+  Painel antigo entra na cadeia de blocos perto do fim.
+- **Encerramento elástico** até 60 s: a despedida ocupa o espaço até o fim em vez de ar parado.
+- **Última música** marcada só quando nenhuma outra cabe ("pra fechar"); a despedida retoma o que tocou.
+- **Reta final** (15 min): aviso uma vez, sem despedida antecipada, sem prometer leitura ou pedido; na zona, sem
+  pergunta nem convite.
+- **Encerramento com a grade:** quando o programa volta e o programa que entra em seguida.
+
+| Simulação fake: segundos antes do fim | musical | popular | variedades |
+|---|---|---|---|
+| Com relógio, antes → depois | 88,4 → 45,8 | 18,4 → 2,2 | 7,4 → 0,0 |
+| Sem relógio, antes → depois | cortada → 9,4 | 42,1 → 12,1 | cortada → 17,1 |
+
+Portão: ruff limpo nos arquivos da frente (os 6 avisos de `scripts/validar_melhorias_voz.py` já existiam); pytest
+completo **2741 passed, 3 skipped**, 0 falhas; simulação fake sem rede. Texto real (`--modo llm`, aprovado): avaliação
+REPROVADO por 0,1 em Precisão no popular ("eu leio"), corrigido no prompt depois da rodada; falta confirmar com nova
+rodada paga. Sem commit até aprovação.

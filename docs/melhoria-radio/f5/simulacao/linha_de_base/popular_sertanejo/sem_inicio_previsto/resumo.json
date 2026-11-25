@@ -3,7 +3,7 @@
   "acima_teto_orcamento": 0,
   "adiantamentos": 0,
   "ajustes_fala": {
-    "nenhum": 10
+    "nenhum": 11
   },
   "anuncio_sem_confirmacao": 0,
   "atraso_hard_time_s": 0.5,
@@ -12,18 +12,18 @@
   "blocos_gerados": 25,
   "blocos_nao_tocados": 0,
   "bordao_repetido": null,
-  "caracteres_tts": 3475,
-  "caracteres_tts_estimados": 3475,
+  "caracteres_tts": 3586,
+  "caracteres_tts_estimados": 3586,
   "chamadas_llm": {
-    "falas": 10,
+    "falas": 11,
     "revisoes": 0,
-    "total": 10
+    "total": 11
   },
   "chamadas_proxima": 25,
-  "chamadas_tts": 10,
+  "chamadas_tts": 11,
   "config": {
     "antecedencia": 2,
-    "commit": "305da32",
+    "commit": "394168f",
     "corte": "agendado",
     "fixture": "popular_sertanejo",
     "formato": "programa",
@@ -44,45 +44,50 @@
   "dado_sem_fonte": 0,
   "dado_vencido": 0,
   "dados": {
-    "blocos_com_dado": 0,
-    "por_estado": {},
-    "por_tipo": {}
+    "blocos_com_dado": 1,
+    "por_estado": {
+      "valido": 1
+    },
+    "por_tipo": {
+      "assunto": 1
+    }
   },
   "destinos_rede": [],
   "dubles": {
-    "blocos_musica_com_llm": 1,
+    "blocos_musica_com_llm": 2,
     "contadores": {
-      "blocos_musica_llm": 1,
+      "blocos_musica_llm": 2,
       "buscar_faixas_por_categoria": 3,
       "buscar_musica": 24,
-      "caracteres_tts": 3475,
+      "caracteres_tts": 3586,
       "classificar_fio_condutor": 1,
       "classificar_tema_fala": 3,
       "duracoes_faixas": 3,
       "escolher_faixa_do_programa": 3,
       "extrair_musicas_citadas": 9,
-      "faixa_reconhecida": 1,
+      "faixa_reconhecida": 2,
       "faixas_devolvidas": 15,
-      "falas": 10,
-      "gerar_resposta": 10,
+      "falas": 11,
+      "gerar_resposta": 11,
       "injecao_promessa": 1,
       "itens_fora_do_genero": 14,
       "obter_metadados_voz": 1,
-      "processar_audio": 10,
+      "processar_audio": 11,
       "registrar_tema": 3,
       "resolver_musica_catalogada": 3,
-      "sintetizar_audio": 10,
-      "tipo_reconhecido": 10,
-      "tts_habilitado": 20
+      "resumir_contexto_musica": 1,
+      "sintetizar_audio": 11,
+      "tipo_reconhecido": 11,
+      "tts_habilitado": 22
     },
     "faixa_reconhecida_pct": 100.0,
     "tipo_reconhecido_pct": 100.0
   },
   "duracao_fala": {
     "erro_estimativa_calibrada_pct": 0.0,
-    "erro_estimativa_pct": 5.2,
-    "medidas": 10,
-    "segundos_medidos": 269.38
+    "erro_estimativa_pct": 4.8,
+    "medidas": 11,
+    "segundos_medidos": 277.24
   },
   "encerramento_no_ar": true,
   "erros_http": 0,
@@ -90,24 +95,24 @@
   "estouro_max_pct": 10.3,
   "etapas_puladas": [],
   "eventos_por_tipo": {
-    "fala": 10,
+    "fala": 11,
     "intervalo": 2,
     "musica": 14,
     "vinheta": 1
   },
   "falas_abaixo_minimo": 0,
-  "falas_com_orcamento_aplicado": 10,
+  "falas_com_orcamento_aplicado": 11,
   "falas_por_bloco": {
     "abertura": 1,
     "chamada_ouvinte": 1,
     "comentario": 3,
     "encerramento": 1,
     "identificacao": 3,
-    "musica": 1
+    "musica": 2
   },
   "fechamentos_curtos": 0,
-  "fim_antecipado_s": 9.78,
-  "fora_orcamento_pct": 10.0,
+  "fim_antecipado_s": 1.92,
+  "fora_orcamento_pct": 9.1,
   "formato": {
     "avisos": [],
     "avisos_por_codigo": {
@@ -122,14 +127,14 @@
     "convites": 0,
     "convites_fora_da_politica": 0,
     "faixa_fala_pct": null,
-    "fala_pct": 7.5,
-    "falas": 10,
+    "fala_pct": 7.7,
+    "falas": 11,
     "falas_fora_da_unidade": 0,
     "falas_fora_da_unidade_pct": 0.0,
     "id": "padrao",
     "instrucao_de_outro_formato": 0,
     "instrucao_no_prompt_pct": 0.0,
-    "interrupcoes_por_hora": 10.0,
+    "interrupcoes_por_hora": 11.0,
     "itens": {
       "blocos_fora_do_formato": true,
       "convites_fora_da_politica": true,
@@ -170,9 +175,9 @@
       "tipo": "intervalo"
     },
     {
-      "atraso_s": -24.99,
+      "atraso_s": -19.2,
       "cortado": false,
-      "executado_em_s": 3545.01,
+      "executado_em_s": 3550.8,
       "inicio_s": 3570,
       "status": "adiantado",
       "tipo": "passagem"
@@ -265,11 +270,11 @@
   },
   "silencio_editorial_s": 3.25,
   "silencio_s": 0.0,
-  "sinais_ia_falas": 10,
+  "sinais_ia_falas": 11,
   "sinais_ia_media": null,
   "sinais_ia_p90": null,
-  "tempo_execucao_s": 2.51,
-  "tempo_fala_s": 269.38,
+  "tempo_execucao_s": 2.78,
+  "tempo_fala_s": 277.24,
   "tempo_musica_s": 3255.0,
   "tempo_outros_s": 62.59,
   "tentativas_rede": 0,

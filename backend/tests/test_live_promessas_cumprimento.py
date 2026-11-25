@@ -200,7 +200,7 @@ def test_i6_sem_relogio_posicao_passou_vira_contingencia_na_proxima_fala(client,
     assert (promessa.estado, promessa.motivo) == ("cancelada", "contingencia:prazo_vencido")
 
 
-@freeze_time("2026-08-10 16:58:00")
+@freeze_time("2026-08-10 16:59:20")  # 40 s antes do fim (14:00), já na etapa de encerramento
 def test_i6_encerramento_resolve_todas_e_nada_fica_aberto(client, account, auth_headers, programa, db_session,
                                                            monkeypatch):
     radialista, prog = programa

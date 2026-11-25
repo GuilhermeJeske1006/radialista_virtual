@@ -1877,13 +1877,13 @@
       "chamadas_llm": 1,
       "cortado": false,
       "cortado_s": 0.0,
-      "duracao_estimada_backend_s": 18.0,
-      "duracao_medida_s": 18.0,
-      "duracao_prevista_backend_s": 27.0,
-      "duracao_prevista_s": 13.33,
+      "duracao_estimada_backend_s": 53.0,
+      "duracao_medida_s": 53.0,
+      "duracao_prevista_backend_s": 62.0,
+      "duracao_prevista_s": 39.26,
       "fala_ajuste": "nenhum",
-      "fim": "2026-11-10T14:59:15-03:00",
-      "fim_s": 3555.7,
+      "fim": "2026-11-10T14:59:50-03:00",
+      "fim_s": 3590.7,
       "formato": "musical_adulto",
       "gerado_em_s": 3264.2,
       "inicio": "2026-11-10T14:58:57-03:00",
@@ -1900,13 +1900,13 @@
         "min": 10.0
       },
       "orcamento_s": {
-        "alvo": 14.0,
+        "alvo": 48.0,
         "aplicado": true,
         "fonte": "relogio",
-        "max": 18.0,
-        "min": 10.0
+        "max": 53.0,
+        "min": 43.0
       },
-      "palavras": 36,
+      "palavras": 106,
       "participacao": {
         "regras": [],
         "so_pelo_legado": false
@@ -1939,8 +1939,8 @@
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
-          10,
-          18
+          43,
+          53
         ],
         "origem_instante": "painel",
         "preset": "A",
@@ -1950,7 +1950,7 @@
       },
       "revisada": false,
       "sinteses_tts": 1,
-      "texto": "A nossa hora juntos termina agora. A tarde ficou melhor com a sua companhia. Cuide de você e de quem está por perto. Foi uma alegria fazer esta trilha com você. Até amanhã, no mesmo horário.",
+      "texto": "A nossa hora juntos termina agora. A tarde ficou melhor com a sua companhia. Cuide de você e de quem está por perto. A gente se despede com a sensação de dever cumprido. Foi uma alegria fazer esta trilha com você. Que o resto do dia seja tranquilo. Quem chegou no meio do caminho, obrigado também. Segue firme no seu dia, com calma e com cuidado. Foi bom dividir este tempo com quem está ouvindo agora. Obrigado a quem mandou recado e a quem só ouviu. Quem estava no trabalho, bom fim de expediente. A Rádio Serra Clara segue no ar. Até amanhã, no mesmo horário.",
       "tipo": "fala",
       "tom": "calmo",
       "validacao_fala": null,
@@ -1966,16 +1966,16 @@
       "cortado_s": 0.0,
       "duracao_estimada_backend_s": null,
       "duracao_medida_s": null,
-      "duracao_prevista_backend_s": 27.0,
+      "duracao_prevista_backend_s": 62.0,
       "duracao_prevista_s": 9.0,
       "fala_ajuste": null,
-      "fim": "2026-11-10T14:59:24-03:00",
-      "fim_s": 3564.7,
+      "fim": "2026-11-10T14:59:59-03:00",
+      "fim_s": 3599.7,
       "formato": "musical_adulto",
       "gerado_em_s": 3264.2,
-      "inicio": "2026-11-10T14:59:15-03:00",
+      "inicio": "2026-11-10T14:59:50-03:00",
       "inicio_previsto_s": 3537.35,
-      "inicio_s": 3555.7,
+      "inicio_s": 3590.7,
       "musica_anunciada": [],
       "musica_tocada": null,
       "musicas_bloco": [],
@@ -2012,8 +2012,8 @@
         "inicio_previsto_aceito": true,
         "obrigacoes": null,
         "orcamento_s": [
-          10,
-          18
+          43,
+          53
         ],
         "origem_instante": "painel",
         "preset": "A",
