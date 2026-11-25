@@ -63,11 +63,12 @@ def derivar_de_ouvinte(db: Session, radio_config_id: int, account_id: int) -> li
             origem="ouvinte",
             origem_ref_id=None,
             titulo=titulo,
-            gancho=f"Hoje varios ouvintes pediram \"{query_original}\" ({contagem} pedidos).",
+            gancho=f"\"{query_original}\" aparece em {contagem} registros de pedidos nas últimas {_JANELA_HORAS} horas.",
             fatos=[f"\"{query_original}\" foi pedida {contagem} vezes nas ultimas {_JANELA_HORAS}h."],
             tags=list(_TAGS_OUVINTE),
             validade_ate=datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=_JANELA_HORAS),
             peso_base=6.0,
+            repertorio={"familia": "participacao", "recorte": f"Recorrência de pedidos de {query_original}"},
         )
         db.add(assunto)
         assuntos.append(assunto)

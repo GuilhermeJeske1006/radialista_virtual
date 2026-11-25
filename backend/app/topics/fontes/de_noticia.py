@@ -50,6 +50,7 @@ def derivar_de_noticia(db: Session, noticia: Noticia, account: Account) -> list[
             validade_ate=validade_ate,
             peso_base=noticia.score / 10.0,
             url_origem=noticia.url,
+            repertorio=gancho.repertorio,
         )
         db.add(assunto)
         assuntos.append(assunto)

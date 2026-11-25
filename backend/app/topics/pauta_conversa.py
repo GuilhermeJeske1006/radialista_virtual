@@ -5,14 +5,13 @@ Regra de ouro herdada do plano de jornalismo: isto roda SINCRONO no caminho de f
 app.live.router), mas so' LE -- nunca deriva, nunca casa, nunca chama LLM. Mesmo papel que
 app.news.pauta cumpre pra noticia.
 
-Cascata (ver ADR item 6): a ordenacao por score ja' resolve perecivel -> permanente -> reserva
-sozinha, sem logica if/elif separada por camada -- reserva nasce com peso_base baixo (ver
-app.topics.reserva), entao so' sobe ao topo quando o resto (que teria score de match mais alto)
-ja' estiver esgotado nesta sessao (ver _sem_estoque_na_sessao).
+O score combina relevância, variedade de família e uso recente. Ganchos musicais concorrem
+com o estoque, sem ultrapassar uma pauta fixada. Retomadas recebem apenas falas confirmadas.
 """
 
 import dataclasses
 import datetime
+import logging
 
 from sqlalchemy.orm import Session
 
@@ -21,8 +20,14 @@ from app.dados.fontes import id_do_assunto
 from app.models.assunto import Assunto
 from app.models.assunto_programa import AssuntoPrograma
 from app.models.programa import Programa
+from app.models.radio_config import RadioConfig
+from app.models.canal_whatsapp import DecisaoPauta
+from app.topics.continuidade import contribuicoes_validas, historico_confirmado, notas_do_assunto
 from app.topics.eixos import EIXOS_ASSUNTO, INSTRUCAO_EIXO, MAX_RETORNOS_POR_ASSUNTO
 from app.topics.espelho import RegistroUso, ajustar_score, formatar_registro, parsear_registro
+from app.topics.repertorio import normalizar
+
+logger = logging.getLogger("radialista.topics.pauta")
 
 # Mesmo valor de _TTL_SESSAO_AO_VIVO em app.live.router -- duplicado aqui (nao importado) pra
 # nao criar dependencia circular (router importa deste modulo, nao o contrario).
@@ -38,6 +43,8 @@ _PENALIDADE_MESMO_GANCHO_NA_RADIO = 3.0
 _TTL_CALLBACK_MUSICA = 20 * 60
 _TTL_CALLBACK_NOTICIA = 30 * 60
 _BONUS_CALLBACK_NOTICIA = 100.0
+_SCORE_CALLBACK_MUSICA = 7.0
+_PENALIDADE_RETORNO = 4.0
 _SEP_CALLBACK = "\x1f"
 
 
@@ -52,10 +59,12 @@ class AssuntoConversa:
     tags: list[str]
     origem: str
     eixo: str
+    repertorio: dict = dataclasses.field(default_factory=dict)
+    continuidade: list[dict] = dataclasses.field(default_factory=list)
 
     @property
     def tag_principal(self) -> str:
-        return self.tags[0] if self.tags else ""
+        return self.repertorio.get("familia") or (self.tags[0] if self.tags else "")
 
 
 def _chave_sessao(programa_id: int) -> str:
@@ -159,8 +168,11 @@ def _candidatos(db: Session, programa_id: int) -> list[tuple[AssuntoPrograma, As
     linhas = (
         db.query(AssuntoPrograma, Assunto)
         .join(Assunto, Assunto.id == AssuntoPrograma.assunto_id)
+        .join(Programa, Programa.id == AssuntoPrograma.programa_id)
+        .join(RadioConfig, RadioConfig.id == Programa.radio_config_id)
         .filter(
             AssuntoPrograma.programa_id == programa_id,
+            Assunto.account_id == RadioConfig.account_id,
             (Assunto.validade_ate.is_(None)) | (Assunto.validade_ate > agora),
         )
         .all()
@@ -168,24 +180,30 @@ def _candidatos(db: Session, programa_id: int) -> list[tuple[AssuntoPrograma, As
     return linhas
 
 
+def _eixos_possiveis(assunto: Assunto, ap: AssuntoPrograma) -> list[str]:
+    cardapio = [e for e in (ap.eixos_sugeridos or EIXOS_ASSUNTO) if e in EIXOS_ASSUNTO]
+    if not assunto.fatos:
+        cardapio = [e for e in cardapio if e not in ("fato", "servico", "curiosidade")]
+        if not cardapio:
+            cardapio = ["observacao", "comparacao", "memoria"]
+    if assunto.origem != "ouvinte":
+        cardapio = [e for e in cardapio if e != "reacao"]
+    # Relatos reais merecem uma reação antes de abrir outra pergunta.
+    if assunto.origem == "ouvinte" and "reacao" in cardapio:
+        cardapio = ["reacao", *[e for e in cardapio if e != "reacao"]]
+    return cardapio
+
+
 def proximo_assunto(db: Session, programa: Programa) -> AssuntoConversa | None:
     callback_musica = _consumir_callback_musica(programa.id)
-    if callback_musica is not None:
-        titulo, contexto = callback_musica
-        return AssuntoConversa(
-            assunto_id=0, titulo=titulo, gancho=contexto, fatos=[contexto], ponte="",
-            pergunta_ouvinte="", tags=["musica", "memoria"], origem="musica", eixo="memoria",
-        )
-
-    candidatos = _candidatos(db, programa.id)
-    if not candidatos:
-        return None
-
     callback_noticia_id = _consumir_callback_noticia_id(programa.id)
-
+    candidatos = _candidatos(db, programa.id)
     historico_sessao = _historico_sessao(programa.id)
     historico_radio = _historico_radio_recente(programa.radio_config_id)
     ids_penalizados_radio = {r.assunto_id for r in historico_radio}
+    confirmados = historico_confirmado(db, programa)
+    aprovados = contribuicoes_validas(db, programa)
+    decisoes = {d.assunto_id: d.estado for d in db.query(DecisaoPauta).filter_by(programa_id=programa.id)}
 
     contagem_sessao: dict[int, int] = {}
     eixos_usados_sessao: dict[int, set[str]] = {}
@@ -195,32 +213,54 @@ def proximo_assunto(db: Session, programa: Programa) -> AssuntoConversa | None:
 
     avaliados = []
     for assunto_programa, assunto in candidatos:
+        if decisoes.get(assunto.id) == "descartado":
+            continue
+        if assunto.origem == "ouvinte" and assunto.origem_ref_id is not None and assunto.id not in aprovados:
+            continue
         if contagem_sessao.get(assunto.id, 0) >= MAX_RETORNOS_POR_ASSUNTO:
             continue
-        cardapio = assunto_programa.eixos_sugeridos or list(EIXOS_ASSUNTO)
+        cardapio = _eixos_possiveis(assunto, assunto_programa)
         eixos_ja_usados = eixos_usados_sessao.get(assunto.id, set())
-        eixos_restantes = [e for e in EIXOS_ASSUNTO if e in cardapio and e not in eixos_ja_usados]
+        eixos_restantes = [e for e in cardapio if e not in eixos_ja_usados]
         if not eixos_restantes:
             continue
+        eixo = min(eixos_restantes, key=lambda e: sum(r.eixo == e for r in historico_sessao[:4]))
 
-        tag_principal = assunto.tags[0] if assunto.tags else ""
+        repertorio = normalizar(assunto.repertorio)
+        tag_principal = repertorio.get("familia") or (assunto.tags[0] if assunto.tags else "")
         score = ajustar_score(
             assunto_programa.score, origem=assunto.origem, tag_principal=tag_principal, historico=historico_sessao
         )
         if assunto.id in ids_penalizados_radio:
             score -= _PENALIDADE_MESMO_GANCHO_NA_RADIO
+        score -= contagem_sessao.get(assunto.id, 0) * _PENALIDADE_RETORNO
         if callback_noticia_id is not None and assunto.origem == "noticia" and assunto.origem_ref_id == callback_noticia_id:
             # Fase G: noticia que acabou de ir ao ar tem prioridade absoluta pro comentario
             # seguinte, ainda respeitando exhaustao de eixo/sessao (ja' filtrado acima).
             score += _BONUS_CALLBACK_NOTICIA
 
-        avaliados.append((score, eixos_restantes[0], assunto_programa, assunto))
+        avaliados.append((score, eixo, assunto_programa, assunto))
+
+    if callback_musica is not None:
+        titulo, contexto = callback_musica
+        if titulo.strip() and contexto.strip():
+            score_musica = ajustar_score(_SCORE_CALLBACK_MUSICA, origem="musica", tag_principal="musica",
+                                         historico=historico_sessao)
+            if not avaliados or score_musica > max(a[0] for a in avaliados):
+                return AssuntoConversa(
+                    assunto_id=0, titulo=titulo, gancho=contexto, fatos=[contexto], ponte="",
+                    pergunta_ouvinte="", tags=["musica", "memoria"], origem="musica", eixo="memoria",
+                )
 
     if not avaliados:
         return None
 
     avaliados.sort(key=lambda item: item[0], reverse=True)
     _score, eixo, assunto_programa, assunto = avaliados[0]
+    continuidade = notas_do_assunto(assunto.id, confirmados)
+    logger.info("pauta_selecionada programa_id=%s assunto_id=%s origem=%s familia=%s eixo=%s retomada=%s",
+                programa.id, assunto.id, assunto.origem, normalizar(assunto.repertorio).get("familia", ""),
+                eixo, bool(continuidade))
 
     return AssuntoConversa(
         assunto_id=assunto.id,
@@ -232,6 +272,7 @@ def proximo_assunto(db: Session, programa: Programa) -> AssuntoConversa | None:
         tags=list(assunto.tags or []),
         origem=assunto.origem,
         eixo=eixo,
+        repertorio=normalizar(assunto.repertorio), continuidade=continuidade,
     )
 
 
@@ -249,4 +290,20 @@ def montar_pauta_assunto(assunto: AssuntoConversa) -> str:
     linhas.append(f"- EIXO DESTE BLOCO: {assunto.eixo.upper()} -- {instrucao}")
     if assunto.eixo == "pergunta" and assunto.pergunta_ouvinte:
         linhas.append(f"- Pergunta sugerida pro ouvinte: a do campo 'pergunta' do dado {dado}.")
+    linhas.append(
+        "Desenvolva uma ideia concreta do recorte, usando uma abordagem de cada vez. As abordagens e os "
+        "contextos são notas editoriais, nunca fatos comprovados. Não leia essas notas nem descreva o programa. "
+        "Não invente experiências pessoais, biografia, participação ou resposta do público. "
+        "Pode terminar a ideia sem pergunta; não acrescente convite de WhatsApp automaticamente."
+    )
+    if not assunto.fatos:
+        linhas.append("Esta pauta não contém fatos verificados. Fique na observação ou pergunta aberta, "
+                      "sem criar curiosidades históricas, estatísticas, notícias ou informação de serviço.")
+    if assunto.origem == "ouvinte":
+        linhas.append("Use exclusivamente o relato autorizado no gancho. Reaja ao detalhe enviado; "
+                      "não deduza nome, outras mensagens nem consenso da audiência.")
+    if assunto.continuidade:
+        linhas.append("O campo 'continuidade' contém somente falas confirmadas pelo player. "
+                      "Retome um detalhe acrescentando outra abordagem, sem repetir o ponto já desenvolvido. "
+                      "Uma pergunta anterior não significa que chegou resposta. Não prometa voltar ao assunto.")
     return "\n".join(linhas)

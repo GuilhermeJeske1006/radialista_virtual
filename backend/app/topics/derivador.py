@@ -13,6 +13,7 @@ import logging
 
 from app.llm.client import gerar_classificacao
 from app.llm.json_utils import extrair_json
+from app.topics.repertorio import FAMILIAS, lista_textos, normalizar, texto
 
 logger = logging.getLogger("radialista.topics.derivador")
 
@@ -26,6 +27,7 @@ class GanchoDerivado:
     fatos: list[str]
     tags: list[str]
     pergunta_ouvinte: str = ""
+    repertorio: dict = dataclasses.field(default_factory=dict)
 
 
 _SYSTEM_PROMPT = (
@@ -40,8 +42,13 @@ _SYSTEM_PROMPT = (
     f"Gere de 1 a {_MAX_GANCHOS_POR_ITEM} ganchos, cada um genuinamente diferente dos outros -- "
     "nao varie so' a redacao do mesmo angulo. Se o texto fornecido nao tiver materia real "
     "suficiente pra nenhum gancho honesto, responda exatamente 'insuficiente', sem mais nada.\n"
+    "Acrescente um recorte concreto, duas ou três abordagens possíveis e contextos editoriais, "
+    "sempre como notas neutras, nunca fala pronta. As notas não acrescentam fatos à fonte. "
+    "A pergunta é opcional, não termine toda pauta perguntando. Escolha uma família entre: "
+    + ", ".join(FAMILIAS) + ".\n"
     "Responda APENAS com um JSON compacto (lista), sem markdown, sem comentario:\n"
-    '[{"titulo": "", "gancho": "", "fatos": [""], "tags": [""], "pergunta_ouvinte": ""}]'
+    '[{"titulo":"","gancho":"","fatos":[""],"tags":[""],"pergunta_ouvinte":"",'
+    '"familia":"","recorte":"","abordagens":["",""],"contextos":[""]}]'
 )
 
 
@@ -51,7 +58,7 @@ def derivar_ganchos(texto_fonte: str, *, contexto: str = "") -> list[GanchoDeriv
     relevancia sem virar fato em si."""
     mensagem = texto_fonte if not contexto else f"{texto_fonte}\n\nContexto adicional: {contexto}"
     try:
-        resposta = gerar_classificacao(_SYSTEM_PROMPT, mensagem, max_tokens=1200)
+        resposta = gerar_classificacao(_SYSTEM_PROMPT, mensagem, max_tokens=2500)
     except Exception:
         logger.warning("Falha ao derivar ganchos de assunto", exc_info=True)
         return []
@@ -73,19 +80,20 @@ def derivar_ganchos(texto_fonte: str, *, contexto: str = "") -> list[GanchoDeriv
     for item in dados[:_MAX_GANCHOS_POR_ITEM]:
         if not isinstance(item, dict):
             continue
-        gancho_texto = str(item.get("gancho") or "").strip()
-        titulo = str(item.get("titulo") or "").strip()
+        gancho_texto = texto(item.get("gancho"))
+        titulo = texto(item.get("titulo"), 150)
         if not gancho_texto or not titulo:
             continue
-        fatos = [str(f).strip() for f in (item.get("fatos") or []) if str(f).strip()]
-        tags = [str(t).strip().lower() for t in (item.get("tags") or []) if str(t).strip()]
+        fatos = lista_textos(item.get("fatos"), 8)
+        tags = [t.lower() for t in lista_textos(item.get("tags"), 8)]
         ganchos.append(
             GanchoDerivado(
                 titulo=titulo,
                 gancho=gancho_texto,
                 fatos=fatos,
                 tags=tags,
-                pergunta_ouvinte=str(item.get("pergunta_ouvinte") or "").strip(),
+                pergunta_ouvinte=texto(item.get("pergunta_ouvinte")),
+                repertorio=normalizar(item),
             )
         )
     return ganchos

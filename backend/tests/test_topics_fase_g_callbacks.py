@@ -105,3 +105,32 @@ def test_sem_callback_de_noticia_vence_o_maior_score_normal(db_session, account,
 
     assert escolhido is not None
     assert escolhido.assunto_id == outro_assunto.id
+
+
+def test_musica_concorre_com_pauta_sem_prioridade_absoluta(db_session, account, programa):
+    assunto = Assunto(account_id=account.id, origem="noticia", titulo="Assunto relevante",
+                      gancho="Fato apurado", fatos=["Fato apurado"], tags=["servico"])
+    db_session.add(assunto)
+    db_session.flush()
+    db_session.add(AssuntoPrograma(assunto_id=assunto.id, programa_id=programa.id, score=9, eixos_sugeridos=["fato"]))
+    db_session.commit()
+    registrar_callback_musica(programa.id, "Faixa", "Contexto da música")
+
+    assert proximo_assunto(db_session, programa).assunto_id == assunto.id
+    # O gancho não fica pendente para surgir sem contexto em outro momento.
+    assert proximo_assunto(db_session, programa).assunto_id == assunto.id
+
+
+def test_pauta_fixada_pelo_operador_vence_callback_musical(db_session, account, programa):
+    assunto = Assunto(account_id=account.id, origem="reserva", titulo="Escolha editorial", gancho="Uma observação")
+    db_session.add(assunto)
+    db_session.flush()
+    db_session.add(AssuntoPrograma(assunto_id=assunto.id, programa_id=programa.id, score=102))
+    db_session.commit()
+    registrar_callback_musica(programa.id, "Faixa", "Contexto")
+    assert proximo_assunto(db_session, programa).assunto_id == assunto.id
+
+
+def test_callback_vazio_nao_cria_pauta(db_session, account, programa):
+    registrar_callback_musica(programa.id, "Faixa", "  ")
+    assert proximo_assunto(db_session, programa) is None

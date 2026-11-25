@@ -1,3 +1,5 @@
+import json
+
 from app.topics.derivador import derivar_ganchos
 
 
@@ -40,3 +42,24 @@ def test_derivador_falha_de_llm_nao_propaga_excecao(monkeypatch):
         raise RuntimeError("timeout")
     monkeypatch.setattr("app.topics.derivador.gerar_classificacao", _explode)
     assert derivar_ganchos("qualquer coisa") == []
+
+
+def test_derivador_separa_notas_editoriais_dos_fatos_da_fonte(monkeypatch):
+    resposta = [{"titulo": "Biblioteca", "gancho": "Novo horário da biblioteca",
+                 "fatos": ["Abre às oito"], "familia": "vida_pratica", "recorte": "Organizar uma visita",
+                 "abordagens": ["Conveniência do novo horário", "Como encaixar uma visita no dia"],
+                 "contextos": ["Programa da manhã"], "tags": ["cultura"]}]
+    monkeypatch.setattr("app.topics.derivador.gerar_classificacao", lambda *args, **kwargs: json.dumps(resposta))
+    gancho = derivar_ganchos("A biblioteca abre às oito")[0]
+    assert gancho.fatos == ["Abre às oito"]
+    assert gancho.repertorio["abordagens"] == resposta[0]["abordagens"]
+
+
+def test_derivador_tolera_tipos_incorretos_do_modelo(monkeypatch):
+    resposta = [{"titulo": "Válido", "gancho": "Recorte", "tags": "texto", "fatos": "não é lista", "familia": []},
+                {"titulo": ["inválido"], "gancho": "Recorte"}]
+    monkeypatch.setattr("app.topics.derivador.gerar_classificacao", lambda *args, **kwargs: json.dumps(resposta))
+    ganchos = derivar_ganchos("Fonte")
+    assert len(ganchos) == 1
+    assert ganchos[0].fatos == []
+    assert ganchos[0].tags == []

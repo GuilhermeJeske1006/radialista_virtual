@@ -169,10 +169,26 @@ def de_assunto(assunto) -> DadoVerificavel:
             fatos.append(texto)
     detalhes, saiu = _campos_limpos([("fatos", "; ".join(fatos)), ("contexto", assunto.ponte),
                                      ("pergunta", assunto.pergunta_ouvinte)])
+    # Notas e memória têm a mesma limpeza de todo texto externo. Nunca vão ao system.
+    from app.topics.repertorio import normalizar
+
+    repertorio = normalizar(getattr(assunto, "repertorio", None))
+    notas = [(campo, "; ".join(valor) if isinstance(valor, list) else valor)
+             for campo, valor in repertorio.items()]
+    novos, removidas_notas = _campos_limpos(notas, limite=2400)
+    detalhes.update(novos)
+    continuidade = []
+    for registro in getattr(assunto, "continuidade", [])[:2]:
+        registro_limpo, removidas_registro = _campos_limpos(registro.items(), limite=1800)
+        removidas_notas += removidas_registro
+        if registro_limpo.get("fala"):
+            continuidade.append(registro_limpo)
+    if continuidade:
+        detalhes["continuidade"] = json.dumps(continuidade, ensure_ascii=False)
     return DadoVerificavel(
         id=dado_id, tipo="assunto", valor=gancho, fonte=assunto.origem or "banco de assuntos", atualizado_em=None,
         valido_ate=None, aprovado=bool(gancho or detalhes), origem="topicos", detalhes=detalhes,
-        alertas=_alertar(dado_id, "topicos", [*removidas, *saiu_fatos, *saiu]))
+        alertas=_alertar(dado_id, "topicos", [*removidas, *saiu_fatos, *saiu, *removidas_notas]))
 
 
 def _slug(texto: str) -> str:

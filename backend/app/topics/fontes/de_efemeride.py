@@ -58,6 +58,7 @@ def derivar_de_efemeride(db: Session, musica: Musica, account_id: int, generos_e
         # contagem desatualizada.
         validade_ate=datetime.datetime(ano_atual, 12, 31, 23, 59, 59, tzinfo=datetime.timezone.utc),
         peso_base=3.0,
+        repertorio={"familia": "musica", "recorte": f"A passagem do tempo e {musica.titulo}"},
     )
     db.add(assunto)
     db.commit()
