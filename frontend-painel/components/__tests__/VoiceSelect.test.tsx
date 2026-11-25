@@ -246,4 +246,40 @@ describe("VoiceSelect", () => {
     expect(screen.getByText("Minha Voz")).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("/tts/vozes-clonadas/1"), expect.anything());
   });
+
+  it("filtra o catalogo por estilo e genero sem esconder a voz escolhida", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        if (url.includes("/tts/voices")) {
+          return respostaJson([
+            { voz_id: "v-news", nome: "Ana", genero: "feminina", descricao: "Formal", perfis_rotulos: ["Jornalismo"] },
+            { voz_id: "v-pop", nome: "Beto", genero: "masculina", descricao: "Animado", perfis_rotulos: ["Jovem e hits"] },
+            { voz_id: "v-fe", nome: "Cris", genero: "feminina", descricao: "Serena", perfis_rotulos: ["Gospel e reflexão"] },
+          ]);
+        }
+        if (url.includes("/auth/me")) return respostaJson({ plano: "starter" });
+        if (url.includes("/tts/vozes-clonadas") || url.includes("/tts/vozes-compartilhadas")) return respostaJson([]);
+        return respostaJson({});
+      })
+    );
+    render(<VoiceSelect value="v-fe" onChange={() => {}} />);
+
+    await waitFor(() => screen.getByText("Ana — feminina, Formal"));
+    expect(screen.getByRole("button", { name: "Jovem e hits" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Jornalismo" }));
+    expect(screen.getByText("Ana — feminina, Formal")).toBeInTheDocument();
+    expect(screen.queryByText("Beto — masculina, Animado")).not.toBeInTheDocument();
+    // escolhida (Cris) segue visível mesmo fora do filtro
+    expect(screen.getByText("Cris — feminina, Serena")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Jornalismo" }));
+    await userEvent.click(screen.getByRole("button", { name: "Masculinas" }));
+    expect(screen.getByText("Beto — masculina, Animado")).toBeInTheDocument();
+    expect(screen.queryByText("Ana — feminina, Formal")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Todas" }));
+    expect(screen.getByText("Ana — feminina, Formal")).toBeInTheDocument();
+  });
 });

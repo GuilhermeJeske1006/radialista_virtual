@@ -15,6 +15,32 @@ def test_catalogo_tem_diego_e_raquel():
     assert len(nomes) == len(VOZES_DISPONIVEIS)
 
 
+def test_catalogo_cobre_cada_tipo_de_radio_com_voz_masculina_e_feminina():
+    """Toda rádio, qualquer que seja o tipo, tem ao menos uma voz de cada gênero indicada para ela."""
+    from app.llm.tipos_radio import TIPOS_RADIO
+
+    for tipo in (t["value"] for t in TIPOS_RADIO):
+        generos = {v["genero"] for v in VOZES_DISPONIVEIS if tts_voices.indicada_para_tipo_radio(v, tipo)}
+        assert generos == {"masculina", "feminina"}, tipo
+
+
+def test_perfis_do_catalogo_existem_e_ids_nao_repetem():
+    from app.llm.tipos_radio import TIPOS_RADIO
+
+    tipos = {t["value"] for t in TIPOS_RADIO}
+    assert all(set(p["tipos_radio"]) <= tipos for p in tts_voices.PERFIS_VOZ.values())
+    for voz in VOZES_DISPONIVEIS:
+        assert voz["perfis"] and set(voz["perfis"]) <= set(tts_voices.PERFIS_VOZ), voz["nome"]
+    assert len({v["voz_id"] for v in VOZES_DISPONIVEIS}) == len(VOZES_DISPONIVEIS)
+    assert len({v["nome"] for v in VOZES_DISPONIVEIS}) == len(VOZES_DISPONIVEIS)
+
+
+def test_descricao_voz_leva_estilos_para_o_llm():
+    voz = VOZES_DISPONIVEIS[0]
+    descricao = tts_voices.descricao_voz(voz["voz_id"])
+    assert voz["nome"] in descricao and "indicada para:" in descricao
+
+
 def test_voz_valida_rejeita_voz_desconhecida():
     assert voz_valida("voz-que-nao-existe") is False
 
@@ -65,6 +91,7 @@ def test_listar_vozes_com_preview_enriquece_catalogo(monkeypatch):
 
     assert len(vozes) == len(VOZES_DISPONIVEIS)
     assert all(v["preview_url"] == f"https://preview/{v['voz_id']}.mp3" for v in vozes)
+    assert all(v["perfis_rotulos"] for v in vozes)
 
 
 def test_listar_vozes_com_preview_tolera_falha(monkeypatch):

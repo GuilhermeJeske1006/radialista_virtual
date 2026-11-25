@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import { apiFetch, ApiError } from "../lib/api";
 import { permiteClonagemVoz } from "../lib/planos";
@@ -24,6 +24,17 @@ export default function VoiceSelect({ value, onChange }: Props) {
   const [nomeEdicao, setNomeEdicao] = useState("");
   const [erro, setErro] = useState("");
   const [configVoz, setConfigVoz] = useState<string | null | undefined>(undefined);
+  const [filtroEstilo, setFiltroEstilo] = useState<string | null>(null);
+  const [filtroGenero, setFiltroGenero] = useState<string | null>(null);
+
+  const estilos = Array.from(new Set(vozes.flatMap((v) => v.perfis_rotulos ?? [])));
+  const generos = Array.from(new Set(vozes.map((v) => v.genero)));
+  // A voz escolhida continua na lista mesmo fora do filtro, para não sumir a seleção.
+  const vozesFiltradas = vozes.filter(
+    (v) =>
+      v.voz_id === value ||
+      ((!filtroEstilo || (v.perfis_rotulos ?? []).includes(filtroEstilo)) && (!filtroGenero || v.genero === filtroGenero))
+  );
 
   function carregarVozesClonadas() {
     apiFetch<VozClonada[]>("/tts/vozes-clonadas")
@@ -223,7 +234,27 @@ export default function VoiceSelect({ value, onChange }: Props) {
         <p className="px-2.5 pt-3 pb-1 text-xs font-semibold tracking-wide text-fg/65 uppercase">
           Catálogo (com amostra de áudio)
         </p>
-        {vozes.map((v) => (
+        {(estilos.length > 0 || generos.length > 1) && (
+          <div className="flex flex-wrap gap-1.5 px-2.5 pb-2" role="group" aria-label="Filtrar vozes do catálogo">
+            <FiltroChip ativo={!filtroEstilo && !filtroGenero} onClick={() => { setFiltroEstilo(null); setFiltroGenero(null); }}>
+              Todas
+            </FiltroChip>
+            {generos.map((g) => (
+              <FiltroChip key={g} ativo={filtroGenero === g} onClick={() => setFiltroGenero(filtroGenero === g ? null : g)}>
+                {g === "masculina" ? "Masculinas" : g === "feminina" ? "Femininas" : g}
+              </FiltroChip>
+            ))}
+            {estilos.map((e) => (
+              <FiltroChip key={e} ativo={filtroEstilo === e} onClick={() => setFiltroEstilo(filtroEstilo === e ? null : e)}>
+                {e}
+              </FiltroChip>
+            ))}
+          </div>
+        )}
+        {vozesFiltradas.length === 0 && (
+          <p className="px-2.5 py-2 text-xs text-fg/65">Nenhuma voz do catálogo com esse filtro.</p>
+        )}
+        {vozesFiltradas.map((v) => (
           <div
             key={v.voz_id}
             className={`flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg px-2.5 py-2 text-sm transition-colors ${
@@ -238,8 +269,13 @@ export default function VoiceSelect({ value, onChange }: Props) {
                 onChange={() => onChange(v.voz_id)}
                 className="h-4 w-4 shrink-0 accent-acento-claro"
               />
-              <span className="min-w-0 truncate text-fg/85">
-                {v.nome} — {v.genero}, {v.descricao}
+              <span className="min-w-0 text-fg/85">
+                <span className="block truncate">
+                  {v.nome} — {v.genero}, {v.descricao}
+                </span>
+                {v.perfis_rotulos && v.perfis_rotulos.length > 0 && (
+                  <span className="block truncate text-xs text-fg/65">{v.perfis_rotulos.join(" · ")}</span>
+                )}
               </span>
             </label>
             {v.preview_url && <AudioPreviewButton src={v.preview_url} className="shrink-0" />}
@@ -289,5 +325,22 @@ export default function VoiceSelect({ value, onChange }: Props) {
         />
       )}
     </div>
+  );
+}
+
+function FiltroChip({ ativo, onClick, children }: { ativo: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={ativo}
+      onClick={onClick}
+      className={`rounded-full px-2.5 py-0.5 text-xs transition-colors ${
+        ativo
+          ? "bg-acento-claro/15 text-acento-claro ring-1 ring-inset ring-acento-claro/40"
+          : "text-fg/70 ring-1 ring-inset ring-border-strong hover:bg-fg/5"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
