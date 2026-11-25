@@ -52,7 +52,14 @@ from app.live.promessas import (
     agenda_do_roteiro,
     tem_musica_no_plano,
 )
-from app.live.relogio import CONFIG_PADRAO as CONFIG_RELOGIO, Plano, duracao_musica_s, ocorrencia_em
+from app.live.relogio import (
+    CONFIG_PADRAO as CONFIG_RELOGIO,
+    Plano,
+    duracao_musica_s,
+    instante_previsto,
+    ler_inicio_previsto,
+    ocorrencia_em,
+)
 from app.live.ritmo_voz import categoria_ritmo
 from app.live.roteiro import _PATROCINADOR_RE, _VINHETA_RE, DecisaoBloco, EntradaEmissao, tipo_na_posicao
 from app.numeros import cardinal_feminino, numero_por_extenso
@@ -392,6 +399,18 @@ def _buscar_sem_relogio(entrada: EntradaEmissao, decisao: DecisaoBloco, portas: 
     return portas.buscar_musica_para_bloco(entrada.db, entrada.programa, decisao.tipo, duracao_min_s=falta)
 
 
+def instante_no_ar(entrada: EntradaEmissao, plano: Plano | None) -> datetime.datetime:
+    """Quando o bloco vai ao ar (UTC). A fila do painel gera cada bloco uns dois blocos antes de ele tocar, então o
+    "agora" da geração fica minutos atrás do que o ouvinte escuta (a hora certa saía atrasada). Com relógio, o
+    instante do plano; sem relógio, o `inicio_previsto` do painel (a mesma regra de app.live.relogio.instante_previsto:
+    ausente, inválido, passado ou longe demais → agora)."""
+    if plano is not None:
+        return plano.instante
+    agora = datetime.datetime.now(datetime.timezone.utc)
+    previsto = ler_inicio_previsto(getattr(entrada.dados, "inicio_previsto", None))
+    return instante_previsto(previsto, agora, entrada.cfg_relogio)[0]
+
+
 def resolver_musica_e_pedidos(entrada: EntradaEmissao, decisao: DecisaoBloco, portas: PortasEmissao) -> ResolucaoBloco:
     db, account, radialista, programa = entrada.db, entrada.account, entrada.radialista, entrada.programa
     tipo, categoria, plano = decisao.tipo, decisao.categoria, decisao.plano
@@ -399,10 +418,7 @@ def resolver_musica_e_pedidos(entrada: EntradaEmissao, decisao: DecisaoBloco, po
 
     historico_prompt = "\n".join(entrada.dados.historico[-6:]) or "Programa acabou de entrar no ar."
     # Um so calculo de "agora" por requisicao (efemerides, hora certa, marco de tempo).
-    agora_local = (
-        plano.instante.astimezone(ZoneInfo(radialista.timezone)) if plano is not None
-        else datetime.datetime.now(ZoneInfo(radialista.timezone))
-    )
+    agora_local = instante_no_ar(entrada, plano).astimezone(ZoneInfo(radialista.timezone))
     # Dialogo multi-voz so pros blocos de fala -- musica continua single-voice, sempre na voz do dono.
     roster = tuple(portas.buscar_roster(db, account, programa))
     multi_voz = len(roster) > 1 and categoria != "musica" and comportamento.multivoz
@@ -622,7 +638,7 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
     # F5: o clima sai do prompt_base do ao vivo e vai como dado verificável na mensagem (app.live.prompt_emissao).
     prompt_base = portas.montar_system_prompt(account, radialista, programa,
                                               roster=list(resolucao.roster) if multi_voz else None,
-                                              agora=agora_local if plano is not None else None,
+                                              agora=agora_local,
                                               incluir_clima=False)
     transicao = portas.instrucao_transicao(programa.id, ultima_categoria, categoria)
     ajuste_energia = portas.ajuste_energia_meio_programa(programa, radialista.timezone) \

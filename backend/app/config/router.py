@@ -79,6 +79,8 @@ class ConhecimentoLocal(BaseModel):
     preenchido manualmente pelo dono da rádio, nunca gerado por IA/pesquisa (ver
     Account.conhecimento_local)."""
 
+    # Bairro onde a rádio fica: o "aqui" do locutor. Vazio = tirado do endereço (app.localizacao.bairro_da_sede).
+    bairro_sede: str = ""
     bairros: list[str] = Field(default_factory=list)
     pontos_referencia: list[str] = Field(default_factory=list)
     eventos_recorrentes: list[str] = Field(default_factory=list)

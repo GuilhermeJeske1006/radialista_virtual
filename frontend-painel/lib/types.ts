@@ -28,6 +28,8 @@ export const RADIALISTA_VAZIO: Omit<Radialista, "id" | "ativo"> = {
 // preenchido manualmente pelo dono da radio, nunca gerado por IA (ver backend
 // app/config/router.py::ConhecimentoLocal e app/models/account.py::Account.conhecimento_local).
 export type ConhecimentoLocal = {
+  // Bairro onde a radio fica: o "aqui" do locutor. Vazio = o backend tira do endereco.
+  bairro_sede: string;
   bairros: string[];
   pontos_referencia: string[];
   eventos_recorrentes: string[];
@@ -36,6 +38,7 @@ export type ConhecimentoLocal = {
 };
 
 export const CONHECIMENTO_LOCAL_VAZIO: ConhecimentoLocal = {
+  bairro_sede: "",
   bairros: [],
   pontos_referencia: [],
   eventos_recorrentes: [],

@@ -184,7 +184,26 @@ export default function ConfiguracoesPage() {
           ou fato errado.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="sm:col-span-2">
+          <div>
+            <label htmlFor="configuracoes-bairro-sede" className="block text-sm font-medium text-fg/80 mb-1.5">Bairro onde a rádio fica</label>
+            <input
+              id="configuracoes-bairro-sede"
+              type="text"
+              placeholder="Ex.: Centro"
+              value={radio.conhecimento_local.bairro_sede ?? ""}
+              onChange={(e) =>
+                setRadio({
+                  ...radio,
+                  conhecimento_local: { ...radio.conhecimento_local, bairro_sede: e.target.value },
+                })
+              }
+              className="w-full rounded-xl border border-border-strong bg-bg px-3 py-2 text-sm text-fg focus:outline-none focus:border-acento-claro/50 focus:ring-2 focus:ring-acento-claro/20"
+            />
+            <p className="text-xs text-fg/65 mt-1">
+              É o “aqui” do locutor. Os outros bairros ele cita como lugar dos ouvintes.
+            </p>
+          </div>
+          <div>
             <label htmlFor="configuracoes-gentilico" className="block text-sm font-medium text-fg/80 mb-1.5">Gentílico</label>
             <input
               id="configuracoes-gentilico"
