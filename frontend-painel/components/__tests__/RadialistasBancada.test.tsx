@@ -24,7 +24,7 @@ it("escolher papel de bancada salva o campo junto com papel e comportamento", as
   render(<RadialistasProgramaSection programaId={3} />);
   const select = await screen.findByLabelText("Papel na bancada de Ze");
   fireEvent.change(select, { target: { value: "mediador" } });
-  fireEvent.click(screen.getByRole("button", { name: "Salvar papel" }));
+  fireEvent.click(screen.getByRole("button", { name: "Salvar papel e orientações" }));
   await waitFor(() =>
     expect(apiFetch).toHaveBeenLastCalledWith(
       "/config/programas/3/radialistas/1",

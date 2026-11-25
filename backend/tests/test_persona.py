@@ -20,7 +20,7 @@ def _com_persona(valor, **kw):
 def test_sem_persona_nenhuma_linha_no_system():
     ctx = contexto("padrao", "comentario")
     assert _persona(ctx) == []
-    assert "Persona da rádio" not in montar_prompt(ctx).system
+    assert "Jeito de falar neste programa" not in montar_prompt(ctx).system
 
 
 @pytest.mark.parametrize("valor", [None, {}])
@@ -86,7 +86,7 @@ def test_persona_invalida_no_banco_vira_none_sem_derrubar_a_leitura():
 def test_persona_entra_no_system_depois_do_formato():
     ctx = _com_persona({"energia": 5, "exemplos": ["Boa tarde!"]})
     system = montar_prompt(ctx).system
-    assert "Persona da rádio" in system
+    assert "Jeito de falar neste programa" in system
     assert "- energia 5/5: vibrante, com frases de impacto." in system
     assert "- Boa tarde!" in system
 
@@ -128,3 +128,27 @@ def test_programa_response_le_persona_invalida_do_banco_como_nula():
 
     dados = dict(_payload_programa(), id=1, radio_config_id=1, persona={"humor": 99})
     assert ProgramaResponse.model_validate(dados).persona is None
+
+
+def test_persona_antiga_adota_girias_automaticas_sem_orientacoes():
+    persona = persona_ou_none({"formalidade": 2, "exemplos": []})
+    assert persona.girias == "automatico"
+    assert persona.orientacoes == ""
+
+
+@pytest.mark.parametrize("girias,trecho", [
+    ("evitar", "Evite gírias"), ("moderadas", "gírias leves ocasionalmente"),
+    ("frequentes", "gírias naturais com mais frequência"),
+])
+def test_vocabulario_do_programa_entra_no_prompt(girias, trecho):
+    texto = "\n".join(linhas_da_persona({"girias": girias, "orientacoes": "  Seja direto nos boletins.  "}))
+    assert trecho in texto
+    assert "Seja direto nos boletins." in texto
+    assert "prevalecem sobre a personalidade geral" in texto
+    assert "somente a este programa" in texto
+
+
+@pytest.mark.parametrize("dados", [{"girias": "qualquer"}, {"orientacoes": "x" * 1201}])
+def test_rejeita_configuracao_de_estilo_invalida(dados):
+    with pytest.raises(ValidationError):
+        Persona(**dados)

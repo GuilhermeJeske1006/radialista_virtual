@@ -164,6 +164,21 @@ describe("EditarProgramaForm (formato do programa, F6)", () => {
     expect(corpoDoPut().perfil_programacao).toBe("variedades_leves");
   });
 
+  it("salva o perfil de fala e as orientações dentro do programa", async () => {
+    await renderEdicaoFormato("padrao");
+    await userEvent.click(screen.getByRole("button", { name: "Personalizar jeito de falar" }));
+    await userEvent.selectOptions(screen.getByLabelText("Perfil de fala"), "jornalistico");
+    await userEvent.type(screen.getByLabelText("Orientações para este programa"), "Boletins curtos e objetivos.");
+    await userEvent.click(screen.getByRole("button", { name: "Salvar programa" }));
+    await screen.findAllByText("Programa salvo.");
+    expect(corpoDoPut().persona).toMatchObject({
+      formalidade: 5, humor: 1, girias: "evitar", orientacoes: "Boletins curtos e objetivos.",
+    });
+    expect(apiFetchMock.mock.calls.some(([path, opcoes]) =>
+      String(path).startsWith("/config/radialistas/") && opcoes?.method === "PUT",
+    )).toBe(false);
+  });
+
   it("valor gravado fora do catálogo é mostrado como Livre, avisado e preservado ao salvar", async () => {
     await renderEdicaoFormato("hits");
     expect(screen.getByLabelText("Formato do programa")).toHaveValue("padrao");

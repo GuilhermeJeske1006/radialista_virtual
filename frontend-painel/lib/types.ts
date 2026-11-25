@@ -155,10 +155,13 @@ export type Persona = {
   humor: number;
   ritmo: number;
   exemplos: string[];
+  girias?: "automatico" | "evitar" | "moderadas" | "frequentes";
+  orientacoes?: string;
 };
 
 export const PERSONA_MAX_EXEMPLOS = 5;
 export const PERSONA_MAX_CARACTERES_EXEMPLO = 280;
+export const PERSONA_MAX_ORIENTACOES = 1200;
 
 export const PERSONA_PADRAO: Persona = {
   proximidade: 3,
@@ -167,6 +170,8 @@ export const PERSONA_PADRAO: Persona = {
   humor: 3,
   ritmo: 3,
   exemplos: [],
+  girias: "automatico",
+  orientacoes: "",
 };
 
 export type Programa = {

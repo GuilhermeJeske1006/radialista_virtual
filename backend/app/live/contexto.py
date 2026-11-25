@@ -637,9 +637,10 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
     )
     # F5: o clima sai do prompt_base do ao vivo e vai como dado verificável na mensagem (app.live.prompt_emissao).
     prompt_base = portas.montar_system_prompt(account, radialista, programa,
-                                              roster=list(resolucao.roster) if multi_voz else None,
+                                              roster=list(resolucao.roster) if multi_voz else [
+                                                  p for p in resolucao.roster if p.radialista.id == radialista.id],
                                               agora=agora_local,
-                                              incluir_clima=False)
+                                              incluir_clima=False, incluir_persona=False)
     transicao = portas.instrucao_transicao(programa.id, ultima_categoria, categoria)
     ajuste_energia = portas.ajuste_energia_meio_programa(programa, radialista.timezone) \
         if tipo != "encerramento" else None
