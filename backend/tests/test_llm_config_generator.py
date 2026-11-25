@@ -190,3 +190,16 @@ def test_gerar_configuracao_ia_sem_descricao_usa_placeholder(monkeypatch):
     monkeypatch.setattr("app.llm.config_generator.gerar_configuracao", _fake)
     gerar_configuracao_ia("", tipo_radio="sertaneja")
     assert "tipo de radio" in capturado["user"].lower()
+
+
+def test_catalogo_de_vozes_no_prompt_poe_indicadas_para_o_tipo_primeiro():
+    from app.llm.config_generator import _catalogo_vozes_texto
+    from app.tts.voices import indicada_para_tipo_radio
+
+    linhas = _catalogo_vozes_texto(tipo_radio="gospel").splitlines()
+    indicadas = [v for v in VOZES_DISPONIVEIS if indicada_para_tipo_radio(v, "gospel")]
+    assert indicadas and len(linhas) == len(VOZES_DISPONIVEIS)
+    assert all("indicada para o tipo desta radio" in linha for linha in linhas[:len(indicadas)])
+    assert not any("indicada para o tipo desta radio" in linha for linha in linhas[len(indicadas):])
+    assert all("estilos:" in linha for linha in linhas)
+

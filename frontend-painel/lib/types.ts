@@ -113,6 +113,9 @@ export type Voz = {
   nome: string;
   genero: string;
   descricao: string;
+  // Estilos de programa em que a voz soa bem (backend/app/tts/voices.py::PERFIS_VOZ).
+  perfis?: string[];
+  perfis_rotulos?: string[];
   preview_url?: string | null;
 };
 

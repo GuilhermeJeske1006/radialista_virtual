@@ -8,7 +8,8 @@ from app.llm.exemplos_config import exemplos_texto
 from app.llm.json_utils import extrair_json
 from app.llm.tipos_radio import contexto_prompt_tipo_radio
 from app.models.account import Account
-from app.tts.voices import VOZES_DISPONIVEIS, descricao_voz, voz_valida
+from app.tts.voices import (VOZES_DISPONIVEIS, descricao_voz, indicada_para_tipo_radio, rotulos_perfis,
+                             voz_valida)
 from app.util.texto import sem_acento as _sem_acento
 
 logger = logging.getLogger("radialista.config_generator")
@@ -109,17 +110,20 @@ _REGRAS_COMUNS = [
 ]
 
 
-def _catalogo_vozes_texto(vozes_em_uso: set[str] | None = None) -> str:
+def _catalogo_vozes_texto(vozes_em_uso: set[str] | None = None, tipo_radio: str | None = None) -> str:
+    """Uma linha por voz, com os estilos de programa em que ela soa bem. As indicadas para o tipo
+    da radio vem primeiro (com o catalogo maior, o LLM tende a ficar com as primeiras da lista)."""
     vozes_em_uso = vozes_em_uso or set()
+    vozes = sorted(VOZES_DISPONIVEIS, key=lambda v: not indicada_para_tipo_radio(v, tipo_radio))
     linhas = []
-    for v in VOZES_DISPONIVEIS:
-        marca = (
-            " -- ja usada por outro radialista dessa conta, so repita se combinar muito melhor "
-            "que as demais"
-            if v["voz_id"] in vozes_em_uso
-            else ""
-        )
-        linhas.append(f'- "{v["voz_id"]}": {v["nome"]} ({v["genero"]}, {v["descricao"]}){marca}')
+    for v in vozes:
+        estilos = ", ".join(rotulos_perfis(v))
+        detalhe = f"{v['genero']}, {v['descricao']}" + (f"; estilos: {estilos}" if estilos else "")
+        marca = " -- indicada para o tipo desta radio" if indicada_para_tipo_radio(v, tipo_radio) else ""
+        if v["voz_id"] in vozes_em_uso:
+            marca += (" -- ja usada por outro radialista dessa conta, so repita se combinar muito melhor "
+                      "que as demais")
+        linhas.append(f'- "{v["voz_id"]}": {v["nome"]} ({detalhe}){marca}')
     return "\n".join(linhas)
 
 
@@ -291,7 +295,7 @@ def _montar_system_prompt_completo(
         "voz_id tem que ser exatamente um destes ids do catalogo (escolha o que combinar melhor "
         "com o tom pedido e com a personalidade que voce vai escrever):"
     )
-    linhas.append(_catalogo_vozes_texto())
+    linhas.append(_catalogo_vozes_texto(tipo_radio=tipo_radio))
     return "\n".join(linhas)
 
 
@@ -327,7 +331,7 @@ def _montar_system_prompt_persona(
         "voz_id tem que ser exatamente um destes ids do catalogo (escolha o que combinar melhor "
         "com o tom pedido e com a personalidade que voce vai escrever):"
     )
-    linhas.append(_catalogo_vozes_texto(vozes_em_uso))
+    linhas.append(_catalogo_vozes_texto(vozes_em_uso, tipo_radio))
     return "\n".join(linhas)
 
 

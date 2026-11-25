@@ -1,0 +1,4 @@
+# Áudios e transcrições brutas ficam locais (~48 MB); resultados.json guarda texto enviado,
+# transcrição e métricas de cada take. Regenerar: backend/scripts/triar_vozes_v4.py.
+*.mp3
+*.scribe.json
