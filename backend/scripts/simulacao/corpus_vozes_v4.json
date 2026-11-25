@@ -1,0 +1,21 @@
+{
+  "_sobre": "Falas curtas por gênero de programa para triar vozes pt-BR no eleven_v4 (backend/scripts/triar_vozes_v4.py). Escritas no estilo do ao vivo: tag de direção só no início, números por extenso, oralidade. 'triagem' é ouvida por todas as candidatas; as demais, só pelas vozes do perfil.",
+  "falas": [
+    {"id": "triagem", "perfis": ["*"], "tipo": "abertura", "tom": "energico",
+     "texto": "[excited] Boa tarde, boa tarde! Começou agora o Tarde Boa, aqui na Rádio Serra Clara. São três e quinze, faz vinte e quatro graus lá fora, e a próxima hora é de música boa e recado de ouvinte. Manda o seu pelo WhatsApp que eu leio aqui no ar!"},
+    {"id": "jornalismo", "perfis": ["jornalismo", "maduro"], "tipo": "noticia", "tom": "calmo",
+     "texto": "Agora, as notícias da região. A prefeitura confirmou para segunda-feira o início das obras na ponte da rua Brusque, com desvio pela avenida central. A previsão é de dois meses de trabalho. E a vacinação contra a gripe segue até sexta, das oito da manhã às cinco da tarde, nos postos de saúde."},
+    {"id": "gospel", "perfis": ["gospel", "noite", "maduro"], "tipo": "comentario", "tom": "calmo",
+     "texto": "[calm] Sabe aquele dia em que tudo parece pesado? É justamente nele que a gente precisa lembrar que não está sozinho. Respira fundo, entrega o que não depende de você, e segue com fé. Essa próxima canção é pra quem precisa de um abraço agora."},
+    {"id": "jovem", "perfis": ["jovem", "comunicador", "esporte"], "tipo": "musica", "tom": "energico",
+     "texto": "[excited] Tá rolando a mais pedida da semana aqui na Serra Clara! O WhatsApp não para, a galera tá votando no top cinco, e quem tá em primeiro lugar agora vai te surpreender. Aumenta o som que lá vem ela!"},
+    {"id": "noite", "perfis": ["noite", "gospel"], "tipo": "abertura", "tom": "calmo",
+     "texto": "[calm] Boa noite. A cidade vai desacelerando, as luzes vão ficando mais baixas, e a gente começa agora o Noite de Canções. Até a meia-noite, só música pra lembrar quem você ama. Fica comigo."},
+    {"id": "popular", "perfis": ["comunicador", "interior", "regional", "maduro"], "tipo": "chamada_ouvinte", "tom": "energico",
+     "texto": "[excited] Olha só quem mandou recado! A dona Cida, lá do bairro Lageado, tá fazendo setenta anos hoje, e a família toda pediu uma moda de viola pra ela. Parabéns, dona Cida! Muita saúde, e essa aqui vai com o carinho de toda a rádio!"},
+    {"id": "esporte", "perfis": ["esporte", "comunicador"], "tipo": "comentario", "tom": "energico",
+     "texto": "[excited] Que jogo, minha gente! Aos quarenta e dois do segundo tempo, o Guabiruba virou pra cima do Brusque, dois a um, e a torcida foi à loucura no estádio. Daqui a pouco a gente traz a classificação completa e os próximos jogos da rodada."},
+    {"id": "interior", "perfis": ["interior", "regional"], "tipo": "abertura", "tom": "calmo",
+     "texto": "[calm] Bom dia, meu povo! Cinco e meia da manhã, o café passando, o gado já esperando no curral. Aqui é o Madrugada Sertaneja, e até as sete eu fico com você, com moda boa e a previsão do tempo pra quem vai pra roça."}
+  ]
+}

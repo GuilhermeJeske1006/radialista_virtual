@@ -1,0 +1,356 @@
+{
+ "V03": {
+  "voice_id": "HR2TRGmi4QbMsO5omv7l",
+  "nome": "Rômulo Franklin",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V38": {
+  "voice_id": "TJ1zld0fSLwyF02SLwgy",
+  "nome": "Eddy Miller",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V16": {
+  "voice_id": "uMk2ijhneJaRm2sKMgdi",
+  "nome": "Daniel Mercer",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V19": {
+  "voice_id": "a2RTfXZv18BLdBvhWhl2",
+  "nome": "Fabio Manarin",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V25": {
+  "voice_id": "4za2kOXGgUd57HRSQ1fn",
+  "nome": "Lendário",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V05": {
+  "voice_id": "YU8EsJtXFMyKMxYtheDk",
+  "nome": "Mário",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V53": {
+  "voice_id": "ulzsiMeCbfKyTPCNhCD5",
+  "nome": "Nassif (talk show)",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V55": {
+  "voice_id": "YklVF5l1Q8os8glyd5SM",
+  "nome": "Camilla",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V10": {
+  "voice_id": "B2J9b1PGBDt65GMZeYtU",
+  "nome": "Clarice Rodrigues",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V12": {
+  "voice_id": "TOXnXBKJSHqTwwqoWW0D",
+  "nome": "Christine",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V07": {
+  "voice_id": "36rVQA1AOIPwpA3Hg1tC",
+  "nome": "Matheus",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V02": {
+  "voice_id": "33B4UnXyTNbgLmdEDh5P",
+  "nome": "Keren",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V48": {
+  "voice_id": "r2fkFV8WAqXq2AqBpgJT",
+  "nome": "Amandoca",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V52": {
+  "voice_id": "7lu3ze7orhWaNeSPowWx",
+  "nome": "Lucas",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V35": {
+  "voice_id": "LuQ9eaWO9yCQrR73VQFa",
+  "nome": "Victor Pinho",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V04": {
+  "voice_id": "RqO9a86p7KIlAA8RMw0I",
+  "nome": "Betina",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V24": {
+  "voice_id": "osNEKWSDSIVQD3Same62",
+  "nome": "Taiguara Torro",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V28": {
+  "voice_id": "RGymW84CSmfVugnA5tvA",
+  "nome": "Roberta",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V31": {
+  "voice_id": "ORgG8rwdAiMYRug8RJwR",
+  "nome": "Ana Alice",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V59": {
+  "voice_id": "MZxV5lN3cv7hi1376O0m",
+  "nome": "Ana Dias",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V36": {
+  "voice_id": "7iqXtOF3wl3pomwXFY7G",
+  "nome": "Fernanda",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V11": {
+  "voice_id": "eUAnqvLQWNX29twcYLUM",
+  "nome": "Dyego",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V37": {
+  "voice_id": "YWH2duBH9dDQ9GowwyB5",
+  "nome": "Alex",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V29": {
+  "voice_id": "JGY4KPk38Uc6uhd4jzeF",
+  "nome": "Nassif (notícia)",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V44": {
+  "voice_id": "mPDAoQyGzxBSkE0OAOKw",
+  "nome": "Carla",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V46": {
+  "voice_id": "TY3h8ANhQUsJaa0Bga5F",
+  "nome": "Cassio Cruz",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V30": {
+  "voice_id": "9pDzHy2OpOgeXM8SeL0t",
+  "nome": "Borges",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V15": {
+  "voice_id": "ZqE9vIHPcrC35dZv0Svu",
+  "nome": "Adam Borges",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V50": {
+  "voice_id": "EbiSUflQjzm4g7S895SC",
+  "nome": "Leo Antonio",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V54": {
+  "voice_id": "4r3G9XKliGgVZLKMgjik",
+  "nome": "Lair",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V23": {
+  "voice_id": "GM2UA3fbsIaLHcswCDX9",
+  "nome": "Nina",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V56": {
+  "voice_id": "UZ8QqWVrz7tMdxiglcLh",
+  "nome": "Livia",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V18": {
+  "voice_id": "hwnuNyWkl9DjdTFykrN6",
+  "nome": "Adriano",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V57": {
+  "voice_id": "YNOujSUmHtgN6anjqXPf",
+  "nome": "Victor Power",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V43": {
+  "voice_id": "hgTbkcw2ddnzYh66cwCI",
+  "nome": "Aninha",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V45": {
+  "voice_id": "pycQyzKletH76EvhFjXL",
+  "nome": "Miranda",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V13": {
+  "voice_id": "6pQlwCgfwffNdI3jjzM6",
+  "nome": "Fernando Borges",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V08": {
+  "voice_id": "XBqltNZ5pAkMg6TB8lGM",
+  "nome": "Sulamita",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V40": {
+  "voice_id": "mP51FBaz7jxNEIeFJwxX",
+  "nome": "Silas Lemos",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V20": {
+  "voice_id": "lUaTJLTsNnLQQ5G5LJen",
+  "nome": "Tomaz",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V14": {
+  "voice_id": "GOkMqfyKMLVUcYfO2WbB",
+  "nome": "Jenifer",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V22": {
+  "voice_id": "362PVGN0qz9gh4Hb4qdA",
+  "nome": "Jairo Moraes",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V42": {
+  "voice_id": "CS2gH5fPqUCmkVNpHsy4",
+  "nome": "Raquel (interior)",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V17": {
+  "voice_id": "4J31DrhygVjvFsoj7BsM",
+  "nome": "Eduardo S.",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V41": {
+  "voice_id": "EsbcEfYoTFrRNrRCVEHp",
+  "nome": "Gaúcha",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V58": {
+  "voice_id": "bOfmGBubwU6YlrKXeRkh",
+  "nome": "Cícero",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V51": {
+  "voice_id": "Fy0y2P2qP6NrsDcvbxmJ",
+  "nome": "Thayane",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V09": {
+  "voice_id": "PznTnBc8X6pvixs9UkQm",
+  "nome": "Dani",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V49": {
+  "voice_id": "5p4THmLc2S6kXKO1pOM5",
+  "nome": "Nayara Técia",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V06": {
+  "voice_id": "Fjiik8aKXNDjmxd1Q2jF",
+  "nome": "Nassif (esporte)",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V47": {
+  "voice_id": "ZgmYvdcrNoefQ4HErYZN",
+  "nome": "Felipe Leão",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V21": {
+  "voice_id": "rnJZLKxtlBZt77uIED10",
+  "nome": "Sergio",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V33": {
+  "voice_id": "zoe2cQFqDDW4DteHDEWI",
+  "nome": "Manoel Lopes",
+  "genero": "masculina",
+  "ancora": false
+ },
+ "V39": {
+  "voice_id": "woJb39z6DzSDNXoKKEnJ",
+  "nome": "Sara",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V01": {
+  "voice_id": "tafm7ExcoJRarAhYvRDv",
+  "nome": "Ester",
+  "genero": "feminina",
+  "ancora": false
+ },
+ "V34": {
+  "voice_id": "Qrdut83w0Cr152Yb4Xn3",
+  "nome": "Paulo",
+  "genero": "masculina",
+  "ancora": true
+ },
+ "V32": {
+  "voice_id": "lWq4KDY8znfkV0DrK8Vb",
+  "nome": "Yasmin Alves",
+  "genero": "feminina",
+  "ancora": true
+ },
+ "V26": {
+  "voice_id": "rpNe0HOx7heUulPiOEaG",
+  "nome": "Diego",
+  "genero": "masculina",
+  "ancora": true
+ },
+ "V27": {
+  "voice_id": "GDzHdQOi6jjf8zaXhCYD",
+  "nome": "Raquel",
+  "genero": "feminina",
+  "ancora": true
+ }
+}
