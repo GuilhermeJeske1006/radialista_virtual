@@ -1,4 +1,4 @@
-FROM node:20-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /app
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -15,14 +15,14 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-FROM node:20-alpine AS dev
+FROM node:26-alpine AS dev
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install
 EXPOSE 3000
 CMD ["npm", "run", "dev"]
 
-FROM node:20-alpine
+FROM node:26-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/next.config.js ./
