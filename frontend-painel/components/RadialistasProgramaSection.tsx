@@ -113,8 +113,8 @@ export default function RadialistasProgramaSection({ programaId }: Props) {
   return (
     <div className="space-y-4">
       <p className="text-xs text-fg/65">
-        Mais de um radialista no programa gera um diálogo alternado entre eles no ao vivo, cada um com sua própria
-        voz. Defina o papel e como cada um deve se comportar.
+        Defina o papel e as orientações de cada radialista para este programa, mantendo a voz do cadastro.
+        Com mais de um apresentador, eles conversam entre si no ao vivo.
       </p>
 
       {erro && <p className="text-sm text-laranja">{erro}</p>}
@@ -164,8 +164,13 @@ export default function RadialistasProgramaSection({ programaId }: Props) {
               value={item.papel}
               placeholder="Papel (ex: Apresentador principal, Co-apresentador, Comentarista)"
               onChange={(e) => atualizarLocal(item.radio_config_id, "papel", e.target.value)}
+              aria-label={`Papel de ${item.nome_locutor} neste programa`}
             />
+            <label htmlFor={`comportamento-${programaId}-${item.radio_config_id}`} className="block text-xs text-fg/70">
+              Orientações de {item.nome_locutor} neste programa
+            </label>
             <textarea
+              id={`comportamento-${programaId}-${item.radio_config_id}`}
               className={inputClass}
               rows={2}
               placeholder="Como esse radialista deve se comportar neste programa (interação com os outros, humor, jeito de falar)..."
@@ -193,7 +198,7 @@ export default function RadialistasProgramaSection({ programaId }: Props) {
                 disabled={salvandoId === item.radio_config_id}
                 className="rounded-xl border border-border-strong px-3 py-1.5 text-xs font-medium text-fg/80 hover:bg-fg/5 disabled:opacity-60"
               >
-                {salvandoId === item.radio_config_id ? "Salvando…" : "Salvar papel"}
+                {salvandoId === item.radio_config_id ? "Salvando…" : "Salvar papel e orientações"}
               </button>
             </div>
           </div>

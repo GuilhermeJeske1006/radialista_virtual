@@ -859,9 +859,9 @@ export default function EditarProgramaForm({
         </label>
 
         <hr className="border-border" />
-        <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro">Persona e conteúdo</h3>
+        <h3 className="font-mono text-xs uppercase tracking-wide text-acento-claro">Jeito de falar e conteúdo</h3>
         <div>
-          <label htmlFor="editarprogramaform-tom-de-voz" className={labelClass}>Tom de voz</label>
+          <label htmlFor="editarprogramaform-tom-de-voz" className={labelClass}>Tom do programa</label>
           <textarea
             id="editarprogramaform-tom-de-voz"
             className={inputClass}
@@ -871,6 +871,7 @@ export default function EditarProgramaForm({
           />
         </div>
         <PersonaPrograma
+          key={`persona-${programa.id || "novo"}`}
           persona={programa.persona ?? null}
           onChange={(persona) => setPrograma({ ...programa, persona })}
         />

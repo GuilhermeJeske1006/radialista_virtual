@@ -241,7 +241,11 @@ def montar_system_prompt(
     roster: list[ParticipantePrograma] | None = None,
     agora: datetime.datetime | None = None,
     incluir_clima: bool = True,
+    incluir_persona: bool = True,
 ) -> str:
+    from app.live.persona import linhas_da_persona, persona_ou_none
+
+    persona = persona_ou_none(getattr(programa, "persona", None))
     topicos = lista_ou(programa.topicos_permitidos, "assuntos gerais da rádio")
     generos = lista_ou(programa.generos_musicais, "perfil musical geral da rádio")
     musicas = lista_ou(programa.musicas_permitidas, "sem lista fixa de músicas")
@@ -259,12 +263,12 @@ def montar_system_prompt(
             f"- {p.radialista.nome_locutor} (papel: {p.papel}"
             + (f"; papel na bancada: {p.papel_bancada}" if getattr(p, "papel_bancada", None) else "")
             + "): "
-            f"{p.comportamento or p.radialista.personalidade or 'sem instruções específicas de comportamento'}."
+            f"{p.comportamento or (p.radialista.personalidade if persona is None else '') or ('segue o estilo deste programa' if persona is not None else 'sem instruções específicas de comportamento')}."
             + (f" Fatos fixos sobre ele(a): {p.radialista.biografia}." if p.radialista.biografia else "")
             + (
                 f" Traço marcante dele(a), use com moderação: "
                 f"{_proxima_variacao(programa.id, f'traco_marcante_{p.radialista.id}', p.radialista.tracos_marcantes)}."
-                if p.radialista.tracos_marcantes
+                if p.radialista.tracos_marcantes and persona is None
                 else ""
             )
             + (
@@ -295,7 +299,11 @@ def montar_system_prompt(
             "(ex.: você, não, música, é, está, coração). Nunca omita acentos nem troque palavras por versões sem "
             "acento, mesmo em resposta rápida ou informal.",
         ]
-        if radialista.personalidade:
+        comportamento_programa = next((p.comportamento for p in roster or []
+                                       if p.radialista.id == radialista.id and p.comportamento.strip()), "")
+        if comportamento_programa:
+            partes.append(f"Seu comportamento neste programa: {comportamento_programa}.")
+        elif radialista.personalidade and persona is None:
             partes.append(f"Sua personalidade e forma de se comportar: {radialista.personalidade}.")
         if radialista.biografia:
             partes.append(
@@ -304,7 +312,7 @@ def montar_system_prompt(
                 "diferente dessa em nenhuma fala. Cite algum deles só quando fizer sentido natural na "
                 "conversa, não em toda fala."
             )
-        if radialista.tracos_marcantes:
+        if radialista.tracos_marcantes and persona is None:
             traco_marcante = _proxima_variacao(programa.id, f"traco_marcante_{radialista.id}", radialista.tracos_marcantes)
             partes.append(
                 f"Um traço marcante seu, sua 'marca registrada' (implicância boba, piada interna, jeito "
@@ -487,4 +495,6 @@ def montar_system_prompt(
             "(um completa o outro, reage, faz pergunta) -- não uma lista de falas soltas e desconectadas."
         )
 
+    if incluir_persona:
+        partes.extend(linhas_da_persona(persona))
     return "\n".join(partes)
