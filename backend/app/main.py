@@ -29,6 +29,7 @@ from app.db.database import Base, SessionLocal, engine
 from app.equipe.router import router as equipe_router
 from app.esportes.router import router as esportes_router
 from app.live.prewarm import executar_tick as preparar_falas_antecipadas
+from app.live.gravacao import router as gravacao_router
 from app.live.router import router as live_router
 from app.metrics.router import router as metrics_router
 from app.news.worker import executar as coletar_noticias
@@ -145,6 +146,7 @@ app.include_router(metrics_router)
 app.include_router(billing_router)
 app.include_router(consumo_ia_router)
 app.include_router(live_router)
+app.include_router(gravacao_router)
 app.include_router(tts_router)
 app.include_router(patrocinadores_router)
 app.include_router(topics_router)
