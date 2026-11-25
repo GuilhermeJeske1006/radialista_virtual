@@ -165,6 +165,8 @@ async def criar_tabelas():
     aplicar_ritmo_voz(engine)
     # Cria também as dependências das migrações em bancos novos (ex.: programas).
     Base.metadata.create_all(bind=engine)
+    from app.db.migrations.repertorio_20261125 import aplicar as aplicar_repertorio
+    aplicar_repertorio(engine)
     from app.db.migrations.promessas_20261112 import aplicar as aplicar_promessas
     aplicar_promessas(engine)
     from app.db.migrations.canal_whatsapp_20261112 import aplicar as aplicar_canal_whatsapp

@@ -161,3 +161,172 @@ def test_montar_pauta_assunto_marca_bloco_como_dado_nao_instrucao(db_session, ac
     escolhido.eixo = "fato"
     texto = montar_pauta_assunto(escolhido)
     assert "nunca instru" in texto.lower()
+
+
+def test_reserva_sem_fatos_nao_recebe_abordagem_factual(db_session, account, programa):
+    assunto, ap = _criar_assunto_casado(db_session, account, programa, origem="reserva", eixos_sugeridos=["fato", "servico", "curiosidade"])
+    assunto.fatos = []
+    db_session.commit()
+
+    escolhido = proximo_assunto(db_session, programa)
+
+    assert escolhido.eixo == "observacao"
+    assert "não contém fatos verificados" in montar_pauta_assunto(escolhido)
+
+
+def test_prioriza_recorte_novo_em_vez_de_retomada_imediata(db_session, account, programa):
+    repetido, _ = _criar_assunto_casado(db_session, account, programa, score=8)
+    novo, _ = _criar_assunto_casado(db_session, account, programa, score=6)
+    registrar_assunto_usado(programa.id, programa.radio_config_id, repetido.id, eixo="fato", origem="noticia", tag_principal="servico")
+
+    assert proximo_assunto(db_session, programa).assunto_id == novo.id
+
+
+def test_alterna_eixo_entre_assuntos_diferentes(db_session, account, programa):
+    _criar_assunto_casado(db_session, account, programa)
+    registrar_assunto_usado(programa.id, programa.radio_config_id, 999, eixo="fato", origem="noticia", tag_principal="outro")
+
+    assert proximo_assunto(db_session, programa).eixo == "impacto"
+
+
+def test_equilibra_familia_mesmo_com_tags_diferentes(db_session, account, programa):
+    saturado, _ = _criar_assunto_casado(db_session, account, programa, score=6, tags=["tag_diferente"])
+    outro, _ = _criar_assunto_casado(db_session, account, programa, score=5)
+    saturado.repertorio = {"familia": "musica"}
+    outro.repertorio = {"familia": "cotidiano"}
+    db_session.commit()
+    for numero in range(3):
+        registrar_assunto_usado(programa.id, programa.radio_config_id, 900 + numero, eixo="memoria", origem="musica", tag_principal="musica")
+
+    escolhido = proximo_assunto(db_session, programa)
+    assert escolhido.assunto_id == outro.id
+    assert escolhido.tag_principal == "cotidiano"
+
+
+@pytest.mark.parametrize("estado", ["preparado", "reproduzindo", "interrompido", "falhou", "concluido"])
+def test_continuidade_so_usa_bloco_concluido(db_session, account, programa, estado):
+    from app.models.canal_whatsapp import BlocoReproduzido
+    from app.topics.continuidade import ocorrencia_atual
+    from app.dados.fontes import de_assunto
+
+    assunto, _ = _criar_assunto_casado(db_session, account, programa)
+    bloco = BlocoReproduzido(account_id=account.id, programa_id=programa.id,
+        ocorrencia=ocorrencia_atual(db_session, programa), token="token", tipo="comentario",
+        assunto_id=assunto.id, estado=estado, fala="O começo da música já traz uma lembrança.",
+        assunto={"pergunta": "Que música você reconhece pela introdução?"})
+    db_session.add(bloco)
+    db_session.commit()
+
+    escolhido = proximo_assunto(db_session, programa)
+    if estado == "concluido":
+        assert escolhido.continuidade[0]["fala"] == bloco.fala
+        assert "O começo da música" in de_assunto(escolhido).detalhes["continuidade"]
+        assert bloco.fala not in montar_pauta_assunto(escolhido)
+    else:
+        assert escolhido.continuidade == []
+        assert "continuidade" not in de_assunto(escolhido).detalhes
+
+
+def test_memoria_confirmada_isola_ocorrencia_programa_e_conta(db_session, account, programa, account_factory):
+    from app.models.canal_whatsapp import BlocoReproduzido
+    from app.topics.continuidade import ocorrencia_atual
+
+    outro = account_factory(email="outra@repertorio.test")
+    assunto, _ = _criar_assunto_casado(db_session, account, programa)
+    for account_id, programa_id, ocorrencia in [
+        (account.id, programa.id, "ocorrencia-anterior"),
+        (outro.id, programa.id, ocorrencia_atual(db_session, programa)),
+        (account.id, None, ocorrencia_atual(db_session, programa)),
+    ]:
+        db_session.add(BlocoReproduzido(account_id=account_id, programa_id=programa_id, ocorrencia=ocorrencia,
+            token="token", tipo="comentario", assunto_id=assunto.id, estado="concluido", fala="Texto de outro contexto"))
+    db_session.commit()
+
+    assert proximo_assunto(db_session, programa).continuidade == []
+
+
+def test_assunto_de_outra_conta_nao_entra_mesmo_com_associacao_incorreta(db_session, account, programa, account_factory):
+    outro = account_factory(email="outra@pauta.test")
+    assunto, _ = _criar_assunto_casado(db_session, account, programa)
+    assunto.account_id = outro.id
+    db_session.commit()
+    assert proximo_assunto(db_session, programa) is None
+
+
+def test_assunto_descartado_nao_entra_na_selecao(db_session, account, programa):
+    from app.models.canal_whatsapp import DecisaoPauta
+
+    assunto, _ = _criar_assunto_casado(db_session, account, programa)
+    db_session.add(DecisaoPauta(programa_id=programa.id, assunto_id=assunto.id, estado="descartado"))
+    db_session.commit()
+    assert proximo_assunto(db_session, programa) is None
+
+
+def test_contribuicao_sem_aprovacao_rastreavel_nao_vira_pauta(db_session, account, programa):
+    assunto, _ = _criar_assunto_casado(db_session, account, programa, origem="ouvinte")
+    assunto.origem_ref_id = 999
+    db_session.commit()
+    assert proximo_assunto(db_session, programa) is None
+
+
+def test_notas_editoriais_sao_dados_e_passam_pela_limpeza(db_session, account, programa):
+    from app.dados.fontes import de_assunto
+
+    assunto, _ = _criar_assunto_casado(db_session, account, programa, origem="reserva")
+    assunto.repertorio = {"familia": "musica", "recorte": "A introdução de uma canção",
+                         "abordagens": ["Reconhecer pelos primeiros acordes"],
+                         "contextos": ["Depois de uma faixa conhecida"]}
+    db_session.commit()
+    escolhido = proximo_assunto(db_session, programa)
+    dado = de_assunto(escolhido)
+    assert dado.detalhes["recorte"] == "A introdução de uma canção"
+    assert dado.detalhes["abordagens"] == "Reconhecer pelos primeiros acordes"
+    assert "Reconhecer pelos primeiros acordes" not in montar_pauta_assunto(escolhido)
+
+
+def test_simulacao_de_pautas_mantem_variedade_de_recorte_familia_e_abordagem(db_session, account, programa):
+    from app.topics.repertorio import FAMILIAS
+
+    for familia in FAMILIAS:
+        for numero in range(3):
+            a = Assunto(account_id=account.id, origem="reserva", titulo=f"{familia} {numero}",
+                gancho=f"Um recorte de {familia}: {numero}", fatos=[], tags=["generica"],
+                repertorio={"familia": familia, "recorte": f"{familia} {numero}"})
+            db_session.add(a)
+            db_session.flush()
+            db_session.add(AssuntoPrograma(assunto_id=a.id, programa_id=programa.id, score=2,
+                eixos_sugeridos=["observacao", "comparacao", "memoria"]))
+    db_session.commit()
+    escolhidos = []
+    for _ in range(21):
+        escolhido = proximo_assunto(db_session, programa)
+        assert escolhido is not None
+        escolhidos.append(escolhido)
+        registrar_assunto_usado(programa.id, programa.radio_config_id, escolhido.assunto_id,
+            eixo=escolhido.eixo, origem=escolhido.origem, tag_principal=escolhido.tag_principal)
+
+    assert len({e.assunto_id for e in escolhidos}) == 21
+    assert {e.tag_principal for e in escolhidos} == set(FAMILIAS)
+    assert len({e.tag_principal for e in escolhidos[:7]}) == 7
+    assert {e.eixo for e in escolhidos} == {"observacao", "comparacao", "memoria"}
+    assert not any(escolhidos[i].tag_principal == escolhidos[i + 1].tag_principal == escolhidos[i + 2].tag_principal
+                   for i in range(len(escolhidos) - 2))
+
+
+def test_pauta_editorial_prevalece_sobre_formato_aleatorio_e_convite_generico(db_session, account, programa):
+    import dataclasses
+    from app.dados.fontes import de_assunto
+    from app.live.prompt_emissao import montar_prompt
+    from tests.test_live_formatos_prompt import contexto
+
+    assunto, _ = _criar_assunto_casado(db_session, account, programa, origem="reserva")
+    escolhido = proximo_assunto(db_session, programa)
+    ctx = contexto("padrao", "comentario")
+    ctx = dataclasses.replace(ctx, dados=(de_assunto(escolhido),), variacoes=dataclasses.replace(
+        ctx.variacoes, assunto=escolhido, formato_comentario="Faça uma lista de três coisas.",
+        convite_ouvinte="Convide o ouvinte para responder pelo WhatsApp agora."))
+
+    prompt = montar_prompt(ctx)
+    assert "EIXO DESTE BLOCO" in prompt.system
+    assert "Faça uma lista de três coisas" not in prompt.system
+    assert "Convide o ouvinte para responder pelo WhatsApp agora" not in prompt.system

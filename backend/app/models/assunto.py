@@ -41,6 +41,8 @@ class Assunto(Base):
     # ver app.topics.eixos.INSTRUCAO_EIXO. Vazio quando o gancho nao rende pergunta natural.
     pergunta_ouvinte: Mapped[str] = mapped_column(String, default="")
     tags: Mapped[list[str]] = mapped_column(JSON, default=list)
+    # Família, recorte, abordagens e contextos: notas de pauta, nunca fatos inventados.
+    repertorio: Mapped[dict] = mapped_column(JSON, default=dict)
 
     # Ate' quando este gancho e' valido pra virar pauta -- None = nunca expira (reserva
     # estrategica e almanaque). Noticia expira em 24-48h, efemeride no dia, sazonal em semanas

@@ -8,12 +8,14 @@ no matcher: o matcher so' sugere um cardapio (AssuntoPrograma.eixos_sugeridos, v
 app.topics.matcher) de quais eixos este gancho rende bem pra este programa.
 """
 
-EIXOS_ASSUNTO: tuple[str, ...] = ("fato", "impacto", "memoria", "pergunta", "servico", "curiosidade")
+EIXOS_ASSUNTO: tuple[str, ...] = (
+    "fato", "impacto", "memoria", "pergunta", "servico", "curiosidade", "observacao", "comparacao", "reacao",
+)
 
 # Quantas vezes no maximo o mesmo Assunto pode voltar a ser pauta de comentario numa mesma
 # sessao ao vivo, girando de eixo a cada volta -- ver Fase E / ADR item 6. Igual ao espirito de
 # MAX_REPETICOES_POR_NOTICIA (app.news.pauta), mas deliberadamente menor que len(EIXOS_ASSUNTO):
-# nem todo gancho rende os 6 eixos (ver eixos_sugeridos), e a rotacao entre POOL de assuntos
+# nem todo gancho rende todos os eixos (ver eixos_sugeridos), e a rotacao entre POOL de assuntos
 # importa mais aqui do que esgotar todo o cardapio de um so.
 MAX_RETORNOS_POR_ASSUNTO = 3
 
@@ -23,8 +25,15 @@ MAX_RETORNOS_POR_ASSUNTO = 3
 INSTRUCAO_EIXO: dict[str, str] = {
     "fato": "Apresente o gancho em si, direto, como quem informa algo novo pro ouvinte.",
     "impacto": "Foque no que isso muda na pratica pro dia a dia de quem ouve, nao no dado frio em si.",
-    "memoria": "Puxe pelo lado afetivo -- uma lembranca, uma sensacao, uma associacao pessoal, nao o fato cru.",
+    "memoria": "Explore uma lembrança possível do ouvinte ou uma associação com a música. "
+               "Não invente lembrança pessoal, infância, família nem experiência vivida pelo locutor.",
     "pergunta": "Feche abrindo uma pergunta real pro ouvinte responder (WhatsApp/redes) -- gancho pra interacao.",
     "servico": "Traga como utilidade pratica -- o que fazer, aonde ir, o que evitar por causa disso.",
     "curiosidade": "Trate como curiosidade leve, tom de 'voce sabia', sem peso de noticia ou opiniao.",
+    "observacao": "Desenvolva um detalhe concreto e reconhecível do cotidiano, sem generalizar hábitos "
+                  "como fatos sobre todo mundo. Pode encerrar a ideia sem pergunta nem convite.",
+    "comparacao": "Compare dois hábitos ou situações do recorte, sem inventar estatísticas ou pesquisas. "
+                  "Explore a diferença em poucas frases; não precisa terminar perguntando.",
+    "reacao": "Reaja a um detalhe do relato autorizado, acrescentando uma observação relacionada. "
+              "Não transforme o relato em fato jornalístico nem invente outras participações.",
 }

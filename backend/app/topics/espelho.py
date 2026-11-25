@@ -25,6 +25,8 @@ _JANELA_PROPORCAO_PERMANENTE = 4  # 1 permanente esperado a cada N pereciveis se
 
 _PENALIDADE_ORIGEM_REPETIDA = 4.0
 _PENALIDADE_TAG_SATURADA = 3.0
+_PENALIDADE_TAG_CONSECUTIVA = 2.0
+_PENALIDADE_POR_USO_TAG = 0.75
 _BONUS_PERMANENTE_DEVIDO = 2.0
 
 
@@ -78,11 +80,14 @@ def ajustar_score(score_base: float, *, origem: str, tag_principal: str, histori
         score -= _PENALIDADE_ORIGEM_REPETIDA
 
     if tag_principal:
+        if historico and historico[0].tag_principal == tag_principal:
+            score -= _PENALIDADE_TAG_CONSECUTIVA
         agora = datetime.datetime.now(datetime.timezone.utc).timestamp()
         contagem_tag = sum(
             1 for r in historico
             if r.tag_principal == tag_principal and (agora - r.epoch) <= _JANELA_TAG_SEGUNDOS
         )
+        score -= contagem_tag * _PENALIDADE_POR_USO_TAG
         if contagem_tag >= _MAX_MESMA_TAG_POR_HORA:
             score -= _PENALIDADE_TAG_SATURADA
 

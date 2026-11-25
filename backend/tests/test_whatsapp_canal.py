@@ -334,6 +334,13 @@ def test_ciclo_pergunta_resposta_revisao_pauta(client, db_session, canal, auth_h
     assert client.patch(f"/ouvintes/contribuicoes/{id_}", headers=headers, json=revisao).status_code == 200
     assert db_session.query(Assunto).one().gancho == revisao["texto_autorizado"]
     assert db_session.query(ContribuicaoOuvinte).one().estado == "aprovada"
+    from app.topics.pauta_conversa import proximo_assunto, montar_pauta_assunto
+    from app.dados.fontes import de_assunto
+    escolhido = proximo_assunto(db_session, canal[2])
+    assert escolhido.eixo == "reacao"
+    assert escolhido.repertorio["familia"] == "participacao"
+    assert de_assunto(escolhido).detalhes["pergunta_origem"] == b.assunto["pergunta"]
+    assert "exclusivamente o relato autorizado" in montar_pauta_assunto(escolhido)
     publico = BlocoReproduzido(account_id=canal[0].id, programa_id=canal[2].id,
         ocorrencia=b.ocorrencia, token="contribuicao-no-ar", tipo="comentario",
         fala=revisao["texto_autorizado"], assunto_id=db_session.query(Assunto).one().id, assunto={})
@@ -345,6 +352,11 @@ def test_ciclo_pergunta_resposta_revisao_pauta(client, db_session, canal, auth_h
     contexto = client.get(f"/ouvintes/conversas/{c.id}/contexto", headers=headers).json()
     assert contexto["contribuicoes"][0]["estado"] == "utilizada"
     assert contexto["publico"]["fala_confirmada"] == revisao["texto_autorizado"]
+    # A autorização não atravessa a troca de ocorrência, mesmo antes do vencimento da pauta.
+    contribuicao = db_session.query(ContribuicaoOuvinte).one()
+    contribuicao.ocorrencia = "outra-ocorrencia"
+    db_session.commit()
+    assert proximo_assunto(db_session, canal[2]) is None
 
 
 def test_resposta_clara_cria_candidata_sem_publicar_e_limita_por_ouvinte(db_session, canal, monkeypatch):

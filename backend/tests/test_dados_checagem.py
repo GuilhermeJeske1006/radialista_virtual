@@ -40,6 +40,12 @@ def _categorias(texto):
     return [a.categoria for a in c.afirmacoes(texto)]
 
 
+@pytest.mark.parametrize("campo", ["recorte", "abordagens", "contextos", "continuidade", "pergunta_origem"])
+def test_nota_editorial_ou_memoria_nao_comprova_fato_atual(campo):
+    dado = _dado(tipo="assunto", valor="Um comentário sobre hábitos", detalhes={campo: "Entrada grátis no sábado."})
+    assert _regras("Entrada grátis no sábado.", [dado]) == ["dado_sem_fonte"]
+
+
 # --- detector, por categoria ---------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("texto,categoria", [

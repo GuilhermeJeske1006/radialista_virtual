@@ -68,6 +68,7 @@ def derivar_de_musica(db: Session, historico: MusicaHistorico, account_id: int) 
         tags=tags,
         validade_ate=None,
         peso_base=4.0,
+        repertorio={"familia": "musica", "recorte": f"{musica.artista} - {musica.titulo}"},
     )
     db.add(assunto)
     db.commit()

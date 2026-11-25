@@ -364,7 +364,7 @@ def _memoria(ctx: "ContextoEmissao") -> list[str]:
             f"Assunto sugerido pra este bloco: {v.assunto_sugerido}. Priorize esse assunto, mas fique livre "
             "pra adaptar a abordagem -- não precisa citar o rótulo do assunto ao pé da letra."
         )
-    if categoria == "comentario" and v.formato_comentario is not None:
+    if categoria == "comentario" and v.formato_comentario is not None and v.assunto is None:
         linhas.append(v.formato_comentario)
     return linhas
 
@@ -537,7 +537,7 @@ def _participacao(ctx: "ContextoEmissao", dp: DadosDoPrompt) -> list[str]:
         natureza = pedido_ouvinte.natureza or "recado_comum"
         construir_instrucao = _INSTRUCAO_REACAO_POR_NATUREZA.get(natureza, _instrucao_reacao_recado_comum)
         linhas.append(construir_instrucao(nome_ouvinte, dp.ouvinte["id"], ctx.programa.tom))
-    elif ctx.variacoes.convite_ouvinte is not None:
+    elif ctx.variacoes.convite_ouvinte is not None and (categoria != "comentario" or ctx.variacoes.assunto is None):
         linhas.append(ctx.variacoes.convite_ouvinte)
     if categoria == "encerramento":
         linhas.append(

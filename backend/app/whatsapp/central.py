@@ -296,12 +296,21 @@ def revisar(contribuicao_id: int, dados: RevisaoContribuicao, usuario=Depends(ge
             raise HTTPException(422, "Conteúdo incompatível com o programa")
         assunto = Assunto(account_id=usuario.account_id, origem="ouvinte", origem_ref_id=item.id,
             titulo=dados.titulo.strip(), gancho=texto, fatos=[], tags=["ouvinte", "participacao"],
-            validade_ate=agora() + datetime.timedelta(hours=1), peso_base=7)
+            validade_ate=agora() + datetime.timedelta(hours=1), peso_base=7,
+            repertorio={"familia": "participacao", "recorte": dados.titulo.strip(),
+                        "abordagens": ["Detalhe do relato autorizado e sua relação com o assunto do programa."]})
+        if item.discussao_id:
+            discussao = db.query(DiscussaoPrograma).filter_by(
+                id=item.discussao_id, account_id=usuario.account_id, programa_id=programa.id,
+                ocorrencia=item.ocorrencia,
+            ).first()
+            if discussao:
+                assunto.repertorio = {**assunto.repertorio, "pergunta_origem": discussao.pergunta}
         db.add(assunto)
         db.flush()
         db.add(AssuntoPrograma(assunto_id=assunto.id, programa_id=programa.id, score=8,
             ponte="Participação revisada da audiência. Relato pessoal, não um fato jornalístico verificado.",
-            eixos_sugeridos=["pergunta", "memoria", "impacto"]))
+            eixos_sugeridos=["reacao", "observacao", "memoria", "pergunta"]))
         item.estado, item.assunto_id, item.texto_autorizado = "aprovada", assunto.id, texto
     item.usuario_id = usuario.id
     registrar(db, usuario.account_id, "pauta.atualizada", programa_id=item.programa_id)

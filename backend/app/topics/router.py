@@ -7,7 +7,7 @@ AssuntoPrograma, nunca deriva nem casa nada aqui (isso e' sempre offline, ver ap
 import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_account
@@ -39,6 +39,7 @@ class AssuntoPautaResponse(BaseModel):
     ponte: str
     eixos_sugeridos: list[str]
     validade_ate: datetime.datetime | None
+    repertorio: dict = Field(default_factory=dict)
 
     model_config = {"from_attributes": True}
 
@@ -73,6 +74,7 @@ def listar_pauta_do_dia(
         AssuntoPautaResponse(
             id=ap.id, assunto_id=assunto.id, titulo=assunto.titulo, gancho=assunto.gancho,
             fatos=assunto.fatos or [], tags=assunto.tags or [], origem=assunto.origem,
+            repertorio=assunto.repertorio or {},
             score=ap.score, ponte=ap.ponte, eixos_sugeridos=ap.eixos_sugeridos or [],
             validade_ate=assunto.validade_ate,
         )
@@ -103,6 +105,7 @@ def fixar_assunto(
     assunto = db.get(Assunto, ap.assunto_id)
     return AssuntoPautaResponse(
         id=ap.id, assunto_id=assunto.id, titulo=assunto.titulo, gancho=assunto.gancho,
+        repertorio=assunto.repertorio or {},
         fatos=assunto.fatos or [], tags=assunto.tags or [], origem=assunto.origem,
         score=ap.score, ponte=ap.ponte, eixos_sugeridos=ap.eixos_sugeridos or [],
         validade_ate=assunto.validade_ate,

@@ -53,6 +53,13 @@ def test_tag_saturada_na_janela_penaliza():
     assert score < 5.0
 
 
+def test_familia_ja_perde_peso_na_repeticao_imediata_sem_bloquear():
+    historico = [parsear_registro(formatar_registro(1, "observacao", "reserva", "cotidiano"))]
+    repetida = ajustar_score(5, origem="reserva", tag_principal="cotidiano", historico=historico)
+    diferente = ajustar_score(5, origem="reserva", tag_principal="musica", historico=historico)
+    assert 0 < repetida < diferente
+
+
 def test_permanente_ganha_bonus_quando_quatro_pereciveis_seguidos():
     # Origens pereciveis ALTERNADAS (nao repete a mesma duas vezes seguidas) pra isolar a regra
     # de proporcao (Fase F, ultimos 4) da regra de "nao repita a mesma origem 2x seguidas" --

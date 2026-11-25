@@ -177,7 +177,11 @@ def afirmacoes(texto: str) -> list[Afirmacao]:
 # ---------------------------------------------------------------------------------------------------------
 
 def _texto_do_dado(dado: DadoVerificavel) -> str:
-    return normalizar(" ".join([dado.valor, *(str(v) for v in (dado.detalhes or {}).values() if v)]))
+    detalhes = dado.detalhes or {}
+    if dado.tipo == "assunto":
+        # Notas de abordagem e falas antigas não comprovam uma afirmação factual nova.
+        detalhes = {k: v for k, v in detalhes.items() if k in ("fatos", "contexto", "pergunta")}
+    return normalizar(" ".join([dado.valor, *(str(v) for v in detalhes.values() if v)]))
 
 
 def _radical(palavra: str) -> str:
