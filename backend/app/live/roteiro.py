@@ -16,9 +16,21 @@ from sqlalchemy.orm import Session
 from app.live.formatos import Formato, formato_do_programa, formato_pelo_booleano
 from app.live.portas import PortasEmissao
 from app.live.prompts import _CATEGORIAS_NOTICIA_LIKE
-from app.live.relogio import ConfigRelogio, Plano
+from app.live.relogio import ConfigRelogio, Plano, duracao_musica_s, marcar_ultima_musica
 
 logger = logging.getLogger("radialista.live")
+
+
+def _uma_vez(funcao):
+    """`funcao()` calculada na primeira chamada e reaproveitada nas seguintes (o roteiro sorteia)."""
+    guardado: list = []
+
+    def chamar():
+        if not guardado:
+            guardado.append(funcao())
+        return guardado[0]
+
+    return chamar
 
 _PATROCINADOR_RE = re.compile(r"^patrocinador:(\d+)$")
 _VINHETA_RE = re.compile(r"^vinheta:(\d+)$")
@@ -67,6 +79,8 @@ class DecisaoBloco:
     musica_relogio: Any = None      # MusicaEncontrada da etapa de música do relógio
     buscou_musica_relogio: bool = False
     assunto: Any = None             # AssuntoConversa do banco de assuntos (comentário)
+    # Sem relógio, perto do fim e sem inicio_previsto (painel antigo): ocorrência onde o bloco entra na cadeia.
+    cadeia_sem_relogio: Any = None
     # Bloco pronto, sem LLM: o router serializa a resposta.
     vinheta: Any = None
     patrocinador: Any = None
@@ -112,23 +126,38 @@ def decidir_bloco(entrada: EntradaEmissao, portas: PortasEmissao) -> DecisaoBloc
         db, account, radialista, programa, entrada.dados, formato=entrada.formato,
         ultima_categoria=ultima_categoria, ja_encerrou=ja_encerrou, cfg=entrada.cfg_relogio,
     )
-    musica_relogio, buscou_musica_relogio = None, False
+    musica_relogio, buscou_musica_relogio, cadeia_sem_relogio = None, False, None
+    tipo_roteiro = None
+    if plano is None:
+        # Sem relógio: na zona final, o fechamento decide de trás para frente até o encerramento, pelo horário em
+        # que o bloco vai ao ar. O tipo do roteiro só é sorteado uma vez, e só quando preciso.
+        tipo_roteiro = _uma_vez(lambda: portas.tipo_proximo_bloco(programa, total_falas, ultima_categoria))
+        plano, aceito_fim, origem_fim, cadeia_sem_relogio = portas.planejar_fechamento(
+            db, account, radialista, programa, entrada.dados, formato=entrada.formato, tipo_roteiro=tipo_roteiro,
+            ultima_categoria=ultima_categoria, ja_encerrou=ja_encerrou, cfg=entrada.cfg_relogio,
+        )
+        if plano is not None:
+            inicio_previsto_aceito, origem_instante = aceito_fim, origem_fim
     if plano is not None:
         plano, musica_relogio, buscou_musica_relogio = portas.resolver_musica_do_relogio(
             db, radialista, programa, plano, account.atendimento_ouvinte_ativo,
         )
+        if musica_relogio is not None:
+            plano = marcar_ultima_musica(plano, duracao_musica_s(musica_relogio, entrada.cfg_relogio),
+                                         entrada.formato, entrada.cfg_relogio)
         tipo = plano.tipo_bloco
     else:
         perto_do_fim = portas.minutos_restantes(programa, radialista.timezone) <= _LIMIAR_ENCERRAMENTO_MIN
         if perto_do_fim and not ja_encerrou:
-            # Estrutura do programa roda em loop ate' chegar perto do horario_fim -- daqui em diante, para o
-            # loop e gera a fala de encerramento.
+            # Sem horário previsto da ocorrência (transmissão fora da grade): a estrutura roda em loop até chegar
+            # perto do horario_fim pelo relógio de parede e gera a fala de encerramento.
             tipo = "encerramento"
         else:
-            tipo = portas.tipo_proximo_bloco(programa, total_falas, ultima_categoria)
+            tipo = tipo_roteiro()
     primeira_fala = plano.primeira if plano is not None else total_falas == 0
     comum = dict(plano=plano, preset_relogio=preset_relogio, inicio_previsto_aceito=inicio_previsto_aceito,
-                 primeira_fala=primeira_fala, ultima_categoria=ultima_categoria, origem_instante=origem_instante)
+                 primeira_fala=primeira_fala, ultima_categoria=ultima_categoria, origem_instante=origem_instante,
+                 cadeia_sem_relogio=cadeia_sem_relogio)
 
     # Vinheta (tratada ANTES da categoria: "vinheta:12" nunca vai pra classificacao por LLM nem pro cache do
     # Redis). Conteudo fixo -- sem LLM. Vinheta desativada/sem conteudo pula pro proximo bloco do roteiro.

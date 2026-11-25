@@ -47,6 +47,7 @@ from app.live.roteiro import _PATROCINADOR_RE, _VINHETA_RE
 from app.llm.noticias import PesquisaNoticias, contexto_noticias
 from app.llm.prompt_builder import _perfil_editorial
 from app.news.pauta import id_do_dado, montar_escalada, montar_lauda
+from app.numeros import numero_por_extenso
 from app.topics.pauta_conversa import montar_pauta_assunto
 
 if TYPE_CHECKING:
@@ -293,10 +294,11 @@ _REGRAS_GERAIS = [
     "Nunca soe como se o programa estivesse terminando ou se despedindo (frases tipo 'por hoje é só', "
     "'foi um prazer ficar com vocês', 'até a próxima', 'foi isso por agora') a não ser que o bloco atual "
     "seja o de encerramento -- despedida só é permitida na fala do bloco 'encerramento', em nenhum outro. "
-    "Isso vale também pra palavras soltas de finalidade fora desse bloco: nunca chame um bloco de música, "
-    "comentário ou qualquer outro momento de 'final', 'último', 'última música da noite' ou parecido -- "
-    "mesmo emendando várias músicas seguidas, chame apenas de 'sequência', 'sequência de hits', 'trio' ou "
-    "algo assim, nunca de 'bloco final'.",
+    "Isso vale também pra palavras soltas de finalidade fora desse bloco: sem a instrução de RETA FINAL "
+    "abaixo, nunca chame um bloco de música, comentário ou qualquer outro momento de 'final', 'último', "
+    "'última música da noite' ou parecido -- mesmo emendando várias músicas seguidas, chame apenas de "
+    "'sequência', 'sequência de hits', 'trio' ou algo assim, nunca de 'bloco final'. Na reta final, use só o "
+    "que a instrução dela permitir.",
 ]
 
 
@@ -364,7 +366,9 @@ def _memoria(ctx: "ContextoEmissao") -> list[str]:
             f"Assunto sugerido pra este bloco: {v.assunto_sugerido}. Priorize esse assunto, mas fique livre "
             "pra adaptar a abordagem -- não precisa citar o rótulo do assunto ao pé da letra."
         )
-    if categoria == "comentario" and v.formato_comentario is not None and v.assunto is None:
+    na_zona = ctx.tempo.fechamento is not None and ctx.tempo.fechamento.zona
+    if categoria == "comentario" and v.formato_comentario is not None and v.assunto is None and not na_zona:
+        # Na zona de fechamento o formato sorteado (pergunta, convite ao WhatsApp) abriria conversa sem tempo de volta.
         linhas.append(v.formato_comentario)
     return linhas
 
@@ -400,6 +404,104 @@ def _jornalismo(ctx: "ContextoEmissao", dp: DadosDoPrompt) -> list[str]:
             "relevância na apuração. Preserve os fatos de interesse público, mesmo sérios; o horário "
             "não é motivo para substituir jornalismo por curiosidade."
         )
+    return linhas
+
+
+def _minutos_para_fim(segundos: float) -> str:
+    minutos = max(1, round(segundos / 60))
+    return "cerca de um minuto" if minutos == 1 else f"cerca de {numero_por_extenso(minutos)} minutos"
+
+
+def _reta_final(ctx: "ContextoEmissao") -> list[str]:
+    """Reta final (app.live.fechamento): a fala conduz para o encerramento sem se despedir antes da hora. O aviso vai
+    uma vez; a última música só é chamada de última quando o backtiming garante que nenhuma outra cabe depois."""
+    fase, categoria = ctx.tempo.fechamento, ctx.categoria
+    if fase is None or categoria == "encerramento":
+        return []
+    if categoria in _CATEGORIAS_NOTICIA_LIKE:
+        # Notícia segue a apuração: sem aviso de reta final no meio dela, só sem prometer para depois do fim.
+        return ["O programa está nos minutos finais: não prometa notícia, atualização ou retorno para depois do fim."]
+    nome = ctx.programa.nome
+    linhas = [
+        f"RETA FINAL: faltam {_minutos_para_fim(fase.segundos_para_fim)} para o fim do {nome}. Conduza para o "
+        "encerramento: sem abrir assunto novo longo e sem prometer nada para depois do fim do programa. Ainda não se "
+        "despeça nem agradeça a companhia: isso fica só para o bloco de encerramento."
+    ]
+    if fase.ultima_musica and categoria == "musica":
+        linhas.append(
+            f"A música confirmada deste bloco é a ÚLTIMA do {nome} hoje: apresente-a como a que fecha o programa "
+            f"(ex.: 'pra fechar o {nome}, ...'), em poucas palavras e sem se despedir ainda."
+        )
+    elif fase.avisada:
+        linhas.append("Você já avisou que o programa está na reta final: não repita esse aviso.")
+    else:
+        linhas.append(
+            f"Nesta fala, avise uma única vez, com naturalidade, que o programa está na reta final (ex.: 'reta final "
+            f"do {nome}', 'últimos minutos aqui com a gente'). Não chame nenhuma música de última."
+        )
+    if fase.zona:
+        linhas.append(
+            "Faltam poucos minutos: não faça pergunta ao ouvinte nem convide a mandar pedido ou mensagem, porque não "
+            "há mais tempo de tocar nem de ler."
+        )
+        plano = ctx.tempo.plano
+        if plano is not None and plano.acao == "reserva" and plano.proximo_compromisso is not None \
+                and plano.proximo_compromisso.tipo_efetivo == "encerramento":
+            linhas.append(
+                "Esta é a última fala antes da despedida: não abra assunto novo. Retome algo que já foi ao ar neste "
+                "programa (uma música que tocou, um recado real, o assunto do dia) e prepare o fechamento, sem se "
+                "despedir ainda."
+            )
+    else:
+        linhas.append("Se convidar o ouvinte a participar, só diga que a rádio recebe as mensagens: não diga que vai "
+                      "ler, responder ou tocar ainda neste programa.")
+    return linhas
+
+
+def _encerramento(ctx: "ContextoEmissao") -> list[str]:
+    """Encerramento: agradecer, marcar o programa e a rádio, dizer quando volta e o que segue na programação
+    (pesquisa §8), só com o que a grade confirma. Fecha como vírgula, não ponto: deixa motivo para voltar."""
+    fase, nome = ctx.tempo.fechamento, ctx.programa.nome
+    linhas = [
+        "Este é o ÚLTIMO bloco do programa de hoje, o programa está terminando agora. Agradeça o ouvinte pela "
+        f"companhia, diga o nome do {nome} e da rádio, resuma em uma frase o que marcou o programa e se despeça "
+        "claramente, sinalizando que a transmissão está encerrando. Não convide a mandar mensagem no WhatsApp, pedir "
+        "música ou interagir mais, porque não há mais tempo de ar."
+    ]
+    if ctx.memoria.ultima_categoria == "musica":
+        linhas.append(
+            "A música que acabou de tocar fechou o programa: se fizer sentido, cite-a ao fechar (ex.: 'essa foi ..., "
+            f"fechando o nosso {nome}'), sem inventar nada sobre ela."
+        )
+    if fase is None:
+        linhas.append(
+            "Se souber quando o programa volta (mesmo horário, próximo dia de exibição), convide a voltar; senão, "
+            "feche sem inventar data ou horário."
+        )
+        return linhas
+    if fase.volta:
+        linhas.append(f"O {nome} volta {fase.volta}: convide o ouvinte a voltar nesse dia e horário, sem inventar "
+                      "outro.")
+    else:
+        linhas.append("A grade não tem outra exibição deste programa: não diga 'até amanhã' nem marque data ou "
+                      "horário de volta.")
+    if fase.proximo_programa:
+        linhas.append(
+            f"Na sequência, a programação da rádio segue com {fase.proximo_programa}: em uma frase, convide o ouvinte "
+            "a continuar ligado, sem descrever o que você não sabe sobre esse programa."
+        )
+    plano = ctx.tempo.plano
+    if plano is not None and plano.orcamento_s:
+        # O modelo tende a fechar curto: a faixa de palavras pelo ritmo da voz evita ar parado antes do horário.
+        minimo = max(1, int(ctx.orcamento.min_s * ctx.wpm_fala / 60))
+        maximo = ctx.limite_palavras or int(ctx.orcamento.max_s * ctx.wpm_fala / 60)
+        linhas.append(
+            f"A despedida ocupa o tempo que falta até o fim do programa: escreva entre {minimo} e {maximo} palavras "
+            "de fala corrida, com calma, sem encher com frase vazia nem repetir o agradecimento."
+        )
+    else:
+        linhas.append("Use o tempo da meta para fechar com calma, sem encher com frase vazia nem repetir o "
+                      "agradecimento.")
     return linhas
 
 
@@ -537,17 +639,12 @@ def _participacao(ctx: "ContextoEmissao", dp: DadosDoPrompt) -> list[str]:
         natureza = pedido_ouvinte.natureza or "recado_comum"
         construir_instrucao = _INSTRUCAO_REACAO_POR_NATUREZA.get(natureza, _instrucao_reacao_recado_comum)
         linhas.append(construir_instrucao(nome_ouvinte, dp.ouvinte["id"], ctx.programa.tom))
-    elif ctx.variacoes.convite_ouvinte is not None and (categoria != "comentario" or ctx.variacoes.assunto is None):
+    elif ctx.variacoes.convite_ouvinte is not None and (categoria != "comentario" or ctx.variacoes.assunto is None) \
+            and not (ctx.tempo.fechamento is not None and ctx.tempo.fechamento.zona):
+        # Na zona de fechamento não há mais tempo de tocar o pedido nem ler a mensagem: sem convite.
         linhas.append(ctx.variacoes.convite_ouvinte)
     if categoria == "encerramento":
-        linhas.append(
-            "Este é o ÚLTIMO bloco do programa de hoje, o programa está terminando agora. Agradeça o "
-            "ouvinte pela companhia, resuma em uma frase o clima do programa e se despeça claramente, "
-            "sinalizando que a transmissão está encerrando. Não convide a mandar mensagem no WhatsApp, "
-            "pedir música ou interagir mais, porque não há mais tempo de ar. Se souber quando o programa "
-            "volta (mesmo horário, próximo dia de exibição), convide a voltar; senão, feche sem inventar "
-            "data ou horário."
-        )
+        linhas.extend(_encerramento(ctx))
     if p.novo_atendimento and (pedido_ouvinte or p.pedido_musica):
         if dp.ouvinte_musica is not None:
             linhas.append(
@@ -672,6 +769,7 @@ def montar_prompt(ctx: "ContextoEmissao") -> PromptEmissao:
         *_jornalismo(ctx, dp),
         *_dados_de_referencia(ctx, dp),
         *_ouvintes_e_tempo(ctx),
+        *_reta_final(ctx),
         *_musica(ctx, dp),
         *_participacao(ctx, dp),
         *instrucoes_do_bloco(ctx),

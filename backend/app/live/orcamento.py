@@ -105,23 +105,30 @@ def formato_do_programa(programa) -> str:
 
 
 def orcamento_para(formato: "str | Formato", tipo: str, primeira: bool, teto_relogio_s: float | None = None, *,
-                   minimo_relogio_s: float | None = None, quadro: bool = False) -> OrcamentoFala:
+                   minimo_relogio_s: float | None = None, quadro: bool = False,
+                   teto_relogio_vence: bool = False) -> OrcamentoFala:
     """Orçamento da fala. Sem relógio, a unidade do formato (aplicada só nos formatos com `aplica_orcamento`).
     Com o teto do relógio (backtiming da F1), o máximo é o menor entre ele e o do formato aplicado, e o orçamento
-    vale em qualquer formato; o mínimo é o do relógio quando informado. `formato` aceita id, alias ou Formato."""
+    vale em qualquer formato; o mínimo é o do relógio quando informado. `teto_relogio_vence` (encerramento
+    elástico): o teto do relógio vale mesmo acima do máximo do formato, e o teto de palavras do formato só fica se o
+    máximo não subiu. `formato` aceita id, alias ou Formato."""
     formato = resolver_formato(formato)
     u = unidade(formato, tipo, primeira, quadro)
     minimo, maximo, palavras, alvo = u.min_s, u.max_s, u.max_palavras, u.alvo_s
     aplicado = formato.aplica_orcamento
     if teto_relogio_s is None:
         return OrcamentoFala(minimo, alvo, maximo, palavras, "formato" if aplicado else "observacao", aplicado)
-    if aplicado:
+    if teto_relogio_vence:
+        if teto_relogio_s > maximo:
+            palavras = None
+        maximo = teto_relogio_s
+    elif aplicado:
         maximo = min(maximo, teto_relogio_s)
     else:
         maximo, palavras = teto_relogio_s, None
     if minimo_relogio_s is not None:
         minimo = minimo_relogio_s
-    alvo = min((minimo + maximo) / 2 if not aplicado else alvo, maximo)
+    alvo = min((minimo + maximo) / 2 if not aplicado or teto_relogio_vence else alvo, maximo)
     return OrcamentoFala(minimo, alvo, maximo, palavras, "relogio", True)
 
 

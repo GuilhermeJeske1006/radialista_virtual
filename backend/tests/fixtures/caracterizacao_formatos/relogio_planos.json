@@ -127,10 +127,23 @@
     "encerramento",
     "encerramento",
     [
-     10,
-     18
+     17,
+     27
     ],
-    38,
+    67,
+    null
+   ]
+  ],
+  [
+   3577,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     10,
+     20
+    ],
+    50,
     null
    ]
   ],
@@ -293,10 +306,23 @@
     "encerramento",
     "encerramento",
     [
-     10,
-     18
+     17,
+     27
     ],
-    38,
+    67,
+    null
+   ]
+  ],
+  [
+   3577,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     10,
+     20
+    ],
+    50,
     null
    ]
   ],
@@ -454,10 +480,23 @@
     "encerramento",
     "encerramento",
     [
-     10,
-     18
+     20,
+     30
     ],
-    38,
+    75,
+    null
+   ]
+  ],
+  [
+   3577,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     13,
+     23
+    ],
+    57,
     null
    ]
   ],
@@ -619,10 +658,23 @@
     "encerramento",
     "encerramento",
     [
-     10,
-     18
+     20,
+     30
     ],
-    38,
+    75,
+    null
+   ]
+  ],
+  [
+   3577,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     13,
+     23
+    ],
+    57,
     null
    ]
   ],
@@ -1745,10 +1797,49 @@
     "encerramento",
     "encerramento",
     [
-     10,
-     18
+     31,
+     41
     ],
-    38,
+    102,
+    null
+   ]
+  ],
+  [
+   3563,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     24,
+     34
+    ],
+    85,
+    null
+   ]
+  ],
+  [
+   3570,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     17,
+     27
+    ],
+    67,
+    null
+   ]
+  ],
+  [
+   3577,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     10,
+     20
+    ],
+    50,
     null
    ]
   ],
@@ -2002,10 +2093,49 @@
     "encerramento",
     "encerramento",
     [
-     10,
-     18
+     31,
+     41
     ],
-    38,
+    102,
+    null
+   ]
+  ],
+  [
+   3563,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     24,
+     34
+    ],
+    85,
+    null
+   ]
+  ],
+  [
+   3570,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     17,
+     27
+    ],
+    67,
+    null
+   ]
+  ],
+  [
+   3577,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     10,
+     20
+    ],
+    50,
     null
    ]
   ],
@@ -2245,10 +2375,49 @@
     "encerramento",
     "encerramento",
     [
-     10,
-     18
+     34,
+     44
     ],
-    38,
+    110,
+    null
+   ]
+  ],
+  [
+   3563,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     27,
+     37
+    ],
+    92,
+    null
+   ]
+  ],
+  [
+   3570,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     20,
+     30
+    ],
+    75,
+    null
+   ]
+  ],
+  [
+   3577,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     13,
+     23
+    ],
+    57,
     null
    ]
   ],
@@ -2501,10 +2670,49 @@
     "encerramento",
     "encerramento",
     [
-     10,
-     18
+     34,
+     44
     ],
-    38,
+    110,
+    null
+   ]
+  ],
+  [
+   3563,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     27,
+     37
+    ],
+    92,
+    null
+   ]
+  ],
+  [
+   3570,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     20,
+     30
+    ],
+    75,
+    null
+   ]
+  ],
+  [
+   3577,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     13,
+     23
+    ],
+    57,
     null
    ]
   ],
@@ -5507,10 +5715,49 @@
     "encerramento",
     "encerramento",
     [
-     10,
-     18
+     31,
+     41
     ],
-    38,
+    102,
+    null
+   ]
+  ],
+  [
+   3563,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     24,
+     34
+    ],
+    85,
+    null
+   ]
+  ],
+  [
+   3570,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     17,
+     27
+    ],
+    67,
+    null
+   ]
+  ],
+  [
+   3577,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     10,
+     20
+    ],
+    50,
     null
    ]
   ],
@@ -5702,10 +5949,49 @@
     "encerramento",
     "encerramento",
     [
-     10,
-     18
+     31,
+     41
     ],
-    38,
+    102,
+    null
+   ]
+  ],
+  [
+   3563,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     24,
+     34
+    ],
+    85,
+    null
+   ]
+  ],
+  [
+   3570,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     17,
+     27
+    ],
+    67,
+    null
+   ]
+  ],
+  [
+   3577,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     10,
+     20
+    ],
+    50,
     null
    ]
   ],
@@ -5889,10 +6175,49 @@
     "encerramento",
     "encerramento",
     [
-     10,
-     18
+     34,
+     44
     ],
-    38,
+    110,
+    null
+   ]
+  ],
+  [
+   3563,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     27,
+     37
+    ],
+    92,
+    null
+   ]
+  ],
+  [
+   3570,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     20,
+     30
+    ],
+    75,
+    null
+   ]
+  ],
+  [
+   3577,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     13,
+     23
+    ],
+    57,
     null
    ]
   ],
@@ -6093,10 +6418,49 @@
     "encerramento",
     "encerramento",
     [
-     10,
-     18
+     34,
+     44
     ],
-    38,
+    110,
+    null
+   ]
+  ],
+  [
+   3563,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     27,
+     37
+    ],
+    92,
+    null
+   ]
+  ],
+  [
+   3570,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     20,
+     30
+    ],
+    75,
+    null
+   ]
+  ],
+  [
+   3577,
+   [
+    "encerramento",
+    "encerramento",
+    [
+     13,
+     23
+    ],
+    57,
     null
    ]
   ],

@@ -413,7 +413,7 @@ def test_gerar_proxima_fala_vinheta_desativada_cai_para_comentario(
     assert resposta.json()["tipo"] == "comentario"
 
 
-@freeze_time("2026-08-10 16:58:00")  # 13:58 local -- 2 min antes do fim (14:00)
+@freeze_time("2026-08-10 16:59:20")  # 13:59:20 local -- 40 s antes do fim (14:00), já na etapa de encerramento
 def test_gerar_proxima_fala_perto_do_fim_vira_encerramento(
     client, account, auth_headers, radialista_e_programa, monkeypatch
 ):
@@ -2414,7 +2414,7 @@ def test_fio_condutor_da_abertura_e_retomado_no_encerramento(
         assert r1.json()["tipo"] == "abertura"
 
     prompts = []
-    with freeze_time("2026-08-10 16:58:00"):  # 13:58 local -- 2 min antes do fim (14:00)
+    with freeze_time("2026-08-10 16:59:20"):  # 13:59:20 local -- 40 s antes do fim (14:00)
         monkeypatch.setattr(
             "app.live.router.gerar_resposta",
             lambda system, msg: prompts.append(system) or "Foi um prazer, até mais!",
@@ -3090,7 +3090,8 @@ def test_musical_encerra_perto_do_fim_em_vez_de_iniciar_outra_musica(
                     json={"total_falas": 7, "historico": ["retomada: Seguimos juntos"]})
     assert r.status_code == 200
     assert r.json()["tipo"] == "encerramento"
-    assert r.json()["duracao_alvo_segundos"] == [10, 18]
+    # Encerramento elástico: os 30 s que faltam viram despedida (acima dos 10 a 18 s do musical), sem ar parado.
+    assert r.json()["duracao_alvo_segundos"] == [20, 30]
     assert r.json()["video_id"] is None
 
 

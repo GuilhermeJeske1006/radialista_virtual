@@ -69,10 +69,12 @@ class PortasEmissao:
     ultima_categoria_bloco: Funcao
     tipo_proximo_bloco: Funcao
     planejar_relogio: Funcao
+    planejar_fechamento: Funcao
     resolver_musica_do_relogio: Funcao
     buscar_vinheta_ativa: Funcao
     buscar_patrocinador_ativo: Funcao
     # Relógio do programa
+    programas_da_radio: Funcao
     ajuste_energia_meio_programa: Funcao
     marco_tempo_programa: Funcao
     minutos_restantes: Funcao
@@ -107,11 +109,13 @@ class PortasEmissao:
         "pecas_reserva_usadas": "_pecas_reserva_usadas",
         "fio_condutor": "_fio_condutor",
         "buscar_roster": "_buscar_roster",
+        "programas_da_radio": "_programas_da_radio",
         "ajuste_energia_meio_programa": "_ajuste_energia_meio_programa",
         "marco_tempo_programa": "_marco_tempo_programa",
         "ultima_categoria_bloco": "_ultima_categoria_bloco",
         "tipo_proximo_bloco": "_tipo_proximo_bloco",
         "planejar_relogio": "_planejar_relogio",
+        "planejar_fechamento": "_planejar_fechamento",
         "resolver_musica_do_relogio": "_resolver_musica_do_relogio",
         "buscar_vinheta_ativa": "_buscar_vinheta_ativa",
         "buscar_patrocinador_ativo": "_buscar_patrocinador_ativo",

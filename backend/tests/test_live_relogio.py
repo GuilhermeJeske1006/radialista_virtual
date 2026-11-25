@@ -352,7 +352,11 @@ def test_u16_encerramento():
     assert (plano.acao, plano.orcamento_s) == ("encerramento", (17, 27))
     assert _planejar(programa, _em(10, 14, 59, 50)).orcamento_s == (15, 15)
     assert _planejar(programa, _em(10, 15, 5)).acao == "encerramento"  # depois do fim, na graça
-    assert _planejar(programa, _em(10, 14, 59, 30), musical=True).orcamento_s == (10, 18)
+    # Encerramento elástico: no musical (10 a 18 s) a despedida ocupa o espaço até o fim em vez de deixar ar parado.
+    plano_musical = _planejar(programa, _em(10, 14, 59, 30), musical=True)
+    assert plano_musical.orcamento_s == (17, 27)
+    assert plano_musical.palavras_max == int(27 * WPM / 60)   # acima do teto de palavras do formato (38)
+    assert _planejar(programa, _em(10, 14, 59, 50), musical=True).orcamento_s == (10, 10)   # nunca abaixo do mínimo
     assert _planejar(programa, _em(10, 14, 59, 30), ja_encerrou=True) is None
 
 

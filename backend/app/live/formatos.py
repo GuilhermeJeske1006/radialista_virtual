@@ -647,7 +647,9 @@ def avisos_da_fala(formato, fala: FalaNoAr, *, nomes: Sequence[str] = (), indice
     if formato.aplica_orcamento and fala.duracao_s is not None:
         u = formato.unidades[papel]
         reduzida = fala.teto_s is not None and fala.teto_s < u.max_s
-        if not reduzida and (fala.duracao_s < u.min_s or fala.duracao_s > u.max_s * (1 + config.tolerancia_unidade)):
+        # Estendida: o relógio deu mais que a unidade (encerramento elástico, que ocupa o espaço até o fim).
+        maximo = max(u.max_s, fala.teto_s) if fala.teto_s is not None else u.max_s
+        if not reduzida and (fala.duracao_s < u.min_s or fala.duracao_s > maximo * (1 + config.tolerancia_unidade)):
             avisos.append(AvisoFormato("fora_da_unidade", indice, papel))
     if fala.categoria in formato.limites.categorias_fora:
         avisos.append(AvisoFormato("bloco_fora_do_formato", indice, fala.categoria))

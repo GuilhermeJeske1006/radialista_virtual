@@ -93,7 +93,7 @@ def test_u13_relogio_troca_a_ultima_frase_pela_agenda(client, account, auth_head
     assert "Não anuncie o que vem a seguir nem prometa conteúdo." not in system
 
 
-@freeze_time("2026-08-10 16:58:00")
+@freeze_time("2026-08-10 16:59:20")  # 40 s antes do fim (14:00), já na etapa de encerramento
 def test_u13_encerramento_sem_agenda_e_formato_musical_sem_retorno(client, account, auth_headers, programa,
                                                                   db_session, monkeypatch):
     radialista, prog = programa

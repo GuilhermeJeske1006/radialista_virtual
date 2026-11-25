@@ -28,6 +28,7 @@ from app.config.settings import settings
 from app.dados.fontes import dados_do_bloco, no_bloco
 from app.dados.texto_externo import nome_seguro
 from app.dados.verificavel import DadoVerificavel
+from app.live.fechamento import Fechamento, completar_encerramento, fase_do_bloco
 from app.live.formatos import Formato, eh_quadro_fixo, formato_pelo_booleano
 from app.live.orcamento import OrcamentoFala, orcamento_para, palavras_max
 from app.live.portas import PortasEmissao
@@ -170,6 +171,8 @@ class Tempo:
     ajuste_energia: str | None = None
     marco_tempo: str | None = None
     hora_certa: str | None = None
+    # Reta final e encerramento (app.live.fechamento): None longe do fim.
+    fechamento: Fechamento | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -607,6 +610,24 @@ def _dados(entrada: EntradaEmissao, decisao: DecisaoBloco, jornalismo: Jornalism
         assunto=decisao.assunto if quadro is None else None, leitura_clima=leitura, tz=entrada.radialista.timezone)
 
 
+def _fechamento(entrada: EntradaEmissao, decisao: DecisaoBloco, instante: datetime.datetime,
+                portas: PortasEmissao) -> Fechamento | None:
+    """Reta final pelo horário em que o bloco vai ao ar (com e sem relógio). No encerramento, também a volta do
+    programa e o programa seguinte da grade (uma leitura do banco, só neste bloco)."""
+    programa, timezone = entrada.programa, entrada.radialista.timezone
+    plano = decisao.plano
+    ocorrencia = plano.ocorrencia if plano is not None else ocorrencia_em(programa, timezone, instante,
+                                                                          entrada.cfg_relogio)
+    if ocorrencia is None:
+        return None
+    fase = fase_do_bloco(ocorrencia, instante, entrada.dados.historico,
+                         ultima_musica=plano is not None and plano.ultima_musica, cfg=entrada.cfg_relogio)
+    if fase is None or decisao.tipo != "encerramento":
+        return fase
+    return completar_encerramento(fase, programa, ocorrencia, timezone,
+                                  portas.programas_da_radio(entrada.db, entrada.account))
+
+
 def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: ResolucaoBloco,
                     portas: PortasEmissao) -> ContextoEmissao:
     """Fase 3. A ordem das chamadas abaixo é a do router antigo (sorteios, rotações e leituras)."""
@@ -688,6 +709,8 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
         teto_relogio_s=plano.orcamento_s[1] if plano is not None and plano.orcamento_s else None,
         minimo_relogio_s=plano.orcamento_s[0] if plano is not None and plano.orcamento_s else None,
         quadro=eh_quadro_fixo(programa, tipo),  # F6: unidade de quadro nos formatos que a declaram (variedades)
+        # Encerramento elástico: a despedida ocupa o espaço até o fim, acima da unidade do formato se preciso.
+        teto_relogio_vence=plano is not None and plano.acao == "encerramento",
     )
     categoria_voz = categoria_ritmo(tipo)
     wpm_fala = entrada.ritmos_voz.wpm(categoria_voz)
@@ -719,6 +742,7 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
     clima_no_bloco = any(d.tipo == "clima" for d, _ in no_bloco(dados, instante_dados))
     clima_ja_mencionado = portas.clima_ja_mencionado(programa.id) if clima_no_bloco else False
     selecionados = tuple(p.nome for p in (pedido_musica, pedido_ouvinte) if p is not None and p.nome)
+    fechamento = _fechamento(entrada, decisao, instante, portas)
     ctx = ContextoEmissao(
         request_id=entrada.request_id, account=account, radialista=radialista, programa=programa,
         tipo=tipo, categoria=categoria, primeira_fala=decisao.primeira_fala, total_falas=entrada.total_falas,
@@ -728,7 +752,7 @@ def montar_contexto(entrada: EntradaEmissao, decisao: DecisaoBloco, resolucao: R
                     origem_instante=decisao.origem_instante,
                     plano=plano, preset_relogio=decisao.preset_relogio,
                     inicio_previsto_aceito=decisao.inicio_previsto_aceito, ajuste_energia=ajuste_energia,
-                    marco_tempo=marco, hora_certa=hora_certa),
+                    marco_tempo=marco, hora_certa=hora_certa, fechamento=fechamento),
         musica=EstadoMusical(
             tocou=tuple(tocou), confirmada=MusicaRef.de(musica) if musica is not None else None,
             citaveis=tuple(citaveis),
