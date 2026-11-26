@@ -1,0 +1,181 @@
+/* Peças de Instagram da Locufy. Filosofia: ../FILOSOFIA.md */
+@font-face{font-family:Outfit;src:url('fonts/outfit-latin.woff2') format('woff2');font-weight:100 900;font-display:block}
+@font-face{font-family:'Geist Mono';src:url('fonts/GeistMono-Regular.ttf') format('truetype');font-weight:400;font-display:block}
+@font-face{font-family:'Geist Mono';src:url('fonts/GeistMono-Bold.ttf') format('truetype');font-weight:700;font-display:block}
+
+:root{
+  --roxo:#631BF6;--ciano:#00B4D8;--azul:#1B263B;--laranja:#FF8C00;--preto:#18181A;--cinza:#6C707B;
+  --g1:#3E3A98;--g2:#3D69BC;--g3:#138FAE;
+  --texto:#FFFFFF;--texto-2:rgba(255,255,255,.84);--texto-3:rgba(255,255,255,.70);
+  --linha:rgba(255,255,255,.14);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--preto)}
+body{width:1080px}
+
+.canvas{position:relative;overflow:hidden;width:1080px;color:var(--texto);font-family:Outfit,sans-serif;
+  -webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;font-kerning:normal;
+  background:linear-gradient(168deg,#18181A 0%,#1B263B 58%,#1B263B 100%)}
+.feed{height:1350px}
+.story{height:1920px}
+
+/* Luz: brilho difuso do degradê da marca */
+.luz{position:absolute;inset:0;pointer-events:none}
+.luz::before{content:"";position:absolute;width:1200px;height:1200px;right:-560px;top:30%;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(19,143,174,.34),rgba(19,143,174,0))}
+.luz::after{content:"";position:absolute;width:1000px;height:1000px;left:-520px;top:-420px;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(99,27,246,.16),rgba(99,27,246,0))}
+.luz.baixa::before{top:auto;bottom:-520px;right:-380px}
+.luz.centro::before{right:auto;left:-60px;top:22%}
+
+.ondas{position:absolute;left:0;bottom:0;pointer-events:none}
+
+/* Grade */
+.frame{position:absolute;left:80px;right:80px;top:80px;bottom:80px;display:flex;flex-direction:column}
+.story .frame{left:84px;right:84px;top:250px;bottom:250px}
+.topo{display:flex;align-items:center;justify-content:space-between;gap:24px;flex:none}
+.miolo{flex:1;display:flex;flex-direction:column;min-height:0}
+.base{display:flex;align-items:center;justify-content:space-between;flex:none}
+
+/* Tipografia */
+.lab{font-family:'Geist Mono',monospace;font-size:24px;line-height:1.2;letter-spacing:.14em;text-transform:uppercase;color:var(--texto-3);
+  display:flex;align-items:center;gap:16px}
+.lab b{font-weight:700;color:var(--texto)}
+.cont{font-family:'Geist Mono',monospace;font-size:24px;letter-spacing:.1em;color:var(--texto-3)}
+.h{font-weight:600;font-size:92px;line-height:1.02;letter-spacing:-.028em}
+.h.m{font-size:80px}
+.h.g{font-size:104px}
+.story .h{font-size:108px}
+.story .h.m{font-size:92px}
+.acc{color:var(--ciano)}
+.lead{font-weight:400;font-size:38px;line-height:1.36;letter-spacing:-.005em;color:var(--texto-2)}
+.story .lead{font-size:44px}
+.lead b{font-weight:600;color:var(--texto)}
+.nota{font-family:'Geist Mono',monospace;font-size:24px;line-height:1.5;letter-spacing:.01em;color:var(--texto-3)}
+.story .nota{font-size:26px}
+.dot{width:14px;height:14px;border-radius:50%;background:var(--laranja);box-shadow:0 0 0 7px rgba(255,140,0,.2);flex:none}
+
+.logo{height:46px;width:auto;display:block}
+.story .logo{height:54px}
+.arraste{font-family:'Geist Mono',monospace;font-size:24px;letter-spacing:.12em;text-transform:uppercase;color:var(--texto-2);display:flex;align-items:center;gap:14px}
+.arraste svg{width:40px;height:16px}
+.site{font-family:'Geist Mono',monospace;font-size:26px;letter-spacing:.06em;color:var(--texto)}
+
+/* Espelho: linhas com índice, como um roteiro de programa */
+.espelho{border-top:1.5px solid var(--linha)}
+.espelho .lin{display:grid;grid-template-columns:96px 1fr;align-items:baseline;padding:30px 0;border-bottom:1.5px solid var(--linha)}
+.espelho .n{font-family:'Geist Mono',monospace;font-size:26px;color:var(--ciano);letter-spacing:.06em}
+.espelho .t{font-size:44px;font-weight:600;letter-spacing:-.015em;line-height:1.1}
+.espelho .d{display:block;font-size:30px;font-weight:400;color:var(--texto-3);margin-top:8px;letter-spacing:0}
+
+/* Janela do painel (recorte de tela) */
+.shot{position:relative;overflow:hidden;border-radius:30px;flex:none;
+  box-shadow:0 0 0 1.5px rgba(61,105,188,.55),0 50px 90px -40px rgba(0,0,0,.85)}
+.shot img{position:absolute;display:block;max-width:none}
+
+/* Conversa ilustrativa */
+.chat{border-radius:34px;padding:40px;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.12)}
+.chat .quem{font-family:'Geist Mono',monospace;font-size:24px;letter-spacing:.12em;text-transform:uppercase;color:var(--texto-3);margin-bottom:12px}
+.bolha{max-width:78%;font-size:34px;line-height:1.34;padding:26px 32px;border-radius:28px}
+.bolha.ouv{background:rgba(255,255,255,.11);border-top-left-radius:8px}
+.bolha.rad{margin-left:auto;background:linear-gradient(135deg,#3E3A98,#3D69BC);border-top-right-radius:8px}
+.chat .r{text-align:right}
+
+/* Itens com marca */
+.itens{display:flex;flex-direction:column;gap:26px}
+.item{display:grid;grid-template-columns:44px 1fr;gap:22px;align-items:start;font-size:36px;line-height:1.3;color:var(--texto-2)}
+.item b{font-weight:600;color:var(--texto)}
+.item svg{width:44px;height:44px;margin-top:2px}
+.story .item{font-size:42px;grid-template-columns:50px 1fr}
+.story .item svg{width:50px;height:50px}
+
+/* Barras de preço */
+.barras{display:flex;flex-direction:column}
+.barra{display:grid;grid-template-columns:330px 1fr 150px;align-items:center;column-gap:22px;padding:20px 0;border-bottom:1.5px solid var(--linha)}
+.barra:first-child{border-top:1.5px solid var(--linha)}
+.barra .nome{font-size:34px;font-weight:600;line-height:1.1;letter-spacing:-.01em}
+.barra .mod{display:block;font-family:'Geist Mono',monospace;font-size:22px;font-weight:400;color:var(--texto-3);margin-top:8px;letter-spacing:.02em}
+.barra .trilho{position:relative;height:26px;border-left:2px solid rgba(255,255,255,.35)}
+.barra .val{height:26px;background:var(--ciano);border-radius:0 4px 4px 0}
+.barra .preco{font-family:'Geist Mono',monospace;font-size:30px;text-align:right;color:var(--texto);letter-spacing:.01em}
+
+/* Cartões lado a lado */
+.par{display:grid;grid-template-columns:1fr 64px 1fr;align-items:stretch}
+.cartao{border-radius:30px;padding:40px 36px;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.13);display:flex;flex-direction:column;gap:18px}
+.cartao .v{font-size:70px;font-weight:600;letter-spacing:-.03em;line-height:1}
+.cartao .v small{font-size:32px;font-weight:400;letter-spacing:0;color:var(--texto-2)}
+.cartao .d{font-size:30px;line-height:1.35;color:var(--texto-2)}
+.mais{display:grid;place-items:center;font-size:64px;font-weight:300;color:var(--ciano)}
+
+/* Cadeia de sinal (passos verticais) */
+.cadeia{display:flex;flex-direction:column}
+.elo{display:grid;grid-template-columns:120px 1fr;column-gap:34px;align-items:center;position:relative}
+.elo .ic{width:120px;height:120px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 2px rgba(0,180,216,.6)}
+.elo .ic svg{width:56px;height:56px}
+.elo .t{font-size:42px;font-weight:600;letter-spacing:-.015em;line-height:1.1}
+.elo .d{font-size:30px;line-height:1.35;color:var(--texto-3);margin-top:6px}
+.fio{width:2px;height:58px;margin-left:59px;background:linear-gradient(var(--ciano),rgba(0,180,216,.25))}
+
+/* Medidor de limite */
+.medidor{position:relative;height:64px;border-radius:32px;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.13)}
+.medidor .uso{position:absolute;left:6px;top:6px;bottom:6px;border-radius:26px;background:linear-gradient(90deg,#3D69BC,#00B4D8)}
+.medidor .teto{position:absolute;top:-22px;bottom:-22px;width:4px;border-radius:2px;background:#fff}
+
+/* Resposta curta das perguntas */
+.resp{font-size:64px;font-weight:600;letter-spacing:-.025em;line-height:1.05;color:var(--ciano)}
+.resposta{border-top:1.5px solid var(--linha);padding-top:44px}
+.resposta .resp{font-size:72px}
+.resposta .lead{font-size:40px}
+.qnum{font-family:'Geist Mono',monospace;font-size:220px;line-height:.8;letter-spacing:-.04em;color:rgba(0,180,216,.9);font-weight:400}
+
+/* Faixa reservada para figurinha do Instagram (enquete, link, teste) */
+.figurinha{flex:none}
+
+.cta-site{font-size:84px;font-weight:600;letter-spacing:-.03em;line-height:1}
+.preco-flex{font-size:34px;line-height:1.35;color:var(--texto-2)}
+.preco-flex b{color:var(--texto);font-weight:600}
+
+.hero-num{display:flex;align-items:flex-start;font-weight:600;font-size:250px;line-height:.9;letter-spacing:-.05em}
+.hero-num .rs{font-size:84px;line-height:1;letter-spacing:-.02em;margin:.2em 16px 0 0;font-weight:500}
+.hero-num .aprox{align-self:center;font-weight:300;font-size:130px;line-height:1;color:var(--ciano);margin:0 22px .12em 0;letter-spacing:0}
+
+/* ---------- Tendências (tendencias.mjs) ---------- */
+/* Calendário de feriados */
+.cal{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.dia{border-radius:30px;padding:34px 34px 32px;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.13);display:flex;flex-direction:column;gap:12px}
+.dia.feriado{box-shadow:inset 0 0 0 2px rgba(0,180,216,.75)}
+.dia .data{font-size:92px;font-weight:600;letter-spacing:-.035em;line-height:1}
+.dia .sem{font-family:'Geist Mono',monospace;font-size:26px;letter-spacing:.12em;text-transform:uppercase;color:var(--ciano)}
+.dia .d{font-size:30px;line-height:1.3;color:var(--texto-2)}
+
+/* Número em destaque */
+.stat .num{font-weight:600;font-size:230px;line-height:.9;letter-spacing:-.05em}
+.stat .num .u{font-size:120px;letter-spacing:-.03em;margin-left:6px}
+.stat .rot{font-size:40px;line-height:1.3;color:var(--texto-2);margin-top:26px}
+.stat .rot b{color:var(--texto);font-weight:600}
+.stat.m .num{font-size:170px}
+.stat.m .num .u{font-size:90px}
+.stat.m .rot{font-size:36px;margin-top:18px}
+
+/* Selo de mito ou verdade */
+.selo{display:inline-flex;align-items:center;font-family:'Geist Mono',monospace;font-size:28px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  padding:16px 28px;border-radius:999px;box-shadow:inset 0 0 0 2.5px currentColor;align-self:flex-start}
+.selo.verdade{color:var(--ciano)}
+.selo.mito,.selo.parte{color:#fff}
+.afirma{font-weight:600;font-size:76px;line-height:1.04;letter-spacing:-.028em}
+.afirma::before{content:"“";color:var(--ciano)}
+.afirma::after{content:"”";color:var(--ciano)}
+
+/* Linhas "NÃO" do NÃOvembro */
+.espelho.nao .lin{grid-template-columns:120px 1fr;padding:26px 0}
+.espelho.nao .n{font-size:30px;font-weight:700}
+.espelho.nao .t{font-size:40px;font-weight:500}
+
+/* Carta ao Papai Noel */
+.carta{border-radius:34px;padding:56px 52px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.14)}
+.carta .ola{font-size:64px;font-weight:600;letter-spacing:-.025em;line-height:1.05}
+.carta .sub{font-size:36px;color:var(--texto-2);margin-top:14px}
+.carta .ass{font-family:'Geist Mono',monospace;font-size:24px;letter-spacing:.08em;color:var(--texto-3);margin-top:40px}
+
+/* Relógio do POV */
+.relogio{font-family:'Geist Mono',monospace;font-size:30px;letter-spacing:.14em;text-transform:uppercase;color:var(--texto);display:flex;align-items:center;gap:18px}
