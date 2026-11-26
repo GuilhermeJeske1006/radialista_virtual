@@ -142,6 +142,16 @@ it("com interação na página: música desmuta assim que começa a tocar", asyn
   expect(result.current.audioBloqueado).toBe(false);
 });
 
+it("faixa longa continua depois de seis minutos e só conclui no fim real", async () => {
+  interagiu = true;
+  mocks.proxima.mockResolvedValueOnce({ ...musica(), duracao_segundos: 450 });
+  await iniciar();
+  await act(async () => { musicas[0].tocando(); });
+  await act(async () => { await vi.advanceTimersByTimeAsync(6 * 60 * 1000 + 1000); });
+  expect(mocks.api.mock.calls.filter(([path]) => String(path).endsWith("/musica-substituta"))).toHaveLength(0);
+  await act(async () => { musicas[0].terminar(); });
+});
+
 it("música que acaba ainda bloqueada tira o aviso e não desmuta depois", async () => {
   mocks.proxima.mockResolvedValueOnce(musica());
   const { result } = await iniciar();
@@ -201,7 +211,7 @@ it("erro do YouTube na música: toca a substituta devolvida pelo backend", async
 
   await act(async () => { musicas[0].falhar(150); });
   const chamada = mocks.api.mock.calls.find(([path]) => String(path).endsWith("/musica-substituta"));
-  expect(JSON.parse(String(chamada?.[1]?.body))).toEqual({ video_id: "musica-1", titulo: "Canção", motivo: "erro_150" });
+  expect(JSON.parse(String(chamada?.[1]?.body))).toEqual({ video_id: "musica-1", titulo: "Canção", motivo: "erro_150", iniciou: false });
   // mesmo iframe (persistente, ver aquecerPlayer), so' troca a faixa
   expect(musicas).toHaveLength(1);
   expect(musicas[0].loadVideoById).toHaveBeenLastCalledWith({ videoId: "musica-2", startSeconds: 0 });

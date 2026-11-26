@@ -23,6 +23,16 @@ class S3Storage(Storage):
     def save(self, path: str, content: bytes) -> None:
         self._client.put_object(Bucket=self._bucket, Key=validar_path(path), Body=content)
 
+    def save_file(self, path: str, filename: str) -> None:
+        self._client.upload_file(filename, self._bucket, validar_path(path))
+
+    def iter_read(self, path: str):
+        corpo = self._client.get_object(Bucket=self._bucket, Key=validar_path(path))["Body"]
+        try:
+            yield from corpo.iter_chunks(chunk_size=1024 * 1024)
+        finally:
+            corpo.close()
+
     def read(self, path: str) -> bytes | None:
         try:
             obj = self._client.get_object(Bucket=self._bucket, Key=validar_path(path))

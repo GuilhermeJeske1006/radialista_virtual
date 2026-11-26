@@ -10,6 +10,9 @@ export type MusicaBloco = {
   inicio_segundos?: number;
   fim_segundos?: number | null;
   duracao_segundos?: number | null;
+  // Segundo (do video) em que o vocal entra -- ver lib/falaSobreIntro.ts. Ausente/null: o locutor
+  // fala antes da musica; com valor, uma fala curta pode entrar sobre a introducao.
+  inicio_vocal_segundos?: number | null;
 };
 
 // Uma linha de dialogo multi-voz (ver ProgramaRadialista no backend) -- so vem preenchido

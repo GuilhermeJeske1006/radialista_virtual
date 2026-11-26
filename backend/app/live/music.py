@@ -8,7 +8,7 @@ import httpx
 
 from app.config.redis_client import redis_sessao as redis_client  # estado de sessão e cache: falha aberta (F3)
 from app.config.settings import settings
-from app.live.audio_analysis import obter_fim_seguro, obter_inicio_seguro
+from app.live.audio_analysis import obter_fim_seguro, obter_inicio_seguro, obter_inicio_vocal
 from app.util.texto import sem_acento as _sem_acento
 
 logger = logging.getLogger("radialista.music")
@@ -99,6 +99,11 @@ class MusicaEncontrada:
     # Segundo em que cortar antes do fim do video (silencio longo ou fala apos a
     # musica -- ver app/live/audio_analysis.py). None = toca ate o fim do video.
     fim_segundos: int | None = None
+    # Segundo (do video) em que o vocal entra, medido pela 1a palavra cantada (ver
+    # app/live/audio_analysis.py::obter_inicio_vocal). None = desconhecido/sem vocal -- o locutor fala
+    # ANTES da musica. Com valor, a introducao instrumental (inicio_vocal - inicio) pode receber uma
+    # fala curta por cima (o "ramp" de radio, decidido no painel, ver lib/falaSobreIntro.ts).
+    inicio_vocal_segundos: float | None = None
     # Contexto real do video (descricao/tags/ano, ver _buscar_metadados_musica) -- usado pra
     # dar ao locutor material real pra comentar a musica antes de toca-la (ver
     # resumir_contexto_musica em app.llm.client), em vez de so' saber titulo/canal.
@@ -408,6 +413,9 @@ def _preencher_extras(resultado: MusicaEncontrada, duracoes: dict[str, int]) -> 
     resultado.inicio_segundos = max(
         resultado.inicio_segundos, obter_inicio_seguro(resultado.video_id, duracoes.get(resultado.video_id))
     )
+    resultado.inicio_vocal_segundos = obter_inicio_vocal(
+        resultado.video_id, resultado.inicio_segundos, duracoes.get(resultado.video_id)
+    )
     metadados = _buscar_metadados_musica(resultado.video_id)
     resultado.descricao = metadados.get("descricao", "")
     resultado.tags = metadados.get("tags") or []
@@ -430,6 +438,9 @@ def buscar_musica(
     duracao_absoluta_max_segundos: int | None = _DURACAO_MAX_ABSOLUTA_SEGUNDOS,
     exigir_cantada: bool = False,
     exigir_canal_oficial: bool = False,
+    artista_esperado: str | None = None,
+    titulo_esperado: str | None = None,
+    somente_estudio: bool = False,
 ) -> MusicaEncontrada | None:
     """Busca a musica priorizando versao de estudio; se nao achar, cai pra versao ao vivo.
 
@@ -477,6 +488,14 @@ def buscar_musica(
     titulos_tocados = titulos_tocados or set()
     canais_recentes = canais_recentes or {}
     palavras_genero = _palavras_chave_genero(genero) if genero else []
+    from app.live.identidade_musical import corresponde, versao_de_estudio
+    if artista_esperado is None and titulo_esperado is None and " - " in query:
+        artista_esperado, titulo_esperado = query.split(" - ", 1)
+
+    def identidade_invalida(titulo: str, canal: str) -> bool:
+        return (bool(artista_esperado and titulo_esperado) and not corresponde(
+            artista_esperado, titulo_esperado, titulo, canal
+        )) or (somente_estudio and not versao_de_estudio(titulo, titulo_esperado))
 
     def escolher(
         itens: list[dict],
@@ -534,6 +553,8 @@ def buscar_musica(
             canal = item["snippet"]["channelTitle"]
             video_id = item["id"]["videoId"]
             texto = f"{titulo.lower()} {canal.lower()}"
+            if identidade_invalida(titulo, canal):
+                continue
             if video_id in evitar_video_ids or repetido(canal) or duracao_invalida(video_id) or duracao_muito_longa(video_id):
                 continue
             if musica_repetida(titulo):
@@ -561,6 +582,8 @@ def buscar_musica(
             canal = item["snippet"]["channelTitle"]
             video_id = item["id"]["videoId"]
             texto = f"{titulo.lower()} {canal.lower()}"
+            if identidade_invalida(titulo, canal):
+                continue
             if video_id in evitar_video_ids or repetido(canal) or duracao_invalida(video_id) or duracao_muito_longa(video_id):
                 continue
             if musica_repetida(titulo):

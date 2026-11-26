@@ -5,11 +5,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config.redis_client import redis_client
-from app.live.audio_analysis import obter_fim_seguro
+from app.live.audio_analysis import obter_fim_seguro, obter_inicio_vocal
 from app.live.music import (
     MusicaEncontrada, _sem_acento, buscar_musica, eh_instrumental, titulo_ja_tocado, videos_quebrados,
 )
 from app.models.musica import Musica
+from app.live.identidade_musical import corresponde, versao_de_estudio
 
 logger = logging.getLogger("radialista.song_service")
 
@@ -108,6 +109,9 @@ def _musica_encontrada_do_catalogo(musica: Musica) -> MusicaEncontrada:
         canal=musica.youtube_canal or "",
         inicio_segundos=musica.youtube_inicio_segundos,
         fim_segundos=obter_fim_seguro(musica.youtube_video_id, musica.duracao_segundos),
+        inicio_vocal_segundos=obter_inicio_vocal(
+            musica.youtube_video_id, musica.youtube_inicio_segundos, musica.duracao_segundos
+        ),
         descricao=metadados.get("descricao", ""),
         tags=metadados.get("tags") or [],
         ano=metadados.get("ano"),
@@ -173,6 +177,7 @@ def resolver_musica_catalogada(
     titulos_tocados: set[str] | None = None,
     canais_recentes: dict[str, int] | None = None,
     origem: str = "desconhecida",
+    somente_estudio: bool = False,
 ) -> MusicaEncontrada | None:
     """Resolve uma musica sugerida pela LLM (titulo+artista) sem repetir a busca no YouTube se
     ela ja foi catalogada antes: so' consulta a API quando a Musica ainda nao tem
@@ -190,6 +195,8 @@ def resolver_musica_catalogada(
     if musica_db.youtube_video_id and (
         musica_db.youtube_video_id in videos_quebrados()
         or eh_instrumental(f"{musica_db.youtube_titulo or ''} {musica_db.youtube_canal or ''}")
+        or not corresponde(artista, titulo, musica_db.youtube_titulo or "", musica_db.youtube_canal or "")
+        or (somente_estudio and not versao_de_estudio(musica_db.youtube_titulo or "", titulo))
     ):
         # video salvo parou de tocar no painel (ver marcar_video_quebrado) ou e' versao sem voz
         # resolvida antes do filtro de cantada virar obrigatorio -- resolve de novo em vez de
@@ -215,8 +222,12 @@ def resolver_musica_catalogada(
                     canais_recentes=canais_recentes,
                     exigir_cantada=True,
                     exigir_canal_oficial=True,
+                    artista_esperado=artista,
+                    titulo_esperado=titulo,
+                    somente_estudio=somente_estudio,
                 )
-                if resultado is None:
+                if resultado is None or not corresponde(artista, titulo, resultado.titulo, resultado.canal) \
+                        or (somente_estudio and not versao_de_estudio(resultado.titulo, titulo)):
                     logger.info("song_catalog youtube_resolution_miss musica_id=%s", musica_db.id)
                     musica_db.status = "sem_correspondencia"
                     db.commit()

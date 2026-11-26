@@ -173,6 +173,8 @@ async def criar_tabelas():
     aplicar_promessas(engine)
     from app.db.migrations.canal_whatsapp_20261112 import aplicar as aplicar_canal_whatsapp
     aplicar_canal_whatsapp(engine)
+    from app.db.migrations.reproducao_20261126 import aplicar as aplicar_reproducao
+    aplicar_reproducao(engine)
     from app.db.migrations.fontes_esportivas_20261111 import aplicar as aplicar_fontes_esportivas
     aplicar_fontes_esportivas(engine)
     garantir_colunas_radio_config()
@@ -204,6 +206,8 @@ async def criar_tabelas():
     iniciar_scheduler_noticias()
     iniciar_scheduler_prewarm()
     iniciar_scheduler_reprocessar_hmac()
+    if not _scheduler_noticias.get_job("limpar_gravacoes"):
+        _scheduler_noticias.add_job(_job_limpar_gravacoes, "interval", hours=1, id="limpar_gravacoes", max_instances=1)
 
 
 # Coleta roda in-process (BackgroundScheduler, thread daemon) em vez de cron externo --
@@ -212,6 +216,12 @@ async def criar_tabelas():
 # `python -m app.news.worker` via agendador externo). Sujeito ao mesmo sleep por
 # inatividade do resto do free tier: sem trafego, o processo dorme e a coleta pausa junto.
 _scheduler_noticias = BackgroundScheduler(daemon=True)
+
+
+def _job_limpar_gravacoes():
+    from app.live.gravacao import limpar_gravacoes_expiradas
+    with SessionLocal() as db:
+        limpar_gravacoes_expiradas(db)
 _INTERVALO_COLETA_NOTICIAS_MINUTOS = 10
 
 

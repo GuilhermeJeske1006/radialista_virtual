@@ -367,8 +367,41 @@ FUTUROS = (
 )
 
 
+FLASHBACK = replace(
+    VARIEDADES_LEVES, id="flashback", nome="Flashback 1970–1999",
+    promessa="Reencontrar os clássicos com repertório confiável e conversa breve.",
+    conteudo="Clássicos de 1970–1999, curiosidades verificadas e participação real.",
+    conducao="Próxima, animada e concisa, uma intenção por entrada.",
+    unidade_principal="anúncio de 8 a 15 s; conversa de 20 a 30 s",
+    unidades={
+        "abertura": Unidade(15, 20, 25), "retomada": Unidade(5, 8, 10),
+        "musica": Unidade(5, 10, 15), "identificacao": Unidade(3, 6, 8),
+        "comentario": Unidade(15, 22, 30), "chamada_ouvinte": Unidade(15, 22, 30),
+        "encerramento": Unidade(15, 20, 25), "*": Unidade(15, 22, 30),
+    },
+    comportamento=replace(COMPORTAMENTO_VARIEDADES, uma_faixa_por_bloco=True,
+                          ia_pode_adicionar_blocos=False, naturalidade_encenada=False),
+    roteiro_padrao=("musica", "musica", "comentario", "musica", "musica", "identificacao",
+                    "musica", "musica", "chamada_ouvinte", "musica", "musica"),
+    relogio_padrao=None, aliases=(),
+    direcao_cabecalho="FORMATO FLASHBACK: a seleção de clássicos conduz o programa; cada fala tem uma função.",
+    direcao_regras=("Uma ideia por entrada; respeite o orçamento específico do bloco.",
+                    "Anúncio começa pelo artista e título confirmados, sem história longa.",
+                    "Curiosidade somente com fonte; sem fonte, não invente dados nem bastidores.",
+                    "Não acrescente música por citação nem comentários fora da sequência."),
+    participacao="Uma pergunta concreta na chamada; somente recados reais e autorizados podem ser lidos.",
+    faixa_fala_pct=(8.0, 18.0), limites=LimitesCoerencia(),
+    funcoes={**VARIEDADES_LEVES.funcoes,
+             "abertura": "Apresente locutor, rádio e a seleção de clássicos; sem pesquisa, lista de locais ou pergunta.",
+             "retomada": "Acolha quem chegou e identifique o programa em uma frase, sem reabrir o programa.",
+             "identificacao": "Diga somente rádio, frequência e nome do programa; uma frase.",
+             "musica": "Diga artista e título da faixa confirmada; não acrescente curiosidade nem convite.",
+             "comentario": "Uma curiosidade com fonte ou uma observação musical breve; depois volte à música.",
+             "encerramento": "Agradeça, identifique a rádio e despeça-se; não faça outro resumo do programa."},
+)
+
 FORMATOS: Mapping[str, Formato] = {
-    formato.id: formato for formato in (PADRAO, MUSICAL_ADULTO, POPULAR_SERTANEJO, VARIEDADES_LEVES, *FUTUROS)
+    formato.id: formato for formato in (PADRAO, MUSICAL_ADULTO, POPULAR_SERTANEJO, VARIEDADES_LEVES, FLASHBACK, *FUTUROS)
 }
 _ALIASES: Mapping[str, str] = {alias: formato.id for formato in FORMATOS.values() for alias in formato.aliases}
 

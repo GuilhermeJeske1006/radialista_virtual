@@ -72,7 +72,7 @@ describe("EditarProgramaForm (formato do programa, F6)", () => {
     const select = screen.getByLabelText("Formato do programa");
     await within(select).findByRole("option", { name: "Popular/sertanejo" });
     expect(within(select).getAllByRole("option").map((o) => o.textContent)).toEqual([
-      "Livre (sem formato)", "Musical adulto", "Popular/sertanejo", "Variedades leves",
+      "Livre (sem formato)", "Musical adulto", "Popular/sertanejo", "Variedades leves", "Flashback 1970–1999",
     ]);
     expect(select).toHaveValue("padrao");
     expect(screen.getByText(/sem promessa de formato/)).toBeInTheDocument();

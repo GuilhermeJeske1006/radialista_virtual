@@ -3,13 +3,16 @@ from dataclasses import dataclass
 from types import SimpleNamespace
 import time
 
+from anthropic import BadRequestError
 from fastapi import HTTPException
+import httpx
 import pytest
 
 from app.billing import consumo_ia
 from app.billing.contexto_ia import atual, contexto_conta, tarefa_com_contexto
 from app.config.settings import settings
 from app.llm import client as llm
+from app.llm import economia
 from app.models.consumo_flex import ContaConsumo
 from app.tts.cache import cache_audio
 
@@ -140,6 +143,34 @@ def test_prompt_cache_nao_remove_nem_altera_instrucoes(monkeypatch):
     assert llm.gerar_resposta("Regras importantes.\nFatos confirmados.", "Pedido") == "Olá!"
     assert chamadas[0]["system"][0]["text"] == "Regras importantes.\nFatos confirmados."
     assert chamadas[0]["messages"] == [{"role": "user", "content": "Pedido"}]
+
+
+@pytest.mark.parametrize("mensagem,sem_saldo", [
+    ("Your credit balance is too low to access the Anthropic API.", True),
+    ("max_tokens: must be greater than 0", False),
+])
+def test_llm_sem_saldo_libera_reserva_e_informa_indisponibilidade(monkeypatch, mensagem, sem_saldo):
+    resposta = httpx.Response(400, request=httpx.Request("POST", "https://api.anthropic.com/v1/messages"))
+    erro = BadRequestError(mensagem, response=resposta, body={"type": "invalid_request_error", "message": mensagem})
+    chamadas, liberadas = [], []
+    reserva = object()
+
+    def rejeitar(**kwargs):
+        chamadas.append(kwargs)
+        raise erro
+
+    monkeypatch.setattr(llm._client.messages, "create", rejeitar)
+    monkeypatch.setattr(economia, "reservar", lambda *a, **k: reserva)
+    monkeypatch.setattr(economia, "falhar", liberadas.append)
+    with pytest.raises(HTTPException if sem_saldo else BadRequestError) as exc:
+        llm.gerar_resposta("Regras", "Pedido")
+    if sem_saldo:
+        assert exc.value.status_code == 503
+        assert "créditos no provedor" in exc.value.detail
+    else:
+        assert exc.value is erro
+    assert liberadas == [reserva]
+    assert len(chamadas) == 1
 
 
 def test_middleware_preserva_conta_em_dependencia_sync_e_stream():

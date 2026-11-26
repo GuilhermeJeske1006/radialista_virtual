@@ -5,7 +5,7 @@ import { apiFetchBlob } from "./api";
 
 export interface GravacaoAba {
   /** Para a captura e devolve o MP3 do programa completo. */
-  finalizar(): Promise<Blob>;
+  finalizar(programaId?: number): Promise<Blob>;
   /** Descarta a captura sem converter. */
   cancelar(): void;
 }
@@ -64,14 +64,17 @@ export async function iniciarGravacaoAba(aoPerder?: () => void): Promise<Gravaca
     });
 
   return {
-    async finalizar() {
+    async finalizar(programaId?: number) {
       const webm = await encerrar();
       if (webm.size === 0) throw new Error("Gravação vazia.");
-      return apiFetchBlob("/live/gravacao/mp3", {
+      let arquivada = true;
+      const mp3 = await apiFetchBlob(`/live/gravacao/mp3${programaId ? `?programa_id=${programaId}` : ""}`, {
         method: "POST",
         headers: { "content-type": webm.type || "audio/webm" },
         body: webm,
-      });
+      }, resposta => { arquivada = resposta.headers.get("X-Gravacao-Arquivada") !== "false"; });
+      window.dispatchEvent(new CustomEvent("gravacao-exportada", { detail: { arquivada } }));
+      return mp3;
     },
     cancelar() {
       gravador.ondataavailable = null;

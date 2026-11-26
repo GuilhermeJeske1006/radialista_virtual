@@ -247,6 +247,7 @@ class LiveProgramRequest(BaseModel):
 
 class LiveTtsRequest(BaseModel):
     texto: str
+    bloco_id: int | None = Field(default=None, ge=1)
     tom: Literal["calmo", "neutro", "energico"] | None = None
     tipo: str | None = None
     voz_id: str | None = None
@@ -281,6 +282,9 @@ class MusicaBlocoItem(BaseModel):
     # ver MusicaEncontrada.duracao_segundos em app.live.music. Nao confundir com
     # fim_segundos: duracao_segundos e' o video inteiro, fim_segundos e' onde corta.
     duracao_segundos: int | None = None
+    # Segundo (do video) em que o vocal entra (ver MusicaEncontrada.inicio_vocal_segundos): o painel so' fala
+    # por cima da introducao quando isso e' conhecido e a fala cabe antes dele.
+    inicio_vocal_segundos: float | None = None
 
 
 class OrcamentoFalaResponse(BaseModel):
@@ -444,6 +448,7 @@ class MusicaSubstitutaRequest(BaseModel):
     video_id: str = Field(min_length=1, max_length=64)
     titulo: str = Field(default="", max_length=300)
     motivo: str | None = Field(default=None, max_length=100)
+    iniciou: bool = False
 
 
 class MusicaSubstitutaResponse(MusicaFundoResponse):
@@ -780,6 +785,11 @@ def _tipo_proximo_bloco(programa: Programa, total_falas: int, ultima_categoria: 
         return formato.roteiro_padrao[(total_falas - 1) % len(formato.roteiro_padrao)]
 
     tipo = roteiro_customizado[total_falas % len(roteiro_customizado)]
+    if formato.id == "flashback":
+        if total_falas >= len(roteiro_customizado) and _categoria_bloco(tipo) == "abertura":
+            return "retomada"
+        if ultima_categoria == "comentario" and _categoria_bloco(tipo) == "comentario":
+            return "musica"
     if programa.ia_pode_adicionar_blocos and comportamento.ia_pode_adicionar_blocos and total_falas > 0 \
             and random.random() < 0.15:
         # IA fica livre pra emendar um comentario extra fora da sequencia pre-definida de vez em quando.
@@ -1638,6 +1648,9 @@ def _selecionar_musica_para_bloco(
 ) -> tuple[MusicaEncontrada | None, str]:
     """Busca a faixa do bloco sem registrar (ver _buscar_musica_para_bloco). evitar_ids/
     evitar_titulos e duracao_max_s so' vem preenchidos pela escolha com teto do relogio."""
+    from app.live.flashback import ativo as flashback_ativo
+    if flashback_ativo(programa):
+        return _selecionar_flashback(db, programa, evitar_ids, evitar_titulos, custo_duracao)
     genero_bloco = _genero_do_rotulo(rotulo_bloco) if rotulo_bloco else ""
     # Preferencia de duracao repassada a buscar_musica so' com teto do relogio (nao e' bloqueio).
     preferencia = {} if duracao_max_s is None else {"duracao_max_segundos": min(duracao_max_s, _DURACAO_MAX_SEGUNDOS)}
@@ -1719,6 +1732,36 @@ def _selecionar_musica_para_bloco(
 # empacar o bloco de musica numa sequencia longa de tentativas sincronas quando o genero
 # configurado tem YouTube ruim pra' quase tudo.
 _MAX_TENTATIVAS_FALLBACK_CURADO = 6
+
+
+def _selecionar_flashback(db, programa, evitar_ids=None, evitar_titulos=None, custo_duracao=None):
+    from app.live.flashback import INTERVALO_ARTISTA_MIN, artista_da_faixa, candidatos
+    from app.live.identidade_musical import corresponde, versao_de_estudio
+    ids, titulos, canais = _historico_musicas(programa.id)
+    ids |= set(evitar_ids or ())
+    titulos |= set(evitar_titulos or ())
+    limite = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(minutes=INTERVALO_ARTISTA_MIN)
+    recentes = db.query(MusicaHistorico).filter(
+        MusicaHistorico.programa_id == programa.id, MusicaHistorico.criado_em >= limite).all()
+    artistas = {artista_da_faixa(m.titulo, m.canal) for m in recentes}
+    pool = candidatos(programa, artistas, titulos)
+    random.shuffle(pool)
+    if custo_duracao is not None and pool:
+        indices = _melhores_pela_duracao(_duracoes_conhecidas(db, pool), custo_duracao)
+        pool = [pool[i] for i in indices]
+    for artista, titulo in pool[:_MAX_TENTATIVAS_FALLBACK_CURADO]:
+        musica = resolver_musica_catalogada(
+            db, titulo, artista, bloqueados=programa.musicas_bloqueadas,
+            evitar_video_ids=ids, titulos_tocados=titulos, canais_recentes=canais,
+            origem="admin" if programa.musicas_permitidas else "reserva_flashback", somente_estudio=True,
+        )
+        if musica and corresponde(artista, titulo, musica.titulo, musica.canal) and versao_de_estudio(musica.titulo, titulo):
+            # A validação usou o título real do vídeo. A locução recebe a identidade
+            # canônica, sem "Official HD Video", nomes de canal ou metadados de upload.
+            musica.titulo, musica.canal = titulo, artista
+            return musica, f"{artista} - {titulo}"
+    logger.warning("flashback_reserva_indisponivel programa_id=%s tentativas=%s", programa.id, min(len(pool), 6))
+    return None, "reserva_flashback"
 
 
 def _fallback_curado_genero(
@@ -2309,7 +2352,8 @@ def _resposta_pronta(decisao: DecisaoBloco, programa: Programa, cfg: ConfigRelog
 
 def _item_musica(m: MusicaEncontrada) -> MusicaBlocoItem:
     return MusicaBlocoItem(video_id=m.video_id, titulo=m.titulo, canal=m.canal, inicio_segundos=m.inicio_segundos,
-                           fim_segundos=m.fim_segundos, duracao_segundos=m.duracao_segundos)
+                           fim_segundos=m.fim_segundos, duracao_segundos=m.duracao_segundos,
+                           inicio_vocal_segundos=m.inicio_vocal_segundos)
 
 
 def _resposta_so_musica(decisao: DecisaoBloco, musica: MusicaEncontrada, programa: Programa,
@@ -2348,7 +2392,7 @@ def _musicas_do_bloco(db: Session, ctx: ContextoEmissao, musica: MusicaEncontrad
             # para a busca das faixas extras ([BLOCO_MUSICAS:N]) nao repetir nenhuma delas.
             _registrar_citadas(db, programa.id, citadas, consultas)
             musicas_bloco = _montar_bloco_musicas(db, programa, musica, quantidade, ctx.tipo, citadas=citadas)
-    elif fala.strip():
+    elif fala.strip() and ctx.formato.id != "flashback":
         # Fora do bloco de musica o locutor tambem comenta/promete musica -- se citou uma especifica, ela toca
         # logo depois da fala, em vez de ficar prometida e nunca tocar.
         musicas_bloco, nao_resolvidas, consultas = _musicas_citadas_na_fala(db, programa, fala, historico)
@@ -3014,7 +3058,11 @@ def buscar_musica_substituta(
     titulos_tocados = (titulos_tocados | titulos_radio) - {_titulo_normalizado(dados.titulo)}
 
     musica = None
-    if dados.titulo.strip():
+    from app.live.flashback import ativo as flashback_ativo
+    if flashback_ativo(programa):
+        # Sempre outra faixa do repertório aprovado; não repete uma gravação parcialmente ouvida.
+        musica = _buscar_musica_para_bloco(db, programa)
+    elif dados.titulo.strip() and not dados.iniciou:
         # canal oficial primeiro (mesmo criterio da escolha original); se so' o oficial existia e
         # e' ele que esta' bloqueado, aceita outra versao em vez de deixar o bloco mudo.
         for exigir_oficial in (True, False):
@@ -3170,6 +3218,14 @@ def _medir_audio_tts(db: Session, account: Account, voz_id: str | None, dados: L
     _registrar_amostra_fala(db, voz, categoria, dados.texto, duracao, audio)
     pendente = ler_orcamento_pendente(dados.programa_id, dados.texto) if dados.programa_id is not None else None
     maximo = float(pendente["max_s"]) if pendente and pendente.get("max_s") else None
+    if dados.bloco_id is not None:
+        from app.models.canal_whatsapp import BlocoReproduzido
+        bloco = db.query(BlocoReproduzido).filter_by(
+            id=dados.bloco_id, account_id=account.id, programa_id=dados.programa_id).first()
+        if bloco:
+            bloco.reproducao = {**(bloco.reproducao or {}), "duracao_fala_medida_s": round(duracao, 3),
+                "orcamento_max_s": maximo, "fonte_orcamento": (pendente or {}).get("fonte")}
+            db.commit()
     logger.info(
         "live_fala_duracao request_id=%s programa_id=%s tipo=%s origem=tts palavras=%s wpm_usado=%s "
         "estimada_s=%s medida_s=%s max_s=%s excesso_pct=%s ajuste=- fonte=%s aplicado=%s",

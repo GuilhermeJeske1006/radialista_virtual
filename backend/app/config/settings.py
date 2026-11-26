@@ -160,6 +160,13 @@ class Settings(BaseSettings):
     ia_stt_usd_hora: float = 0.40  # Hipótese scribe_v1: substituir pela tarifa contratada.
     ia_music_usd_minuto: float = 0.15
 
+    # Fala do locutor sobre a introdução da música ("ramp" de rádio, ver app/live/audio_analysis.py::
+    # obter_inicio_vocal e lib/falaSobreIntro.ts no painel). O início do vocal vem de uma transcrição (Scribe) de
+    # ~70 s da faixa, uma vez por música (cache de 30 dias): ~US$ 0,008 por música nova. Desligado = o locutor
+    # sempre fala antes da música, como antes.
+    ramp_musica_habilitado: bool = True
+    ramp_musica_stt_modelo: str = "scribe_v2"
+
     # Trilha instrumental das vinhetas geradas por programa (ver app/vinhetas/trilha.py) via
     # ElevenLabs Music API. Desligado = pula direto pro banco local de trilhas livres.
     vinheta_trilha_ia_habilitada: bool = True

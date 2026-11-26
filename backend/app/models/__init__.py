@@ -1,4 +1,5 @@
 from app.models.account import Account
+from app.models.gravacao_programa import GravacaoPrograma
 from app.models import canal_whatsapp  # noqa: F401 -- registra tabelas do canal
 from app.models.esportes import EdicaoEsportiva, FonteEsportiva, PerfilEsportivo
 from app.models.assunto import Assunto
@@ -32,6 +33,7 @@ from app.models.voz_clonada import VozClonada
 from app.models.perfil_voz import ConfiguracaoVoz, MetadadosVoz, RitmoVoz
 
 __all__ = [
+    "GravacaoPrograma",
     "Account",
     "EdicaoEsportiva",
     "FonteEsportiva",

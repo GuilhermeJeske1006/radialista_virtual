@@ -42,7 +42,7 @@ def programa_url(client, account, auth_headers):
 # ---------------------------------------------------------------------------------------------------------
 
 def test_i8_aceitos_sao_os_implementados_e_os_aliases():
-    assert set(ACEITOS) == {"padrao", "musical_adulto", "musical_companhia", "popular_sertanejo", "variedades_leves"}
+    assert set(ACEITOS) == {"padrao", "musical_adulto", "musical_companhia", "popular_sertanejo", "variedades_leves", "flashback"}
 
 
 @pytest.mark.parametrize("valor", ACEITOS)

@@ -388,18 +388,20 @@ def itens_fora_do_genero(itens: list[str], generos: list[str]) -> set[int]:
     musical do programa (ver app.live.spotify._buscar_artistas_do_genero e
     _fora_do_genero_do_programa em app.live.router): busca livre por genero na Spotify/YouTube
     as vezes devolve artista de outro estilo. Nunca deve travar o ao vivo nem esvaziar o bloco
-    de musica por falha do classificador: qualquer erro ou resposta invalida devolve conjunto
-    vazio (aceita tudo, comportamento anterior a esta checagem)."""
+    de musica por falha do classificador: erro ou resposta inválida bloqueia os candidatos
+    não verificados; o caller tenta o repertório de reserva aprovado."""
     if not itens or not generos:
         return set()
     linhas = "\n".join(f"{numero}) {item}" for numero, item in enumerate(itens, 1))
     mensagem = f"Generos do programa: {', '.join(generos)}\n{linhas}"
     try:
         resposta = gerar_classificacao(_GENERO_ARTISTA_SYSTEM_PROMPT, mensagem, max_tokens=100)
-        fora = (extrair_json(resposta) or {}).get("fora") or []
+        fora = extrair_json(resposta).get("fora")
+        if not isinstance(fora, list) or any(type(n) is not int or not 1 <= n <= len(itens) for n in fora):
+            raise ValueError("Classificação de gênero inválida")
     except Exception:
         logger.warning("Falha ao classificar genero de artistas: generos=%r", generos, exc_info=True)
-        return set()
+        return set(range(len(itens)))
     return {numero - 1 for numero in fora if isinstance(numero, int) and 1 <= numero <= len(itens)}
 
 
@@ -466,7 +468,9 @@ def resumir_contexto_musica(titulo: str, canal: str, descricao: str, tags: list[
 
 _MUSICAS_CITADAS_SYSTEM_PROMPT = (
     "Voce recebe a fala de um locutor de radio. Liste as musicas ESPECIFICAS (com titulo de "
-    "musica identificavel) que o locutor cita, comenta, recomenda ou promete tocar na fala -- "
+    "musica identificavel) que o locutor anuncia explicitamente para tocar AGORA na fala -- "
+    "Ignore referências históricas, curiosidades, notícias, repertório de eventos, citações de letra "
+    "e comentários sobre uma canção. Citar ou comentar não é uma ordem para tocar. "
     "nao conte artista citado sem nome de musica, genero, album nem expressao generica tipo "
     "'musica boa' ou 'os sucessos'. Ignore as musicas listadas como 'ja tocaram' (o locutor so' "
     "esta comentando o que acabou de tocar). Responda so' com JSON no formato "
