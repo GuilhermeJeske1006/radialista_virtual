@@ -26,6 +26,15 @@ class Storage(ABC):
     @abstractmethod
     def save(self, path: str, content: bytes) -> None: ...
 
+    def save_file(self, path: str, filename: str) -> None:
+        from pathlib import Path
+        self.save(path, Path(filename).read_bytes())
+
+    def iter_read(self, path: str):
+        conteudo = self.read(path)
+        if conteudo is not None:
+            yield conteudo
+
     @abstractmethod
     def read(self, path: str) -> bytes | None:
         """Devolve o conteudo do arquivo, ou None se ele nao existir."""

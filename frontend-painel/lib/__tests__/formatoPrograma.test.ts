@@ -90,14 +90,14 @@ describe("roteiroDoFormato e blocos extras", () => {
 describe("formatosImplementados (o que o select oferece)", () => {
   it("com a rota: só os implementados, padrão primeiro, sem os futuros", () => {
     expect(formatosImplementados(formatosFixture()).map((f) => f.id)).toEqual([
-      "padrao", "musical_adulto", "popular_sertanejo", "variedades_leves",
+      "padrao", "musical_adulto", "popular_sertanejo", "variedades_leves", "flashback",
     ]);
   });
 
   it("sem a rota (vazia, nula ou não lista): o espelho", () => {
     expect(formatosImplementados([]).map((f) => f.id)).toEqual(FORMATOS_ESPELHO.map((f) => f.id));
     expect(formatosImplementados(null).map((f) => f.id)).toEqual(FORMATOS_ESPELHO.map((f) => f.id));
-    expect(formatosImplementados(undefined)).toHaveLength(4);
+    expect(formatosImplementados(undefined)).toHaveLength(5);
   });
 });
 

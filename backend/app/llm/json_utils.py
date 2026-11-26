@@ -1,4 +1,5 @@
 import json
+import re
 
 
 def extrair_json(texto: str) -> dict:
@@ -6,8 +7,15 @@ def extrair_json(texto: str) -> dict:
     envolvida em fences de markdown (```json ... ```) apesar do prompt pedir JSON cru.
     """
     texto = texto.strip()
-    if texto.startswith("```"):
-        texto = texto.strip("`")
-        if texto[:4].lower() == "json":
-            texto = texto[4:]
-    return json.loads(texto)
+    cerca = re.fullmatch(r"```(?:json)?\s*([\s\S]*?)\s*```", texto, re.IGNORECASE)
+    if cerca:
+        texto = cerca.group(1).strip()
+    # Modelos podem explicar o JSON antes/depois. Aceita um único objeto completo;
+    # nunca tenta reparar JSON truncado nem escolhe entre duas respostas conflitantes.
+    inicio = texto.find("{")
+    if inicio < 0:
+        raise ValueError("Resposta sem objeto JSON")
+    valor, fim = json.JSONDecoder().raw_decode(texto, inicio)
+    if not isinstance(valor, dict) or re.search(r"[\{\[]", texto[fim:]):
+        raise ValueError("Resposta JSON ambígua")
+    return valor

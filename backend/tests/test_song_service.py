@@ -69,7 +69,7 @@ def test_resolver_musica_catalogada_reaproveita_sem_buscar_de_novo(db_session, m
     chamadas = []
     monkeypatch.setattr(
         "app.live.song_service.buscar_musica",
-        lambda query, **kwargs: chamadas.append(query) or MusicaEncontrada(video_id="abc123", titulo="Propaganda", canal="Canal"),
+        lambda query, **kwargs: chamadas.append(query) or MusicaEncontrada(video_id="abc123", titulo="Propaganda", canal="Jorge e Mateus Oficial"),
     )
 
     resolver_musica_catalogada(db_session, "Propaganda", "Jorge & Mateus")
@@ -84,7 +84,7 @@ def test_resolver_musica_catalogada_ja_tocado_devolve_none_sem_buscar(db_session
     monkeypatch.setattr("app.live.song_service.obter_fim_seguro", lambda video_id, duracao: None)
     monkeypatch.setattr(
         "app.live.song_service.buscar_musica",
-        lambda query, **kwargs: MusicaEncontrada(video_id="abc123", titulo="Propaganda", canal="Canal"),
+        lambda query, **kwargs: MusicaEncontrada(video_id="abc123", titulo="Propaganda", canal="Jorge e Mateus Oficial"),
     )
     resolver_musica_catalogada(db_session, "Propaganda", "Jorge & Mateus")
 

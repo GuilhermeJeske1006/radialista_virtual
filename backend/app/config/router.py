@@ -1202,6 +1202,8 @@ def excluir_radialista(
             synchronize_session=False
         )
     for programa_id in programas_do_radialista:
+        from app.live.gravacao import excluir_gravacoes_programa
+        excluir_gravacoes_programa(db, account.id, programa_id)
         from app.whatsapp.arquivo import arquivar_programa
         arquivar_programa(db, programa_id)
         db.query(NoticiaHistorico).filter_by(programa_id=programa_id).delete()
@@ -1758,6 +1760,8 @@ def excluir_programa(
     db.query(AssuntoPrograma).filter_by(programa_id=programa.id).delete()
     db.query(PromessaNoAr).filter_by(programa_id=programa.id).delete()  # F4, mesma FK sem cascata
     db.query(AsRunEvento).filter_by(programa_id=programa.id).delete()  # F11, idem
+    from app.live.gravacao import excluir_gravacoes_programa
+    excluir_gravacoes_programa(db, account.id, programa.id)
     db.query(FalaEmRevisao).filter_by(programa_id=programa.id).delete()  # F12, idem
     excluir_dados_do_programa(db, account.id, programa.id)
     db.delete(programa)

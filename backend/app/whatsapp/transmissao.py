@@ -6,7 +6,7 @@ import uuid
 from functools import wraps
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from typing import Literal
+from typing import Annotated, Literal
 from app.auth.dependencies import get_current_account
 from app.db.database import get_db
 from app.models.programa import Programa
@@ -73,10 +73,21 @@ def contexto_publico(db, account_id, programa_id):
             "pergunta": discussao.pergunta if discussao and agora() - utc(discussao.criado_em) < datetime.timedelta(minutes=30) else None}
 
 
+class FaixaExecutada(BaseModel):
+    video_id: str = Field(min_length=1, max_length=64)
+    titulo: str = Field(max_length=300)
+    canal: str = Field(default="", max_length=180)
+    duracao_segundos: int | None = Field(default=None, ge=0, le=86400)
+
+
 class EventoPlayer(BaseModel):
     token: str
     player_id: str = Field(min_length=8, max_length=100)
     estado: Literal["reproduzindo", "concluido", "falhou", "interrompido", "heartbeat"]
+    duracao_s: float | None = Field(default=None, ge=0, le=86400)
+    motivo: str | None = Field(default=None, max_length=80, pattern=r"^[a-z0-9_:-]+$")
+    faixas_executadas: list[FaixaExecutada] = Field(default_factory=list, max_length=3)
+    falhas: list[Annotated[str, Field(max_length=80, pattern=r"^[a-z0-9_:-]+$")]] = Field(default_factory=list, max_length=8)
 
 
 @router.post("/blocos/{bloco_id}/eventos")
@@ -101,18 +112,42 @@ def evento_player(bloco_id: int, dados: EventoPlayer, account=Depends(get_curren
     if dados.estado == "reproduzindo":
         if agora() - utc(bloco.criado_em) > datetime.timedelta(minutes=40):
             raise HTTPException(409, "Preparo expirado; gere um novo bloco")
+        # Troca de bloco encerra o anterior abandonado; nunca marca como concluído.
+        if estado and estado.bloco_id and estado.bloco_id != bloco.id:
+            anterior = db.get(BlocoReproduzido, estado.bloco_id)
+            if anterior and anterior.estado == "reproduzindo":
+                anterior.estado = "interrompido"
+                anterior.atualizado_em = agora()
+                anterior.reproducao = {**(anterior.reproducao or {}),
+                    "fim_em": agora().isoformat(), "motivo": "substituido_por_outro_bloco"}
+        expirados = db.query(BlocoReproduzido).filter(
+            BlocoReproduzido.programa_id == programa.id, BlocoReproduzido.account_id == account.id,
+            BlocoReproduzido.estado == "preparado",
+            BlocoReproduzido.criado_em < agora() - datetime.timedelta(minutes=40)).all()
+        for expirado in expirados:
+            expirado.estado = "interrompido"
+            expirado.atualizado_em = agora()
+            expirado.reproducao = {"fim_em": agora().isoformat(), "motivo": "preparo_expirado"}
         if estado is None:
             estado = EstadoTransmissao(programa_id=programa.id, ocorrencia=bloco.ocorrencia, player_id=dados.player_id)
             db.add(estado)
         estado.player_id, estado.bloco_id, estado.heartbeat_em = dados.player_id, bloco.id, agora()
         estado.ocorrencia = bloco.ocorrencia
         bloco.player_id, bloco.estado = dados.player_id, "reproduzindo"
+        bloco.reproducao = {"inicio_em": agora().isoformat(), **(bloco.reproducao or {})}
     else:
         if not estado or estado.player_id != dados.player_id or estado.bloco_id != bloco.id or bloco.estado != "reproduzindo":
             raise HTTPException(409, "O bloco não está em reprodução neste player")
         estado.heartbeat_em = agora()
         if dados.estado != "heartbeat":
             bloco.estado = dados.estado
+            bloco.reproducao = {**(bloco.reproducao or {}), "fim_em": agora().isoformat(),
+                "duracao_s": dados.duracao_s, "motivo": dados.motivo,
+                "falhas": [f[:80] for f in dados.falhas]}
+            if dados.faixas_executadas:
+                executadas = [f.model_dump() for f in dados.faixas_executadas]
+                bloco.musica = {**(bloco.musica or {}), "executadas": executadas,
+                                "titulo": executadas[-1]["titulo"]}
     bloco.atualizado_em = agora()
     if bloco.estado == "concluido":
         if bloco.assunto_id:

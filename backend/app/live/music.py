@@ -430,6 +430,9 @@ def buscar_musica(
     duracao_absoluta_max_segundos: int | None = _DURACAO_MAX_ABSOLUTA_SEGUNDOS,
     exigir_cantada: bool = False,
     exigir_canal_oficial: bool = False,
+    artista_esperado: str | None = None,
+    titulo_esperado: str | None = None,
+    somente_estudio: bool = False,
 ) -> MusicaEncontrada | None:
     """Busca a musica priorizando versao de estudio; se nao achar, cai pra versao ao vivo.
 
@@ -477,6 +480,14 @@ def buscar_musica(
     titulos_tocados = titulos_tocados or set()
     canais_recentes = canais_recentes or {}
     palavras_genero = _palavras_chave_genero(genero) if genero else []
+    from app.live.identidade_musical import corresponde, versao_de_estudio
+    if artista_esperado is None and titulo_esperado is None and " - " in query:
+        artista_esperado, titulo_esperado = query.split(" - ", 1)
+
+    def identidade_invalida(titulo: str, canal: str) -> bool:
+        return (bool(artista_esperado and titulo_esperado) and not corresponde(
+            artista_esperado, titulo_esperado, titulo, canal
+        )) or (somente_estudio and not versao_de_estudio(titulo))
 
     def escolher(
         itens: list[dict],
@@ -534,6 +545,8 @@ def buscar_musica(
             canal = item["snippet"]["channelTitle"]
             video_id = item["id"]["videoId"]
             texto = f"{titulo.lower()} {canal.lower()}"
+            if identidade_invalida(titulo, canal):
+                continue
             if video_id in evitar_video_ids or repetido(canal) or duracao_invalida(video_id) or duracao_muito_longa(video_id):
                 continue
             if musica_repetida(titulo):
@@ -561,6 +574,8 @@ def buscar_musica(
             canal = item["snippet"]["channelTitle"]
             video_id = item["id"]["videoId"]
             texto = f"{titulo.lower()} {canal.lower()}"
+            if identidade_invalida(titulo, canal):
+                continue
             if video_id in evitar_video_ids or repetido(canal) or duracao_invalida(video_id) or duracao_muito_longa(video_id):
                 continue
             if musica_repetida(titulo):

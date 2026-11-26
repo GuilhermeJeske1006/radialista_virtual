@@ -435,7 +435,13 @@ def resolver_musica_e_pedidos(entrada: EntradaEmissao, decisao: DecisaoBloco, po
     if pedido_musica is not None:
         query = pedido_musica.musica_query or pedido_musica.mensagem_usuario
         ids_tocadas, titulos_tocados, canais_tocados = portas.historico_musicas(programa.id)
-        musica = portas.buscar_musica(
+        from app.live.flashback import ativo as flashback_ativo, pedido_aprovado
+        restricoes = {}
+        aprovada = pedido_aprovado(programa, query) if flashback_ativo(programa) else None
+        if aprovada:
+            query = f"{aprovada[0]} - {aprovada[1]}"
+            restricoes = {"artista_esperado": aprovada[0], "titulo_esperado": aprovada[1], "somente_estudio": True}
+        musica = None if flashback_ativo(programa) and aprovada is None else portas.buscar_musica(
             query,
             bloqueados=programa.musicas_bloqueadas,
             evitar_video_ids=ids_tocadas,
@@ -443,6 +449,7 @@ def resolver_musica_e_pedidos(entrada: EntradaEmissao, decisao: DecisaoBloco, po
             canais_recentes=canais_tocados,
             exigir_cantada=True,
             exigir_canal_oficial=True,
+            **restricoes,
         )
         if musica is not None:
             if plano is not None and plano.duracao_max_musica_s is not None \

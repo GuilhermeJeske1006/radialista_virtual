@@ -17,6 +17,7 @@ logger = logging.getLogger("radialista.config_generator")
 # Quando usar cada formato implementado do catálogo (app.live.formatos, F6, D15). Todo formato implementado tem
 # uma linha aqui (teste U12); os ainda não implementados ficam fora do gerador (D13).
 _USO_FORMATO_NO_GERADOR = {
+    "flashback": "clássicos de 1970–1999, duas músicas por sequência e entradas breves com fonte",
     "padrao": "jornalismo, esporte, entrevista, debate, religioso e noturno, que ainda não têm formato próprio",
     "musical_adulto": "programa predominantemente musical, com poucas intervenções de companhia",
     "popular_sertanejo": "música com recados, histórias e vida local",

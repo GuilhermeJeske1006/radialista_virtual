@@ -194,6 +194,8 @@ def gerar_fala(ctx, prompt: PromptEmissao, portas: PortasEmissao,
     # F7: avisos de oralidade entram na MESMA reescrita única, só com `oralidade_modo == "reescrever"`.
     avisos_oralidade = _avisos_oralidade(fala, ctx)
     instrucao_oralidade = instrucao_de_oralidade(avisos_oralidade)
+    from app.live.flashback import ativo as flashback_ativo, avisos_editoriais
+    editorial = avisos_editoriais(fala, ctx.memoria.historico) if flashback_ativo(programa) else []
     # Atribuição só é checada quando há UM fato central na pauta -- escalada lista várias manchetes.
     falta_atribuicao = (
         categoria in _CATEGORIAS_NOTICIA_LIKE
@@ -217,6 +219,7 @@ def gerar_fala(ctx, prompt: PromptEmissao, portas: PortasEmissao,
         instrucoes_extras=tuple(dict.fromkeys(
             [v.instrucao_retry for v in violacoes_pre if v.instrucao_retry]
             + ([instrucao_oralidade] if instrucao_oralidade else [])
+            + editorial
         )),
     )
     fala_ajuste = "nenhum"
@@ -243,6 +246,18 @@ def gerar_fala(ctx, prompt: PromptEmissao, portas: PortasEmissao,
         if falta_atribuicao and not tem_atribuicao(fala):
             logger.warning("live_noticia_sem_atribuicao_apos_retry programa_id=%s tipo=%s", programa.id, tipo)
 
+    if flashback_ativo(programa):
+        from app.live.flashback import restringir_fatos
+        if falas_bloco:
+            for item in falas_bloco:
+                item.texto = restringir_fatos(item.texto, ctx.memoria.historico, programa.nome)
+            fala = " ".join(item.texto for item in falas_bloco)
+        else:
+            fala = restringir_fatos(fala, ctx.memoria.historico, programa.nome)
+        if categoria == "musica" and ctx.musica.confirmada is not None and not falas_bloco:
+            faixa = ctx.musica.confirmada
+            if _sem_acento(faixa.titulo.lower()) not in _sem_acento(fala.lower()):
+                fala = f"{faixa.artista}, {faixa.titulo}. " + fala
     quantidade = 1
     if categoria == "musica":
         fala, quantidade = _extrair_quantidade_musicas(fala)

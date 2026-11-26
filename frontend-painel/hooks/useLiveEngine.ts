@@ -1,6 +1,7 @@
 "use client";
 
 import { informarBloco } from "../lib/blocosReproduzidos";
+import { limiteMusicaMs } from "../lib/limiteMusica";
 import { confirmarParticipacao } from "../lib/participacoes";
 import { relatarAsRun, statusAsRunDoBloco, type ResultadoBloco } from "../lib/asRun";
 import { esperarTransicao, pausaAntesDoBloco, reproduzirGrupoDeFalas } from "../lib/continuidadeAudio";
@@ -294,6 +295,7 @@ export function useLiveEngine() {
   // não invalida a escrita/síntese que ainda está em andamento para os seguintes.
   const filaPreparoRef = useRef<FilaPreparo<ContextoPreparo, TextoPreparado, SegmentoPreparado> | null>(null);
   const gravacaoBlobsRef = useRef<Blob[]>([]);
+  const falhasBlocoRef = useRef<string[]>([]);
   // Captura do áudio da aba (música + fala + vinhetas como foram ao ar). null = sem captura:
   // o export cai no fallback de só falas/vinhetas TTS (gravacaoBlobsRef).
   const gravacaoAbaRef = useRef<GravacaoAba | null>(null);
@@ -711,6 +713,7 @@ export function useLiveEngine() {
           });
         });
         if (falhouReproducao) {
+          falhasBlocoRef.current.push("audio_falhou");
           console.error("Falha ao reproduzir o audio da fala:", motivoFalha, { oculta: document.hidden });
           setErro(`Falha ao reproduzir o audio da fala; texto ficou sem voz. Motivo: ${motivoFalha}${document.hidden ? " [aba em segundo plano]" : ""}`);
           setFalhasAudioConsecutivas((n) => n + 1);
@@ -1034,9 +1037,10 @@ export function useLiveEngine() {
     titulo: string,
     inicioSegundos = 0,
     fimSegundos: number | null = null,
-    aoConcluir?: () => void
-  ): Promise<{ segundos: number; falha?: string }> {
-    const TIMEOUT_SEGURANCA_MS = 6 * 60 * 1000;
+    aoConcluir?: () => void,
+    duracaoSegundos?: number | null,
+  ): Promise<{ segundos: number; falha?: string; iniciou?: boolean }> {
+    const TIMEOUT_SEGURANCA_MS = limiteMusicaMs(duracaoSegundos, inicioSegundos, fimSegundos);
     const POLL_FIM_MS = 500;
     const inicio = Date.now();
 
@@ -1044,7 +1048,7 @@ export function useLiveEngine() {
       async function iniciar() {
         if (typeof window === "undefined" || !ytApiPromiseRef.current) {
           console.error("Player do YouTube indisponivel, musica nao tocou:", videoId, titulo);
-          resolvePromise({ segundos: 0 });
+          resolvePromise({ segundos: 0, falha: "player_indisponivel" });
           return;
         }
 
@@ -1052,7 +1056,7 @@ export function useLiveEngine() {
           await ytApiPromiseRef.current;
         } catch {
           console.error("API do YouTube nao carregou, musica nao tocou:", videoId, titulo);
-          resolvePromise({ segundos: 0 });
+          resolvePromise({ segundos: 0, falha: "api_indisponivel" });
           return;
         }
 
@@ -1071,6 +1075,7 @@ export function useLiveEngine() {
         let timeoutId: ReturnType<typeof setTimeout>;
         let vigiaInicioId: ReturnType<typeof setTimeout> | undefined;
         let intervaloFimId: ReturnType<typeof setInterval> | undefined;
+        let vigiaProgressoId: ReturnType<typeof setInterval> | undefined;
         const finalizar = (concluiu = false, falha?: string) => {
           if (finalizado) return;
           if (concluiu && musicDesmutadoRef.current) aoConcluir?.();
@@ -1078,6 +1083,7 @@ export function useLiveEngine() {
           clearTimeout(timeoutId);
           if (vigiaInicioId) clearTimeout(vigiaInicioId);
           if (intervaloFimId) clearInterval(intervaloFimId);
+          if (vigiaProgressoId) clearInterval(vigiaProgressoId);
           musicStopRef.current = null;
           if (musicEventosRef.current === eventos) musicEventosRef.current = null;
           removerDesbloqueioAudio("musica");
@@ -1096,9 +1102,9 @@ export function useLiveEngine() {
           setMusicaAtual(null);
           setMusicaFimSegundos(null);
           setEstagioAtual("idle");
-          resolvePromise({ segundos: (Date.now() - inicio) / 1000, falha });
+          resolvePromise({ segundos: (Date.now() - inicio) / 1000, falha, iniciou: comecou });
         };
-        timeoutId = setTimeout(() => finalizar(), TIMEOUT_SEGURANCA_MS);
+        timeoutId = setTimeout(() => finalizar(false, "tempo_excedido"), TIMEOUT_SEGURANCA_MS);
         musicStopRef.current = () => finalizar();
 
         // vigia de inicio: player que nunca chega em PLAYING (video preso carregando, bloqueio
@@ -1168,7 +1174,21 @@ export function useLiveEngine() {
         const eventos: EventosPlayer = {
           aoPronto: carregar,
           aoMudarEstado: (evento: any) => {
-            if (evento.data === window.YT.PlayerState.PLAYING) comecou = true;
+            if (evento.data === window.YT.PlayerState.PLAYING && !comecou) {
+              comecou = true;
+              clearTimeout(timeoutId);
+              const duracaoReal = evento.target?.getDuration?.();
+              timeoutId = setTimeout(() => finalizar(false, "tempo_excedido"),
+                limiteMusicaMs(duracaoReal || duracaoSegundos, inicioSegundos, fimSegundos));
+              let ultimoTempo = evento.target?.getCurrentTime?.();
+              let ultimoAvanco = Date.now();
+              vigiaProgressoId = setInterval(() => {
+                const tempo = evento.target?.getCurrentTime?.();
+                if (typeof tempo !== "number") return;
+                if (tempo !== ultimoTempo) { ultimoTempo = tempo; ultimoAvanco = Date.now(); }
+                else if (musicDesmutadoRef.current && Date.now() - ultimoAvanco >= 20000) finalizar(false, "reproducao_travou");
+              }, 2000);
+            }
             if (evento.data === window.YT.PlayerState.ENDED) finalizar(true);
             // so' desmuta/inicia o fade cruzado quando a musica realmente comecar a tocar --
             // ver o mesmo cuidado no player de fundo (aoMudarEstadoFundo) sobre por que
@@ -1199,8 +1219,7 @@ export function useLiveEngine() {
             console.error("Erro ao tocar musica no player do YouTube:", videoId, titulo, evento?.data);
             // erro depois de ja' ter comecado a tocar: o ouvinte ja' ouviu a musica -- pedir
             // substituta aqui tocava outra versao da MESMA musica logo em seguida. So' segue.
-            if (comecou) finalizar();
-            else finalizar(false, `erro_${evento?.data ?? "desconhecido"}`);
+            finalizar(false, `erro_${evento?.data ?? "desconhecido"}`);
           },
         };
         musicEventosRef.current = eventos;
@@ -1218,28 +1237,28 @@ export function useLiveEngine() {
   // pede uma substituta ao backend (outra versao da mesma musica, ou outra faixa do programa) e
   // toca ela -- musica chamada pelo locutor precisa tocar, nao pode sumir do bloco em silencio.
   async function tocarMusicaComSubstituta(
-    faixa: { video_id: string; titulo: string; inicio_segundos?: number; fim_segundos?: number | null },
+    faixa: MusicaBloco,
     ativa: () => boolean,
-    aoConcluir?: () => void
+    aoConcluir?: (faixa: MusicaBloco) => void
   ): Promise<number> {
     let segundos = 0;
     let atual = faixa;
     for (let tentativa = 0; ; tentativa++) {
       const resultado = await tocarMusica(
-        atual.video_id, atual.titulo, atual.inicio_segundos ?? 0, atual.fim_segundos ?? null, aoConcluir
+        atual.video_id, atual.titulo, atual.inicio_segundos ?? 0, atual.fim_segundos ?? null,
+        () => aoConcluir?.(atual), atual.duracao_segundos,
       );
       segundos += resultado.segundos;
+      if (resultado.falha) falhasBlocoRef.current.push(resultado.falha);
       if (!resultado.falha || tentativa >= MAX_MUSICAS_SUBSTITUTAS || !ativa()) return segundos;
       try {
-        atual = await apiFetch<{
-          video_id: string;
-          titulo: string;
-          inicio_segundos?: number;
-          fim_segundos?: number | null;
-        }>(`/live/${radialistaIdRef.current}/programas/${programaIdRef.current}/musica-substituta`, {
+        atual = await apiFetch<MusicaBloco>(`/live/${radialistaIdRef.current}/programas/${programaIdRef.current}/musica-substituta`, {
           method: "POST",
-          body: JSON.stringify({ video_id: atual.video_id, titulo: atual.titulo, motivo: resultado.falha }),
+          body: JSON.stringify({ video_id: atual.video_id, titulo: atual.titulo, motivo: resultado.falha,
+            iniciou: resultado.iniciou === true }),
         });
+        // Os próximos textos podem ter sido preparados comentando a faixa que falhou.
+        descartarPreparo();
       } catch (err) {
         console.error("Sem musica substituta pra faixa que nao tocou:", atual.video_id, err);
         return segundos;
@@ -1499,6 +1518,7 @@ export function useLiveEngine() {
                   body: JSON.stringify({
                     perfil_pos_producao: "radio_fm",
                     texto: segmento.fala,
+                    bloco_id: segmento.bloco_id,
                     tipo: segmento.tipo,
                     tom: segmento.tom ?? null,
                     texto_anterior: ultimaFalaAtual,
@@ -1673,6 +1693,8 @@ export function useLiveEngine() {
     let participacaoConcluida = false;
     let falaDoBlocoConcluida = !novaFala.fala.trim();
     let linhasConcluidas = 0;
+    falhasBlocoRef.current = [];
+    const faixasExecutadas: MusicaBloco[] = [];
 
     if (novaFala.video_id) {
       try {
@@ -1701,6 +1723,7 @@ export function useLiveEngine() {
                   titulo: novaFala.titulo_musica ?? "",
                   inicio_segundos: novaFala.inicio_segundos ?? 0,
                   fim_segundos: novaFala.fim_segundos ?? null,
+                  duracao_segundos: novaFala.duracao_segundos,
                 },
               ];
         for (const musica of bloco) {
@@ -1708,7 +1731,12 @@ export function useLiveEngine() {
           duracaoBlocoSegundos += await tocarMusicaComSubstituta(
             musica,
             () => programaAtivoRef.current && execucaoAtualRef.current === minhaExecucao,
-            () => { if (musica.video_id === novaFala.video_id) participacaoConcluida = true; }
+            (executada) => {
+              faixasExecutadas.push(executada);
+              if (!novaFala.pedido_id || executada.video_id === musica.video_id || executada.titulo === musica.titulo) {
+                participacaoConcluida = faixasExecutadas.length === bloco.length;
+              }
+            }
           );
         }
       } catch (err) {
@@ -1752,11 +1780,24 @@ export function useLiveEngine() {
       relatarAsRun(radialistaIdRef.current, programaIdRef.current, novaFala.as_run_evento_id, statusAsRun).catch(() => {});
     }
     try {
-      await informarBloco(novaFala, resultadoBloco);
+      await informarBloco(novaFala, resultadoBloco, {
+        duracao_s: Math.round(duracaoBlocoSegundos * 1000) / 1000,
+        motivo: falhasBlocoRef.current[0] ?? (resultadoBloco === "falhou" ? "audio_incompleto" : undefined),
+        falhas: falhasBlocoRef.current.slice(0, 8),
+        faixas_executadas: faixasExecutadas,
+      });
     } catch {
       setErro("O resultado deste bloco não foi confirmado. O contexto do atendimento não foi atualizado.");
     }
     atualizarDuracaoFala(novaFala.id, duracaoBlocoSegundos);
+    if (novaFala.video_id) {
+      const atualizadas = falasProgramaRef.current.map(f => f.id === novaFala.id ? {
+        ...f, musicas: faixasExecutadas, video_id: faixasExecutadas[0]?.video_id ?? null,
+        titulo_musica: faixasExecutadas[0]?.titulo ?? null,
+      } : f);
+      falasProgramaRef.current = atualizadas;
+      setFalasPrograma(atualizadas);
+    }
 
     // execucao foi "pulada" (pularFala disparou uma nova) enquanto essa tocava --
     // quem continua o loop a partir daqui e' a execucao nova, nao essa
@@ -1947,7 +1988,7 @@ export function useLiveEngine() {
     if (captura) {
       setAvisoGravacao("Gerando o MP3 do programa completo…");
       try {
-        baixarArquivo(await captura.finalizar(), nomeArquivo);
+        baixarArquivo(await captura.finalizar(programaIdRef.current ?? undefined), nomeArquivo);
         setAvisoGravacao(`Programa completo exportado: ${nomeArquivo}`);
         setTimeout(() => setAvisoGravacao(""), 6000);
         return;

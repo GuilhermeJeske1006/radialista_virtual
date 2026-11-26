@@ -141,7 +141,7 @@ def test_itens_fora_do_genero_devolve_indices_base_zero(monkeypatch):
 
     def _fake(system, user, max_tokens=128):
         recebido["user"] = user
-        return '{"fora": [2, 9, "x"]}'
+        return '{"fora": [2]}'
 
     monkeypatch.setattr(llm_client, "gerar_classificacao", _fake)
     fora = llm_client.itens_fora_do_genero(["Henrique & Juliano", "Anitta"], ["sertanejo"])
@@ -150,14 +150,14 @@ def test_itens_fora_do_genero_devolve_indices_base_zero(monkeypatch):
     assert "2) Anitta" in recebido["user"]
 
 
-def test_itens_fora_do_genero_falha_aceita_tudo(monkeypatch):
+def test_itens_fora_do_genero_falha_bloqueia_nao_verificados(monkeypatch):
     def _levanta(*args, **kwargs):
         raise RuntimeError("boom")
 
     monkeypatch.setattr(llm_client, "gerar_classificacao", _levanta)
-    assert llm_client.itens_fora_do_genero(["Anitta"], ["sertanejo"]) == set()
+    assert llm_client.itens_fora_do_genero(["Anitta"], ["sertanejo"]) == {0}
     monkeypatch.setattr(llm_client, "gerar_classificacao", lambda *args, **kwargs: "sem json")
-    assert llm_client.itens_fora_do_genero(["Anitta"], ["sertanejo"]) == set()
+    assert llm_client.itens_fora_do_genero(["Anitta"], ["sertanejo"]) == {0}
 
 
 def test_itens_fora_do_genero_sem_genero_nao_chama_llm(monkeypatch):

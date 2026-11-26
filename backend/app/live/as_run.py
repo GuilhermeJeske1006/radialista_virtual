@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.models.as_run_evento import AsRunEvento
 
 STATUS_VALIDOS_PLAYER = ("confirmado", "falhou")
-_TAMANHO_MAX_TEXTO = 500
+_TAMANHO_MAX_TEXTO = 16000
 
 
 def registrar_envio(db: Session, account_id: int, programa_id: int, tipo: str, texto: str = "",

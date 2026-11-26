@@ -106,7 +106,7 @@ export async function apiFetchForm<T>(path: string, formData: FormData, method: 
   return response.json() as Promise<T>;
 }
 
-export async function apiFetchBlob(path: string, options: RequestInit = {}): Promise<Blob> {
+export async function apiFetchBlob(path: string, options: RequestInit = {}, aoResponder?: (response: Response) => void): Promise<Blob> {
   const headers: Record<string, string> = {
     "content-type": "application/json",
     ...(options.headers as Record<string, string> | undefined),
@@ -118,6 +118,7 @@ export async function apiFetchBlob(path: string, options: RequestInit = {}): Pro
     throw new ApiError(response.status, await mensagemDeErro(response));
   }
 
+  aoResponder?.(response);
   return response.blob();
 }
 

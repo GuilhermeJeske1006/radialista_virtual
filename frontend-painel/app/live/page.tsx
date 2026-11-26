@@ -14,6 +14,7 @@ import CartwallPanel from "../../components/live/CartwallPanel";
 import InteracoesPanel from "../../components/live/InteracoesPanel";
 import AtendimentoOuvintesPanel from "../../components/live/AtendimentoOuvintesPanel";
 import HistoricoFilaPanel from "../../components/live/HistoricoFilaPanel";
+import GravacoesPrograma from "../../components/live/GravacoesPrograma";
 import { apiFetch, ApiError } from "../../lib/api";
 import { BibliotecaAudioItem, temAudio } from "../../lib/bibliotecaAudio";
 import { CategoriaVinheta } from "../../lib/types";
@@ -228,6 +229,7 @@ export default function LivePage() {
             />
             <HistoricoFilaPanel radialistaId={engine.radialistaId} />
             <AtendimentoOuvintesPanel />
+            <GravacoesPrograma programaId={engine.programaId} ativo={engine.programaAtivo} />
           </div>
         </div>
       )}

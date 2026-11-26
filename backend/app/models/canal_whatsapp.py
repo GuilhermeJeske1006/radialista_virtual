@@ -127,6 +127,7 @@ class BlocoReproduzido(Base):
     assunto_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     assunto: Mapped[dict] = mapped_column(JSON, default=dict)
     musica: Mapped[dict] = mapped_column(JSON, default=dict)
+    reproducao: Mapped[dict] = mapped_column(JSON, default=dict)
     estado: Mapped[str] = mapped_column(String, default="preparado")
     player_id: Mapped[str | None] = mapped_column(String, nullable=True)
     criado_em: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=agora)
