@@ -251,6 +251,35 @@ def test_buscar_musica_combina_inicio_segundos_com_deteccao_de_fala(monkeypatch)
     assert resultado.inicio_segundos == 25  # deteccao (25) > heuristica ao vivo (15)
 
 
+def test_buscar_musica_traz_inicio_do_vocal_a_partir_do_inicio_ja_cortado(monkeypatch):
+    """O inicio do vocal (ramp) e' medido a partir do inicio FINAL da faixa (ja combinado com o corte
+    de silencio/ao vivo), pra introducao instrumental sair certa em cima do que realmente toca."""
+    monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
+    itens = [_item("id1", "Minha Musica Ao Vivo", "Artista - Topic")]
+    monkeypatch.setattr("app.live.music._buscar_itens", lambda query: itens)
+    monkeypatch.setattr("app.live.music._buscar_duracoes", lambda ids: {"id1": 200})
+    monkeypatch.setattr("app.live.music.obter_inicio_seguro", lambda video_id, duracao: 25)
+    chamadas = []
+    monkeypatch.setattr(
+        "app.live.music.obter_inicio_vocal",
+        lambda video_id, inicio, duracao: chamadas.append((video_id, inicio, duracao)) or 43.5,
+    )
+
+    resultado = buscar_musica("minha musica")
+    assert resultado.inicio_vocal_segundos == 43.5
+    assert chamadas == [("id1", 25, 200)]
+
+
+def test_buscar_musica_sem_inicio_do_vocal_conhecido_fica_none(monkeypatch):
+    monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
+    itens = [_item("id1", "Minha Musica Ao Vivo", "Artista - Topic")]
+    monkeypatch.setattr("app.live.music._buscar_itens", lambda query: itens)
+    monkeypatch.setattr("app.live.music._buscar_duracoes", lambda ids: {"id1": 200})
+    monkeypatch.setattr("app.live.music.obter_inicio_vocal", lambda video_id, inicio, duracao: None)
+
+    assert buscar_musica("minha musica").inicio_vocal_segundos is None
+
+
 def test_buscar_musica_prefere_duracao_curta_quando_ha_alternativa(monkeypatch):
     """Duracao muito longa e' preferencia, nao bloqueio duro -- se existe alternativa dentro do
     teto (_DURACAO_MAX_SEGUNDOS), ela vence mesmo que a faixa longa aparecesse primeiro na lista."""

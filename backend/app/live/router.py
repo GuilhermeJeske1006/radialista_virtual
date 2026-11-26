@@ -282,6 +282,9 @@ class MusicaBlocoItem(BaseModel):
     # ver MusicaEncontrada.duracao_segundos em app.live.music. Nao confundir com
     # fim_segundos: duracao_segundos e' o video inteiro, fim_segundos e' onde corta.
     duracao_segundos: int | None = None
+    # Segundo (do video) em que o vocal entra (ver MusicaEncontrada.inicio_vocal_segundos): o painel so' fala
+    # por cima da introducao quando isso e' conhecido e a fala cabe antes dele.
+    inicio_vocal_segundos: float | None = None
 
 
 class OrcamentoFalaResponse(BaseModel):
@@ -2349,7 +2352,8 @@ def _resposta_pronta(decisao: DecisaoBloco, programa: Programa, cfg: ConfigRelog
 
 def _item_musica(m: MusicaEncontrada) -> MusicaBlocoItem:
     return MusicaBlocoItem(video_id=m.video_id, titulo=m.titulo, canal=m.canal, inicio_segundos=m.inicio_segundos,
-                           fim_segundos=m.fim_segundos, duracao_segundos=m.duracao_segundos)
+                           fim_segundos=m.fim_segundos, duracao_segundos=m.duracao_segundos,
+                           inicio_vocal_segundos=m.inicio_vocal_segundos)
 
 
 def _resposta_so_musica(decisao: DecisaoBloco, musica: MusicaEncontrada, programa: Programa,

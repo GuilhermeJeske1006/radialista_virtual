@@ -8,7 +8,7 @@ import httpx
 
 from app.config.redis_client import redis_sessao as redis_client  # estado de sessão e cache: falha aberta (F3)
 from app.config.settings import settings
-from app.live.audio_analysis import obter_fim_seguro, obter_inicio_seguro
+from app.live.audio_analysis import obter_fim_seguro, obter_inicio_seguro, obter_inicio_vocal
 from app.util.texto import sem_acento as _sem_acento
 
 logger = logging.getLogger("radialista.music")
@@ -99,6 +99,11 @@ class MusicaEncontrada:
     # Segundo em que cortar antes do fim do video (silencio longo ou fala apos a
     # musica -- ver app/live/audio_analysis.py). None = toca ate o fim do video.
     fim_segundos: int | None = None
+    # Segundo (do video) em que o vocal entra, medido pela 1a palavra cantada (ver
+    # app/live/audio_analysis.py::obter_inicio_vocal). None = desconhecido/sem vocal -- o locutor fala
+    # ANTES da musica. Com valor, a introducao instrumental (inicio_vocal - inicio) pode receber uma
+    # fala curta por cima (o "ramp" de radio, decidido no painel, ver lib/falaSobreIntro.ts).
+    inicio_vocal_segundos: float | None = None
     # Contexto real do video (descricao/tags/ano, ver _buscar_metadados_musica) -- usado pra
     # dar ao locutor material real pra comentar a musica antes de toca-la (ver
     # resumir_contexto_musica em app.llm.client), em vez de so' saber titulo/canal.
@@ -407,6 +412,9 @@ def _preencher_extras(resultado: MusicaEncontrada, duracoes: dict[str, int]) -> 
     # sabia ser necessario (video "ao vivo" sem pausa detectavel, so' banter continuo).
     resultado.inicio_segundos = max(
         resultado.inicio_segundos, obter_inicio_seguro(resultado.video_id, duracoes.get(resultado.video_id))
+    )
+    resultado.inicio_vocal_segundos = obter_inicio_vocal(
+        resultado.video_id, resultado.inicio_segundos, duracoes.get(resultado.video_id)
     )
     metadados = _buscar_metadados_musica(resultado.video_id)
     resultado.descricao = metadados.get("descricao", "")

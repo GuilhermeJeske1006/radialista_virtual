@@ -218,6 +218,29 @@ def test_gerar_proxima_fala_primeira_e_abertura(client, account, auth_headers, r
 
 
 @freeze_time(AGORA_UTC)
+def test_proxima_sem_creditos_no_provedor_retorna_503_com_causa(
+    client, account, auth_headers, radialista_e_programa, monkeypatch,
+):
+    from anthropic import BadRequestError
+
+    radio, programa = radialista_e_programa
+    mensagem = "Your credit balance is too low to access the Anthropic API."
+
+    def sem_saldo(**kwargs):
+        raise BadRequestError(mensagem, response=httpx.Response(
+            400, request=httpx.Request("POST", "https://api.anthropic.com/v1/messages"),
+        ), body={"type": "invalid_request_error", "message": mensagem})
+
+    monkeypatch.setattr("app.llm.client._client.messages.create", sem_saldo)
+    resposta = client.post(
+        _url_proxima(radio.id, programa.id), json={"total_falas": 0, "incluir_audio": False},
+        headers=auth_headers(account.id),
+    )
+    assert resposta.status_code == 503
+    assert "créditos no provedor" in resposta.json()["detail"]
+
+
+@freeze_time(AGORA_UTC)
 def test_gerar_proxima_fala_radialista_inexistente_404(client, account, auth_headers, radialista_e_programa):
     _, programa = radialista_e_programa
     resposta = client.post(

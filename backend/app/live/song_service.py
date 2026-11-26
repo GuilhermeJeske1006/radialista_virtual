@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config.redis_client import redis_client
-from app.live.audio_analysis import obter_fim_seguro
+from app.live.audio_analysis import obter_fim_seguro, obter_inicio_vocal
 from app.live.music import (
     MusicaEncontrada, _sem_acento, buscar_musica, eh_instrumental, titulo_ja_tocado, videos_quebrados,
 )
@@ -109,6 +109,9 @@ def _musica_encontrada_do_catalogo(musica: Musica) -> MusicaEncontrada:
         canal=musica.youtube_canal or "",
         inicio_segundos=musica.youtube_inicio_segundos,
         fim_segundos=obter_fim_seguro(musica.youtube_video_id, musica.duracao_segundos),
+        inicio_vocal_segundos=obter_inicio_vocal(
+            musica.youtube_video_id, musica.youtube_inicio_segundos, musica.duracao_segundos
+        ),
         descricao=metadados.get("descricao", ""),
         tags=metadados.get("tags") or [],
         ano=metadados.get("ano"),

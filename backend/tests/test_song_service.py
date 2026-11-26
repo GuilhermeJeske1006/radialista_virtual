@@ -154,3 +154,24 @@ def test_resolver_musica_catalogada_resolve_de_novo_video_instrumental_salvo(db_
     resultado = resolver_musica_catalogada(db_session, "Evidencias", "Chitaozinho")
     assert resultado.video_id == "cantada1"
     assert chamadas == [True]
+
+
+def test_musica_catalogada_traz_inicio_do_vocal_medido_a_partir_do_inicio_salvo(db_session, monkeypatch):
+    monkeypatch.setattr("app.live.song_service.obter_fim_seguro", lambda video_id, duracao: None)
+    chamadas = []
+    monkeypatch.setattr(
+        "app.live.song_service.obter_inicio_vocal",
+        lambda video_id, inicio, duracao: chamadas.append((video_id, inicio, duracao)) or 21.0,
+    )
+    monkeypatch.setattr(
+        "app.live.song_service.buscar_musica",
+        lambda query, **kwargs: MusicaEncontrada(
+            video_id="abc123", titulo="Propaganda", canal="Jorge & Mateus", inicio_segundos=4, duracao_segundos=200,
+        ),
+    )
+
+    resolver_musica_catalogada(db_session, "Propaganda", "Jorge & Mateus")  # 1a vez: busca no YouTube
+    reaproveitada = resolver_musica_catalogada(db_session, "Propaganda", "Jorge & Mateus")  # 2a: vem do catalogo
+
+    assert reaproveitada.inicio_vocal_segundos == 21.0
+    assert chamadas == [("abc123", 4, 200)]

@@ -5,6 +5,7 @@ import { limiteMusicaMs } from "../lib/limiteMusica";
 import { confirmarParticipacao } from "../lib/participacoes";
 import { relatarAsRun, statusAsRunDoBloco, type ResultadoBloco } from "../lib/asRun";
 import { esperarTransicao, pausaAntesDoBloco, reproduzirGrupoDeFalas } from "../lib/continuidadeAudio";
+import { FALA_SOBRE_INTRO, medirDuracaoAudio, planejarFalaSobreIntro, type PlanoFalaSobreIntro } from "../lib/falaSobreIntro";
 import { FilaPreparo } from "../lib/filaPreparo";
 import { RecuperacaoAoVivo } from "../lib/recuperacaoAoVivo";
 import { inicioAEnviar, medirDesvio, proximoInicioBruto } from "../lib/relogioAoVivo";
@@ -1039,6 +1040,9 @@ export function useLiveEngine() {
     fimSegundos: number | null = null,
     aoConcluir?: () => void,
     duracaoSegundos?: number | null,
+    // chamado quando a musica fica AUDIVEL (depois do unMute, nunca com a pagina sem interacao) --
+    // e' o gatilho da fala sobre a introducao (ver falarSobreIntroducao).
+    aoFicarAudivel?: () => void,
   ): Promise<{ segundos: number; falha?: string; iniciou?: boolean }> {
     const TIMEOUT_SEGURANCA_MS = limiteMusicaMs(duracaoSegundos, inicioSegundos, fimSegundos);
     const POLL_FIM_MS = 500;
@@ -1205,6 +1209,7 @@ export function useLiveEngine() {
                 player.setVolume(0);
                 fadeVolumeYoutube(player, musicFadeIntervalRef, 100, FADE_MUSICA_MS, 12, 0);
                 if (bgProntoRef.current) fadeVolumeYoutube(bgPlayerRef.current, bgFadeIntervalRef, 0, FADE_MUSICA_MS);
+                aoFicarAudivel?.();
               };
               // sem interacao na pagina, unMute() faz o Chrome parar o video -- a faixa segue
               // muda (o tempo do bloco continua correndo) ate' o clique em "Ativar som".
@@ -1233,13 +1238,90 @@ export function useLiveEngine() {
     });
   }
 
+  // Fala do locutor por cima da introducao instrumental da 1a musica do bloco (o "ramp" de radio, ver
+  // lib/falaSobreIntro.ts): a musica entra, a voz entra 2 s depois com a musica abaixada e termina antes do
+  // vocal -- em vez de a fala tocar inteira ANTES da musica. So' existe quando o backend conhece o inicio do
+  // vocal e a fala cabe na introducao; qualquer outro caso segue o fluxo de sempre (fala e depois musica).
+  type FalaSobreIntro = {
+    plano: PlanoFalaSobreIntro;
+    // true assim que a fala foi disparada (por cima da musica ou, no plano B, antes da substituta)
+    iniciada: boolean;
+    // fala em andamento por cima da musica -- o bloco espera por ela antes de seguir
+    emAndamento: Promise<void> | null;
+    aoFicarAudivel: () => void;
+    // plano B: a musica falhou antes de ficar audivel (video removido/embed bloqueado) -- a fala nao se perde,
+    // toca inteira antes da substituta como no fluxo normal
+    falarAntes: () => Promise<number>;
+  };
+
+  function criarFalaSobreIntro(
+    plano: PlanoFalaSobreIntro, audioUrl: string, texto: string, aoConcluirFala: () => void,
+  ): FalaSobreIntro {
+    const posicaoMusica = () => {
+      const t = musicPlayerRef.current?.getCurrentTime?.();
+      return typeof t === "number" ? t : -1;
+    };
+    const musicaNoAr = () => musicStopRef.current != null;
+
+    async function falarSobreIntroducao() {
+      // espera a musica chegar na posicao de entrada (buffering atrasa); se parar/falhar antes, desiste
+      const limite = Date.now() + FALA_SOBRE_INTRO.ESPERA_MAX_ENTRADA_MS;
+      while (musicaNoAr() && posicaoMusica() < plano.posicaoEntradaS) {
+        if (Date.now() > limite) break;
+        await new Promise((resolver) => setTimeout(resolver, 100));
+      }
+      if (!musicaNoAr() || posicaoMusica() < plano.posicaoEntradaS) {
+        console.warn("Fala sobre a introducao descartada: a musica nao chegou na posicao de entrada", plano);
+        URL.revokeObjectURL(audioUrl);
+        return;
+      }
+      fadeVolumeYoutube(
+        musicPlayerRef.current, musicFadeIntervalRef,
+        FALA_SOBRE_INTRO.VOLUME_MUSICA_SOB_FALA, FALA_SOBRE_INTRO.FADE_ABAIXAR_MS,
+      );
+      // nunca fala por cima do vocal: se a fala ainda esta no ar na posicao de corte (ou a musica acabou/foi
+      // pulada), para -- pararFala resolve a promise de reproduzirAudioPreparado.
+      const vigia = setInterval(() => {
+        if (!musicaNoAr() || posicaoMusica() >= plano.posicaoCorteS) pararFala();
+      }, 150);
+      try {
+        await reproduzirAudioPreparado(audioUrl, texto, aoConcluirFala, false);
+      } finally {
+        clearInterval(vigia);
+      }
+      if (musicaNoAr()) {
+        fadeVolumeYoutube(musicPlayerRef.current, musicFadeIntervalRef, 100, FALA_SOBRE_INTRO.FADE_VOLTAR_MS);
+        setEstagioAtual("musica");
+      }
+    }
+
+    const rampa: FalaSobreIntro = {
+      plano,
+      iniciada: false,
+      emAndamento: null,
+      aoFicarAudivel: () => {
+        if (rampa.iniciada) return;
+        rampa.iniciada = true;
+        rampa.emAndamento = falarSobreIntroducao().catch((err) => {
+          console.error("Falha na fala sobre a introducao da musica:", err);
+        });
+      },
+      falarAntes: async () => {
+        rampa.iniciada = true;
+        return reproduzirAudioPreparado(audioUrl, texto, aoConcluirFala);
+      },
+    };
+    return rampa;
+  }
+
   // Toca a faixa e, se o player nao conseguir (video removido/embed bloqueado/nunca comecou),
   // pede uma substituta ao backend (outra versao da mesma musica, ou outra faixa do programa) e
   // toca ela -- musica chamada pelo locutor precisa tocar, nao pode sumir do bloco em silencio.
   async function tocarMusicaComSubstituta(
     faixa: MusicaBloco,
     ativa: () => boolean,
-    aoConcluir?: (faixa: MusicaBloco) => void
+    aoConcluir?: (faixa: MusicaBloco) => void,
+    falaSobreIntro?: FalaSobreIntro | null,
   ): Promise<number> {
     let segundos = 0;
     let atual = faixa;
@@ -1247,9 +1329,14 @@ export function useLiveEngine() {
       const resultado = await tocarMusica(
         atual.video_id, atual.titulo, atual.inicio_segundos ?? 0, atual.fim_segundos ?? null,
         () => aoConcluir?.(atual), atual.duracao_segundos,
+        // so' a faixa original tem o inicio do vocal medido; a substituta toca sem fala por cima
+        tentativa === 0 ? falaSobreIntro?.aoFicarAudivel : undefined,
       );
       segundos += resultado.segundos;
       if (resultado.falha) falhasBlocoRef.current.push(resultado.falha);
+      if (falaSobreIntro && !falaSobreIntro.iniciada && resultado.falha && ativa()) {
+        await falaSobreIntro.falarAntes();
+      }
       if (!resultado.falha || tentativa >= MAX_MUSICAS_SUBSTITUTAS || !ativa()) return segundos;
       try {
         atual = await apiFetch<MusicaBloco>(`/live/${radialistaIdRef.current}/programas/${programaIdRef.current}/musica-substituta`, {
@@ -1698,23 +1785,9 @@ export function useLiveEngine() {
 
     if (novaFala.video_id) {
       try {
-        // bloco de fala (ate' dialogo multi-voz) tambem pode trazer musica: a que o locutor
-        // citou na fala toca logo depois dela (ver _musicas_citadas_na_fala no backend)
-        if (preparado.audiosFalas && preparado.audiosFalas.length > 0) {
-          duracaoBlocoSegundos += await reproduzirGrupoDeFalas(
-            preparado.audiosFalas,
-            () => programaAtivoRef.current && execucaoAtualRef.current === minhaExecucao,
-            (audio, i) => reproduzirAudioPreparado(audio.url, novaFala.falas?.[i]?.texto ?? novaFala.fala, () => { linhasConcluidas++; }, false),
-            duckMusicaFundo,
-          );
-        } else {
-          duracaoBlocoSegundos += await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala, () => {
-            falaDoBlocoConcluida = true;
-          });
-        }
         // bloco pode ter mais de uma musica (o agente decidiu emendar) --
         // toca todas seguidas, sem nova fala entre elas, pra manter o embalo
-        const bloco =
+        const bloco: MusicaBloco[] =
           novaFala.musicas && novaFala.musicas.length > 0
             ? novaFala.musicas
             : [
@@ -1726,7 +1799,39 @@ export function useLiveEngine() {
                   duracao_segundos: novaFala.duracao_segundos,
                 },
               ];
-        for (const musica of bloco) {
+        // fala curta de uma voz so' cabendo na introducao da 1a musica: vai por cima dela em vez de antes
+        let falaSobreIntro: FalaSobreIntro | null = null;
+        if (
+          novaFala.tipo !== "encerramento" && novaFala.fala.trim() && preparado.audioUrl &&
+          !(preparado.audiosFalas && preparado.audiosFalas.length > 0) &&
+          bloco[0].inicio_vocal_segundos != null && paginaTemInteracao()
+        ) {
+          const plano = planejarFalaSobreIntro({
+            inicioSegundos: bloco[0].inicio_segundos,
+            inicioVocalSegundos: bloco[0].inicio_vocal_segundos,
+            duracaoFalaSegundos: await medirDuracaoAudio(preparado.audioUrl),
+          });
+          if (plano) {
+            falaSobreIntro = criarFalaSobreIntro(plano, preparado.audioUrl, novaFala.fala, () => { falaDoBlocoConcluida = true; });
+          }
+        }
+        // bloco de fala (ate' dialogo multi-voz) tambem pode trazer musica: a que o locutor
+        // citou na fala toca logo depois dela (ver _musicas_citadas_na_fala no backend)
+        if (falaSobreIntro) {
+          // a fala toca por cima da introducao (ver tocarMusicaComSubstituta): nada a tocar antes da musica
+        } else if (preparado.audiosFalas && preparado.audiosFalas.length > 0) {
+          duracaoBlocoSegundos += await reproduzirGrupoDeFalas(
+            preparado.audiosFalas,
+            () => programaAtivoRef.current && execucaoAtualRef.current === minhaExecucao,
+            (audio, i) => reproduzirAudioPreparado(audio.url, novaFala.falas?.[i]?.texto ?? novaFala.fala, () => { linhasConcluidas++; }, false),
+            duckMusicaFundo,
+          );
+        } else {
+          duracaoBlocoSegundos += await reproduzirAudioPreparado(preparado.audioUrl, novaFala.fala, () => {
+            falaDoBlocoConcluida = true;
+          });
+        }
+        for (const [indice, musica] of bloco.entries()) {
           if (!programaAtivoRef.current || execucaoAtualRef.current !== minhaExecucao) break;
           duracaoBlocoSegundos += await tocarMusicaComSubstituta(
             musica,
@@ -1736,9 +1841,14 @@ export function useLiveEngine() {
               if (!novaFala.pedido_id || executada.video_id === musica.video_id || executada.titulo === musica.titulo) {
                 participacaoConcluida = faixasExecutadas.length === bloco.length;
               }
-            }
+            },
+            indice === 0 ? falaSobreIntro : null,
           );
         }
+        // a fala sobre a introducao ja' acabou (ou foi cortada) quando a musica termina; so' garante que o
+        // bloco nao fecha antes dela e que o as-run/historico veem o fim real. Seu tempo ja' esta' dentro do
+        // tempo da musica (sobreposto), por isso nao soma em duracaoBlocoSegundos.
+        if (falaSobreIntro?.emAndamento) await falaSobreIntro.emAndamento;
       } catch (err) {
         // segue o programa mesmo se a musica falhar ao tocar -- loga pra dar pra
         // diagnosticar depois (sem isso o bloco so' pulava direto, sem pista nenhuma)

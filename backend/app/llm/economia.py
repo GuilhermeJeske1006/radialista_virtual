@@ -3,6 +3,7 @@ import hashlib
 import json
 import logging
 
+from anthropic import BadRequestError
 from fastapi import HTTPException
 from redis.exceptions import RedisError
 
@@ -96,8 +97,15 @@ def criar_mensagem(client, **kwargs):
         resposta = executar("llm", model,
             lambda restante: client.messages.create(**kwargs, timeout=min(float(timeout), restante)),
             timeout_s=float(timeout), entrada=estimativa, saida=kwargs["max_tokens"])
-    except Exception:
+    except Exception as exc:
         falhar(reserva)
+        # A Anthropic responde 400 quando o saldo do provedor acaba. Sem tradução,
+        # essa exceção chega ao painel como 500 e esconde a causa da fala local.
+        if isinstance(exc, BadRequestError) and "credit balance is too low" in exc.message.lower():
+            logger.error("llm_saldo_insuficiente modelo=%s request_id=%s", model, exc.request_id)
+            raise HTTPException(
+                503, "Serviço de IA indisponível por falta de créditos no provedor. Contate o suporte."
+            ) from exc
         raise
     usage = getattr(resposta, "usage", None)
     if usage is not None:

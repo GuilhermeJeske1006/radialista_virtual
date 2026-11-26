@@ -535,8 +535,10 @@ Ainda pendentes:
 - **Paga, aguardando aprovação**: rubrica do juiz com texto real (F7 clareza e naturalidade, F8 "nenhuma abertura
   igual em 3 seguidas", F13 "resposta ao turno anterior"), redução de avisos de oralidade (F7) e verificação de pronúncia
   por STT (F9).
-- **F10, item 2 (ramp)**: não aplicável por decisão do usuário. A análise de áudio só detecta silêncio, não o início do
-  vocal; o ao vivo segue falando antes da música, que é o caminho previsto pelo plano sem essa medida.
+- **F10, item 2 (ramp)**: ~~não aplicável~~ **implementado em 26/11/2026** a pedido do usuário. O início do vocal passou a
+  ser medido pela primeira palavra de uma transcrição (Scribe) da faixa; a fala por cima da introdução só ocorre quando
+  esse início é conhecido e a fala cabe antes dele. Sem a medida, segue falando antes da música. Detalhes, números e
+  limites em `docs/analises/2026-11-26-cortes-e-fala-sobre-intro.md`.
 - **F10, item 3 (loudness no as-run)**: `app/postprod/loudness.py` segue só nos testes. No simulador o TTS é um dublê
   silencioso, então a medida sairia vazia; a medida útil é em produção (LUFS das vinhetas e áudios de patrocinador
   contra o alvo do perfil de pós-produção da fala), o que pede gravar a medida por arquivo e uma tela.
