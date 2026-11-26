@@ -487,7 +487,7 @@ def buscar_musica(
     def identidade_invalida(titulo: str, canal: str) -> bool:
         return (bool(artista_esperado and titulo_esperado) and not corresponde(
             artista_esperado, titulo_esperado, titulo, canal
-        )) or (somente_estudio and not versao_de_estudio(titulo))
+        )) or (somente_estudio and not versao_de_estudio(titulo, titulo_esperado))
 
     def escolher(
         itens: list[dict],

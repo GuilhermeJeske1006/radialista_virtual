@@ -381,7 +381,7 @@ FLASHBACK = replace(
     },
     comportamento=replace(COMPORTAMENTO_VARIEDADES, uma_faixa_por_bloco=True,
                           ia_pode_adicionar_blocos=False, naturalidade_encenada=False),
-    roteiro_padrao=("abertura", "musica", "musica", "comentario", "musica", "musica", "identificacao",
+    roteiro_padrao=("musica", "musica", "comentario", "musica", "musica", "identificacao",
                     "musica", "musica", "chamada_ouvinte", "musica", "musica"),
     relogio_padrao=None, aliases=(),
     direcao_cabecalho="FORMATO FLASHBACK: a seleção de clássicos conduz o programa; cada fala tem uma função.",

@@ -49,6 +49,10 @@ def test_remaster_nao_muda_identidade_nem_epoca_da_obra():
     assert corresponde("Cher", "If I Could Turn Back Time", "If I Could Turn Back Time (2024 Remaster)", "Cher - Topic")
     assert versao_de_estudio("If I Could Turn Back Time (2024 Remaster)")
     assert corresponde("Jorge & Mateus", "Propaganda", "Propaganda", "Jorge e Mateus Oficial")
+    assert not corresponde("Prince", "1999", "1979", "Prince - Topic")
+    assert corresponde("Prince", "1999", "1999", "Prince - Topic")
+    assert versao_de_estudio("Madonna - Live to Tell (Official Video)", "Live to Tell")
+    assert not versao_de_estudio("Madonna - Live to Tell (Live)", "Live to Tell")
 
 
 def test_classificacao_aceita_objeto_cercado_e_rejeita_respostas_conflitantes():
@@ -89,6 +93,9 @@ def test_orcamento_por_funcao_e_sem_comentarios_extras(programa_flashback):
     assert orcamento_para("flashback", "comentario", False).aplicar
     programa_flashback.estrutura_blocos = ["comentario"]
     assert _tipo_proximo_bloco(programa_flashback, 5, "comentario") == "musica"
+    programa_flashback.estrutura_blocos = []
+    assert _tipo_proximo_bloco(programa_flashback, 0) == "abertura"
+    assert _tipo_proximo_bloco(programa_flashback, 1, "abertura") == "musica"
 
 
 def test_direcao_usa_grade_real_e_detecta_expressoes_saturadas(programa_flashback):

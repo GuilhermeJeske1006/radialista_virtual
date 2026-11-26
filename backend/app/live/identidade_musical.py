@@ -20,12 +20,14 @@ _VERSAO_ALTERNATIVA = re.compile(
 _METADADO = re.compile(
     r"\b(official|oficial|music video|video|audio|lyrics?|lyric video|visualizer|hd|hq|4k|"
     r"remaster(?:ed|izado|izada)?|digital master|radio edit|video edit|album version|single version|"
-    r"stereo|mono|version|versao|\d{4})\b"
+    r"stereo|mono|version|versao)\b"
 )
 
 
-def versao_de_estudio(titulo: str) -> bool:
+def versao_de_estudio(titulo: str, titulo_obra: str | None = None) -> bool:
     texto = normalizar(titulo)
+    if titulo_obra:
+        texto = texto.replace(normalizar(titulo_obra), "", 1)
     return not _VERSAO_ALTERNATIVA.search(texto) and " / " not in html.unescape(titulo)
 
 
@@ -47,10 +49,14 @@ def corresponde(artista: str, titulo: str, encontrado: str, canal: str) -> bool:
         original = " - ".join(partes[:-1])
     if " / " in original or re.search(r"\bmedley\b", normalizar(original)):
         return False
+    if normalizar(original) == normalizar(titulo):
+        return True
     def obra(valor):
         valor = re.sub(r"[\[(]([^\])]+)[\])]", lambda m: "" if (
             _VERSAO_ALTERNATIVA.search(normalizar(m.group(1))) or _METADADO.search(normalizar(m.group(1)))
+            or re.fullmatch(r"\d{4}", m.group(1).strip())
         ) else m.group(0), valor)
         valor = normalizar(valor)
         return " ".join(_METADADO.sub(" ", valor).split())
-    return obra(original) == obra(titulo)
+    esperado_titulo = obra(titulo)
+    return bool(esperado_titulo) and obra(original) == esperado_titulo

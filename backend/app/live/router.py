@@ -1752,7 +1752,7 @@ def _selecionar_flashback(db, programa, evitar_ids=None, evitar_titulos=None, cu
             evitar_video_ids=ids, titulos_tocados=titulos, canais_recentes=canais,
             origem="admin" if programa.musicas_permitidas else "reserva_flashback", somente_estudio=True,
         )
-        if musica and corresponde(artista, titulo, musica.titulo, musica.canal) and versao_de_estudio(musica.titulo):
+        if musica and corresponde(artista, titulo, musica.titulo, musica.canal) and versao_de_estudio(musica.titulo, titulo):
             # A validação usou o título real do vídeo. A locução recebe a identidade
             # canônica, sem "Official HD Video", nomes de canal ou metadados de upload.
             musica.titulo, musica.canal = titulo, artista

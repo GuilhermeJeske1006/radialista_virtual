@@ -193,7 +193,7 @@ def resolver_musica_catalogada(
         musica_db.youtube_video_id in videos_quebrados()
         or eh_instrumental(f"{musica_db.youtube_titulo or ''} {musica_db.youtube_canal or ''}")
         or not corresponde(artista, titulo, musica_db.youtube_titulo or "", musica_db.youtube_canal or "")
-        or (somente_estudio and not versao_de_estudio(musica_db.youtube_titulo or ""))
+        or (somente_estudio and not versao_de_estudio(musica_db.youtube_titulo or "", titulo))
     ):
         # video salvo parou de tocar no painel (ver marcar_video_quebrado) ou e' versao sem voz
         # resolvida antes do filtro de cantada virar obrigatorio -- resolve de novo em vez de
@@ -224,7 +224,7 @@ def resolver_musica_catalogada(
                     somente_estudio=somente_estudio,
                 )
                 if resultado is None or not corresponde(artista, titulo, resultado.titulo, resultado.canal) \
-                        or (somente_estudio and not versao_de_estudio(resultado.titulo)):
+                        or (somente_estudio and not versao_de_estudio(resultado.titulo, titulo)):
                     logger.info("song_catalog youtube_resolution_miss musica_id=%s", musica_db.id)
                     musica_db.status = "sem_correspondencia"
                     db.commit()
