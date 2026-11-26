@@ -612,7 +612,8 @@ class CatalogoSimulado:
         return None
 
     def resolver_musica_catalogada(self, db, titulo: str, artista: str, bloqueados=None, evitar_video_ids=None,
-                                   titulos_tocados=None, canais_recentes=None, origem: str = "") -> MusicaEncontrada | None:
+                                   titulos_tocados=None, canais_recentes=None, origem: str = "",
+                                   somente_estudio: bool = False) -> MusicaEncontrada | None:
         self.contadores["resolver_musica_catalogada"] += 1
         for faixa in self.faixas:
             if normalizar(faixa.titulo) == normalizar(titulo) and normalizar(faixa.artista) == normalizar(artista):

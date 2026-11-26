@@ -64,6 +64,13 @@ def test_classificacao_aceita_objeto_cercado_e_rejeita_respostas_conflitantes():
         extrair_json('{"fora": [')
 
 
+def test_extrair_json_aceita_lista_do_derivador():
+    assert extrair_json('[{"titulo": "a"}, {"titulo": "b"}]') == [{"titulo": "a"}, {"titulo": "b"}]
+    assert extrair_json('```json\n[{"titulo": "a"}]\n```') == [{"titulo": "a"}]
+    with pytest.raises(ValueError):
+        extrair_json('[{"titulo": "a"}')
+
+
 def test_reserva_nunca_cai_em_busca_generica(db_session, programa_flashback, monkeypatch):
     chamadas = []
     monkeypatch.setattr("app.live.router.resolver_musica_catalogada", lambda *a, **k: chamadas.append(k) or None)
