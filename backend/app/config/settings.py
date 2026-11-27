@@ -51,6 +51,12 @@ class Settings(BaseSettings):
 
     youtube_api_key: str = ""
 
+    # yt-dlp (cortes de música): em IP de datacenter o YouTube pede login ("not a bot"). Opcionais, desligados por padrão.
+
+    ytdlp_cookies_file: str = ""
+
+    ytdlp_proxy: str = ""
+
     # Client Credentials Flow (developer.spotify.com/dashboard) -- usado so' pra descobrir
     # faixas oficiais por genero (app/live/spotify.py), nunca pra tocar audio. Vazio desativa
     # a integracao e o fluxo cai pro comportamento anterior (sugestao via LLM).

@@ -15,7 +15,7 @@ import httpx
 import numpy as np
 import yt_dlp
 
-from app.config.redis_client import redis_client
+from app.config.redis_client import redis_client, redis_sessao
 from app.config.settings import settings
 from app.guardrails.provedores import executar
 
@@ -177,7 +177,35 @@ def detectar_fim(db: np.ndarray, deslocamento_s: float, ref: float, duracao_tota
 # Entrada de áudio (yt-dlp + ffmpeg)
 # ====================================================================================================
 
+# Disjuntor do bloqueio anti-bot do YouTube: 3 erros em 10 min desligam a extração por 1 h. Em prod (IP da OVH)
+# cada vídeo falhava 2x por bloco, com traceback, dentro do /proxima; cortes/ramp só ficam "sem corte".
+_CHAVE_BOT_CONTAGEM = "cb:ytdlp_bot:contagem"
+_CHAVE_BOT_BLOQUEIO = "cb:ytdlp_bot:bloqueado"
+_BOT_LIMITE = 3
+_BOT_JANELA_S = 10 * 60
+_BOT_PAUSA_S = 60 * 60
+_TTL_URL_S = 5 * 60  # a mesma URL serve ao corte do fim, do início e do vocal da mesma faixa
+
+
+def _extracao_bloqueada() -> bool:
+    return bool(redis_sessao.get(_CHAVE_BOT_BLOQUEIO))
+
+
+def _registrar_bloqueio_bot() -> None:
+    total = int(redis_sessao.incr(_CHAVE_BOT_CONTAGEM) or 0)
+    if total == 1:
+        redis_sessao.expire(_CHAVE_BOT_CONTAGEM, _BOT_JANELA_S)
+    if total >= _BOT_LIMITE and redis_sessao.set(_CHAVE_BOT_BLOQUEIO, "1", ex=_BOT_PAUSA_S, nx=True):
+        logger.warning("yt-dlp bloqueado pelo YouTube (anti-bot): extração de áudio pausada por %ss", _BOT_PAUSA_S)
+
+
 def _url_audio_direta(video_id: str) -> str | None:
+    if _extracao_bloqueada():
+        return None
+    chave_url = f"cache:ytdlp_url:{video_id}"
+    em_cache = redis_sessao.get(chave_url)
+    if em_cache:
+        return em_cache
     opcoes = {
         "format": "bestaudio/best",
         "quiet": True,
@@ -189,12 +217,24 @@ def _url_audio_direta(video_id: str) -> str | None:
         # devolve a URL direta de forma bem mais confiavel.
         "extractor_args": {"youtube": {"player_client": ["android"]}},
     }
+    if settings.ytdlp_cookies_file:
+        opcoes["cookiefile"] = settings.ytdlp_cookies_file
+    if settings.ytdlp_proxy:
+        opcoes["proxy"] = settings.ytdlp_proxy
     try:
         with yt_dlp.YoutubeDL(opcoes) as ydl:
             info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
-        return info.get("url")
-    except Exception:
-        logger.warning("Falha ao extrair URL de audio direta: video_id=%s", video_id, exc_info=True)
+        url = info.get("url")
+        if url:
+            redis_sessao.set(chave_url, url, ex=_TTL_URL_S)
+        return url
+    except Exception as erro:
+        if "confirm you" in str(erro) and "bot" in str(erro):
+            _registrar_bloqueio_bot()
+            # sem traceback: eram ~500 por 90 min; o disjuntor já registra a pausa
+            logger.warning("Falha ao extrair URL de audio direta (anti-bot): video_id=%s", video_id)
+        else:
+            logger.warning("Falha ao extrair URL de audio direta: video_id=%s", video_id, exc_info=True)
         return None
 
 

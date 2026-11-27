@@ -406,3 +406,69 @@ def test_transcrever_palavras_pede_timestamp_de_palavra_e_passa_pela_admissao(mo
     assert registro["headers"] == {"xi-api-key": "chave-de-teste"}
     assert registro["data"]["timestamps_granularity"] == "word"
     assert registro["url"] == aa._STT_URL
+
+
+def test_ytdlp_bot_abre_disjuntor_apos_tres_erros_e_para_de_extrair(monkeypatch):
+    chamadas = []
+
+    class _YDL:
+        def __init__(self, *a, **k):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def extract_info(self, url, download=False):
+            chamadas.append(url)
+            raise RuntimeError("Sign in to confirm you’re not a bot. Use --cookies-from-browser")
+
+    monkeypatch.setattr(aa.yt_dlp, "YoutubeDL", _YDL)
+    for i in range(6):
+        assert aa._url_audio_direta(f"vid{i}") is None
+    assert len(chamadas) == 3  # a 4ª em diante nem chama o yt-dlp (pausa de 1 h)
+    assert aa._extracao_bloqueada()
+
+
+def test_ytdlp_reaproveita_url_para_a_mesma_faixa(monkeypatch):
+    chamadas = []
+
+    class _YDL:
+        def __init__(self, *a, **k):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def extract_info(self, url, download=False):
+            chamadas.append(url)
+            return {"url": "https://audio/direta"}
+
+    monkeypatch.setattr(aa.yt_dlp, "YoutubeDL", _YDL)
+    assert aa._url_audio_direta("abc") == aa._url_audio_direta("abc") == "https://audio/direta"
+    assert len(chamadas) == 1
+
+
+def test_ytdlp_erro_comum_nao_abre_disjuntor(monkeypatch):
+    class _YDL:
+        def __init__(self, *a, **k):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def extract_info(self, url, download=False):
+            raise RuntimeError("Video unavailable")
+
+    monkeypatch.setattr(aa.yt_dlp, "YoutubeDL", _YDL)
+    for i in range(5):
+        assert aa._url_audio_direta(f"v{i}") is None
+    assert not aa._extracao_bloqueada()
