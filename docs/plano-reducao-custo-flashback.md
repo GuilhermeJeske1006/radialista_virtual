@@ -214,3 +214,40 @@ Cada passo roda em uma hora real do Flashback, com a skill `avaliar-locucao` sob
 ### 9.6 O que continua não validado
 
 Qualidade de Sonnet 5.5, Opus 5.5 e Haiku 5.5 nesta tarefa (sem medição); tokens reais por chamada após o A1; preço real da voz; mínimo cacheável dos modelos; efeito do cache em blocos com tipos de fala diferentes (linhas específicas por tipo ficam no bloco estático ou dinâmico? a decidir no B1).
+
+## 10. Execução e validação (27/11, tarde)
+
+### 10.1 O que foi implementado (branch `master` local, commits `da9fed3`, `15bc80f`, `ebb7a8d`; sem push)
+
+| Item | Mudança | Estado |
+|---|---|---|
+| Formato genérico | `flashback` virou **`musical_curado`** ("Musical com curadoria"), válido para qualquer programa musical. `flashback` continua como alias (o programa 3 não precisa de migração). Repertório curado só com lista própria (`musicas_permitidas`) ou perfil legado; sem lista, o programa usa a busca normal com as regras editoriais. Novo `configurar_musical.py` (com `--perfil` e `--repertorio`); `configurar_flashback.py` virou atalho. Gerador de configuração sugere o formato para rádios musicais; painel espelha o novo nome | feito, testado |
+| Cache de prompt (B1) | `system` dividido em bloco estável (≈ 13,5 mil caracteres, ≈ 70% do prompt, idêntico em 100% dos blocos simulados) e bloco variável. Prefixo comum: 595 → 13 564 caracteres. Só é usado com `LLM_PROMPT_CACHE=true`; desligado, o texto enviado é idêntico ao de antes | feito, flag desligada |
+| Modelos 5.5 | Parâmetros por modelo (`parametros_modelo`: Opus 5.5 sem `thinking: disabled`, Sonnet 5.5 com `between_tools`, Haiku 5.5 com raciocínio desligado), tarifas e coeficiente de leitura de cache 0,05 | feito, não ativo |
+| Modelo barato por bloco | `LLM_MODEL_FALAS_CURTAS` (ex.: `claude-sonnet-5-5`) para anúncio, identificação, retomada e chamada; vazio = comportamento atual | feito, desligado |
+| Medição | `scripts/custo_log.py`: custo/h por modelo, voz, cache e margem do plano a partir dos logs `llm_consumo` e `tts_consumo` | feito, testado |
+| Pré-preparo | descarte seletivo **não implementado**: a fila é uma cadeia assíncrona (cada texto depende do anterior) e o ganho é pequeno com o repertório curado (falha de faixa cai) | adiado |
+
+Achado de produção: o programa 3 está com `perfil_programacao=flashback`, mas `estrutura_blocos`, `pode_pesquisar=true` e `musicas_permitidas` continuam como antes. O formato (orçamento de fala, regras editoriais, seleção do repertório de reserva) já vale; roteiro e pesquisa não mudaram. Para completar: `python -m app.live.configurar_flashback --account-id 1 --programa-id 3 --aplicar` (fora de 12h–14h, com backup).
+
+### 10.2 Custo e margem (estimativa; medição real após a primeira hora)
+
+Premissas: 22 chamadas de fala por hora, ~150 tokens de saída, prompt de 6 mil tokens (simulação do formato; produção pode chegar a 9 mil), cache com 80% de acerto (blocos espaçados ~3 min, TTL de 5 min), voz a 6,5 min de fala por hora (≈ US$ 0,65), classificadores ≈ US$ 0,05, câmbio R$ 5,50, 44 h por mês.
+
+| Cenário | US$/h | R$/h custo | cobrado/h (2×) | custo/mês | cliente paga/mês | sobra/mês | margem |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Hoje (medido, formato `padrao`) | 3,80 | 20,9 | 41,8 | 920 | 1 909 | 609 | 32% |
+| Formato musical com curadoria, Opus 5, cache desligado | ≈ 1,60 | 8,8 | 17,6 | 387 | 844 | 263 | 31% |
+| + cache de prompt | ≈ 1,25 | 6,9 | 13,8 | 302 | 675 | 208 | 31% |
+| + Sonnet 5.5 nas falas curtas e Opus 5.5 nas demais | ≈ 0,95 | 5,2 | 10,4 | 230 | 530 | 160 | 30% |
+
+Leitura da margem (fórmula de `docs/simulacao-plano-consumo.md`: cliente paga R$ 69,90 + 2 × custo; sobra = receita × 0,90 − 1,15 × custo − R$ 52):
+- **Com cobrança pelo uso medido (o que o site diz), a margem percentual fica em ≈ 30–32% em qualquer cenário**, porque o preço acompanha o custo. O que muda é o valor: a conta do cliente cai de ≈ R$ 1 900 para ≈ R$ 530 por mês, e a sobra absoluta por programa cai de ≈ R$ 609 para ≈ R$ 160. Reduzir custo sem reajustar a margem melhora a competitividade, não o lucro por programa; o ganho de lucro vem de volume.
+- **Se o cliente pagasse o valor prometido no site (R$ 8,35/h fixos)**, o resultado seria prejuízo hoje (sobra −R$ 716/mês) e só vira positivo no último cenário (+R$ 77/mês, 18%). Esse é o risco real de promessa: as otimizações fecham a conta do preço prometido, a cobrança pelo uso é que protege a margem.
+- Em reais, o cliente que lê "≈ R$ 8,35 por hora" no site e vê ≈ R$ 10,4 na fatura (último cenário) fica a +25% da estimativa; hoje ficaria a +400%.
+
+### 10.3 Qualidade
+
+- Prompt de saída: o texto do `system` é idêntico ao anterior com as flags desligadas (suíte de snapshots e caracterização do `/proxima` passando). Com o cache ligado, o conteúdo é o mesmo, com a ordem das linhas variáveis ao fim.
+- O formato `musical_curado` aplica os limites de fala do formato (anúncio ≤ 15 s, comentário/chamada ≤ 30 s, fala 8–18%), o repertório aprovado e `restringir_fatos` (fato histórico só do banco verificado); o `padrao` não aplicava nada disso.
+- **Não validado com modelo real**: a simulação com LLM real (A/B de Opus 5 × Opus 5.5 × Sonnet 5.5 e do cache ligado, com juiz e checagens do `avaliar-locucao`) não foi executada porque gasta créditos da API e a execução foi bloqueada pelo controle de permissões; depende de aprovação explícita (estimativa: 8 chamadas por rodada, ≈ US$ 0,3–0,6 por rodada, ≈ US$ 2 ao todo).
