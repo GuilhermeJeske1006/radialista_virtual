@@ -89,3 +89,28 @@ A voz passa a ser ~80% do que sobra. Abaixo de ~US$ 1,2/h só com menos fala por
 2. Meta de fala por hora (proposta ≤ 15%, ~9 min) e se pode mudar o ritmo do programa (A3).
 3. Aceitar anúncios por modelo de texto no flashback, sujeito à escuta (C1).
 4. Corrigir o preço estimado do site, ou escolher qual meta de custo defende a promessa de R$ 8,35.
+
+## 7. Troca de modelo de texto (análise de 27/11, preços da tabela pública)
+
+Produção usa `claude-opus-5` ($5/$25 por MTok) nas falas e `claude-haiku-4-5` ($1/$5) nos classificadores. Custo por chamada de fala com ~11 mil tokens de entrada e ~240 de saída (30 chamadas/h):
+
+| Modelo | Preço entrada/saída | Por chamada (sem cache) | Com cache (≈ 65% do prompt estático) | Por hora (30 chamadas) |
+|---|---|---:|---:|---:|
+| Opus 5 (hoje) | $5 / $25 | $0,061 | — | $1,82 |
+| Opus 5.5 | $4 / $20 (leitura de cache $0,20) | $0,049 | $0,022 | $1,46 → $0,66 |
+| Sonnet 5.5 | $2 / $10 (leitura $0,10) | $0,024 | $0,011 | $0,73 → $0,33 |
+| Haiku 5.5 | $0,10 / $0,50 | $0,0012 | — | $0,04 |
+
+Evidência de qualidade existente (docs/benchmarks/2026-09-25-combinacoes, uma geração por caso, juiz Opus 5): Opus 5 aprovou 5/6 (fidelidade 5,00; naturalidade 4,83); Sonnet 5 aprovou 5–6/6 (fidelidade 4,83; naturalidade 4,67); Haiku 4.5 aprovou 3–4/6, acrescentou fato não informado e passou do limite de palavras. Nenhum dos modelos 5.5 foi medido nesta tarefa.
+
+Recomendação (hipótese a validar por A/B antes de ligar):
+1. Classificadores: Haiku 4.5 → **Haiku 5.5** (≈ −90%), com `thinking` explícito desligado e saída estruturada.
+2. Falas curtas baseadas em dados dados no prompt (anúncio de música, identificação, chamada de ouvinte): **Sonnet 5.5**. Mantém variação de texto, ao contrário de modelo fixo, por ~40% do custo do Opus 5.5.
+3. Comentários com curiosidade/história: **Opus 5.5** (mesma família, −20% de tarifa, leitura de cache a 5%), sem risco de qualidade esperado.
+4. Haiku 5.5 para texto criativo só como experimento: o Haiku 4.5 inventou fato; no flashback fato inventado é o pior defeito.
+
+Mix de 75% Sonnet 5.5 + 25% Opus 5.5: ≈ US$ 0,92/h sem cache, ≈ 0,42 com cache (hoje 1,82).
+
+Cuidados de implementação: Opus 5.5 não aceita `thinking: disabled` (usar esforço `low`, medir tokens de raciocínio, que contam como saída); Sonnet 5.5 desliga raciocínio com `{"type": "between_tools"}` e esforço ≤ `high`; ambos rejeitam `tool_choice` forçado e `temperature`; `economia.criar_mensagem` exige tarifa em `ia_tarifas_llm` e remove `thinking` só para nomes com "haiku"; prompts escritos para modelos anteriores costumam ficar prescritivos demais; tokenizador do Haiku 5.5 conta mais tokens que o 4.5.
+
+Protocolo: 3 candidatas (Opus 5.5, Sonnet 5.5, mix) × 40 blocos flashback com entradas fixas, juiz e checagens automáticas de `avaliar-locucao`, escuta às cegas de uma hora; custo estimado da rodada de API: poucos dólares (a confirmar antes de executar).
