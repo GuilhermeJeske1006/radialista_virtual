@@ -8,6 +8,9 @@ import { esperarTransicao, pausaAntesDoBloco, reproduzirGrupoDeFalas } from "../
 import { FALA_SOBRE_INTRO, medirDuracaoAudio, planejarFalaSobreIntro, type PlanoFalaSobreIntro } from "../lib/falaSobreIntro";
 import { FilaPreparo } from "../lib/filaPreparo";
 import { RecuperacaoAoVivo } from "../lib/recuperacaoAoVivo";
+
+// IA sem saldo no provedor: tenta de novo só depois de 60 s (o backend ainda tem o disjuntor de 2 a 15 min).
+const ESPERA_IA_SEM_CREDITO_MS = 60_000;
 import { inicioAEnviar, medirDesvio, proximoInicioBruto } from "../lib/relogioAoVivo";
 
 import { useEffect, useRef, useState } from "react";
@@ -1463,7 +1466,8 @@ export function useLiveEngine() {
       recuperacaoTextoRef.current.sucesso();
       if (ativa()) setErro("");
     } catch (err) {
-      recuperacaoTextoRef.current.falhou();
+      const semCredito = err instanceof ApiError && /cr[ée]ditos|indispon[ií]vel/i.test(err.message);
+      recuperacaoTextoRef.current.falhou(semCredito ? ESPERA_IA_SEM_CREDITO_MS : 0);
       const radialistaAtual = radialistas.find((r) => r.id === contexto.radialistaId);
       const programaAtual = programasTodos.find((p) => p.id === contexto.programaId);
       if (radialistaAtual && programaAtual) {

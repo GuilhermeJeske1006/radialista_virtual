@@ -33,3 +33,14 @@ it("cancelamento libera o preparo sem esperar o cooldown inteiro", async () => {
   await aguardar;
   expect(circuito.disponivel()).toBe(false);
 });
+
+it("IA sem saldo respeita a espera mínima de 60 s mesmo na primeira falha", () => {
+  vi.useFakeTimers();
+  vi.spyOn(Math, "random").mockReturnValue(0);
+  const circuito = new RecuperacaoAoVivo();
+  circuito.falhou(60_000);
+  vi.advanceTimersByTime(59_999);
+  expect(circuito.disponivel()).toBe(false);
+  vi.advanceTimersByTime(1);
+  expect(circuito.disponivel()).toBe(true);
+});

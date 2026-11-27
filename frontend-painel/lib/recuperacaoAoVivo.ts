@@ -10,9 +10,10 @@ export class RecuperacaoAoVivo {
     this.proximaTentativa = 0;
   }
 
-  falhou() {
+  /** `esperaMinimaMs`: provedor sem saldo/credencial não volta em segundos; evita ~100 tentativas por hora. */
+  falhou(esperaMinimaMs = 0) {
     this.falhas++;
-    const espera = Math.min(30_000, 5_000 * 2 ** Math.min(this.falhas - 1, 3));
+    const espera = Math.max(esperaMinimaMs, Math.min(30_000, 5_000 * 2 ** Math.min(this.falhas - 1, 3)));
     this.proximaTentativa = Date.now() + espera + Math.random() * 1_000;
   }
 
