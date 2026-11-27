@@ -34,6 +34,14 @@ def parametros_modelo(model: str, effort: str = "low") -> dict:
     return {"thinking": {"type": "disabled"}, "output_config": {"effort": effort}}
 
 
+def max_tokens_modelo(model: str, base: int) -> int:
+    """Teto de saída por modelo. No Opus 5.5 o raciocínio não desliga e conta no `max_tokens`: com 512 ele truncava
+    3 de 6 falas na rodada A/B de 27/11 (≈ 2 mil tokens de saída por chamada). Os demais modelos mantêm o teto atual."""
+    if model.startswith("claude-opus-5-5"):
+        return max(base, 4096)
+    return base
+
+
 def _cortar_ate_ultima_frase(texto: str) -> str:
     """Apara um texto truncado (stop_reason=max_tokens) ate' o ultimo '.'/'!'/'?' completo.
 
@@ -51,7 +59,7 @@ def gerar_resposta(system_prompt: str, mensagem_usuario: str, model: str | None 
     model = model or MODEL
     response = criar_mensagem(_client,
         model=model,
-        max_tokens=512,
+        max_tokens=max_tokens_modelo(model, 512),
         **parametros_modelo(model, "low"),
         system=system_prompt,
         messages=[{"role": "user", "content": mensagem_usuario}],

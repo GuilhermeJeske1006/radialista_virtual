@@ -21,6 +21,28 @@ def test_parametros_por_modelo(modelo, esperado):
     assert llm.parametros_modelo(modelo, "low") == esperado
 
 
+@pytest.mark.parametrize("modelo,esperado", [
+    ("claude-opus-5-5", 4096),  # raciocínio não desliga e conta no teto: 512 truncava a fala
+    ("claude-opus-5", 512),
+    ("claude-sonnet-5-5", 512),
+    ("claude-haiku-4-5", 512),
+])
+def test_teto_de_saida_por_modelo(modelo, esperado):
+    assert llm.max_tokens_modelo(modelo, 512) == esperado
+
+
+def test_gerar_resposta_usa_teto_do_modelo(monkeypatch):
+    capturado = {}
+
+    def falso(_cliente, **kwargs):
+        capturado.update(kwargs)
+        return SimpleNamespace(stop_reason="end_turn", content=[SimpleNamespace(type="text", text="Oi.")])
+
+    monkeypatch.setattr(llm, "criar_mensagem", falso)
+    llm.gerar_resposta("sys", "msg", model="claude-opus-5-5")
+    assert capturado["max_tokens"] == 4096
+
+
 def test_tarifas_e_coeficientes_dos_modelos_55():
     assert settings.ia_tarifas_llm["claude-opus-5-5"] == [4, 20]
     assert settings.ia_tarifas_llm["claude-sonnet-5-5"] == [2, 10]
