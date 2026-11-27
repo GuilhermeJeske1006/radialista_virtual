@@ -173,6 +173,77 @@ def test_llm_sem_saldo_libera_reserva_e_informa_indisponibilidade(monkeypatch, m
     assert len(chamadas) == 1
 
 
+def _erro_saldo():
+    resposta = httpx.Response(400, request=httpx.Request("POST", "https://api.anthropic.com/v1/messages"))
+    msg = "Your credit balance is too low to access the Anthropic API."
+    return BadRequestError(msg, response=resposta, body={"type": "invalid_request_error", "message": msg})
+
+
+def test_disjuntor_llm_abre_no_saldo_e_falha_rapido_sem_chamar_provedor(monkeypatch, caplog):
+    chamadas = []
+
+    def rejeitar(**kwargs):
+        chamadas.append(kwargs)
+        raise _erro_saldo()
+
+    monkeypatch.setattr(llm._client.messages, "create", rejeitar)
+    reservas = []
+    monkeypatch.setattr(economia, "reservar", lambda *a, **k: reservas.append(1) or object())
+    monkeypatch.setattr(economia, "falhar", lambda *_: None)
+    with caplog.at_level("ERROR", logger="radialista.llm.custos"):
+        for _ in range(5):
+            with pytest.raises(HTTPException) as exc:
+                llm.gerar_resposta("Regras", "Pedido")
+            assert exc.value.status_code == 503
+    assert len(chamadas) == 1 and len(reservas) == 1  # as 4 seguintes nem reservam nem chamam
+    assert economia.llm_indisponivel()
+    assert len([r for r in caplog.records if "llm_saldo_insuficiente" in r.getMessage()]) == 1
+
+
+def test_disjuntor_llm_fecha_no_primeiro_sucesso_apos_o_ttl(monkeypatch):
+    from app.config.redis_client import redis_client
+
+    monkeypatch.setattr(economia, "reservar", lambda *a, **k: object())
+    monkeypatch.setattr(economia, "falhar", lambda *_: None)
+    monkeypatch.setattr(economia, "concluir", lambda *a, **k: None)
+    monkeypatch.setattr(llm._client.messages, "create", lambda **k: (_ for _ in ()).throw(_erro_saldo()))
+    with pytest.raises(HTTPException):
+        llm.gerar_resposta("Regras", "Pedido")
+    assert economia.llm_indisponivel()
+    redis_client.delete(economia._CHAVE_DISJUNTOR_LLM)  # TTL venceu
+    monkeypatch.setattr(llm._client.messages, "create",
+                        lambda **k: SimpleNamespace(stop_reason="end_turn", content=[SimpleNamespace(type="text", text="ok")]))
+    assert llm.gerar_resposta("Regras", "Pedido") == "ok"
+    assert not economia.llm_indisponivel()
+    assert redis_client.get(economia._CHAVE_NIVEL_DISJUNTOR_LLM) is None
+
+
+def test_disjuntor_llm_pausa_cresce_a_cada_reabertura(monkeypatch):
+    from app.config.redis_client import redis_client
+
+    monkeypatch.setattr(economia, "reservar", lambda *a, **k: object())
+    monkeypatch.setattr(economia, "falhar", lambda *_: None)
+    monkeypatch.setattr(llm._client.messages, "create", lambda **k: (_ for _ in ()).throw(_erro_saldo()))
+    ttls = []
+    for _ in range(3):
+        redis_client.delete(economia._CHAVE_DISJUNTOR_LLM)
+        with pytest.raises(HTTPException):
+            llm.gerar_resposta("Regras", "Pedido")
+        ttls.append(redis_client.ttl(economia._CHAVE_DISJUNTOR_LLM))
+    assert [round(t, -1) for t in ttls] == [120, 300, 900]
+
+
+def test_erro_de_formato_nao_abre_disjuntor(monkeypatch):
+    resposta = httpx.Response(400, request=httpx.Request("POST", "https://api.anthropic.com/v1/messages"))
+    erro = BadRequestError("max_tokens: must be greater than 0", response=resposta, body={})
+    monkeypatch.setattr(economia, "reservar", lambda *a, **k: object())
+    monkeypatch.setattr(economia, "falhar", lambda *_: None)
+    monkeypatch.setattr(llm._client.messages, "create", lambda **k: (_ for _ in ()).throw(erro))
+    with pytest.raises(BadRequestError):
+        llm.gerar_resposta("Regras", "Pedido")
+    assert not economia.llm_indisponivel()
+
+
 def test_middleware_preserva_conta_em_dependencia_sync_e_stream():
     from fastapi import Depends, FastAPI
     from fastapi.responses import StreamingResponse

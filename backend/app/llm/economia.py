@@ -3,13 +3,13 @@ import hashlib
 import json
 import logging
 
-from anthropic import BadRequestError
+from anthropic import AuthenticationError, BadRequestError, PermissionDeniedError
 from fastapi import HTTPException
 from redis.exceptions import RedisError
 
 from app.billing.consumo_ia import concluir, reservar, falhar
 from app.billing.contexto_ia import atual
-from app.config.redis_client import redis_client
+from app.config.redis_client import redis_client, redis_sessao
 from app.config.settings import settings
 from app.guardrails.provedores import executar
 
@@ -58,8 +58,58 @@ def guardar_classificacao(chave, texto):
             logger.warning("Falha ao guardar classificação")
 
 
+# Disjuntor de indisponibilidade do provedor por conta/credencial (saldo zerado, 401/403, limite de gasto).
+# Sem ele, cada /proxima do painel (retentativas a cada 5-30 s) bate no provedor, que recusa de novo:
+# em 27/11 foram ~390 chamadas inúteis em 1h30 enquanto o ar ficava só com vinhetas. Redis em falha
+# aberta (redis_sessao): sem Redis o comportamento é o de antes.
+_CHAVE_DISJUNTOR_LLM = "cb:llm_indisponivel"
+_CHAVE_NIVEL_DISJUNTOR_LLM = "cb:llm_indisponivel:nivel"
+_TTL_DISJUNTOR_LLM_S = (120, 300, 900)
+MENSAGEM_SEM_CREDITO = "Serviço de IA indisponível por falta de créditos no provedor. Contate o suporte."
+
+
+def llm_indisponivel() -> bool:
+    """True com o disjuntor aberto: o provedor recusou por saldo/credencial há pouco."""
+    return bool(redis_sessao.get(_CHAVE_DISJUNTOR_LLM))
+
+
+def _abrir_disjuntor_llm(motivo: str, modelo: str, request_id=None) -> None:
+    try:
+        nivel = int(redis_sessao.get(_CHAVE_NIVEL_DISJUNTOR_LLM) or 0)
+    except (TypeError, ValueError):
+        nivel = 0
+    ttl = _TTL_DISJUNTOR_LLM_S[min(nivel, len(_TTL_DISJUNTOR_LLM_S) - 1)]
+    redis_sessao.set(_CHAVE_NIVEL_DISJUNTOR_LLM, nivel + 1, ex=3600)
+    # nx: um único log de erro (e um único evento no Sentry) por abertura, não um por chamada.
+    if redis_sessao.set(_CHAVE_DISJUNTOR_LLM, motivo, ex=ttl, nx=True):
+        logger.error("llm_saldo_insuficiente motivo=%s modelo=%s request_id=%s pausa_s=%s",
+                     motivo, modelo, request_id, ttl)
+
+
+def _fechar_disjuntor_llm() -> None:
+    if redis_sessao.get(_CHAVE_NIVEL_DISJUNTOR_LLM) is not None:
+        redis_sessao.delete(_CHAVE_NIVEL_DISJUNTOR_LLM)
+        logger.info("llm_disponivel_novamente")
+
+
+def _erro_de_credencial(exc: Exception):
+    """Motivo do disjuntor para erros do provedor que não se resolvem retentando; None nos demais."""
+    if isinstance(exc, (AuthenticationError, PermissionDeniedError)):
+        return "credencial"
+    if isinstance(exc, BadRequestError):
+        mensagem = (exc.message or "").lower()
+        if "credit balance is too low" in mensagem:
+            return "saldo"
+        if "usage limit" in mensagem or "spend limit" in mensagem:
+            return "limite_gasto"
+    return None
+
+
 def criar_mensagem(client, **kwargs):
     from app.billing.contexto_ia import modelo_efetivo
+    if llm_indisponivel():
+        # Falha rápida: sem reserva, sem chamada ao provedor, sem log por tentativa.
+        raise HTTPException(503, MENSAGEM_SEM_CREDITO)
     model = kwargs["model"]
     if model != settings.llm_classification_model:
         model = kwargs["model"] = modelo_efetivo('llm', model)
@@ -101,12 +151,12 @@ def criar_mensagem(client, **kwargs):
         falhar(reserva)
         # A Anthropic responde 400 quando o saldo do provedor acaba. Sem tradução,
         # essa exceção chega ao painel como 500 e esconde a causa da fala local.
-        if isinstance(exc, BadRequestError) and "credit balance is too low" in exc.message.lower():
-            logger.error("llm_saldo_insuficiente modelo=%s request_id=%s", model, exc.request_id)
-            raise HTTPException(
-                503, "Serviço de IA indisponível por falta de créditos no provedor. Contate o suporte."
-            ) from exc
+        motivo = _erro_de_credencial(exc)
+        if motivo:
+            _abrir_disjuntor_llm(motivo, model, getattr(exc, "request_id", None))
+            raise HTTPException(503, MENSAGEM_SEM_CREDITO) from exc
         raise
+    _fechar_disjuntor_llm()
     usage = getattr(resposta, "usage", None)
     if usage is not None:
         ins = getattr(usage, "input_tokens", 0) or 0
