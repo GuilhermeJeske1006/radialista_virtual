@@ -49,6 +49,18 @@ Medição/preço (quando ligada): fórmula `economia.py:118` e tarifas de refer�
 7. Unidade `character-cost` do TTS a conferir (possível subcontagem 2× em Flash/Turbo).
 8. Ligar medição com `tarifas_ia` vazia derruba toda geração de contas não isentas (503).
 
+### Custo real medido (log `llm_consumo`, 11:55–12:27 BRT, antes do saldo acabar)
+
+O log `llm_consumo` registra tokens e USD por chamada mesmo na conta isenta, então há custo real nos logs (não no banco):
+
+| Modelo | Chamadas | Entrada (tokens) | Saída (tokens) | USD |
+|---|---:|---:|---:|---:|
+| claude-opus-5 | 16 | 175 258 | 3 839 | 0,972 |
+| claude-haiku-4-5 | 47 | 174 456 | 4 653 | 0,318 |
+| **Total LLM** | 63 | 349 714 | 8 492 | **1,29 (≈ US$ 2,4/h)** |
+
+Opus: ~11 mil tokens de entrada por chamada, ~1,45 chamada por bloco falado. Haiku pesa 25% do LLM (classificação de gênero, escolha de faixa, notícias) porque o programa ainda está no formato `padrao`; o formato flashback tira quase tudo isso. TTS vem por fora (ElevenLabs), então o custo total real fica acima de US$ 2,4/h, coerente com a faixa base da estimativa.
+
 ## 4. Melhorias propostas (ordem de prioridade)
 
 **A. Fazer agora (ops, sem código)**

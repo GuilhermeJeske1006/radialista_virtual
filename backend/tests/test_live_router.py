@@ -76,7 +76,6 @@ def test_reserva_so_serve_identificacao_pronta_do_programa(client, account, auth
 
 def test_reserva_faz_rodizio_e_evita_vinheta_de_momento_especifico(client, account, auth_headers, db_session,
                                                                   radialista_e_programa, monkeypatch, tmp_path):
-    import base64
     from app.config.settings import settings
     from app.storage import get_storage
     radio, programa = radialista_e_programa
