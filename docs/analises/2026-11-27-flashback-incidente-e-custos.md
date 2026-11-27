@@ -93,3 +93,35 @@ Opus: ~11 mil tokens de entrada por chamada, ~1,45 chamada por bloco falado. Hai
 - Logs de prod só desde 26/11 21:37 UTC (reinício); 26/11 do programa vem do relatório anterior.
 - Estimativas de custo são do código/preço público, não de fatura.
 - Itens 13–17 têm percentuais estimados; confirmar com `cache_read_input_tokens` e log `llm_consumo`.
+
+## 6. Custo real × promessa comercial (verificação de 27/11)
+
+**Promessa** (landing `config.js`/`index.html`, `backend/app/billing/combinacoes.py`, `docs/simulacao-plano-consumo.md`): Opus + ElevenLabs v4 ≈ **R$ 8,35 por hora de programa**, a fatura "segue o uso medido". A conta reproduz-se assim: 6 min de fala nova por hora = 12 gerações/h de 1 500 entrada / 150 saída tokens, 36 classificações Haiku de 500/32, 6 000 caracteres de voz, câmbio R$ 5,50, acréscimo de 100%.
+
+Recalculado: Opus US$ 0,135 + Haiku US$ 0,024 + TTS US$ 0,60 = US$ 0,76/h = R$ 4,17/h de custo → R$ 8,35/h cobrado. A conta fecha.
+
+**Medido no Flashback** (programa 3, conta 1; `blocos_reproduzidos` e log `llm_consumo`):
+
+| Variável | Prometido | Medido | Razão |
+|---|---:|---:|---:|
+| Blocos falados por hora | 12 | ~24 (26/11: 48 em 2 h) | 2,0× |
+| Caracteres de voz por hora | 6 000 | 12 700 (26/11) a 14 700 (27/11) | 2,1–2,5× |
+| Minutos de fala nova por hora | 6 | ~12,5 | 2,1× |
+| Tokens de entrada por chamada Opus | 1 500 | ~11 000 | 7,3× |
+| Custo por chamada Opus | US$ 0,011 | US$ 0,061 | 5,4× |
+| Chamadas Haiku por hora | 36 (500 tokens) | ~88 (3 700 tokens) | 2,4× em número, 7× em tamanho |
+
+| Custo por hora | Prometido (US$) | Medido (US$) | Razão |
+|---|---:|---:|---:|
+| Opus | 0,135 | 1,82 | 13× |
+| Haiku | 0,024 | 0,60 | 25× |
+| Voz (US$ 0,10 por mil caracteres) | 0,60 | 1,27–1,47 | 2,1–2,5× |
+| **Total** | **0,76** | **≈ 3,7–3,9** | **≈ 5×** |
+
+Em reais, ≈ R$ 20–21/h de custo; **cobrado a 2× seria ≈ R$ 41–43/h contra os R$ 8,35 prometidos**. Em 44 h/mês (2 h × 22 dias), ≈ R$ 1 800–1 900 de uso contra ≈ R$ 370 estimados no simulador do site. A conta 1 é isenta, então hoje nada é cobrado; o desvio é de margem e de expectativa, não de fatura emitida.
+
+Origem do desvio, em ordem de peso: (1) prompt do Opus 7× maior que o simulado (contexto de programa, histórico, regras; sem cache); (2) formato `padrao` ainda ativo no programa 3, que paga classificadores Haiku que o flashback dispensa; (3) o dobro da fala nova prevista (formato musical com fala entre quase todas as faixas); (4) 15% dos blocos gerados são descartados (2 de 13 hoje) e custam LLM + voz; (5) reescritas por teto de tempo (1,45 chamada por bloco).
+
+Limites: amostra pequena (32 min de LLM medidos em 27/11; 3 ocorrências de blocos), sem fatura da ElevenLabs para confirmar o preço por caractere, e o Haiku de hoje ainda inclui o formato `padrao`. A ordem de grandeza (~5×) é robusta; o valor exato não.
+
+**Caminho para aproximar da promessa** (sem trocar modelo): flashback configurado (tira o Haiku, ~US$ 0,6/h); anúncios e identificações sem LLM (−70–75% das chamadas Opus); prompt caching real (entrada −55–65%); menos descarte de pré-preparo. Estimativa otimista: ~US$ 1,0–1,3/h (R$ 5,5–7/h de custo, R$ 11–14/h cobrado) — ainda acima de R$ 8,35, porque a voz com 12 min de fala por hora já consome US$ 1,0+. Fechar a conta exige uma de duas decisões de negócio: reduzir a fala para ~6 min/h, ou **revisar o preço estimado do site** para programas musicais com fala frequente (faixa realista hoje: R$ 25–45/h; após as otimizações, R$ 12–20/h).
