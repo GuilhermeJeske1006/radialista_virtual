@@ -270,3 +270,7 @@ Hora simulada curta (8–11 chamadas de fala), então os USD valem como razão e
 - Sonnet 5.5 nas falas curtas saiu bom (juiz e leitura).
 - Amostra pequena (7–9 falas por rodada): diferenças < 0,3 de nota não separam as rodadas. O portão B1 do plano pede 40 blocos ou repetição com outras sementes.
 - Pendente: juiz na R4b, escuta humana, depois ligar `LLM_PROMPT_CACHE` e `LLM_MODEL_FALAS_CURTAS` (e `LLM_MODEL` = Opus 5.5 se aprovado).
+
+### 10.5 Produção (27/11, 17h44)
+
+Deploy `bd46551` ok (CI do frontend falhou uma vez por rede ao baixar fonte Google; rerun passou). Aplicado `configurar_flashback` no programa 3 (re-prévia: `campos: []`). Ligados no `.env.backend` do VPS `LLM_PROMPT_CACHE=true` e `LLM_MODEL_FALAS_CURTAS=claude-sonnet-5-5` (backup `.env.backend.bak-20261127`); `LLM_MODEL` segue Opus 5. Smoke direto no cliente Anthropic com os parâmetros de cada modelo passou. **Falta:** medir a primeira hora real (28/11, 12h–14h) com `custo_log.py`; reverter flags se cache_read = 0, fala acima do teto ou queda de naturalidade.
