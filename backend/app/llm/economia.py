@@ -70,10 +70,21 @@ MENSAGEM_SEM_CREDITO = "Serviço de IA indisponível por falta de créditos no p
 
 def llm_indisponivel() -> bool:
     """True com o disjuntor aberto: o provedor recusou por saldo/credencial há pouco."""
-    return bool(redis_sessao.get(_CHAVE_DISJUNTOR_LLM))
+    try:
+        return bool(redis_sessao.get(_CHAVE_DISJUNTOR_LLM))
+    except Exception:  # noqa: BLE001 - o disjuntor nunca pode derrubar a geração: sem Redis, falha aberta
+        return False
 
 
 def _abrir_disjuntor_llm(motivo: str, modelo: str, request_id=None) -> None:
+    try:
+        _abrir_disjuntor_llm_redis(motivo, modelo, request_id)
+    except Exception:  # noqa: BLE001
+        logger.error("llm_saldo_insuficiente motivo=%s modelo=%s request_id=%s (disjuntor indisponível)",
+                     motivo, modelo, request_id)
+
+
+def _abrir_disjuntor_llm_redis(motivo: str, modelo: str, request_id=None) -> None:
     try:
         nivel = int(redis_sessao.get(_CHAVE_NIVEL_DISJUNTOR_LLM) or 0)
     except (TypeError, ValueError):
@@ -87,9 +98,12 @@ def _abrir_disjuntor_llm(motivo: str, modelo: str, request_id=None) -> None:
 
 
 def _fechar_disjuntor_llm() -> None:
-    if redis_sessao.get(_CHAVE_NIVEL_DISJUNTOR_LLM) is not None:
-        redis_sessao.delete(_CHAVE_NIVEL_DISJUNTOR_LLM)
-        logger.info("llm_disponivel_novamente")
+    try:
+        if redis_sessao.get(_CHAVE_NIVEL_DISJUNTOR_LLM) is not None:
+            redis_sessao.delete(_CHAVE_NIVEL_DISJUNTOR_LLM)
+            logger.info("llm_disponivel_novamente")
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def _erro_de_credencial(exc: Exception):
