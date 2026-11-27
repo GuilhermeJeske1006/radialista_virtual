@@ -1,5 +1,7 @@
 # Plano de redução de custo do Flashback sem perder qualidade
 
+> **Versão validada: ver a seção 9.** As seções 1–8 são a análise original; onde os números da seção 9 diferem (A1 já resolve a fala longa, B1 e C1 reduzidos), vale a seção 9.
+
 Base: medição de 27/11/2026 (docs/analises/2026-11-27-flashback-incidente-e-custos.md, seção 6). Valores por hora de programa no ar, em US$.
 
 ## 1. Ponto de partida e meta
@@ -149,3 +151,66 @@ Conclusão: **não trocar de provedor para reduzir custo agora**. Duas exceçõe
 2. **Classificadores em modelo pequeno de outro provedor** não compensam: o Haiku 5.5 ($0,10/$0,50) já custa o mesmo que GPT-5 nano ou Gemini Flash-Lite, sem nova integração.
 
 Se a Locufy chegar a dezenas de programas, repetir esta conta; Sabiá-4 (pt-BR nativo, inferência no Brasil, sem transferência internacional) e Gemini 3 Flash são os candidatos a avaliar com eval próprio.
+
+
+## 9. Plano validado (27/11) 
+
+Validação feita contra o código e a produção (somente leitura), com a simulação gratuita `simular_hora.py --formato flashback` para medir o prompt.
+
+### 9.1 O que a validação confirmou, corrigiu ou deixou aberto
+
+| Premissa | Resultado | Evidência |
+|---|---|---|
+| Produção roda o formato `padrao`, não o flashback | **Confirmado** | `programas`: `perfil_programacao=padrao`, `pecas_reserva`=0, `estrutura_blocos` antiga |
+| O formato flashback já limita a fala | **Descoberta: muda o plano** | `formatos.py` `FLASHBACK`: anúncio de música 5/10/15 s, comentário e chamada 15/22/30 s, identificação 3/6/8 s, `aplica_orcamento=True`, `faixa_fala_pct=(8, 18)`. Em produção os anúncios duram 21–28 s e os comentários 36–38 s: esses limites hoje **não estão em vigor** |
+| Fala prevista com o flashback | ≈ 6,5 min/h | 8 anúncios × 10 s + comentário 22 s + identificação 6 s + chamada 22 s ≈ 130 s por ciclo de ~35 min. Hoje 12,5 min/h. Fica na premissa do site (6 min) e dentro da faixa editorial (8–18%) |
+| Prompt tem ~80% de conteúdo estático | **Confirmado** | simulação flashback: 79–82% dos caracteres idênticos entre prompts; só 14 linhas dinâmicas, a primeira no caractere 483 (prefixo comum 595 de ~18 mil) |
+| Cache de prompt hoje não acerta | **Confirmado** | idem; a hora (HH:MM) é a primeira linha dinâmica |
+| Entrada de ~11 mil tokens por chamada | **Parcial** | simulação do flashback: ≈ 18,5 mil caracteres de system + 0,9 mil de mensagem ≈ 6–7 mil tokens (3,3 caracteres/token, estimativa). Os dados da rádio no prompt são minúsculos (bíblia 91 caracteres, conhecimento local 240); 56% do system são regras fixas no código (`_abertura_do_system`, 10,4 mil caracteres) e 18% `_REGRAS_GERAIS`. Os ~4–5 mil tokens restantes de produção devem vir das seções de jornalismo/dados/música do formato `padrao` (vazias na simulação) e do histórico das 6 últimas falas (~1 mil tokens). **A medir** depois do A1 |
+| Pré-preparo descarta tudo quando a faixa falha | **Confirmado** | `useLiveEngine.ts:1351` chama `descartarPreparo()`, que cancela a fila inteira (antecedência 2 → até 2 gerações desperdiçadas por falha) |
+| Haiku pesa 25% do LLM por causa do `padrao` | **Confirmado** (por inferência) | flashback desliga busca, gênero, sugestão e citadas em `configurar_flashback.py` (`pode_pesquisar=False`); ainda a confirmar nos logs após aplicar |
+| Custo real ≈ 5× o prometido | **Confirmado** | seção 6 |
+| Preço por mil caracteres da voz | **Aberto** | premissa US$ 0,10; confirmar na fatura da ElevenLabs |
+| Tamanho mínimo de prefixo para cache do Opus/Sonnet 5.5 | **Aberto** | o prefixo estático ≈ 4,8 mil tokens; confirmar o mínimo cacheável do modelo e `cache_read_input_tokens` no primeiro dia |
+
+### 9.2 Correções ao plano original
+
+- **A1 vale mais do que o estimado.** Aplicar `configurar_flashback` coloca em vigor o orçamento por bloco (anúncio ≤ 15 s, comentário ≤ 30 s) e a faixa de fala 8–18%. Isso entrega quase tudo de A2 (teto de palavras na primeira chamada, menos reescrita) e de A3 (fala de 12,5 para ~6,5 min/h). **A3 deixa de ser um item separado**: vira verificação após A1.
+- **C1 (anúncio sem LLM) perde prioridade.** Com A1 os anúncios já ficam em 10 s, e Sonnet 5.5 nesses blocos custa ~US$ 0,01 por chamada, sem o risco de monotonia dos modelos de texto fixo. C1 só se justifica se a escuta mostrar que Sonnet 5.5 não serve.
+- **Voz domina o que sobra** (≈ US$ 0,65/h). O próximo ganho de voz só vem de tarifa menor ou de menos fala.
+
+### 9.3 Estimativa revisada (US$ por hora; ordem de grandeza, a medir em cada passo)
+
+| Etapa | Opus | Haiku | Voz | Total | vs hoje |
+|---|---:|---:|---:|---:|---:|
+| Hoje (medido) | 1,82 | 0,60 | 1,40 | 3,8 | |
+| A1: flashback aplicado (≈ 22 chamadas/h, prompt 6,5–9 mil tokens, fala 6,5 min/h) | 0,95 | 0,05 | 0,65 | **≈ 1,65** (1,5–1,8) | −57% |
+| + B1/B2: cache de prompt e prompt enxuto | 0,28 | 0,05 | 0,65 | ≈ 0,98 | −74% |
+| + C3: Sonnet 5.5 (75%) + Opus 5.5 (25%) nas falas, Haiku 5.5 nos classificadores | 0,14 | 0,03 | 0,65 | **≈ 0,82** | −78% |
+
+Em reais, ≈ R$ 4,5 por hora de custo, ≈ R$ 9–11 por hora cobrado a 2× (o site promete R$ 8,35; hoje seria R$ 41–43). A promessa passa a ficar a +10–30% em vez de 5×.
+
+### 9.4 Plano final, em ordem de execução
+
+| Passo | O que fazer | Esforço | Economia/h | Portão de qualidade (ligar só se passar) | Reversão |
+|---|---|---|---:|---|---|
+| 0 | Publicar a branch `fix/resiliencia-custos-flashback` (disjuntores, chave fora dos logs, 1 busca de YouTube) e recarregar crédito Anthropic com recarga automática | feito em código; push e deploy dependem de você | evita nova queda | suíte verde (2 810 testes) | reverter o deploy |
+| 0b | **Rotacionar a chave do YouTube** e restringi-la ao IP do VPS | 10 min, manual | — | — | — |
+| 1 | A0: log por bloco com custo, tokens de entrada por seção e contagem de reescritas/descartes; gravar `usos_ia` para conta isenta | 0,5–1 dia | 0 | — | — |
+| 2 | **A1:** `configurar_flashback --programa-id 3` em prévia, depois `--aplicar` fora do horário (12–14h), com backup | 30 min | ≈ 2,1 | uma hora de escuta; fala ≤ 18% do ar; anúncios ≤ 15 s e comentários ≤ 30 s; zero fato inventado; repetição de estrutura não piora | restaurar o backup gravado em `config_backups/` |
+| 3 | Medir tokens reais pós-A1 (log do passo 1) e fechar a lacuna entre 6–7 mil e 11 mil tokens | 0,5 dia | — | decide o tamanho de B2 | — |
+| 4 | **B1:** reordenar o prompt (linhas dinâmicas no fim), dividir `system` em bloco estático com `cache_control` e dinâmico, só então ligar `LLM_PROMPT_CACHE` | 2–3 dias | ≈ 0,6 | teste automático: prefixo ≥ 70% e conjunto de regras idêntico; A/B de 40 blocos com `avaliar-locucao`; `cache_read_input_tokens` > 0 no log | flag desligada |
+| 5 | **B2:** enxugar o prompt (regras duplicadas em `_abertura_do_system` e `_REGRAS_GERAIS`, histórico das 6 falas) | 2–3 dias | ≈ 0,05–0,1 | mesmo A/B; nenhuma regra editorial removida sem teste | flag/rollback do commit |
+| 6 | Corrigir pré-preparo: descartar só blocos que citam a faixa que falhou; pular pré-aquecimento com painel ativo | 1 dia | ≈ 0,05–0,1 | testes vitest; descartes < 5% | commit isolado |
+| 7 | **C3:** rodada A/B Opus 5.5 × Sonnet 5.5 × mix e Haiku 5.5 nos classificadores; ajustar `economia.py` (thinking por modelo, coeficientes de cache, tarifas) | 2–3 dias + rodada de API (alguns dólares, aprovação prévia) | ≈ 0,15–0,2 | juiz + checagens + escuta às cegas; nota de naturalidade e fidelidade ≥ Opus atual | trocar o modelo por configuração |
+| 8 | Camada de provedor com segundo LLM só como contingência (disjuntor aberto) | 3–5 dias, opcional | evita queda | política de privacidade atualizada antes | desligar flag |
+| 9 | Conferir fatura da ElevenLabs (preço por caractere, plano por volume); corrigir defeitos de medição (Scribe, bytes/tokens, reservas) antes de cobrar | 1–2 dias | incerta | — | — |
+| 10 | Atualizar a estimativa do site com a medição final (por perfil de programa) | 0,5 dia | — | aprovação sua | — |
+
+### 9.5 Regra de qualidade e parada
+
+Cada passo roda em uma hora real do Flashback, com a skill `avaliar-locucao` sobre os blocos e escuta humana. Parar e reverter se: falas acima do teto > 10%, taxa de reescrita > 1,3 chamada por bloco, repetição de abertura/estrutura entre blocos, qualquer fato sem fonte, nota de naturalidade abaixo da linha de base, ou descartes de pré-preparo > 5%.
+
+### 9.6 O que continua não validado
+
+Qualidade de Sonnet 5.5, Opus 5.5 e Haiku 5.5 nesta tarefa (sem medição); tokens reais por chamada após o A1; preço real da voz; mínimo cacheável dos modelos; efeito do cache em blocos com tipos de fala diferentes (linhas específicas por tipo ficam no bloco estático ou dinâmico? a decidir no B1).
