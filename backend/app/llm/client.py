@@ -2,6 +2,7 @@ import logging
 import re
 
 from anthropic import Anthropic
+from fastapi import HTTPException
 
 from app.config.settings import settings
 from app.llm.json_utils import extrair_json
@@ -361,6 +362,9 @@ def escolher_faixa_do_programa(faixas: list[tuple[str, str]], contexto: str) -> 
     linhas = "\n".join(f"{n}) {artista} - {titulo}" for n, (artista, titulo) in enumerate(faixas, 1))
     try:
         resposta = gerar_classificacao(_ESCOLHA_FAIXA_SYSTEM_PROMPT, f"Contexto do programa:\n{contexto}\n\nFaixas:\n{linhas}")
+    except HTTPException:
+        logger.info("Escolha de faixa pelo contexto indisponível (IA fora do ar)")
+        return None
     except Exception:
         logger.warning("Falha ao escolher faixa pelo contexto do programa", exc_info=True)
         return None
@@ -399,6 +403,11 @@ def itens_fora_do_genero(itens: list[str], generos: list[str]) -> set[int]:
         fora = extrair_json(resposta).get("fora")
         if not isinstance(fora, list) or any(type(n) is not int or not 1 <= n <= len(itens) for n in fora):
             raise ValueError("Classificação de gênero inválida")
+    except HTTPException:
+        # Provedor indisponível (disjuntor aberto/sem saldo): já registrado uma vez em economia; sem
+        # traceback por candidato (eram ~140 por hora). Mantém o bloqueio dos candidatos não verificados.
+        logger.info("Classificação de gênero indisponível (IA fora do ar): %d candidato(s) não verificado(s)", len(itens))
+        return set(range(len(itens)))
     except Exception:
         logger.warning("Falha ao classificar genero de artistas: generos=%r", generos, exc_info=True)
         return set(range(len(itens)))

@@ -973,7 +973,7 @@ def _classificar_bloco_customizado(tipo_original: str, normalizado: str) -> str:
             categoria = classificar_categoria_bloco(tipo_original)
         except Exception:
             logger.warning("Falha ao classificar categoria de bloco customizado: %r", tipo_original, exc_info=True)
-            categoria = "outro"
+            return "outro"  # falha transitória (ex.: sem saldo): não cacheia, tenta de novo no próximo bloco
         categoria = categoria if categoria in _TIPOS_COM_COMPORTAMENTO else ""
         if redis_client.hlen(_CACHE_CATEGORIA_CUSTOMIZADA) >= settings.cache_categoria_bloco_max:
             # Passou do teto: recomeca (cada rotulo paga uma classificacao de novo) em vez de crescer sem limite.
@@ -1403,6 +1403,7 @@ def _registrar_tema_em_background(programa_id: int, texto: str) -> None:
 # de gerado -- cache bem mais longo que o de sessao, mesma logica do cache de duracao/metadados
 # em app.live.music.
 _TTL_CONTEXTO_MUSICA = 30 * 24 * 60 * 60
+_TTL_CONTEXTO_MUSICA_VAZIO = 30 * 60
 
 
 def _contexto_musica(musica: MusicaEncontrada) -> str:
@@ -1420,7 +1421,9 @@ def _contexto_musica(musica: MusicaEncontrada) -> str:
         return em_cache
 
     contexto = resumir_contexto_musica(musica.titulo, musica.canal, musica.descricao, musica.tags, musica.ano)
-    redis_client.set(chave_cache, contexto, ex=_TTL_CONTEXTO_MUSICA)
+    # Vazio tanto pode ser "insuficiente" quanto falha do LLM (sem saldo): não fixar por 30 dias, senão a
+    # faixa fica sem contexto mesmo depois de o provedor voltar.
+    redis_client.set(chave_cache, contexto, ex=_TTL_CONTEXTO_MUSICA if contexto else _TTL_CONTEXTO_MUSICA_VAZIO)
     return contexto
 
 
