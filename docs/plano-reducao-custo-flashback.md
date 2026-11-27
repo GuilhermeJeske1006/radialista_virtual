@@ -114,3 +114,38 @@ Mix de 75% Sonnet 5.5 + 25% Opus 5.5: ≈ US$ 0,92/h sem cache, ≈ 0,42 com cac
 Cuidados de implementação: Opus 5.5 não aceita `thinking: disabled` (usar esforço `low`, medir tokens de raciocínio, que contam como saída); Sonnet 5.5 desliga raciocínio com `{"type": "between_tools"}` e esforço ≤ `high`; ambos rejeitam `tool_choice` forçado e `temperature`; `economia.criar_mensagem` exige tarifa em `ia_tarifas_llm` e remove `thinking` só para nomes com "haiku"; prompts escritos para modelos anteriores costumam ficar prescritivos demais; tokenizador do Haiku 5.5 conta mais tokens que o 4.5.
 
 Protocolo: 3 candidatas (Opus 5.5, Sonnet 5.5, mix) × 40 blocos flashback com entradas fixas, juiz e checagens automáticas de `avaliar-locucao`, escuta às cegas de uma hora; custo estimado da rodada de API: poucos dólares (a confirmar antes de executar).
+
+## 8. LLM de outro provedor (pesquisa de 27/11)
+
+Preços vêm de agregadores e páginas dos provedores vistos por busca; **conflitam entre fontes e não foram confirmados nas páginas oficiais**. Tratar como ordem de grandeza e conferir antes de decidir. Mesmo perfil de chamada: 11 mil tokens de entrada, 240 de saída, 30 chamadas/h.
+
+| Modelo | Preço por MTok (entrada/saída) | Por hora (sem cache) | Com cache |
+|---|---|---:|---:|
+| Claude Sonnet 5.5 (referência) | $2 / $10 | 0,73 | 0,33 |
+| GPT-5 | $1,25 / $10 (cache $0,125) | 0,48 | 0,25 |
+| GPT-5 mini | $0,25 / $2 | 0,10 | — |
+| Gemini 3 Flash | $0,50 / $3 (cache $0,05) | 0,19 | 0,09 |
+| Gemini 3.1 Pro | $2 / $12 | 0,75 | — |
+| Sabiá-4 (Maritaca, pt-BR) | R$ 5 / R$ 20 (≈ $0,91 / $3,64) | 0,33 | — |
+| Sabiazinho-4 | R$ 1 / R$ 4 | 0,07 | — |
+| Mistral Large 4 | $0,70 / $2,10 | 0,25 | — |
+| DeepSeek Flash | $0,15–0,30 / $0,60–1,20 | 0,05–0,11 | — |
+
+Ressalvas de custo: GPT-5 e Gemini 3 Flash raciocinam; os tokens de raciocínio são cobrados como saída e podem dobrar o custo real; Gemini cobra armazenamento de cache por hora; busca web é paga à parte nos dois (hoje `noticias.py` usa a ferramenta `web_search` da Anthropic).
+
+Qualidade: não achei benchmark comparável de escrita criativa em português brasileiro para estes modelos, nem taxa de alucinação. O único benchmark específico de pt-BR achado (relatório do Sabiá-4, CAPITU) não traz os números dos concorrentes nas buscas. A Artificial Analysis dá Gemini 3 Flash (raciocínio) 38 e GPT-5 mini 31, contra 42 a 53 do Sonnet 5 (outra geração, outra configuração; não é comparação direta). Para este produto (fala curta, regionalismo gaúcho, fato que não pode ser inventado, regras de oralidade longas no prompt), a qualidade só se decide com eval próprio.
+
+Esforço e risco de integração:
+- Isolamento bom: SDK da Anthropic só em 3 arquivos (`llm/client.py`, `llm/economia.py`, `llm/noticias.py`).
+- Mas medição, tarifas (`ia_tarifas_llm`), reservas, cache de prompt, parâmetros de raciocínio e a busca web são específicos da Anthropic; trocar exige camada de provedor, tarifas por provedor e novo teste das 2 800 verificações de prompt.
+- Prompts de ~19 mil caracteres foram afinados em Claude; migrar exige nova rodada de `avaliar-locucao` e escuta.
+- LGPD: a política de privacidade lista Anthropic e ElevenLabs como operadores; um novo provedor exige atualizar a política, avaliar transferência internacional e contrato de tratamento de dados.
+- DeepSeek e modelos hospedados na China: risco adicional de dados e latência a partir do Brasil.
+
+Conta do benefício: com o plano Anthropic (Sonnet 5.5 + cache ≈ US$ 0,42/h), mudar tudo para Gemini 3 Flash economizaria no máximo ≈ US$ 0,2–0,3/h, ou ≈ US$ 10 por mês por programa de 2 h/dia (22 dias), contra ≈ US$ 62/mês só de voz. Para pagar ~5 dias de engenharia mais eval e escuta (ordem de R$ 8 mil, estimativa), seriam necessários cerca de 150 programas-mês de economia, isto é, 12 programas por um ano.
+
+Conclusão: **não trocar de provedor para reduzir custo agora**. Duas exceções que valem estudo:
+1. **Segundo provedor como contingência.** O incidente de 27/11 (50 min de vinheta com saldo zerado) pesa mais do que a diferença de preço. Um modelo barato (Gemini 3 Flash, GPT-5 mini ou Sabiá-4) só entra quando o disjuntor da Anthropic está aberto, para falas simples. Custo desprezível; exige a mesma camada de provedor e a atualização da política de privacidade.
+2. **Classificadores em modelo pequeno de outro provedor** não compensam: o Haiku 5.5 ($0,10/$0,50) já custa o mesmo que GPT-5 nano ou Gemini Flash-Lite, sem nova integração.
+
+Se a Locufy chegar a dezenas de programas, repetir esta conta; Sabiá-4 (pt-BR nativo, inferência no Brasil, sem transferência internacional) e Gemini 3 Flash são os candidatos a avaliar com eval próprio.
