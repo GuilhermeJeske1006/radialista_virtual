@@ -251,3 +251,22 @@ Leitura da margem (fórmula de `docs/simulacao-plano-consumo.md`: cliente paga R
 - Prompt de saída: o texto do `system` é idêntico ao anterior com as flags desligadas (suíte de snapshots e caracterização do `/proxima` passando). Com o cache ligado, o conteúdo é o mesmo, com a ordem das linhas variáveis ao fim.
 - O formato `musical_curado` aplica os limites de fala do formato (anúncio ≤ 15 s, comentário/chamada ≤ 30 s, fala 8–18%), o repertório aprovado e `restringir_fatos` (fato histórico só do banco verificado); o `padrao` não aplicava nada disso.
 - **Não validado com modelo real**: a simulação com LLM real (A/B de Opus 5 × Opus 5.5 × Sonnet 5.5 e do cache ligado, com juiz e checagens do `avaliar-locucao`) não foi executada porque gasta créditos da API e a execução foi bloqueada pelo controle de permissões; depende de aprovação explícita (estimativa: 8 chamadas por rodada, ≈ US$ 0,3–0,6 por rodada, ≈ US$ 2 ao todo).
+
+### 10.4 A/B com LLM real (27/11, noite) — `simular_hora.py --modo llm`, fixture `musical_adulto`, semente 7
+
+Hora simulada curta (8–11 chamadas de fala), então os USD valem como razão entre rodadas, não como custo/h de produção. Custo ≈ US$ 1,6 no total (5 rodadas).
+
+| Rodada | Chamadas | Entrada média | Cache lido | LLM US$ | vs R1 | Veredito do juiz (`avaliar-locucao`) |
+|---|---:|---:|---:|---:|---:|---|
+| R1 `padrao`, Opus 5 | 10 | 7 566 | 0% | 0,43 | — | baseline (naturalidade 3,25, fidelidade 3,62) |
+| R2 `musical_curado`, Opus 5 | 9 | 8 214 | 0% | 0,40 | −7% | passa (4,00 / 4,64) |
+| R3 + cache de prompt | 11 | 2 254 | 65% | 0,32 | −26% | passa, provisório (3,67 / 4,39) |
+| R4 Opus 5.5 + Sonnet 5.5 (falas curtas) + cache | 10 | ≈ 2 100 | 62–65% | 0,22 | −49% | reprovou: Opus 5.5 bateu `max_tokens=512` em 3 de 6 chamadas (fala cortada, despedida truncada) |
+| R4b = R4 com teto 4096 no Opus 5.5 (`c906a45`) | 10 | ≈ 2 300 | 62% | 0,21 | −51% | sem truncamento, fora de orçamento 0%, acima do teto 0; **só leitura rápida, sem juiz** |
+
+- Cache de prompt funciona com Opus 5 e 5.5 (`cache_read` > 0, prefixo estável acima do mínimo cacheável).
+- O estouro de 4,8% da R3 foi uma única fala de comentário (31,45 s contra 30 s), efeito do ritmo do dublê (145 ppm) contra a estimativa do backend (162 ppm), não do cache.
+- Opus 5.5 gasta ≈ 2,8 mil tokens de saída por chamada (raciocínio não desliga). Ainda sai mais barato por causa do cache, mas vale vigiar `saida` no `custo_log.py`.
+- Sonnet 5.5 nas falas curtas saiu bom (juiz e leitura).
+- Amostra pequena (7–9 falas por rodada): diferenças < 0,3 de nota não separam as rodadas. O portão B1 do plano pede 40 blocos ou repetição com outras sementes.
+- Pendente: juiz na R4b, escuta humana, depois ligar `LLM_PROMPT_CACHE` e `LLM_MODEL_FALAS_CURTAS` (e `LLM_MODEL` = Opus 5.5 se aprovado).
