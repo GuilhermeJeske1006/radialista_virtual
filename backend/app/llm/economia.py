@@ -12,6 +12,7 @@ from app.billing.contexto_ia import atual
 from app.config.redis_client import redis_client, redis_sessao
 from app.config.settings import settings
 from app.guardrails.provedores import executar
+from app.llm.system_partes import blocos_para_cache
 
 logger = logging.getLogger("radialista.llm.custos")
 
@@ -139,7 +140,9 @@ def criar_mensagem(client, **kwargs):
     # Mesmas instruções, ordem e texto. Cache write custa 1.25x; não reduzir
     # histórico ou fatos arbitrariamente para atingir uma meta de tokens.
     if settings.llm_prompt_cache and isinstance(kwargs.get("system"), str):
-        kwargs["system"] = [{"type": "text", "text": kwargs["system"], "cache_control": {"type": "ephemeral"}}]
+        # Prompt dividido em estável + variável (system_partes): só a parte estável fica no prefixo cacheado.
+        kwargs["system"] = blocos_para_cache(kwargs["system"]) or [
+            {"type": "text", "text": kwargs["system"], "cache_control": {"type": "ephemeral"}}]
     # Limite conservador de entrada em UTF-8 (>= tokens usuais). Ferramentas de
     # busca podem acrescentar contexto: reservar a janela inteira nesses casos.
     bruto = json.dumps({k: kwargs.get(k) for k in ("system", "messages", "tools")},

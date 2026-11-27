@@ -30,6 +30,7 @@ from app.live.persona import linhas_da_persona
 from app.live.direcao_voz import instrucao_energia
 from app.live.promessas import descrever_agenda, instrucoes_do_bloco, situacao_do_contexto
 from app.live.orcamento import contar_pausas, palavras_max
+from app.llm.system_partes import SystemComPartes
 from app.live.prompts import (
     INSTRUCAO_TAGS_V3,
     _CATEGORIAS_NOTICIA_LIKE,
@@ -758,27 +759,39 @@ def _persona(ctx: "ContextoEmissao") -> list[str]:
     return linhas_da_persona(getattr(ctx.programa, "persona", None))
 
 
+# Linhas do system que mudam a cada bloco (hora, posição, rotação de verbo, direção do tipo de bloco). Ficam fora do
+# prefixo cacheável. Linha nova que não esteja aqui só reduz o acerto do cache (cai no bloco estável); nunca muda o texto.
+_PREFIXOS_LINHA_VARIAVEL = ("Contexto atual", "O programa segue", "Esta é aproximadamente", "Ao citar a identificação",
+                            "Este bloco é", "Evite nesta entrada", "Grade cadastrada", "Fatos verificados")
+
+
+def _partes_do_system(secoes_estaveis: list[list[str]], secoes_variaveis: list[list[str]]) -> tuple[str, str]:
+    """(estável, variável): linhas de seção estável que casam com os prefixos variáveis vão para o fim."""
+    estavel: list[str] = []
+    variavel: list[str] = []
+    for secao in secoes_estaveis:
+        for texto in secao:
+            for linha in str(texto).split("\n"):
+                (variavel if linha.startswith(_PREFIXOS_LINHA_VARIAVEL) else estavel).append(linha)
+    for secao in secoes_variaveis:
+        for texto in secao:
+            variavel.extend(str(texto).split("\n"))
+    return "\n".join(estavel), "\n".join(variavel)
+
+
 def montar_prompt(ctx: "ContextoEmissao") -> PromptEmissao:
     """System e mensagem do LLM para o bloco descrito por `ctx`. Puro: mesmo ctx, mesmo texto. O bloco de dados
     (F5) entra na mensagem, entre o histórico e o pedido, só quando há algo."""
     from app.live.musical_curado import instrucao_editorial
     dp = dados_do_prompt(ctx)
+    abertura, ritmo = _abertura_do_system(ctx), _ritmo_e_naturalidade(ctx)
+    memoria, jornalismo, dados = _memoria(ctx), _jornalismo(ctx, dp), _dados_de_referencia(ctx, dp)
+    ouvintes, reta_final, musica = _ouvintes_e_tempo(ctx), _reta_final(ctx), _musica(ctx, dp)
+    participacao, bloco, formato = _participacao(ctx, dp), instrucoes_do_bloco(ctx), _formato(ctx)
+    persona, duracao, editorial = _persona(ctx), _duracao(ctx), instrucao_editorial(ctx)
     linhas = [
-        *_abertura_do_system(ctx),
-        *_ritmo_e_naturalidade(ctx),
-        *_REGRAS_GERAIS,
-        *_memoria(ctx),
-        *_jornalismo(ctx, dp),
-        *_dados_de_referencia(ctx, dp),
-        *_ouvintes_e_tempo(ctx),
-        *_reta_final(ctx),
-        *_musica(ctx, dp),
-        *_participacao(ctx, dp),
-        *instrucoes_do_bloco(ctx),
-        *_formato(ctx),
-        *_persona(ctx),
-        *_duracao(ctx),
-        *instrucao_editorial(ctx),
+        *abertura, *ritmo, *_REGRAS_GERAIS, *memoria, *jornalismo, *dados, *ouvintes, *reta_final, *musica,
+        *participacao, *bloco, *formato, *persona, *duracao, *editorial,
     ]
     mensagem = "\n".join([
         f"Tipo do próximo bloco: {ctx.tipo}.",
@@ -787,7 +800,13 @@ def montar_prompt(ctx: "ContextoEmissao") -> PromptEmissao:
         *([dp.bloco] if dp.bloco else []),
         "Crie a próxima fala agora de acordo com a configuração da rádio.",
     ])
-    return PromptEmissao(system="\n".join(linhas), mensagem=mensagem)
+    completo = "\n".join(linhas)
+    # Mesmo texto e mesma ordem de sempre; as partes só são usadas com LLM_PROMPT_CACHE (ver llm/system_partes.py).
+    estavel, variavel = _partes_do_system(
+        [abertura, _REGRAS_GERAIS, editorial],
+        [ritmo, memoria, jornalismo, dados, ouvintes, reta_final, musica, participacao, bloco, formato, persona,
+         duracao])
+    return PromptEmissao(system=SystemComPartes(completo, estavel, variavel), mensagem=mensagem)
 
 
 @dataclasses.dataclass(frozen=True)
