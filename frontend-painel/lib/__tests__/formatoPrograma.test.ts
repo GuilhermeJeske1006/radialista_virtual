@@ -84,13 +84,14 @@ describe("roteiroDoFormato e blocos extras", () => {
     expect(definicaoDoFormato(programa("popular_sertanejo"), formatosFixture()).promessa).toBe("Companhia e reconhecimento.");
     expect(definicaoDoFormato(programa("popular_sertanejo")).promessa).toBe("");
     expect(definicaoDoFormato(programa("musical_companhia")).id).toBe("musical_adulto");
+    expect(definicaoDoFormato(programa("flashback")).id).toBe("musical_curado");
   });
 });
 
 describe("formatosImplementados (o que o select oferece)", () => {
   it("com a rota: só os implementados, padrão primeiro, sem os futuros", () => {
     expect(formatosImplementados(formatosFixture()).map((f) => f.id)).toEqual([
-      "padrao", "musical_adulto", "popular_sertanejo", "variedades_leves", "flashback",
+      "padrao", "musical_adulto", "popular_sertanejo", "variedades_leves", "musical_curado",
     ]);
   });
 

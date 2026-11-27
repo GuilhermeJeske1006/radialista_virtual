@@ -154,7 +154,7 @@ from app.live.roteiro import (  # noqa: F401 -- reexportados
     EntradaEmissao,
     decidir_bloco,
 )
-from app.live.formatos import FalaNoAr, Formato, avisos_da_fala, eh_quadro_fixo, formato_do_programa, reorienta
+from app.live.formatos import ID_CURADO, FalaNoAr, Formato, avisos_da_fala, eh_quadro_fixo, formato_do_programa, reorienta
 from app.live.direcao_voz import tom_musical
 from app.live.song_service import (
     dividir_artista_titulo, duracoes_catalogadas, esquecer_video_catalogado, resolver_musica_catalogada,
@@ -786,7 +786,7 @@ def _tipo_proximo_bloco(programa: Programa, total_falas: int, ultima_categoria: 
         return formato.roteiro_padrao[(total_falas - 1) % len(formato.roteiro_padrao)]
 
     tipo = roteiro_customizado[total_falas % len(roteiro_customizado)]
-    if formato.id == "flashback":
+    if formato.id == ID_CURADO:
         if total_falas >= len(roteiro_customizado) and _categoria_bloco(tipo) == "abertura":
             return "retomada"
         if ultima_categoria == "comentario" and _categoria_bloco(tipo) == "comentario":
@@ -1652,8 +1652,8 @@ def _selecionar_musica_para_bloco(
 ) -> tuple[MusicaEncontrada | None, str]:
     """Busca a faixa do bloco sem registrar (ver _buscar_musica_para_bloco). evitar_ids/
     evitar_titulos e duracao_max_s so' vem preenchidos pela escolha com teto do relogio."""
-    from app.live.flashback import ativo as flashback_ativo
-    if flashback_ativo(programa):
+    from app.live.musical_curado import repertorio_curado
+    if repertorio_curado(programa):
         return _selecionar_flashback(db, programa, evitar_ids, evitar_titulos, custo_duracao)
     genero_bloco = _genero_do_rotulo(rotulo_bloco) if rotulo_bloco else ""
     # Preferencia de duracao repassada a buscar_musica so' com teto do relogio (nao e' bloqueio).
@@ -1739,7 +1739,7 @@ _MAX_TENTATIVAS_FALLBACK_CURADO = 6
 
 
 def _selecionar_flashback(db, programa, evitar_ids=None, evitar_titulos=None, custo_duracao=None):
-    from app.live.flashback import INTERVALO_ARTISTA_MIN, artista_da_faixa, candidatos
+    from app.live.musical_curado import INTERVALO_ARTISTA_MIN, artista_da_faixa, candidatos
     from app.live.identidade_musical import corresponde, versao_de_estudio
     ids, titulos, canais = _historico_musicas(programa.id)
     ids |= set(evitar_ids or ())
@@ -2396,7 +2396,7 @@ def _musicas_do_bloco(db: Session, ctx: ContextoEmissao, musica: MusicaEncontrad
             # para a busca das faixas extras ([BLOCO_MUSICAS:N]) nao repetir nenhuma delas.
             _registrar_citadas(db, programa.id, citadas, consultas)
             musicas_bloco = _montar_bloco_musicas(db, programa, musica, quantidade, ctx.tipo, citadas=citadas)
-    elif fala.strip() and ctx.formato.id != "flashback":
+    elif fala.strip() and ctx.formato.id != ID_CURADO:
         # Fora do bloco de musica o locutor tambem comenta/promete musica -- se citou uma especifica, ela toca
         # logo depois da fala, em vez de ficar prometida e nunca tocar.
         musicas_bloco, nao_resolvidas, consultas = _musicas_citadas_na_fala(db, programa, fala, historico)
@@ -3084,8 +3084,8 @@ def buscar_musica_substituta(
     titulos_tocados = (titulos_tocados | titulos_radio) - {_titulo_normalizado(dados.titulo)}
 
     musica = None
-    from app.live.flashback import ativo as flashback_ativo
-    if flashback_ativo(programa):
+    from app.live.musical_curado import repertorio_curado
+    if repertorio_curado(programa):
         # Sempre outra faixa do repertório aprovado; não repete uma gravação parcialmente ouvida.
         musica = _buscar_musica_para_bloco(db, programa)
     elif dados.titulo.strip() and not dados.iniciou:

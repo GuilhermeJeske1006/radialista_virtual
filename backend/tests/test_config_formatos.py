@@ -42,7 +42,7 @@ def programa_url(client, account, auth_headers):
 # ---------------------------------------------------------------------------------------------------------
 
 def test_i8_aceitos_sao_os_implementados_e_os_aliases():
-    assert set(ACEITOS) == {"padrao", "musical_adulto", "musical_companhia", "popular_sertanejo", "variedades_leves", "flashback"}
+    assert set(ACEITOS) == {"padrao", "musical_adulto", "musical_companhia", "popular_sertanejo", "variedades_leves", "musical_curado", "flashback"}
 
 
 @pytest.mark.parametrize("valor", ACEITOS)
@@ -135,7 +135,7 @@ def test_u12_prompt_do_gerador_lista_os_formatos_implementados():
 def test_u12_tipo_radio_sugere_o_formato_como_dica():
     from app.llm import config_generator as g
 
-    assert "Formato sugerido para este tipo de rádio (dica, não regra): 'musical_adulto'" in \
+    assert "Formato sugerido para este tipo de rádio (dica, não regra): 'musical_curado'" in \
         g._montar_system_prompt_completo(tipo_radio="mpb_variedades")
     assert "Formato sugerido" not in g._montar_system_prompt_completo(tipo_radio="jornalismo_noticia")
     for tipo_radio in ("sertaneja", "popular_mix"):

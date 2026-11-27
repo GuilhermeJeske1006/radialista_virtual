@@ -56,7 +56,7 @@ def test_u1_campos_obrigatorios_e_unidades_coerentes(formato):
 
 def test_u1_implementados_e_futuros():
     implementados = {chave for chave, formato in f.FORMATOS.items() if formato.implementado}
-    assert implementados == {"padrao", "musical_adulto", "popular_sertanejo", "variedades_leves", "flashback"}
+    assert implementados == {"padrao", "musical_adulto", "popular_sertanejo", "variedades_leves", "musical_curado"}
     assert set(FUTUROS) <= set(f.FORMATOS)
     for chave in FUTUROS:
         futuro = f.FORMATOS[chave]
@@ -329,9 +329,9 @@ def test_u4_tabelas_de_orcamento_derivadas_do_catalogo():
     from app.live import orcamento
 
     assert orcamento.FORMATOS_APLICADOS == frozenset({"musical_adulto", "musical_companhia", "popular_sertanejo",
-                                                      "variedades_leves", "flashback"})
+                                                      "variedades_leves", "musical_curado", "flashback"})
     assert set(orcamento.ORCAMENTOS_POR_FORMATO) == {"padrao", "musical_adulto", "musical_companhia",
-                                                     "popular_sertanejo", "variedades_leves", "flashback"}
+                                                     "popular_sertanejo", "variedades_leves", "musical_curado", "flashback"}
     assert orcamento.ORCAMENTOS_POR_FORMATO["musical_companhia"] == {**ORCAMENTOS, "*": orcamento_fala("*")}
     assert orcamento.ORCAMENTOS_POR_FORMATO["musical_adulto"] == orcamento.ORCAMENTOS_POR_FORMATO["musical_companhia"]
     assert orcamento.ORCAMENTOS_POR_FORMATO["padrao"] == {"*": (15, 30, None)}

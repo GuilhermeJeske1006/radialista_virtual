@@ -17,7 +17,7 @@ logger = logging.getLogger("radialista.config_generator")
 # Quando usar cada formato implementado do catálogo (app.live.formatos, F6, D15). Todo formato implementado tem
 # uma linha aqui (teste U12); os ainda não implementados ficam fora do gerador (D13).
 _USO_FORMATO_NO_GERADOR = {
-    "flashback": "clássicos de 1970–1999, duas músicas por sequência e entradas breves com fonte",
+    "musical_curado": "programa musical com repertório aprovado, duas músicas por sequência, entradas breves (anúncio de até 15 s, conversa de até 30 s), curiosidade só com fonte e participação real; menor custo de IA",
     "padrao": "jornalismo, esporte, entrevista, debate, religioso e noturno, que ainda não têm formato próprio",
     "musical_adulto": "programa predominantemente musical, com poucas intervenções de companhia",
     "popular_sertanejo": "música com recados, histórias e vida local",
@@ -26,7 +26,7 @@ _USO_FORMATO_NO_GERADOR = {
 # Dica de formato pelo tipo de rádio da conta (D15): sugestão no prompt, nunca regra.
 _FORMATO_SUGERIDO_POR_TIPO_RADIO = {
     "sertaneja": "popular_sertanejo", "popular_mix": "popular_sertanejo",
-    "mpb_variedades": "musical_adulto", "regional_flashback": "musical_adulto",
+    "mpb_variedades": "musical_curado", "regional_flashback": "musical_curado",
 }
 _FORMATOS_DO_GERADOR = tuple(formato for formato in FORMATOS.values() if formato.implementado)
 

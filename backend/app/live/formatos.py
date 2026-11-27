@@ -25,6 +25,7 @@ ID_PADRAO = "padrao"
 ID_MUSICAL = "musical_adulto"
 ID_POPULAR = "popular_sertanejo"
 ID_VARIEDADES = "variedades_leves"
+ID_CURADO = "musical_curado"
 FONTE = "docs/pesquisa-radio-locufy.md §3; skill referencia-radio"
 
 # Frase da meta lida pelo dublê do LLM da simulação (scripts/simulacao/dubles.py, META_BLOCO_RE): não mudar a forma.
@@ -367,10 +368,10 @@ FUTUROS = (
 )
 
 
-FLASHBACK = replace(
-    VARIEDADES_LEVES, id="flashback", nome="Flashback 1970–1999",
-    promessa="Reencontrar os clássicos com repertório confiável e conversa breve.",
-    conteudo="Clássicos de 1970–1999, curiosidades verificadas e participação real.",
+MUSICAL_CURADO = replace(
+    VARIEDADES_LEVES, id=ID_CURADO, nome="Musical com curadoria",
+    promessa="Música no centro, com repertório confiável e conversa breve.",
+    conteudo="Músicas do repertório aprovado, curiosidades verificadas e participação real.",
     conducao="Próxima, animada e concisa, uma intenção por entrada.",
     unidade_principal="anúncio de 8 a 15 s; conversa de 20 a 30 s",
     unidades={
@@ -383,8 +384,8 @@ FLASHBACK = replace(
                           ia_pode_adicionar_blocos=False, naturalidade_encenada=False),
     roteiro_padrao=("musica", "musica", "comentario", "musica", "musica", "identificacao",
                     "musica", "musica", "chamada_ouvinte", "musica", "musica"),
-    relogio_padrao=None, aliases=(),
-    direcao_cabecalho="FORMATO FLASHBACK: a seleção de clássicos conduz o programa; cada fala tem uma função.",
+    relogio_padrao=None, aliases=("flashback",),
+    direcao_cabecalho="FORMATO MUSICAL COM CURADORIA: a seleção musical conduz o programa; cada fala tem uma função.",
     direcao_regras=("Uma ideia por entrada; respeite o orçamento específico do bloco.",
                     "Anúncio começa pelo artista e título confirmados, sem história longa.",
                     "Curiosidade somente com fonte; sem fonte, não invente dados nem bastidores.",
@@ -392,7 +393,7 @@ FLASHBACK = replace(
     participacao="Uma pergunta concreta na chamada; somente recados reais e autorizados podem ser lidos.",
     faixa_fala_pct=(8.0, 18.0), limites=LimitesCoerencia(),
     funcoes={**VARIEDADES_LEVES.funcoes,
-             "abertura": "Apresente locutor, rádio e a seleção de clássicos; sem pesquisa, lista de locais ou pergunta.",
+             "abertura": "Apresente locutor, rádio e a seleção musical; sem pesquisa, lista de locais ou pergunta.",
              "retomada": "Acolha quem chegou e identifique o programa em uma frase, sem reabrir o programa.",
              "identificacao": "Diga somente rádio, frequência e nome do programa; uma frase.",
              "musica": "Diga artista e título da faixa confirmada; não acrescente curiosidade nem convite.",
@@ -401,7 +402,7 @@ FLASHBACK = replace(
 )
 
 FORMATOS: Mapping[str, Formato] = {
-    formato.id: formato for formato in (PADRAO, MUSICAL_ADULTO, POPULAR_SERTANEJO, VARIEDADES_LEVES, FLASHBACK, *FUTUROS)
+    formato.id: formato for formato in (PADRAO, MUSICAL_ADULTO, POPULAR_SERTANEJO, VARIEDADES_LEVES, MUSICAL_CURADO, *FUTUROS)
 }
 _ALIASES: Mapping[str, str] = {alias: formato.id for formato in FORMATOS.values() for alias in formato.aliases}
 

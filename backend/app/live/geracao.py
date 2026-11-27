@@ -194,8 +194,8 @@ def gerar_fala(ctx, prompt: PromptEmissao, portas: PortasEmissao,
     # F7: avisos de oralidade entram na MESMA reescrita única, só com `oralidade_modo == "reescrever"`.
     avisos_oralidade = _avisos_oralidade(fala, ctx)
     instrucao_oralidade = instrucao_de_oralidade(avisos_oralidade)
-    from app.live.flashback import ativo as flashback_ativo, avisos_editoriais
-    editorial = avisos_editoriais(fala, ctx.memoria.historico) if flashback_ativo(programa) else []
+    from app.live.musical_curado import ativo as curado_ativo, avisos_editoriais
+    editorial = avisos_editoriais(fala, ctx.memoria.historico) if curado_ativo(programa) else []
     # Atribuição só é checada quando há UM fato central na pauta -- escalada lista várias manchetes.
     falta_atribuicao = (
         categoria in _CATEGORIAS_NOTICIA_LIKE
@@ -246,8 +246,8 @@ def gerar_fala(ctx, prompt: PromptEmissao, portas: PortasEmissao,
         if falta_atribuicao and not tem_atribuicao(fala):
             logger.warning("live_noticia_sem_atribuicao_apos_retry programa_id=%s tipo=%s", programa.id, tipo)
 
-    if flashback_ativo(programa):
-        from app.live.flashback import restringir_fatos
+    if curado_ativo(programa):
+        from app.live.musical_curado import restringir_fatos
         if falas_bloco:
             for item in falas_bloco:
                 item.texto = restringir_fatos(item.texto, ctx.memoria.historico, programa.nome)

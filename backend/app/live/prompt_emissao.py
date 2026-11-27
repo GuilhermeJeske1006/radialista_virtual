@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 
 from app.dados.fontes import bloco_de_dados, extra_faixa, extra_ouvinte, no_bloco
 from app.live.formatos import (
+    ID_CURADO,
     direcao_formato,
     eh_quadro_fixo,
     linhas_do_formato,
@@ -601,7 +602,7 @@ def _musica(ctx: "ContextoEmissao", dp: DadosDoPrompt) -> list[str]:
             "Toda música específica que você citar pelo nome nesta fala vai tocar de verdade, em sequência, "
             "logo depois da anunciada -- então só cite outra música se quiser mesmo que ela toque agora."
         )
-    elif categoria != "musica" and (ctx.tempo.plano is not None or ctx.formato.id == "flashback"):
+    elif categoria != "musica" and (ctx.tempo.plano is not None or ctx.formato.id == ID_CURADO):
         linhas.append(
             "Não cite nem prometa música específica pelo nome nesta fala: a programação musical segue o "
             "relógio do programa."
@@ -612,7 +613,7 @@ def _musica(ctx: "ContextoEmissao", dp: DadosDoPrompt) -> list[str]:
             "tocaram), ela vai tocar de verdade logo depois da sua fala. Então só cite música que faça sentido "
             "tocar agora e, se citar, feche a fala chamando essa música em vez de mudar de assunto depois dela."
         )
-    if categoria == "musica" and musica is not None and ctx.formato.id != "flashback":
+    if categoria == "musica" and musica is not None and ctx.formato.id != ID_CURADO:
         linhas.append(
             "Se sentir que o momento pede embalar o programa sem interrupção, você pode emendar mais músicas "
             "em seguida, sem falar entre uma e outra (tipo um bloco de duas ou três). Só faça isso de vez em "
@@ -760,7 +761,7 @@ def _persona(ctx: "ContextoEmissao") -> list[str]:
 def montar_prompt(ctx: "ContextoEmissao") -> PromptEmissao:
     """System e mensagem do LLM para o bloco descrito por `ctx`. Puro: mesmo ctx, mesmo texto. O bloco de dados
     (F5) entra na mensagem, entre o histórico e o pedido, só quando há algo."""
-    from app.live.flashback import instrucao_editorial
+    from app.live.musical_curado import instrucao_editorial
     dp = dados_do_prompt(ctx)
     linhas = [
         *_abertura_do_system(ctx),

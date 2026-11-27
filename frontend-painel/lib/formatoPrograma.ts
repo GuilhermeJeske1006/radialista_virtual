@@ -50,8 +50,9 @@ export const FORMATOS_ESPELHO: FormatoPrograma[] = [
   espelho(FORMATO_MUSICAL, "Musical adulto", ROTEIRO_MUSICAL, "A", false, ["musical_companhia"]),
   espelho(FORMATO_POPULAR, "Popular/sertanejo", ROTEIRO_POPULAR, "A", true),
   espelho(FORMATO_VARIEDADES, "Variedades leves", ROTEIRO_VARIEDADES, "C", true),
-  espelho("flashback", "Flashback 1970–1999", ["musica", "musica", "comentario", "musica", "musica",
-    "identificacao", "musica", "musica", "chamada_ouvinte", "musica", "musica"], null, false),
+  // Ex-"flashback": vale para qualquer programa musical com repertório aprovado; "flashback" segue como alias.
+  espelho("musical_curado", "Musical com curadoria", ["musica", "musica", "comentario", "musica", "musica",
+    "identificacao", "musica", "musica", "chamada_ouvinte", "musica", "musica"], null, false, ["flashback"]),
 ];
 
 type ProgramaComFormato = Pick<Programa, "perfil_programacao"> | null | undefined;

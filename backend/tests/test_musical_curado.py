@@ -1,10 +1,10 @@
-"""Regressões observadas no flashback de produção em 26/11/2026."""
+"""Formato musical com curadoria (ex-flashback): regressões observadas em produção em 26/11/2026 e generalização."""
 import datetime
 from types import SimpleNamespace as NS
 
 import pytest
 
-from app.live import flashback
+from app.live import musical_curado as flashback
 from app.live.identidade_musical import corresponde, versao_de_estudio
 from app.live.music import MusicaEncontrada
 from app.live.router import _selecionar_musica_para_bloco, _tipo_proximo_bloco
@@ -95,9 +95,9 @@ def test_rotacao_por_artista_independe_de_video(db_session, programa_flashback, 
 
 
 def test_orcamento_por_funcao_e_sem_comentarios_extras(programa_flashback):
-    assert orcamento_para("flashback", "identificacao", False).max_s == 8
-    assert orcamento_para("flashback", "musica", False).max_s == 15
-    assert orcamento_para("flashback", "comentario", False).aplicar
+    assert orcamento_para("musical_curado", "identificacao", False).max_s == 8
+    assert orcamento_para("musical_curado", "musica", False).max_s == 15
+    assert orcamento_para("musical_curado", "comentario", False).aplicar
     programa_flashback.estrutura_blocos = ["comentario"]
     assert _tipo_proximo_bloco(programa_flashback, 5, "comentario") == "musica"
     programa_flashback.estrutura_blocos = []
@@ -210,3 +210,45 @@ def test_gravacao_arquivada_respeita_conta_e_retencao(client, account, account_f
     assert client.get(f"{base}/{gravacao.id}/audio", headers=auth_headers(account.id)).status_code == 404
     limpar_gravacoes_expiradas(db_session)
     assert not arquivo.exists() and db_session.query(GravacaoPrograma).count() == 0
+
+
+def test_formato_curado_vale_para_qualquer_programa_musical(programa_flashback):
+    from app.live.formatos import formato_do_programa, resolver_formato
+
+    assert resolver_formato("flashback").id == "musical_curado"  # alias legado: nenhum dado gravado precisa migrar
+    programa_flashback.perfil_programacao = "musical_curado"
+    programa_flashback.musicas_permitidas = []
+    assert formato_do_programa(programa_flashback).id == "musical_curado"
+    assert flashback.ativo(programa_flashback)  # regras editoriais valem
+    assert not flashback.repertorio_curado(programa_flashback)  # sem lista própria: busca normal, sem a reserva de 1970–1999
+    assert flashback.candidatos(programa_flashback, set(), set()) == []
+    programa_flashback.musicas_permitidas = ["Djavan - Oceano", "Gilberto Gil - Aquele Abraço"]
+    assert flashback.repertorio_curado(programa_flashback)
+    assert flashback.candidatos(programa_flashback, set(), set()) == [("Djavan", "Oceano"), ("Gilberto Gil", "Aquele Abraço")]
+
+
+def test_perfil_legado_flashback_continua_com_a_reserva_de_classicos(programa_flashback):
+    programa_flashback.perfil_programacao = "flashback"
+    programa_flashback.musicas_permitidas = []
+    assert flashback.repertorio_curado(programa_flashback)
+    assert len(flashback.candidatos(programa_flashback, set(), set())) == len(flashback.RESERVA)
+
+
+def test_programa_fora_do_formato_nao_ativa_regras_nem_repertorio(programa_flashback):
+    programa_flashback.perfil_programacao = "padrao"
+    assert not flashback.ativo(programa_flashback) and not flashback.repertorio_curado(programa_flashback)
+
+
+def test_configurar_musical_aplica_perfil_neutro_com_repertorio_proprio(db_session, account, programa_flashback):
+    from app.live.configurar_musical import configurar
+
+    programa_flashback.perfil_programacao = "padrao"
+    programa_flashback.nome = "Tardes MPB"
+    db_session.commit()
+    resultado = configurar(db_session, account.id, programa_flashback.id, aplicar=True,
+                           repertorio=["Djavan - Oceano"])
+    assert resultado["aplicado"] and "musical-" in resultado["backup"]
+    db_session.refresh(programa_flashback)
+    assert programa_flashback.perfil_programacao == "musical_curado"
+    assert programa_flashback.musicas_permitidas == ["Djavan - Oceano"]
+    assert programa_flashback.pode_pesquisar is False and programa_flashback.ia_pode_adicionar_blocos is False

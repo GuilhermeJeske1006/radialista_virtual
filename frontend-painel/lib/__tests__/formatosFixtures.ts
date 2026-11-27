@@ -73,10 +73,10 @@ export function formatosFixture(): FormatoPrograma[] {
       requer: "",
     },
     {
-      id: "flashback", nome: "Flashback 1970–1999", promessa: "Reencontrar os clássicos", conteudo: "Música e conversa breve",
+      id: "musical_curado", nome: "Musical com curadoria", promessa: "Música no centro, com repertório confiável", conteudo: "Música e conversa breve",
       conducao: "Próxima e concisa", unidade_principal: "anúncio de 8 a 15 s; conversa de 20 a 30 s",
       roteiro_padrao: ["musica", "musica", "comentario", "musica", "musica", "identificacao", "musica", "musica", "chamada_ouvinte", "musica", "musica"],
-      relogio_padrao: null, ia_pode_adicionar_blocos: false, participacao: "Uma pergunta concreta", temas_revisao: [], reorientacao_s: null, aliases: [], implementado: true, requer: "",
+      relogio_padrao: null, ia_pode_adicionar_blocos: false, participacao: "Uma pergunta concreta", temas_revisao: [], reorientacao_s: null, aliases: ["flashback"], implementado: true, requer: "",
     },
     {
       id: "hits",

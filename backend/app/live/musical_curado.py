@@ -1,9 +1,14 @@
-"""Direção e reserva do flashback 1970–1999. Sem rede nem efeitos colaterais."""
+"""Direção e repertório curado do formato musical com curadoria (usado também pelo flashback 1970–1999).
+
+Sem rede nem efeitos colaterais. O formato vale para qualquer programa musical: o repertório vem de
+`programa.musicas_permitidas`; só o perfil legado `flashback` cai na reserva de clássicos 1970–1999 quando a lista está vazia.
+"""
 import re
 
 from app.live.identidade_musical import normalizar
 
-ID = "flashback"
+ID = "musical_curado"
+PERFIL_LEGADO_FLASHBACK = "flashback"
 INTERVALO_ARTISTA_MIN = 45
 ROTEIRO = (
     "abertura", "musica", "musica", "comentario", "musica", "musica", "identificacao",
@@ -66,7 +71,20 @@ FATOS = (
 
 
 def ativo(programa) -> bool:
-    return getattr(programa, "perfil_programacao", "") == ID
+    """Regras editoriais do formato (fatos verificados, repetição, tom): perfil `musical_curado` ou o alias legado."""
+    from app.live.formatos import formato_do_programa
+    return formato_do_programa(programa).id == ID
+
+
+def repertorio_curado(programa) -> bool:
+    """Seleção só do repertório aprovado, sem busca aberta nem classificadores de gênero (mais barato e previsível).
+
+    Exige lista própria (`musicas_permitidas`) ou o perfil legado `flashback`, que traz a reserva de clássicos.
+    Um programa `musical_curado` sem lista segue a busca normal, mantendo as regras editoriais."""
+    if not ativo(programa):
+        return False
+    return bool(getattr(programa, "musicas_permitidas", None)) \
+        or getattr(programa, "perfil_programacao", "") == PERFIL_LEGADO_FLASHBACK
 
 
 def artista_da_faixa(titulo: str, canal: str) -> str:
@@ -79,7 +97,7 @@ def instrucao_editorial(ctx) -> list[str]:
         return []
     historico = " ".join(ctx.memoria.historico)
     linhas = [
-        "DIREÇÃO DO FLASHBACK: uma intenção e uma ideia por entrada; música é o centro.",
+        "DIREÇÃO DO MUSICAL COM CURADORIA: uma intenção e uma ideia por entrada; música é o centro.",
         "Comece anúncios pelo artista e título confirmados. Identificação contém só rádio, frequência e programa.",
         "Não transforme toda entrada em história de pista ou lista de locais de trabalho. "
         "Referência local só quando acrescentar algo. Não afirme público lotado, demanda ou participação inexistente.",
@@ -142,7 +160,8 @@ def candidatos(programa, artistas_recentes: set[str], titulos_tocados: set[str])
     for entrada in getattr(programa, "musicas_permitidas", []) or []:
         if " - " in entrada:
             itens.append(tuple(entrada.split(" - ", 1)))
-    itens = itens or list(RESERVA)
+    if not itens and getattr(programa, "perfil_programacao", "") == PERFIL_LEGADO_FLASHBACK:
+        itens = list(RESERVA)
     return [(a, t) for a, t in itens if not titulo_ja_tocado(t, titulos_tocados)
             and normalizar(a).replace(" ", "") not in artistas_recentes]
 
