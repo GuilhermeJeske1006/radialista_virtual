@@ -442,6 +442,8 @@ def test_buscar_metadados_musica_cacheia_por_video_id(monkeypatch):
     chamadas_http = []
 
     class _RespostaFake:
+        status_code = 200
+
         def raise_for_status(self):
             pass
 
@@ -483,3 +485,84 @@ def test_titulo_ja_tocado_reconhece_mesma_musica_com_artista_no_titulo():
     assert not titulo_ja_tocado("Página de Amigos", tocados)
     # trecho curto demais nao conta como mesma musica
     assert not titulo_ja_tocado("Amor de Chacal", {_titulo_normalizado("Amor")})
+
+
+class _RespostaHttp:
+    def __init__(self, status=200, corpo=None):
+        self.status_code = status
+        self._corpo = corpo or {}
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            import httpx
+            raise httpx.HTTPStatusError("erro", request=None, response=None)
+
+    def json(self):
+        return self._corpo
+
+
+def test_youtube_chave_vai_no_header_e_nunca_na_url(monkeypatch):
+    from app.live import music
+
+    monkeypatch.setattr(settings, "youtube_api_key", "SEGREDO-123")
+    capturado = {}
+
+    def _get(url, params=None, headers=None, timeout=None):
+        capturado.update(url=url, params=params, headers=headers)
+        return _RespostaHttp(corpo={"items": []})
+
+    monkeypatch.setattr("app.live.music.httpx.get", _get)
+    music._buscar_itens("qualquer musica header")
+    assert "key" not in capturado["params"]
+    assert capturado["headers"] == {"X-goog-api-key": "SEGREDO-123"}
+
+
+def test_youtube_cota_esgotada_abre_disjuntor_e_para_de_chamar(monkeypatch):
+    from app.live import music
+
+    monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
+    chamadas = []
+
+    def _get(*a, **k):
+        chamadas.append(1)
+        return _RespostaHttp(status=429)
+
+    monkeypatch.setattr("app.live.music.httpx.get", _get)
+    assert music._buscar_itens("musica a") == []
+    assert music._buscar_itens("musica b") == []
+    assert music._buscar_duracoes(["x1"]) == {}
+    assert len(chamadas) == 1  # o 429 abriu o disjuntor: as demais chamadas nem saem
+
+
+def test_youtube_cota_esgotada_nao_cacheia_resultado_vazio(monkeypatch):
+    from app.live import music
+    from app.config.redis_client import redis_client
+
+    monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
+    monkeypatch.setattr("app.live.music.httpx.get", lambda *a, **k: _RespostaHttp(status=403))
+    music._buscar_itens("musica sem cache")
+    assert redis_client.get("cache:youtube_busca:musica sem cache") is None
+
+
+def test_youtube_titulos_html_sao_normalizados(monkeypatch):
+    from app.live import music
+
+    monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
+    corpo = {"items": [_item("v1", "Al Green - Let&#39;s Stay Together", "Al Green - Topic")]}
+    monkeypatch.setattr("app.live.music.httpx.get", lambda *a, **k: _RespostaHttp(corpo=corpo))
+    itens = music._buscar_itens("al green lets stay")
+    assert itens[0]["snippet"]["title"] == "Al Green - Let's Stay Together"
+
+
+def test_busca_geral_so_roda_quando_a_de_estudio_nao_resolve(monkeypatch):
+    monkeypatch.setattr(settings, "youtube_api_key", "fake-key")
+    consultas = []
+
+    def _itens(query):
+        consultas.append(query)
+        return [_item("ok1", "Evidencias", "Chitaozinho - Topic")] if query.endswith("estúdio") else []
+
+    monkeypatch.setattr("app.live.music._buscar_itens", _itens)
+    monkeypatch.setattr("app.live.music._buscar_duracoes", lambda ids: {v: 240 for v in ids})
+    assert buscar_musica("evidencias").video_id == "ok1"
+    assert consultas == ["evidencias estúdio"]  # 1 search.list (100 unidades) em vez de 2

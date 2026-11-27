@@ -9,6 +9,8 @@ Pensado pra rodar num cron do SO, ex. a cada hora:
 """
 
 import logging
+
+from app.util.log_seguro import configurar_logging
 import secrets
 
 import httpx
@@ -51,6 +53,6 @@ def reprocessar_contas_sem_hmac() -> int:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    configurar_logging()
     total = reprocessar_contas_sem_hmac()
     logger.info("Reprocessamento de HMAC concluido: %s conta(s) corrigida(s)", total)

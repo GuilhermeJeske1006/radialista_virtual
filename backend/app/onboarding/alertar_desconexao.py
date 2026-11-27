@@ -9,6 +9,8 @@ Pensado pra rodar num cron do SO, ex. a cada 5 minutos:
 
 import logging
 
+from app.util.log_seguro import configurar_logging
+
 import httpx
 
 from app.auth.email import enviar_email_alerta_desconexao
@@ -72,6 +74,6 @@ def verificar_desconexoes() -> int:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    configurar_logging()
     total = verificar_desconexoes()
     logger.info("Verificacao de desconexao concluida: %s alerta(s) enviado(s)", total)

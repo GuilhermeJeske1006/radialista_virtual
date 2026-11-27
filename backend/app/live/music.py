@@ -1,3 +1,4 @@
+import html
 import json
 import logging
 import random
@@ -274,6 +275,42 @@ def _eh_canal_oficial(canal: str) -> bool:
 # pula alguns segundos fixos pra reduzir chance de comecar no meio da fala.
 SEGUNDOS_PULAR_AO_VIVO = 15
 
+_CHAVE_COTA_YOUTUBE = "cb:youtube_quota"
+
+
+def _segundos_ate_reset_cota() -> int:
+    """A cota diária da YouTube Data API zera à meia-noite de America/Los_Angeles."""
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    agora = datetime.now(ZoneInfo("America/Los_Angeles"))
+    meia_noite = (agora + timedelta(days=1)).replace(hour=0, minute=0, second=5, microsecond=0)
+    return max(60, int((meia_noite - agora).total_seconds()))
+
+
+def _cota_youtube_esgotada() -> bool:
+    return bool(redis_client.get(_CHAVE_COTA_YOUTUBE))
+
+
+def _youtube_get(url: str, params: dict):
+    """GET na YouTube Data API: chave no header (nunca na URL, que vai para logs) e disjuntor de cota.
+
+    Devolve a resposta ou None quando a cota esgotou/está bloqueada (403/429); levanta httpx.HTTPError
+    nos demais erros. Com a cota esgotada, nenhuma chamada sai até o reset diário.
+    """
+    if _cota_youtube_esgotada():
+        return None
+    resposta = httpx.get(url, params=params, headers={"X-goog-api-key": settings.youtube_api_key}, timeout=8.0)
+    if resposta.status_code in (403, 429):
+        ttl = _segundos_ate_reset_cota()
+        if redis_client.set(_CHAVE_COTA_YOUTUBE, "1", ex=ttl, nx=True):
+            logger.warning("Cota da YouTube Data API esgotada (HTTP %s): chamadas pausadas por %ss",
+                           resposta.status_code, ttl)
+        return None
+    resposta.raise_for_status()
+    return resposta
+
+
 
 def _buscar_itens(query: str) -> list[dict]:
     if not settings.youtube_api_key:
@@ -285,7 +322,6 @@ def _buscar_itens(query: str) -> list[dict]:
         return json.loads(em_cache)
 
     params = {
-        "key": settings.youtube_api_key,
         "part": "snippet",
         "q": query,
         "type": "video",
@@ -297,13 +333,19 @@ def _buscar_itens(query: str) -> list[dict]:
     }
 
     try:
-        resposta = httpx.get(YOUTUBE_SEARCH_URL, params=params, timeout=8.0)
-        resposta.raise_for_status()
+        resposta = _youtube_get(YOUTUBE_SEARCH_URL, params)
     except httpx.HTTPError:
         logger.warning("Falha na busca do YouTube: query=%r", query, exc_info=True)
         return []
+    if resposta is None:  # cota esgotada: sem cache, para voltar a tentar após o reset
+        return []
 
     itens = resposta.json().get("items", [])
+    for item in itens:  # a API devolve entidades HTML ("Let&#39;s"): normaliza antes de cachear/falar
+        snippet = item.get("snippet") or {}
+        for campo in ("title", "channelTitle"):
+            if isinstance(snippet.get(campo), str):
+                snippet[campo] = html.unescape(snippet[campo])
     redis_client.set(chave_cache, json.dumps(itens), ex=_CACHE_TTL_SEGUNDOS)
     return itens
 
@@ -339,16 +381,16 @@ def _buscar_duracoes(video_ids: list[str]) -> dict[str, int]:
         return duracoes
 
     params = {
-        "key": settings.youtube_api_key,
         "part": "contentDetails",
         "id": ",".join(faltantes),
     }
 
     try:
-        resposta = httpx.get(YOUTUBE_VIDEOS_URL, params=params, timeout=8.0)
-        resposta.raise_for_status()
+        resposta = _youtube_get(YOUTUBE_VIDEOS_URL, params)
     except httpx.HTTPError:
         logger.warning("Falha ao buscar duracoes de videos no YouTube", exc_info=True)
+        return duracoes
+    if resposta is None:
         return duracoes
 
     for item in resposta.json().get("items", []):
@@ -376,16 +418,16 @@ def _buscar_metadados_musica(video_id: str) -> dict:
         return json.loads(em_cache)
 
     params = {
-        "key": settings.youtube_api_key,
         "part": "snippet",
         "id": video_id,
     }
 
     try:
-        resposta = httpx.get(YOUTUBE_VIDEOS_URL, params=params, timeout=8.0)
-        resposta.raise_for_status()
+        resposta = _youtube_get(YOUTUBE_VIDEOS_URL, params)
     except httpx.HTTPError:
         logger.warning("Falha ao buscar metadados de video no YouTube: video_id=%r", video_id, exc_info=True)
+        return {}
+    if resposta is None:
         return {}
 
     itens = resposta.json().get("items", [])
@@ -619,11 +661,18 @@ def buscar_musica(
             return MusicaEncontrada(video_id=video_id, titulo=titulo, canal=canal, inicio_segundos=inicio)
         return None
 
+    # Economia de cota (100 unidades por search.list): a busca geral só roda se a de estúdio não
+    # resolver nenhuma combinação estrita; antes eram 2 buscas por resolução.
     itens_estudio = _buscar_itens(f"{query} estúdio")
-    itens_geral = _buscar_itens(query)
-    duracoes = _buscar_duracoes(
-        [item["id"]["videoId"] for item in itens_estudio + itens_geral]
-    )
+    duracoes = _buscar_duracoes([item["id"]["videoId"] for item in itens_estudio])
+    _geral: list[dict] | None = None
+
+    def obter_itens_geral() -> list[dict]:
+        nonlocal _geral
+        if _geral is None:
+            _geral = _buscar_itens(query)
+            duracoes.update(_buscar_duracoes([item["id"]["videoId"] for item in _geral]))
+        return _geral
 
     # respeitar_genero relaxa primeiro que tudo (loop mais externo): genero pedido e' o sinal
     # mais importante de acerto (ver docstring), so' aceita resultado de genero errado quando
@@ -649,7 +698,7 @@ def buscar_musica(
                     return _preencher_extras(resultado, duracoes)
 
                 resultado = escolher(
-                    itens_geral,
+                    obter_itens_geral(),
                     permitir_ao_vivo=False,
                     respeitar_limite_canal=respeitar_limite_canal,
                     duracoes=duracoes,
@@ -660,7 +709,7 @@ def buscar_musica(
                     return _preencher_extras(resultado, duracoes)
 
                 resultado = escolher(
-                    itens_geral,
+                    obter_itens_geral(),
                     permitir_ao_vivo=True,
                     respeitar_limite_canal=respeitar_limite_canal,
                     duracoes=duracoes,

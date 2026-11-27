@@ -1,6 +1,8 @@
 """Consumidor durável: python -m app.whatsapp.worker. Um processo pode reiniciar sem perder jobs."""
 import datetime
 import logging
+
+from app.util.log_seguro import configurar_logging
 import time
 import uuid
 import httpx
@@ -293,7 +295,7 @@ def executar_rodada(factory=SessionLocal):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    configurar_logging()
     while True:
         try:
             executar_rodada()

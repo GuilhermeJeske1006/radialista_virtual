@@ -68,6 +68,7 @@ from app.whatsapp.webhook import router as whatsapp_router
 from app.whatsapp.gestao import router as ouvintes_router
 from app.whatsapp.central import router as central_router
 from app.whatsapp.transmissao import router as transmissao_router
+from app.util.log_seguro import configurar_logging, sentry_before_send, sentry_before_send_log
 
 _LOG_DIR = pathlib.Path("logs")
 _LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -80,7 +81,7 @@ _arquivo_handler = logging.handlers.RotatingFileHandler(
 )
 _arquivo_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
 
-logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(), _arquivo_handler])
+configurar_logging(handlers=[logging.StreamHandler(), _arquivo_handler])
 
 logger = logging.getLogger("radialista.main")
 
@@ -91,6 +92,8 @@ sentry_sdk.init(
     environment=settings.sentry_environment,
     traces_sample_rate=settings.sentry_traces_sample_rate,
     enable_logs=settings.sentry_enable_logs,
+    before_send=sentry_before_send,
+    before_send_log=sentry_before_send_log,
     integrations=[
         # warning+ vira log buscavel no Sentry; error+ continua virando evento (default).
         LoggingIntegration(sentry_logs_level=logging.WARNING),

@@ -10,6 +10,8 @@ Pensado pra rodar num cron do SO, ex. a cada 6 horas:
 
 import logging
 
+from app.util.log_seguro import configurar_logging
+
 from app.billing.limites import mes_referencia_atual
 from app.billing.upsell import calcular_sinal_upsell
 from app.db.database import SessionLocal
@@ -64,6 +66,6 @@ def verificar_gatilhos_upsell() -> int:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    configurar_logging()
     total = verificar_gatilhos_upsell()
     logger.info("Verificacao de gatilhos de upsell concluida: %s aviso(s) enviado(s)", total)

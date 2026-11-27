@@ -8,6 +8,8 @@ nunca no caminho de fala.
 import datetime
 import hashlib
 import logging
+
+from app.util.log_seguro import configurar_logging
 import re
 
 from sqlalchemy.orm import Session
@@ -208,5 +210,5 @@ def executar() -> None:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    configurar_logging()
     executar()
