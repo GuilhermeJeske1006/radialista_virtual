@@ -74,6 +74,43 @@ def test_reserva_so_serve_identificacao_pronta_do_programa(client, account, auth
     assert resposta.json()["texto"] == "Você está ouvindo nossa rádio."
 
 
+def test_reserva_faz_rodizio_e_evita_vinheta_de_momento_especifico(client, account, auth_headers, db_session,
+                                                                  radialista_e_programa, monkeypatch, tmp_path):
+    import base64
+    from app.config.settings import settings
+    from app.storage import get_storage
+    radio, programa = radialista_e_programa
+    monkeypatch.setattr(settings, "upload_dir", str(tmp_path))
+    textos = {"a.mp3": "Flashback do Meio-Dia! Liga o rádio e volta no tempo.",
+              "b.mp3": "Guabiruba FM, a rádio da sua cidade!",
+              "c.mp3": "Meio-dia em ponto! Começa o Flashback do Meio-Dia."}
+    for caminho, texto in textos.items():
+        get_storage().save(caminho, texto.encode())
+        db_session.add(BibliotecaAudioItem(account_id=account.id, programa_id=programa.id, nome=caminho,
+                                           papel="passagem", origem="auto", status="pronta", texto=texto,
+                                           audio_path=caminho))
+    db_session.commit()
+    url = f"/live/{radio.id}/programas/{programa.id}/reserva"
+    sorteadas = [client.get(url, headers=auth_headers(account.id)).json()["texto"] for _ in range(4)]
+    assert not any("em ponto" in t for t in sorteadas)  # abertura de hora cheia nunca vai de reserva
+    assert len(set(sorteadas)) == 2  # alterna entre as duas atemporais
+    assert all(sorteadas[i] != sorteadas[i + 1] for i in range(3))
+
+
+def test_proxima_falha_rapido_sem_buscar_musica_quando_llm_indisponivel(client, account, auth_headers,
+                                                                       radialista_e_programa, monkeypatch):
+    from app.config.redis_client import redis_client
+    from app.llm import economia
+    radio, programa = radialista_e_programa
+    redis_client.set(economia._CHAVE_DISJUNTOR_LLM, "saldo", ex=60)
+    monkeypatch.setattr("app.live.router.buscar_musica", lambda *a, **k: pytest.fail("não deve buscar música"))
+    monkeypatch.setattr("app.live.router.gerar_resposta", lambda *a, **k: pytest.fail("não deve chamar o LLM"))
+    resposta = client.post(_url_proxima(radio.id, programa.id), json={"historico": [], "total_falas": 3},
+                           headers=auth_headers(account.id))
+    assert resposta.status_code == 503
+    assert "créditos" in resposta.json()["detail"]
+
+
 def test_reserva_ausente_nao_gera_audio_novo(client, account, auth_headers, radialista_e_programa, monkeypatch):
     radio, programa = radialista_e_programa
     monkeypatch.setattr("app.live.router.sintetizar_audio", lambda *a, **k: pytest.fail("não deve sintetizar"))

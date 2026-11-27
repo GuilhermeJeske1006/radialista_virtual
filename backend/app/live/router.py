@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_account
 from app.config.redis_client import redis_sessao as redis_client  # estado de sessão e cache: falha aberta (F3)
+from app.llm.economia import MENSAGEM_SEM_CREDITO, llm_indisponivel
 from app.config.settings import settings
 from app.billing.contexto_ia import tarefa_com_contexto, tarefa_independente
 from app.db.database import SessionLocal, get_db
@@ -2805,6 +2806,11 @@ def _gerar_proxima_fala(
     decisao = decidir_bloco(entrada, portas)
     if decisao.vinheta is not None or decisao.patrocinador is not None:
         return _resposta_pronta(decisao, programa, cfg_relogio)
+    if llm_indisponivel():
+        # Provedor sem saldo/credencial: falha rápida ANTES de buscar música (YouTube/Spotify/yt-dlp gastam
+        # cota) e de registrar a faixa como tocada sem que a fala exista. O painel cai na reserva.
+        logger.info("live_proxima_llm_indisponivel programa_id=%s", programa.id)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=MENSAGEM_SEM_CREDITO)
     resolucao = resolver_musica_e_pedidos(entrada, decisao, portas)
     if resolucao.so_musica:
         return _resposta_so_musica(decisao, resolucao.musica, programa, cfg_relogio)
@@ -2971,17 +2977,34 @@ def buscar_preparo_antecipado(
     return {"disponivel": True, **preparo}
 
 
+# Vinheta que só vale num momento específico (abertura em hora cheia, saudação de turno, hora marcada).
+_VINHETA_COM_MOMENTO = re.compile(
+    r"em ponto|\bcome[cç]a\b|bom dia|boa tarde|boa noite|\b\d{1,2}\s*(?:h\b|horas?\b)|\bs[ãa]o\s+\w+\s+horas?\b",
+    re.IGNORECASE,
+)
+
+
 @router.get("/{radialista_id}/programas/{programa_id}/reserva")
 def buscar_audio_reserva(radialista_id: int, programa_id: int,
                         account: Account = Depends(get_current_account), db: Session = Depends(get_db)):
-    """Somente identificação já gravada deste programa; nunca gera TTS nem reutiliza notícias."""
+    """Somente identificação já gravada deste programa; nunca gera TTS nem reutiliza notícias.
+
+    Com o LLM fora do ar o painel cai aqui a cada 3-5 min: devolver sempre a vinheta mais nova repetia a
+    mesma fala por uma hora (27/11). Agora faz rodízio entre as vinhetas e evita as que só fazem sentido
+    em outro momento ("Meio-dia em ponto! Começa o...", bom dia, hora marcada)."""
     from app.storage import get_storage
     radialista = _buscar_radialista(db, account, radialista_id)
     _buscar_programa(db, radialista, programa_id)
     itens = (db.query(BibliotecaAudioItem).filter_by(account_id=account.id, programa_id=programa_id,
              papel="passagem", origem="auto", ativo=True, status="pronta")
-             .filter(BibliotecaAudioItem.audio_path.isnot(None)).order_by(BibliotecaAudioItem.id.desc()).limit(3).all())
-    for item in itens:
+             .filter(BibliotecaAudioItem.audio_path.isnot(None)).order_by(BibliotecaAudioItem.id.desc()).limit(12).all())
+    atemporais = [i for i in itens if not _VINHETA_COM_MOMENTO.search(i.texto or "")]
+    candidatos = atemporais or itens
+    if not candidatos:
+        return {"disponivel": False}
+    inicio = redis_client.incr(f"live:reserva_rodizio:{programa_id}") or 0
+    for deslocamento in range(len(candidatos)):
+        item = candidatos[(int(inicio) + deslocamento) % len(candidatos)]
         audio = get_storage().read(item.audio_path)
         if audio:
             return {"disponivel": True, "audio_base64": base64.b64encode(audio).decode(), "texto": item.texto or ""}
