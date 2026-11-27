@@ -127,8 +127,18 @@ class FalaGerada:
     violacoes_pre: list = dataclasses.field(default_factory=list)
 
 
+def modelo_da_fala(categoria: str) -> str | None:
+    """Modelo mais barato para falas curtas, quando configurado (LLM_MODEL_FALAS_CURTAS); None = o padrão."""
+    if settings.llm_model_falas_curtas and categoria in settings.llm_categorias_falas_curtas:
+        return settings.llm_model_falas_curtas
+    return None
+
+
 def _gerar_falas_bloco(ctx, mensagem: str, system: str, portas: PortasEmissao) -> tuple[list[FalaItem], str]:
     if not ctx.multi_voz:
+        modelo = modelo_da_fala(ctx.categoria)
+        if modelo:
+            return [], _limpar_fala(portas.gerar_resposta(system, mensagem, model=modelo))
         return [], _limpar_fala(portas.gerar_resposta(system, mensagem))
 
     resposta_llm = portas.gerar_dialogo_multivoz(system, mensagem)

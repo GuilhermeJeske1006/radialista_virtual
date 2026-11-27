@@ -128,7 +128,7 @@ def criar_mensagem(client, **kwargs):
     model = kwargs["model"]
     if model != settings.llm_classification_model:
         model = kwargs["model"] = modelo_efetivo('llm', model)
-        if 'haiku' in model:
+        if model.startswith('claude-haiku-4'):  # Haiku 4.5 não aceita estes parâmetros
             kwargs.pop('thinking', None)
             kwargs.pop('output_config', None)
     tarifas = settings.ia_tarifas_llm.get(model)
@@ -182,7 +182,8 @@ def criar_mensagem(client, **kwargs):
         reads = getattr(usage, "cache_read_input_tokens", 0) or 0
         tools = getattr(usage, "server_tool_use", None)
         buscas = (getattr(tools, "web_search_requests", 0) or 0) if tools else 0
-        custo = (entrada * (ins + 1.25 * writes + 0.1 * reads) + saida * outs) / 1_000_000 + buscas * 0.01
+        coef_leitura = settings.ia_coef_cache_leitura.get(model, 0.1)
+        custo = (entrada * (ins + 1.25 * writes + coef_leitura * reads) + saida * outs) / 1_000_000 + buscas * 0.01
         concluir(reserva, custo, {"entrada": ins, "saida": outs, "cache_write": writes, "cache_read": reads, "buscas": buscas}, entregue=False if getattr(resposta, "stop_reason", None) == "refusal" else None, request_id=getattr(resposta, "id", None))
         logger.info("llm_consumo modelo=%s entrada=%s saida=%s cache_write=%s cache_read=%s usd=%.6f",
                     model, ins, outs, writes, reads, custo)

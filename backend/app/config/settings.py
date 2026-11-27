@@ -73,6 +73,11 @@ class Settings(BaseSettings):
     # Modelos econômicos podem ser avaliados sem trocar a voz de clientes existentes.
     llm_model: str = "claude-opus-5"
     llm_classification_model: str = "claude-haiku-4-5"
+    # Modelo mais barato para as falas curtas do ao vivo (anúncio de música, identificação, retomada, chamada de
+    # ouvinte), que só reescrevem dados já dados no prompt. Vazio = mesmo modelo de `llm_model` (comportamento atual).
+    # Só ligar depois do A/B de qualidade (docs/plano-reducao-custo-flashback.md, passo 7).
+    llm_model_falas_curtas: str = ""
+    llm_categorias_falas_curtas: list[str] = ["musica", "identificacao", "retomada", "chamada_ouvinte"]
     # Prefixos dinâmicos sem hits custariam mais por escrita. Ativar só com
     # repetição medida; o cache de classificações estáveis independe desta opção.
     llm_prompt_cache: bool = False
@@ -118,7 +123,11 @@ class Settings(BaseSettings):
                                  "equilibrada_v4_turbo", "essencial", "voz_premium_v4_turbo"]
     ia_tarifas_llm: dict[str, list[float]] = {
         "claude-opus-5": [5, 25], "claude-sonnet-5": [2, 10], "claude-haiku-4-5": [1, 5],
+        # Modelos 5.5 (tabela pública de 11/2026): só entram em uso por configuração, depois do A/B de qualidade.
+        "claude-opus-5-5": [4, 20], "claude-sonnet-5-5": [2, 10], "claude-haiku-5-5": [0.10, 0.50],
     }
+    # Leitura de cache como fração da tarifa de entrada (padrão 0,1); nos modelos 5.5 é 0,05.
+    ia_coef_cache_leitura: dict[str, float] = {"claude-opus-5-5": 0.05, "claude-sonnet-5-5": 0.05}
     ia_tarifas_tts: dict[str, float] = {
         "eleven_v3": 0.10, "eleven_multilingual_v2": 0.10, "eleven_flash_v2_5": 0.05,
         # Preço cheio da API = v3 e Flash (o desconto de lançamento acaba em 2026-10-12).

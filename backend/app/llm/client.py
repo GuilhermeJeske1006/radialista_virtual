@@ -17,6 +17,23 @@ MODEL = settings.llm_model
 CLASSIFICATION_MODEL = settings.llm_classification_model
 
 
+def parametros_modelo(model: str, effort: str = "low") -> dict:
+    """Raciocínio e esforço por modelo: cada geração aceita um conjunto diferente (docs da API, 11/2026).
+
+    - Haiku 4.5: sem esses parâmetros (comportamento histórico).
+    - Haiku 5.5 / Opus 5 / Sonnet 5: raciocínio desligado explicitamente (no Haiku 5.5 só vale até esforço `high`).
+    - Opus 5.5: o raciocínio não desliga (`disabled` dá 400); controla-se só pelo esforço.
+    - Sonnet 5.5: `disabled` dá 400; `between_tools` é o modo sem raciocínio prévio (esforço até `high`).
+    """
+    if model.startswith("claude-haiku-4"):
+        return {}
+    if model.startswith("claude-opus-5-5"):
+        return {"output_config": {"effort": effort}}
+    if model.startswith("claude-sonnet-5-5"):
+        return {"thinking": {"type": "between_tools"}, "output_config": {"effort": effort}}
+    return {"thinking": {"type": "disabled"}, "output_config": {"effort": effort}}
+
+
 def _cortar_ate_ultima_frase(texto: str) -> str:
     """Apara um texto truncado (stop_reason=max_tokens) ate' o ultimo '.'/'!'/'?' completo.
 
@@ -30,11 +47,12 @@ def _cortar_ate_ultima_frase(texto: str) -> str:
     return texto[: idx + 1].strip()
 
 
-def gerar_resposta(system_prompt: str, mensagem_usuario: str) -> str:
+def gerar_resposta(system_prompt: str, mensagem_usuario: str, model: str | None = None) -> str:
+    model = model or MODEL
     response = criar_mensagem(_client,
-        model=MODEL,
+        model=model,
         max_tokens=512,
-        **({} if "haiku" in MODEL else {"thinking": {"type": "disabled"}, "output_config": {"effort": "low"}}),
+        **parametros_modelo(model, "low"),
         system=system_prompt,
         messages=[{"role": "user", "content": mensagem_usuario}],
     )
@@ -61,7 +79,7 @@ def gerar_resposta_chat(system_prompt: str, historico: list[dict[str, str]]) -> 
     response = criar_mensagem(_client,
         model=MODEL,
         max_tokens=768,
-        **({} if "haiku" in MODEL else {"thinking": {"type": "disabled"}, "output_config": {"effort": "low"}}),
+        **parametros_modelo(MODEL, "low"),
         system=system_prompt,
         messages=historico,
     )
@@ -100,6 +118,7 @@ def gerar_classificacao(system_prompt: str, mensagem_usuario: str, max_tokens: i
     response = criar_mensagem(_client,
         model=CLASSIFICATION_MODEL,
         max_tokens=max_tokens,
+        **parametros_modelo(CLASSIFICATION_MODEL, "low"),
         system=system_prompt,
         messages=[{"role": "user", "content": mensagem_usuario}],
     )
@@ -161,7 +180,7 @@ def gerar_configuracao(system_prompt: str, mensagem_usuario: str) -> str:
     response = criar_mensagem(_client,
         model=MODEL,
         max_tokens=4096,
-        **({} if "haiku" in MODEL else {"thinking": {"type": "disabled"}, "output_config": {"effort": "high"}}),
+        **parametros_modelo(MODEL, "high"),
         system=system_prompt,
         messages=[{"role": "user", "content": mensagem_usuario}],
     )
@@ -189,7 +208,7 @@ def gerar_dialogo_multivoz(system_prompt: str, mensagem_usuario: str) -> str:
     response = criar_mensagem(_client,
         model=MODEL,
         max_tokens=1024,
-        **({} if "haiku" in MODEL else {"thinking": {"type": "disabled"}, "output_config": {"effort": "low"}}),
+        **parametros_modelo(MODEL, "low"),
         system=system_prompt,
         messages=[{"role": "user", "content": mensagem_usuario}],
     )
